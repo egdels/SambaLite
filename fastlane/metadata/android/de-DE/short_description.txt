@@ -1,0 +1,1 @@
+Ein schlanker, moderner und quelloffener Android-Client für SMB/CIFS-Freigaben.

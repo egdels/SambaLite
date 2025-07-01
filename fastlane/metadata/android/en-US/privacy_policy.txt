@@ -1,0 +1,80 @@
+# Privacy Policy for SambaLite
+
+**Last Updated:** 2023-11-01
+
+## Introduction
+
+SambaLite is a lightweight, open-source Android client for SMB/CIFS shares. We are committed to protecting your privacy and ensuring the security of your data. This privacy policy explains what information we collect, how we use it, and what rights you have in relation to your data.
+
+## Information We Collect
+
+### Information You Provide
+
+SambaLite collects and stores the following information that you explicitly provide:
+
+- **Connection credentials**: Server addresses, share paths, usernames, passwords, and domain names that you enter to connect to SMB shares.
+- **Connection names**: Names you assign to your saved connections.
+
+### Automatically Collected Information
+
+SambaLite does **not** collect any of the following:
+
+- Personal information beyond what you explicitly enter
+- Usage statistics or analytics
+- Crash reports
+- Device information
+- Location data
+- Browsing history
+
+## How We Use Your Information
+
+The information you provide is used solely for the following purposes:
+
+- **Connection credentials and names**: Used exclusively to establish and maintain connections to the SMB shares you specify. This information is stored locally on your device and is never transmitted to us or any third parties.
+
+## Data Storage and Security
+
+- **Local storage only**: All data is stored exclusively on your device. SambaLite does not use cloud storage or synchronization.
+- **Secure credential storage**: Connection credentials are encrypted using the Android Keystore system, which provides hardware-backed security when available on your device.
+- **No external transmission**: Your data never leaves your device except when communicating directly with the SMB servers you specify.
+
+## Third-Party Services
+
+SambaLite does not integrate with any third-party services, analytics providers, or advertising networks. There are no third parties that receive your data through our app.
+
+## Your Rights and Choices
+
+You have complete control over your data:
+
+- **View data**: You can view all saved connections within the app.
+- **Edit data**: You can edit or update your saved connections at any time.
+- **Delete data**: You can delete individual connections or all saved data through the app's interface.
+- **App permissions**: SambaLite only requests the minimum permissions necessary for its functionality (network access and storage access for file operations).
+
+## App Permissions
+
+SambaLite requires the following permissions for its core functionality:
+
+- **Internet access** (INTERNET): Required to establish connections to SMB shares
+- **Network state** (ACCESS_NETWORK_STATE): Enables checking network connectivity status
+
+These permissions are automatically granted during installation and do not require additional confirmation from the user. SambaLite does not request any additional permissions that would allow access to sensitive device data.
+
+## Children's Privacy
+
+SambaLite is not directed at children under the age of 13, and we do not knowingly collect personal information from children under 13.
+
+## Changes to This Privacy Policy
+
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.
+
+## Contact Us
+
+If you have any questions about this Privacy Policy, please contact us:
+
+- By email: [contact@schliweb.de](mailto:contact@schliweb.de)
+- By visiting our GitHub repository: [https://github.com/schliweb/sambalite](https://github.com/schliweb/sambalite)
+
+## Open Source
+
+SambaLite is open-source software. You can review our code at our GitHub repository to verify our privacy practices.

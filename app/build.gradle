@@ -1,0 +1,91 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace "de.schliweb.sambalite"
+    compileSdk 35
+
+    // Add configuration to work around JDK compatibility issues
+    buildFeatures {
+        buildConfig true
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+        resources.excludes.add('META-INF/versions/9/OSGI-INF/MANIFEST.MF')
+    }
+
+    defaultConfig {
+        applicationId "de.schliweb.sambalite"
+        minSdkVersion 28
+        targetSdk 35 // Configured for borderless display (transparent system bars)
+        versionCode 4
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    dependenciesInfo {
+        // Disables the inclusion of dependency metadata in the APK,
+        // required for F-Droid to comply with its focus on privacy and transparency.
+        // Dependency metadata is unnecessary and could expose additional information.
+        includeInApk = false
+        // Disables the inclusion of dependency metadata in Android App Bundles as well.
+        includeInBundle = false
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        viewBinding true
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+        unitTests.includeAndroidResources = true
+    }
+}
+
+dependencies {
+    // Android core libraries
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+
+    // MVVM components
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.9.1'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.9.1'
+
+    // Dagger 2 for dependency injection
+    implementation 'com.google.dagger:dagger:2.56.2'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.56.2'
+
+    // SMBJ for SMB client functionality
+    implementation 'com.hierynomus:smbj:0.14.0'
+
+    // Security libraries for credential storage
+    implementation 'androidx.security:security-crypto:1.1.0-beta01'
+
+    // Timber for logging
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+
+    compileOnly "org.projectlombok:lombok:1.18.38"
+    annotationProcessor "org.projectlombok:lombok:1.18.38"
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+}

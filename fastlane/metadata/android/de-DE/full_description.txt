@@ -1,0 +1,23 @@
+SambaLite ist ein schlanker, moderner und quelloffener Android-Client für SMB/CIFS-Freigaben (Samba). Ziel ist es, ein minimalistisches, zuverlässiges und sicheres Tool bereitzustellen, mit dem Nutzer im lokalen Netzwerk auf SMB-Freigaben zugreifen können – ganz ohne Schnickschnack, Werbung oder überflüssige Features.
+
+Die App richtet sich an technisch versierte Nutzer, die eine schlanke, transparente Lösung suchen und Wert auf Datenschutz und Open Source legen.
+
+Hauptfunktionen:
+
+• Verbindungen verwalten: SMB-Server (Hostname oder IP) und Share/Pfad eingeben, Benutzername, Passwort, optional Domäne (workgroup)
+• Verwalten mehrerer Verbindungen mit individuellen Namen
+• Verbindungstest mit verständlicher Fehlerausgabe
+• Automatisches, sicheres Speichern der Zugangsdaten (Android Keystore)
+• Datei-Browser: Navigieren im Freigabe-Verzeichnisbaum, Anzeige von Name, Typ, Größe und Änderungsdatum
+• Aktualisieren der Ansicht („Pull-to-Refresh")
+• Sortier-Optionen (Name, Datum, Größe)
+• Datei-Operationen: Download, Upload, Löschen, Umbenennen, Öffnen mit externer App
+• Anzeigen von Dateieigenschaften
+• Dark/Light Mode (Systemvorgabe)
+
+Sicherheit & Datenschutz:
+• Keine Telemetrie oder Fremdanbindung
+• Keine unverschlüsselte Speicherung sensibler Daten
+• Minimale Berechtigungen (nur Netzwerk und Zugriff auf vom Nutzer gewählte Speicherorte)
+
+SambaLite ist der Open-Source-Samba-Client für Android, den viele sich seit Jahren wünschen: Modern, schlank, sicher, ohne überflüssige Features, aber mit allem, was für den praktischen Zugriff auf SMB-Freigaben nötig ist.

@@ -1,0 +1,99 @@
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">Add Connection</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">Connection Name</string>
+    <string name="server">Server (IP or hostname)</string>
+    <string name="share_name">Share Name</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="domain">Domain (optional)</string>
+    <string name="test_connection">Test Connection</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="add_new_connection">Add New Connection</string>
+    <string name="edit_connection">Edit Connection</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">Connection name is required</string>
+    <string name="error_server_required">Server is required</string>
+    <string name="error_share_required">Share name is required</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">Delete Connection</string>
+    <string name="confirm_delete_connection">Are you sure you want to delete the connection \'%1$s\'?</string>
+    <string name="delete">Delete</string>
+    <string name="connection_deleted">Connection \'%1$s\' deleted</string>
+    <string name="undo">Undo</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">This directory is empty</string>
+    <string name="loading_files">Loading files…</string>
+    <string name="error_loading_files">Error loading files</string>
+    <string name="parent_directory">Parent Directory</string>
+    <string name="file_browser_title">Files</string>
+    <string name="search_files">Search files</string>
+    <string name="searching">Searching…</string>
+    <string name="search_results">Search Results</string>
+    <string name="no_search_results">No files found matching your search</string>
+    <string name="search_query_hint">Enter search term</string>
+    <string name="search_wildcard_hint">Supports wildcards: * (any characters), ? (single character)</string>
+    <string name="search_type">Search for</string>
+    <string name="search_type_all">All items</string>
+    <string name="search_type_files">Files only</string>
+    <string name="search_type_folders">Folders only</string>
+    <string name="include_subfolders">Include subfolders</string>
+    <string name="search">Search</string>
+    <string name="cancel_search">Cancel Search</string>
+
+    <!-- Download -->
+    <string name="download">Download</string>
+    <string name="downloading">Downloading…</string>
+    <string name="download_success">File downloaded successfully</string>
+    <string name="download_error">Error downloading file</string>
+    <string name="file_not_found">The file \"%1$s\" could not be found on the server. Please check if the file exists and try again.</string>
+    <string name="save_file">Save file</string>
+    <string name="file_options">File options</string>
+
+    <!-- Upload -->
+    <string name="upload">Upload</string>
+    <string name="uploading">Uploading…</string>
+    <string name="upload_success">File uploaded successfully</string>
+    <string name="upload_error">Error uploading file</string>
+    <string name="select_file">Select file to upload</string>
+    <string name="file_exists_title">File already exists</string>
+    <string name="file_exists_message">The file \"%1$s\" already exists. Do you want to overwrite it?</string>
+    <string name="overwrite">Overwrite</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">Create Folder</string>
+    <string name="create_folder_dialog_title">Create New Folder</string>
+    <string name="folder_name">Folder Name</string>
+    <string name="folder_created">Folder created successfully</string>
+    <string name="folder_creation_error">Error creating folder</string>
+
+    <!-- Sorting -->
+    <string name="sort">Sort</string>
+    <string name="sort_dialog_title">Sort Files</string>
+    <string name="sort_by">Sort by</string>
+    <string name="sort_by_name">Name</string>
+    <string name="sort_by_date">Date</string>
+    <string name="sort_by_size">Size</string>
+    <string name="directories_first">Directories first</string>
+
+    <!-- Rename -->
+    <string name="rename">Rename</string>
+    <string name="rename_dialog_title">Rename File</string>
+    <string name="new_name">New Name</string>
+    <string name="rename_success">File renamed successfully</string>
+    <string name="rename_error">Error renaming file</string>
+
+    <!-- Delete -->
+    <string name="delete_file">Delete</string>
+    <string name="delete_file_dialog_title">Delete File</string>
+    <string name="confirm_delete_file">Are you sure you want to delete \'%1$s\'?</string>
+    <string name="delete_success">File deleted successfully</string>
+    <string name="delete_error">Error deleting file</string>
+    <string name="file_exists">File exists</string>
+</resources>

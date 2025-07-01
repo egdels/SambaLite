@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/search_query_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:hint="@string/search_query_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/search_query_edit_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:maxLines="1" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/search_wildcard_hint"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:layout_marginBottom="16dp"
+        android:textColor="?android:attr/textColorSecondary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/search_type"
+        android:textAppearance="?attr/textAppearanceSubtitle1"
+        android:layout_marginBottom="8dp" />
+
+    <RadioGroup
+        android:id="@+id/search_type_radio_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <RadioButton
+            android:id="@+id/radio_all"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/search_type_all"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/radio_files"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/search_type_files" />
+
+        <RadioButton
+            android:id="@+id/radio_folders"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/search_type_folders" />
+    </RadioGroup>
+
+    <CheckBox
+        android:id="@+id/include_subfolders_checkbox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/include_subfolders"
+        android:checked="true"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

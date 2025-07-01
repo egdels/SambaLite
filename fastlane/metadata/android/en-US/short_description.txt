@@ -1,0 +1,1 @@
+A lightweight, modern, and open-source Android client for SMB/CIFS shares.
