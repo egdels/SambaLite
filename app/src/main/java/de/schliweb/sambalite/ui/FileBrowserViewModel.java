@@ -45,6 +45,7 @@ public class FileBrowserViewModel extends ViewModel {
     // Search-related fields
     private boolean isSearchMode = false;
     private String currentSearchQuery = "";
+
     @Inject
     public FileBrowserViewModel(SmbRepository smbRepository) {
         this.smbRepository = smbRepository;
@@ -465,9 +466,7 @@ public class FileBrowserViewModel extends ViewModel {
             return;
         }
 
-        LogUtils.d("FileBrowserViewModel", "Searching for files matching query: '" + query +
-                "', searchType: " + searchType +
-                ", includeSubfolders: " + includeSubfolders);
+        LogUtils.d("FileBrowserViewModel", "Searching for files matching query: '" + query + "', searchType: " + searchType + ", includeSubfolders: " + includeSubfolders);
 
         currentSearchQuery = query.trim();
         isSearchMode = true;
@@ -475,12 +474,7 @@ public class FileBrowserViewModel extends ViewModel {
 
         executor.execute(() -> {
             try {
-                List<SmbFileItem> results = smbRepository.searchFiles(
-                        connection,
-                        currentPath,
-                        currentSearchQuery,
-                        searchType,
-                        includeSubfolders);
+                List<SmbFileItem> results = smbRepository.searchFiles(connection, currentPath, currentSearchQuery, searchType, includeSubfolders);
 
                 LogUtils.d("FileBrowserViewModel", "Search completed. Found " + results.size() + " matching items");
 
@@ -657,6 +651,8 @@ public class FileBrowserViewModel extends ViewModel {
     }
 
     void performUpload(java.io.File localFile, String remotePath, UploadCallback callback) {
+        // Set loading indicator to true before starting the upload
+        isLoading.postValue(true);
         executor.execute(() -> {
             try {
                 smbRepository.uploadFile(connection, localFile, remotePath);
@@ -685,9 +681,7 @@ public class FileBrowserViewModel extends ViewModel {
      * Enum for sorting options.
      */
     public enum SortOption {
-        NAME,
-        DATE,
-        SIZE
+        NAME, DATE, SIZE
     }
 
     /**

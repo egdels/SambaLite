@@ -21,38 +21,102 @@ platform :android do
     gradle(task: "test")
   end
 
-  desc "Build debug APK"
-  lane :build_debug do
-    gradle(
-      task: "assemble",
-      build_type: "Debug"
-    )
-  end
-
-  desc "Build release APK"
-  lane :build_release do
-    gradle(
-      task: "assemble",
-      build_type: "Release"
-    )
-  end
-
-  desc "Submit a new Beta Build to Play Store Beta"
-  lane :beta do
-    gradle(
-      task: "clean assembleRelease"
-    )
-    upload_to_play_store(
-      track: 'beta',
-      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
-    )
+  desc "Clean"
+  lane :clean do
+    gradle(task: "clean")
   end
 
   desc "Deploy a new version to the Google Play"
   lane :deploy do
-    gradle(
-      task: "clean assembleRelease"
+    upload_to_play_store(
+      track: "internal", # oder "alpha", "beta", "production"
+      aab: File.join(__dir__, "./app/release/app-release.aab")
     )
-    upload_to_play_store
+
+  end
+
+  desc "Builds a signed Android App Bundle (.aab) and APK for release"
+  lane :build_signed_bundle_apk do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      properties: {
+        "android.injected.signing.store.file" => ENV["KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["KEYSTORE_ALIAS"],
+        "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+      }
+    )
+
+    aab_path = File.join(__dir__, "../app/build/outputs/bundle/release/app-release.aab")
+    destination_folder = File.join(__dir__, "../app/release")
+    FileUtils.mkdir_p(destination_folder)
+    FileUtils.cp(aab_path, destination_folder)
+    UI.success("Copied .aab file to #{destination_folder}")
+
+    gradle(
+      task: "assemble",
+      build_type: "Release",
+      properties: {
+        "android.injected.signing.store.file" => ENV["KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["KEYSTORE_PASSWORD"],
+        "android.injected.signing.key.alias" => ENV["KEYSTORE_ALIAS"],
+        "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+      }
+    )
+
+    apk_path = File.join(__dir__, "../app/build/outputs/apk/release/app-release.apk")
+    destination_folder = File.join(__dir__, "../app/release")
+    FileUtils.mkdir_p(destination_folder)
+    FileUtils.cp(apk_path, destination_folder)
+    UI.success("Copied signed APK to #{destination_folder}")
+
+    increment_version_code(gradle_file_path: "./app/build.gradle")
+  end
+
+  desc "Tags the Android release and pushes the tag to the origin"
+  lane :tag_and_push_bundle do
+    aab_path = File.join(__dir__, "../app/release/app-release.aab")
+
+    if !File.exist?(aab_path)
+      UI.error("The .aab file does not exist at: #{aab_path}")
+      exit 1
+    end
+
+    apk_path = File.join(__dir__, "../app/release/app-release.apk")
+
+    if !File.exist?(aab_path)
+      UI.error("The .apk file does not exist at: #{apk_path}")
+      exit 1
+    end
+
+    version_file = File.join(__dir__, "../build.gradle")
+    version = nil
+    File.foreach(version_file) do |line|
+      if line.match(/version\s*=\s*['"](.*)['"]/)
+        version = line.match(/version\s*=\s*['"](.*)['"]/)[1]
+        break
+      end
+    end
+    if version.nil?
+      UI.error("Could not find a version in #{version_file}")
+      exit 1
+    end
+
+    tag_name = "v#{version}"
+
+    add_git_tag(
+      tag: tag_name,
+      message: "Release for bundle: #{tag_name}"
+    )
+
+    push_git_tags
+
+    set_github_release(
+      repository_name: "egdels/SambaLite",
+      api_token: ENV["GITHUB_API_TOKEN"],
+      tag_name: tag_name,
+      upload_assets: ["./app/release/app-release.aab","./app/release/app-release.apk"]
+    )
   end
 end

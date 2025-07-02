@@ -3,3 +3,5 @@
 /app/build/
 /.idea/
 /.gradle/
+/fastlane/.env
+/app/release/

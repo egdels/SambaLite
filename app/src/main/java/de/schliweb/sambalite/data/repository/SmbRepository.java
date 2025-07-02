@@ -22,8 +22,7 @@ public interface SmbRepository {
      * @return A list of SmbFileItem objects that match the query
      * @throws Exception if an error occurs during the search
      */
-    List<SmbFileItem> searchFiles(SmbConnection connection, String path, String query,
-                                  int searchType, boolean includeSubfolders) throws Exception;
+    List<SmbFileItem> searchFiles(SmbConnection connection, String path, String query, int searchType, boolean includeSubfolders) throws Exception;
 
     /**
      * Cancels any ongoing search operation.
@@ -112,8 +111,8 @@ public interface SmbRepository {
     /**
      * Downloads a folder from the SMB server.
      *
-     * @param connection The SMB connection to use
-     * @param remotePath The path to the folder on the SMB server
+     * @param connection  The SMB connection to use
+     * @param remotePath  The path to the folder on the SMB server
      * @param localFolder The local folder to save the downloaded folder to
      * @throws Exception if an error occurs during the download
      */

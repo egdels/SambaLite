@@ -81,7 +81,7 @@ Where not permitted by applicable law (e.g. in cases of gross negligence or inte
 
 ## Privacy Policy
 
-Our privacy policy is available on our [GitHub Pages site](https://schliweb.github.io/sambalite/privacy_policy.html).
+Our privacy policy is available on our [GitHub Pages site](https://egdels.github.io/SambaLite/privacy_policy.html).
 
 ## Contributing
 

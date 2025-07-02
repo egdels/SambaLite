@@ -1,0 +1,77 @@
+Local Samba Server for Testing
+==============================
+
+This directory contains utilities for setting up a local Samba server for testing purposes.
+
+SambaContainer
+-------------
+
+The SambaContainer class is an in-memory implementation of a Samba server that runs within the JUnit test process.
+This allows you to test your SMB client code without requiring Docker or any external dependencies.
+
+Prerequisites
+------------
+
+- jcifs-ng dependency must be added to your project (already done in build.gradle)
+
+Usage
+-----
+
+Here's a basic example of how to use the SambaContainer in your tests:
+
+1. Create and start the in-memory Samba server:
+   SambaContainer sambaContainer = new SambaContainer()
+       .withUsername("testuser")
+       .withPassword("testpassword")
+       .withDomain("WORKGROUP")
+       .withShare("testshare", "/testshare");
+   sambaContainer.start();
+
+2. Create a test connection:
+   SmbConnection testConnection = new SmbConnection();
+   testConnection.setServer(sambaContainer.getHost());
+   testConnection.setShare("testshare");
+   testConnection.setUsername(sambaContainer.getUsername());
+   testConnection.setPassword(sambaContainer.getPassword());
+   testConnection.setDomain(sambaContainer.getDomain());
+
+3. Use the connection in your tests
+
+4. Don't forget to stop the server when done:
+   sambaContainer.stop();
+
+Configuration Options
+--------------------
+
+The SambaContainer class provides several methods for configuring the Samba server:
+
+- withUsername(String username): Sets the username for authentication
+- withPassword(String password): Sets the password for authentication
+- withDomain(String domain): Sets the domain/workgroup for authentication
+- withShare(String shareName, String path): Adds a share to the Samba server
+
+Example Test
+-----------
+
+See the SambaServerTest class for a complete example of how to use the SambaContainer in your tests.
+
+Implementation Details
+--------------------
+
+The current implementation is a simplified mock that simulates a Samba server in memory. It provides the same interface
+as the previous Docker-based implementation but doesn't actually run a real Samba server. This means that some
+functionality may not be fully implemented, and tests may need to be adjusted accordingly.
+
+The mock implementation maintains an in-memory representation of shares and files, which can be accessed through
+the standard SMB client interface. However, since it's not a real Samba server, some advanced features may not
+be available.
+
+Troubleshooting
+--------------
+
+If you encounter issues with the in-memory Samba server:
+
+1. Check the debug logs for any error messages
+2. Ensure that your test is properly setting up the server and shares
+3. Be aware that the current implementation is a mock and may not support all SMB features
+4. Consider adding more detailed logging to help diagnose issues

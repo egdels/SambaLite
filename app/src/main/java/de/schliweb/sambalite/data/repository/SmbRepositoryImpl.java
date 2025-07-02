@@ -9,6 +9,7 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import de.schliweb.sambalite.data.model.SmbConnection;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Implementation of SmbRepository using the SMBJ library.
@@ -32,6 +34,14 @@ import java.util.List;
 public class SmbRepositoryImpl implements SmbRepository {
 
     private final SMBClient smbClient;
+    /**
+     * Lock to prevent concurrent SMB operations.
+     * This lock ensures that only one SMB operation can be executed at a time,
+     * which helps prevent issues with concurrent access to SMB resources.
+     * All public methods that perform SMB operations acquire this lock before
+     * executing the operation and release it when the operation is complete.
+     */
+    private final ReentrantLock operationLock = new ReentrantLock();
     private volatile boolean searchCancelled = false;
 
     @Inject
@@ -46,68 +56,69 @@ public class SmbRepositoryImpl implements SmbRepository {
     }
 
     @Override
-    public List<SmbFileItem> searchFiles(SmbConnection connection, String path, String query,
-                                         int searchType, boolean includeSubfolders) throws Exception {
-        LogUtils.d("SmbRepositoryImpl", "Searching for files matching query: '" + query +
-                "' in path: " + path +
-                ", searchType: " + searchType +
-                ", includeSubfolders: " + includeSubfolders);
+    public List<SmbFileItem> searchFiles(SmbConnection connection, String path, String query, int searchType, boolean includeSubfolders) throws Exception {
+        LogUtils.d("SmbRepositoryImpl", "Searching for files matching query: '" + query + "' in path: " + path + ", searchType: " + searchType + ", includeSubfolders: " + includeSubfolders);
 
-        // Reset cancellation flag at the start of a new search
-        searchCancelled = false;
+        operationLock.lock();
+        try {
+            // Reset cancellation flag at the start of a new search
+            searchCancelled = false;
 
-        List<SmbFileItem> result = new ArrayList<>();
-        String folderPath = path == null || path.isEmpty() ? "" : path;
+            List<SmbFileItem> result = new ArrayList<>();
+            String folderPath = path == null || path.isEmpty() ? "" : path;
 
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-
-            // Check if search was cancelled
-            if (searchCancelled) {
-                LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to server");
-                return result;
-            }
-
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
 
                 // Check if search was cancelled
                 if (searchCancelled) {
-                    LogUtils.i("SmbRepositoryImpl", "Search cancelled after authentication");
+                    LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to server");
                     return result;
                 }
 
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
 
                     // Check if search was cancelled
                     if (searchCancelled) {
-                        LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to share");
+                        LogUtils.i("SmbRepositoryImpl", "Search cancelled after authentication");
                         return result;
                     }
 
-                    // Perform search with options
-                    searchFilesRecursive(share, folderPath, query, result, searchType, includeSubfolders);
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
 
-                    if (searchCancelled) {
-                        LogUtils.i("SmbRepositoryImpl", "Search was cancelled. Returning partial results: " + result.size() + " items");
-                    } else {
-                        LogUtils.i("SmbRepositoryImpl", "Search completed. Found " + result.size() + " matching items");
+                        // Check if search was cancelled
+                        if (searchCancelled) {
+                            LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to share");
+                            return result;
+                        }
+
+                        // Perform search with options
+                        searchFilesRecursive(share, folderPath, query, result, searchType, includeSubfolders);
+
+                        if (searchCancelled) {
+                            LogUtils.i("SmbRepositoryImpl", "Search was cancelled. Returning partial results: " + result.size() + " items");
+                        } else {
+                            LogUtils.i("SmbRepositoryImpl", "Search completed. Found " + result.size() + " matching items");
+                        }
                     }
                 }
+            } catch (Exception e) {
+                if (searchCancelled) {
+                    LogUtils.i("SmbRepositoryImpl", "Search was cancelled during exception: " + e.getMessage());
+                    return result;
+                }
+                LogUtils.e("SmbRepositoryImpl", "Error searching files: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            if (searchCancelled) {
-                LogUtils.i("SmbRepositoryImpl", "Search was cancelled during exception: " + e.getMessage());
-                return result;
-            }
-            LogUtils.e("SmbRepositoryImpl", "Error searching files: " + e.getMessage());
-            throw e;
-        }
 
-        return result;
+            return result;
+        } finally {
+            operationLock.unlock();
+        }
     }
 
     /**
@@ -120,8 +131,7 @@ public class SmbRepositoryImpl implements SmbRepository {
      * @param searchType        The type of items to search for (0=all, 1=files only, 2=folders only)
      * @param includeSubfolders Whether to include subfolders in the search
      */
-    private void searchFilesRecursive(DiskShare share, String path, String query, List<SmbFileItem> result,
-                                      int searchType, boolean includeSubfolders) {
+    private void searchFilesRecursive(DiskShare share, String path, String query, List<SmbFileItem> result, int searchType, boolean includeSubfolders) {
         // Check if search was cancelled
         if (searchCancelled) {
             LogUtils.d("SmbRepositoryImpl", "Search cancelled before searching directory: " + path);
@@ -182,27 +192,32 @@ public class SmbRepositoryImpl implements SmbRepository {
     @Override
     public boolean testConnection(SmbConnection connection) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Testing connection to server: " + connection.getServer() + ", share: " + connection.getShare());
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful for user: " + connection.getUsername());
-                // Try to connect to the share
-                String shareName = getShareName(connection.getShare());
-                LogUtils.d("SmbRepositoryImpl", "Attempting to connect to share: " + shareName);
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    boolean connected = share.isConnected();
-                    if (connected) {
-                        LogUtils.i("SmbRepositoryImpl", "Successfully connected to share: " + shareName);
-                    } else {
-                        LogUtils.w("SmbRepositoryImpl", "Failed to connect to share: " + shareName);
+        operationLock.lock();
+        try {
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful for user: " + connection.getUsername());
+                    // Try to connect to the share
+                    String shareName = getShareName(connection.getShare());
+                    LogUtils.d("SmbRepositoryImpl", "Attempting to connect to share: " + shareName);
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        boolean connected = share.isConnected();
+                        if (connected) {
+                            LogUtils.i("SmbRepositoryImpl", "Successfully connected to share: " + shareName);
+                        } else {
+                            LogUtils.w("SmbRepositoryImpl", "Failed to connect to share: " + shareName);
+                        }
+                        return connected;
                     }
-                    return connected;
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Connection test failed: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Connection test failed: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
@@ -210,290 +225,416 @@ public class SmbRepositoryImpl implements SmbRepository {
     public List<SmbFileItem> listFiles(SmbConnection connection, String path) throws Exception {
         String folderPath = path == null || path.isEmpty() ? "" : path;
         LogUtils.d("SmbRepositoryImpl", "Listing files in path: " + folderPath + " on server: " + connection.getServer());
-        List<SmbFileItem> result = new ArrayList<>();
 
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+        operationLock.lock();
+        try {
+            List<SmbFileItem> result = new ArrayList<>();
 
-                    // List files and directories
-                    LogUtils.d("SmbRepositoryImpl", "Listing contents of: " + folderPath);
-                    for (FileIdBothDirectoryInformation info : share.list(folderPath)) {
-                        // Skip "." and ".." entries
-                        if (".".equals(info.getFileName()) || "..".equals(info.getFileName())) {
-                            continue;
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+
+                        // List files and directories
+                        LogUtils.d("SmbRepositoryImpl", "Listing contents of: " + folderPath);
+                        for (FileIdBothDirectoryInformation info : share.list(folderPath)) {
+                            // Skip "." and ".." entries
+                            if (".".equals(info.getFileName()) || "..".equals(info.getFileName())) {
+                                continue;
+                            }
+
+                            String name = info.getFileName();
+                            String fullPath = folderPath.isEmpty() ? name : folderPath + "/" + name;
+                            boolean isDirectory = (info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
+
+                            SmbFileItem.Type type = isDirectory ? SmbFileItem.Type.DIRECTORY : SmbFileItem.Type.FILE;
+                            long size = info.getEndOfFile();
+                            Date lastModified = new Date(info.getLastWriteTime().toEpochMillis());
+
+                            result.add(new SmbFileItem(name, fullPath, type, size, lastModified));
                         }
-
-                        String name = info.getFileName();
-                        String fullPath = folderPath.isEmpty() ? name : folderPath + "/" + name;
-                        boolean isDirectory = (info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
-
-                        SmbFileItem.Type type = isDirectory ? SmbFileItem.Type.DIRECTORY : SmbFileItem.Type.FILE;
-                        long size = info.getEndOfFile();
-                        Date lastModified = new Date(info.getLastWriteTime().toEpochMillis());
-
-                        result.add(new SmbFileItem(name, fullPath, type, size, lastModified));
+                        LogUtils.i("SmbRepositoryImpl", "Listed " + result.size() + " items in " + folderPath);
                     }
-                    LogUtils.i("SmbRepositoryImpl", "Listed " + result.size() + " items in " + folderPath);
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Error listing files: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error listing files: " + e.getMessage());
-            throw e;
-        }
 
-        return result;
+            return result;
+        } finally {
+            operationLock.unlock();
+        }
     }
 
     @Override
     public void downloadFile(SmbConnection connection, String remotePath, java.io.File localFile) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Downloading file: " + remotePath + " to " + localFile.getAbsolutePath());
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String filePath = getPathWithoutShare(remotePath);
-                    LogUtils.d("SmbRepositoryImpl", "Checking if remote file exists: " + filePath);
 
-                    // Check if the file exists before attempting to open it
-                    if (!share.fileExists(filePath)) {
-                        String errorMessage = "File not found: " + filePath;
-                        LogUtils.e("SmbRepositoryImpl", errorMessage);
-                        throw new IOException(errorMessage);
-                    }
+        operationLock.lock();
+        try {
+            int maxRetries = 3;
+            int retryCount = 0;
+            boolean downloadSuccessful = false;
+            Exception lastException = null;
 
-                    LogUtils.d("SmbRepositoryImpl", "Opening remote file: " + filePath);
-                    try (File remoteFile = share.openFile(
-                            filePath,
-                            EnumSet.of(AccessMask.GENERIC_READ),
-                            null,
-                            SMB2ShareAccess.ALL,
-                            SMB2CreateDisposition.FILE_OPEN,
-                            null)) {
-                        LogUtils.d("SmbRepositoryImpl", "Remote file opened successfully");
-
-                        try (InputStream is = remoteFile.getInputStream();
-                             java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
-                            LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
-
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalBytesRead = 0;
-                            while ((bytesRead = is.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                                totalBytesRead += bytesRead;
-                            }
-                            LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + totalBytesRead + " bytes");
-                        }
+            while (!downloadSuccessful && retryCount < maxRetries) {
+                if (retryCount > 0) {
+                    LogUtils.i("SmbRepositoryImpl", "Retrying download (attempt " + (retryCount + 1) + " of " + maxRetries + ")");
+                    // Wait a bit before retrying
+                    try {
+                        Thread.sleep(1000 * retryCount);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
+
+                try (Connection conn = smbClient.connect(connection.getServer())) {
+                    LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                    AuthenticationContext authContext = createAuthContext(connection);
+                    try (Session session = conn.authenticate(authContext)) {
+                        LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                        String shareName = getShareName(connection.getShare());
+                        try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                            LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                            String filePath = getPathWithoutShare(remotePath);
+                            LogUtils.d("SmbRepositoryImpl", "Checking if remote file exists: " + filePath);
+
+                            // Check if the file exists before attempting to open it
+                            if (!share.fileExists(filePath)) {
+                                String errorMessage = "File not found: " + filePath;
+                                LogUtils.e("SmbRepositoryImpl", errorMessage);
+                                throw new IOException(errorMessage);
+                            }
+
+                            LogUtils.d("SmbRepositoryImpl", "Opening remote file: " + filePath);
+                            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
+                                LogUtils.d("SmbRepositoryImpl", "Remote file opened successfully");
+
+                                // If this is a retry and the file already exists, we need to determine where to resume from
+                                long fileSize = 0;
+                                if (retryCount > 0 && localFile.exists()) {
+                                    fileSize = localFile.length();
+                                    LogUtils.d("SmbRepositoryImpl", "Resuming download from byte position: " + fileSize);
+                                }
+
+                                try (InputStream is = remoteFile.getInputStream(); java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, fileSize > 0)) {
+                                    LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
+
+                                    // Skip bytes if resuming
+                                    if (fileSize > 0) {
+                                        long skipped = is.skip(fileSize);
+                                        LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes");
+                                    }
+
+                                    byte[] buffer = new byte[8192];
+                                    int bytesRead;
+                                    long totalBytesRead = fileSize; // Start from current file size if resuming
+
+                                    try {
+                                        while ((bytesRead = is.read(buffer)) != -1) {
+                                            fos.write(buffer, 0, bytesRead);
+                                            totalBytesRead += bytesRead;
+                                        }
+                                        LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + totalBytesRead + " bytes");
+                                        downloadSuccessful = true;
+                                        break; // Exit the retry loop
+                                    } catch (Exception e) {
+                                        LogUtils.e("SmbRepositoryImpl", "Error during file transfer: " + e.getMessage());
+                                        lastException = e;
+                                        // Don't rethrow here, let the retry mechanism handle it
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    LogUtils.e("SmbRepositoryImpl", "Error downloading file (attempt " + (retryCount + 1) + "): " + e.getMessage());
+                    lastException = e;
+                    // Don't rethrow here, let the retry mechanism handle it
+                }
+
+                retryCount++;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error downloading file: " + e.getMessage());
-            throw e;
+
+            if (!downloadSuccessful) {
+                LogUtils.e("SmbRepositoryImpl", "Download failed after " + maxRetries + " attempts");
+                if (lastException != null) {
+                    throw lastException;
+                } else {
+                    throw new IOException("Download failed after " + maxRetries + " attempts");
+                }
+            }
+        } finally {
+            operationLock.unlock();
         }
     }
 
     @Override
     public void uploadFile(SmbConnection connection, java.io.File localFile, String remotePath) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Uploading file: " + localFile.getAbsolutePath() + " to " + remotePath);
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String filePath = getPathWithoutShare(remotePath);
-                    LogUtils.d("SmbRepositoryImpl", "Creating remote file: " + filePath);
 
-                    try (File remoteFile = share.openFile(
-                            filePath,
-                            EnumSet.of(AccessMask.GENERIC_WRITE),
-                            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                            SMB2ShareAccess.ALL,
-                            SMB2CreateDisposition.FILE_OVERWRITE_IF,
-                            null)) {
-                        LogUtils.d("SmbRepositoryImpl", "Remote file created successfully");
+        operationLock.lock();
+        try {
+            int maxRetries = 3;
+            int retryCount = 0;
+            boolean uploadSuccessful = false;
+            Exception lastException = null;
 
-                        try (java.io.FileInputStream fis = new java.io.FileInputStream(localFile);
-                             OutputStream os = remoteFile.getOutputStream()) {
-                            LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
-
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalBytesWritten = 0;
-                            while ((bytesRead = fis.read(buffer)) != -1) {
-                                os.write(buffer, 0, bytesRead);
-                                totalBytesWritten += bytesRead;
-                            }
-                            LogUtils.i("SmbRepositoryImpl", "File uploaded successfully: " + totalBytesWritten + " bytes");
-                        }
+            while (!uploadSuccessful && retryCount < maxRetries) {
+                if (retryCount > 0) {
+                    LogUtils.i("SmbRepositoryImpl", "Retrying upload (attempt " + (retryCount + 1) + " of " + maxRetries + ")");
+                    // Wait a bit before retrying
+                    try {
+                        Thread.sleep(1000 * retryCount);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
                 }
+
+                try (Connection conn = smbClient.connect(connection.getServer())) {
+                    LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                    AuthenticationContext authContext = createAuthContext(connection);
+                    try (Session session = conn.authenticate(authContext)) {
+                        LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                        String shareName = getShareName(connection.getShare());
+                        try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                            LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                            String filePath = getPathWithoutShare(remotePath);
+                            LogUtils.d("SmbRepositoryImpl", "Creating remote file: " + filePath);
+
+                            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_WRITE), EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL), SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null)) {
+                                LogUtils.d("SmbRepositoryImpl", "Remote file created successfully");
+
+                                try (java.io.FileInputStream fis = new java.io.FileInputStream(localFile); OutputStream os = remoteFile.getOutputStream()) {
+                                    LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
+
+                                    byte[] buffer = new byte[8192];
+                                    int bytesRead;
+                                    long totalBytesWritten = 0;
+
+                                    try {
+                                        while ((bytesRead = fis.read(buffer)) != -1) {
+                                            os.write(buffer, 0, bytesRead);
+                                            totalBytesWritten += bytesRead;
+                                        }
+                                        LogUtils.i("SmbRepositoryImpl", "File uploaded successfully: " + totalBytesWritten + " bytes");
+                                        uploadSuccessful = true;
+
+                                        // Delete the local file from cache after successful upload
+                                        if (localFile.exists()) {
+                                            boolean deleted = localFile.delete();
+                                            if (deleted) {
+                                                LogUtils.i("SmbRepositoryImpl", "Successfully deleted local file from cache: " + localFile.getAbsolutePath());
+                                            } else {
+                                                LogUtils.w("SmbRepositoryImpl", "Failed to delete local file from cache: " + localFile.getAbsolutePath());
+                                            }
+                                        }
+
+                                        break; // Exit the retry loop
+                                    } catch (Exception e) {
+                                        LogUtils.e("SmbRepositoryImpl", "Error during file transfer: " + e.getMessage());
+                                        lastException = e;
+                                        // Don't rethrow here, let the retry mechanism handle it
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    LogUtils.e("SmbRepositoryImpl", "Error uploading file (attempt " + (retryCount + 1) + "): " + e.getMessage());
+                    lastException = e;
+                    // Don't rethrow here, let the retry mechanism handle it
+                }
+
+                retryCount++;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error uploading file: " + e.getMessage());
-            throw e;
+
+            if (!uploadSuccessful) {
+                LogUtils.e("SmbRepositoryImpl", "Upload failed after " + maxRetries + " attempts");
+                if (lastException != null) {
+                    throw lastException;
+                } else {
+                    throw new IOException("Upload failed after " + maxRetries + " attempts");
+                }
+            }
+        } finally {
+            operationLock.unlock();
         }
     }
 
     @Override
     public void deleteFile(SmbConnection connection, String path) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Deleting file/directory: " + path);
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String filePath = getPathWithoutShare(path);
-                    LogUtils.d("SmbRepositoryImpl", "Checking path: " + filePath);
 
-                    if (share.fileExists(filePath)) {
-                        LogUtils.d("SmbRepositoryImpl", "Path is a file, deleting: " + filePath);
-                        share.rm(filePath);
-                        LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
-                    } else if (share.folderExists(filePath)) {
-                        LogUtils.d("SmbRepositoryImpl", "Path is a directory, deleting: " + filePath);
-                        share.rmdir(filePath, true);
-                        LogUtils.i("SmbRepositoryImpl", "Directory deleted successfully: " + filePath);
-                    } else {
-                        LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + filePath);
-                        throw new IOException("File or directory not found: " + filePath);
+        operationLock.lock();
+        try {
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                        String filePath = getPathWithoutShare(path);
+                        LogUtils.d("SmbRepositoryImpl", "Checking path: " + filePath);
+
+                        if (share.fileExists(filePath)) {
+                            LogUtils.d("SmbRepositoryImpl", "Path is a file, deleting: " + filePath);
+                            share.rm(filePath);
+                            LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
+                        } else if (share.folderExists(filePath)) {
+                            LogUtils.d("SmbRepositoryImpl", "Path is a directory, deleting: " + filePath);
+                            share.rmdir(filePath, true);
+                            LogUtils.i("SmbRepositoryImpl", "Directory deleted successfully: " + filePath);
+                        } else {
+                            LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + filePath);
+                            throw new IOException("File or directory not found: " + filePath);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Error deleting file/directory: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error deleting file/directory: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
     @Override
     public void renameFile(SmbConnection connection, String oldPath, String newName) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Renaming file/directory: " + oldPath + " to " + newName);
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String oldFilePath = getPathWithoutShare(oldPath);
-                    LogUtils.d("SmbRepositoryImpl", "Old file path: " + oldFilePath);
 
-                    // Get the parent directory path
-                    String parentPath = "";
-                    int lastSlash = oldFilePath.lastIndexOf('/');
-                    if (lastSlash > 0) {
-                        parentPath = oldFilePath.substring(0, lastSlash);
-                    }
+        operationLock.lock();
+        try {
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                        String oldFilePath = getPathWithoutShare(oldPath);
+                        LogUtils.d("SmbRepositoryImpl", "Old file path: " + oldFilePath);
 
-                    String newFilePath = parentPath.isEmpty() ? newName : parentPath + "/" + newName;
-                    LogUtils.d("SmbRepositoryImpl", "New file path: " + newFilePath);
-
-                    if (share.fileExists(oldFilePath)) {
-                        LogUtils.d("SmbRepositoryImpl", "Path is a file, copying content to new file");
-                        // For files, we need to copy the content and then delete the original
-                        try (File sourceFile = share.openFile(
-                                oldFilePath,
-                                EnumSet.of(AccessMask.GENERIC_READ),
-                                null,
-                                SMB2ShareAccess.ALL,
-                                SMB2CreateDisposition.FILE_OPEN,
-                                null);
-                             File targetFile = share.openFile(
-                                     newFilePath,
-                                     EnumSet.of(AccessMask.GENERIC_WRITE),
-                                     EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                                     SMB2ShareAccess.ALL,
-                                     SMB2CreateDisposition.FILE_CREATE,
-                                     null)) {
-                            LogUtils.d("SmbRepositoryImpl", "Source and target files opened successfully");
-
-                            try (InputStream is = sourceFile.getInputStream();
-                                 OutputStream os = targetFile.getOutputStream()) {
-                                LogUtils.d("SmbRepositoryImpl", "Starting file content copy");
-
-                                byte[] buffer = new byte[8192];
-                                int bytesRead;
-                                long totalBytesCopied = 0;
-                                while ((bytesRead = is.read(buffer)) != -1) {
-                                    os.write(buffer, 0, bytesRead);
-                                    totalBytesCopied += bytesRead;
-                                }
-                                LogUtils.d("SmbRepositoryImpl", "File content copied: " + totalBytesCopied + " bytes");
-                            }
+                        // Get the parent directory path
+                        String parentPath = "";
+                        int lastSlash = oldFilePath.lastIndexOf('/');
+                        if (lastSlash > 0) {
+                            parentPath = oldFilePath.substring(0, lastSlash);
                         }
 
-                        // Delete the original file
-                        LogUtils.d("SmbRepositoryImpl", "Deleting original file: " + oldFilePath);
-                        share.rm(oldFilePath);
-                        LogUtils.i("SmbRepositoryImpl", "File renamed successfully from " + oldFilePath + " to " + newFilePath);
-                    } else if (share.folderExists(oldFilePath)) {
-                        LogUtils.d("SmbRepositoryImpl", "Path is a directory, creating new directory: " + newFilePath);
-                        // For directories, create the new directory
-                        share.mkdir(newFilePath);
-                        LogUtils.d("SmbRepositoryImpl", "New directory created: " + newFilePath);
+                        String newFilePath = parentPath.isEmpty() ? newName : parentPath + "/" + newName;
+                        LogUtils.d("SmbRepositoryImpl", "New file path: " + newFilePath);
 
-                        // Copy all files and subdirectories (not implemented here)
-                        // This would require recursively listing and copying all contents
-                        LogUtils.w("SmbRepositoryImpl", "Directory content copying not implemented");
+                        // Check if the target path already exists to avoid overwriting
+                        if (share.fileExists(newFilePath) || share.folderExists(newFilePath)) {
+                            String errorMessage = "Target path already exists: " + newFilePath;
+                            LogUtils.e("SmbRepositoryImpl", errorMessage);
+                            throw new IOException(errorMessage);
+                        }
 
-                        // Delete the original directory
-                        LogUtils.d("SmbRepositoryImpl", "Deleting original directory: " + oldFilePath);
-                        share.rmdir(oldFilePath, true);
-                        LogUtils.w("SmbRepositoryImpl", "Renaming directories is not fully implemented");
+                        if (share.fileExists(oldFilePath)) {
+                            LogUtils.d("SmbRepositoryImpl", "Path is a file, copying content to new file");
+                            // For files, we need to copy the content and then delete the original
+                            try (File sourceFile = share.openFile(oldFilePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null); File targetFile = share.openFile(newFilePath, EnumSet.of(AccessMask.GENERIC_WRITE), EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL), SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_CREATE, null)) {
+                                LogUtils.d("SmbRepositoryImpl", "Source and target files opened successfully");
 
-                        throw new UnsupportedOperationException("Renaming directories is not fully implemented");
-                    } else {
-                        LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + oldFilePath);
-                        throw new IOException("File or directory not found: " + oldFilePath);
+                                try (InputStream is = sourceFile.getInputStream(); OutputStream os = targetFile.getOutputStream()) {
+                                    LogUtils.d("SmbRepositoryImpl", "Starting file content copy");
+
+                                    byte[] buffer = new byte[8192];
+                                    int bytesRead;
+                                    long totalBytesCopied = 0;
+                                    long sourceSize = sourceFile.getFileInformation().getStandardInformation().getEndOfFile();
+
+                                    while ((bytesRead = is.read(buffer)) != -1) {
+                                        os.write(buffer, 0, bytesRead);
+                                        totalBytesCopied += bytesRead;
+                                    }
+
+                                    LogUtils.d("SmbRepositoryImpl", "File content copied: " + totalBytesCopied + " bytes");
+
+                                    // Verify file size matches
+                                    if (totalBytesCopied != sourceSize) {
+                                        String errorMessage = "File size mismatch after copy. Expected: " + sourceSize + ", Actual: " + totalBytesCopied;
+                                        LogUtils.e("SmbRepositoryImpl", errorMessage);
+                                        throw new IOException(errorMessage);
+                                    }
+                                }
+                            }
+
+                            // Verify the new file exists and has the correct size before deleting the original
+                            if (!share.fileExists(newFilePath)) {
+                                String errorMessage = "Target file not found after copy: " + newFilePath;
+                                LogUtils.e("SmbRepositoryImpl", errorMessage);
+                                throw new IOException(errorMessage);
+                            }
+
+                            // Delete the original file only after successful verification
+                            LogUtils.d("SmbRepositoryImpl", "Deleting original file: " + oldFilePath);
+                            share.rm(oldFilePath);
+                            LogUtils.i("SmbRepositoryImpl", "File renamed successfully from " + oldFilePath + " to " + newFilePath);
+                        } else if (share.folderExists(oldFilePath)) {
+                            LogUtils.d("SmbRepositoryImpl", "Path is a directory, using Directory class for renaming");
+                            // Use the Directory class for direct renaming
+                            try (Directory directory = share.openDirectory(oldFilePath, EnumSet.of(AccessMask.GENERIC_ALL), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
+                                LogUtils.d("SmbRepositoryImpl", "Renaming directory using Directory.rename: " + oldFilePath + " to " + newFilePath);
+                                directory.rename(newFilePath, false);
+                                LogUtils.i("SmbRepositoryImpl", "Directory renamed successfully using Directory.rename from " + oldFilePath + " to " + newFilePath);
+                            }
+                        } else {
+                            LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + oldFilePath);
+                            throw new IOException("File or directory not found: " + oldFilePath);
+                        }
                     }
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Error renaming file/directory: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error renaming file/directory: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
     @Override
     public void createDirectory(SmbConnection connection, String path, String name) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Creating directory: " + name + " in path: " + path);
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String dirPath = getPathWithoutShare(path);
-                    String newDirPath = dirPath.isEmpty() ? name : dirPath + "/" + name;
-                    LogUtils.d("SmbRepositoryImpl", "Creating directory at path: " + newDirPath);
 
-                    share.mkdir(newDirPath);
-                    LogUtils.i("SmbRepositoryImpl", "Directory created successfully: " + newDirPath);
+        operationLock.lock();
+        try {
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                        String dirPath = getPathWithoutShare(path);
+                        String newDirPath = dirPath.isEmpty() ? name : dirPath + "/" + name;
+                        LogUtils.d("SmbRepositoryImpl", "Creating directory at path: " + newDirPath);
+
+                        share.mkdir(newDirPath);
+                        LogUtils.i("SmbRepositoryImpl", "Directory created successfully: " + newDirPath);
+                    }
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Error creating directory: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error creating directory: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
@@ -580,8 +721,7 @@ public class SmbRepositoryImpl implements SmbRepository {
         }
 
         // Convert the pattern to a regex pattern
-        String regex = pattern.toLowerCase()
-                .replace(".", "\\.")  // Escape dots
+        String regex = pattern.toLowerCase().replace(".", "\\.")  // Escape dots
                 .replace("?", ".")    // ? matches any single character
                 .replace("*", ".*");  // * matches any sequence of characters
 
@@ -600,67 +740,117 @@ public class SmbRepositoryImpl implements SmbRepository {
     @Override
     public boolean fileExists(SmbConnection connection, String path) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Checking if file exists: " + path);
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String filePath = getPathWithoutShare(path);
-                    LogUtils.d("SmbRepositoryImpl", "Checking if file exists: " + filePath);
 
-                    boolean exists = share.fileExists(filePath);
-                    LogUtils.i("SmbRepositoryImpl", "File " + (exists ? "exists" : "does not exist") + ": " + filePath);
-                    return exists;
+        operationLock.lock();
+        try {
+            try (Connection conn = smbClient.connect(connection.getServer())) {
+                LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                AuthenticationContext authContext = createAuthContext(connection);
+                try (Session session = conn.authenticate(authContext)) {
+                    LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                    String shareName = getShareName(connection.getShare());
+                    try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                        LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                        String filePath = getPathWithoutShare(path);
+                        LogUtils.d("SmbRepositoryImpl", "Checking if file exists: " + filePath);
+
+                        boolean exists = share.fileExists(filePath);
+                        LogUtils.i("SmbRepositoryImpl", "File " + (exists ? "exists" : "does not exist") + ": " + filePath);
+                        return exists;
+                    }
                 }
+            } catch (Exception e) {
+                LogUtils.e("SmbRepositoryImpl", "Error checking if file exists: " + e.getMessage());
+                throw e;
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error checking if file exists: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
     @Override
     public void downloadFolder(SmbConnection connection, String remotePath, java.io.File localFolder) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Downloading folder: " + remotePath + " to " + localFolder.getAbsolutePath());
-        try (Connection conn = smbClient.connect(connection.getServer())) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-            AuthenticationContext authContext = createAuthContext(connection);
-            try (Session session = conn.authenticate(authContext)) {
-                LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-                String shareName = getShareName(connection.getShare());
-                try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-                    String folderPath = getPathWithoutShare(remotePath);
-                    LogUtils.d("SmbRepositoryImpl", "Checking if remote folder exists: " + folderPath);
 
-                    // Check if the folder exists before attempting to download it
-                    if (!share.folderExists(folderPath)) {
-                        String errorMessage = "Folder not found: " + folderPath;
-                        LogUtils.e("SmbRepositoryImpl", errorMessage);
-                        throw new IOException(errorMessage);
+        operationLock.lock();
+        try {
+            int maxRetries = 3;
+            int retryCount = 0;
+            boolean downloadSuccessful = false;
+            Exception lastException = null;
+
+            while (!downloadSuccessful && retryCount < maxRetries) {
+                if (retryCount > 0) {
+                    LogUtils.i("SmbRepositoryImpl", "Retrying folder download (attempt " + (retryCount + 1) + " of " + maxRetries + ")");
+                    // Wait a bit before retrying
+                    try {
+                        Thread.sleep(1000 * retryCount);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
+                }
 
-                    // Create the local folder if it doesn't exist
-                    if (!localFolder.exists()) {
-                        LogUtils.d("SmbRepositoryImpl", "Creating local folder: " + localFolder.getAbsolutePath());
-                        if (!localFolder.mkdirs()) {
-                            String errorMessage = "Failed to create local folder: " + localFolder.getAbsolutePath();
-                            LogUtils.e("SmbRepositoryImpl", errorMessage);
-                            throw new IOException(errorMessage);
+                try (Connection conn = smbClient.connect(connection.getServer())) {
+                    LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
+                    AuthenticationContext authContext = createAuthContext(connection);
+                    try (Session session = conn.authenticate(authContext)) {
+                        LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+                        String shareName = getShareName(connection.getShare());
+                        try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                            LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
+                            String folderPath = getPathWithoutShare(remotePath);
+                            LogUtils.d("SmbRepositoryImpl", "Checking if remote folder exists: " + folderPath);
+
+                            // Check if the folder exists before attempting to download it
+                            if (!share.folderExists(folderPath)) {
+                                String errorMessage = "Folder not found: " + folderPath;
+                                LogUtils.e("SmbRepositoryImpl", errorMessage);
+                                throw new IOException(errorMessage);
+                            }
+
+                            // Create the local folder if it doesn't exist
+                            if (!localFolder.exists()) {
+                                LogUtils.d("SmbRepositoryImpl", "Creating local folder: " + localFolder.getAbsolutePath());
+                                if (!localFolder.mkdirs()) {
+                                    String errorMessage = "Failed to create local folder: " + localFolder.getAbsolutePath();
+                                    LogUtils.e("SmbRepositoryImpl", errorMessage);
+                                    throw new IOException(errorMessage);
+                                }
+                            }
+
+                            try {
+                                // Download the folder contents recursively
+                                downloadFolderContents(share, folderPath, localFolder);
+                                LogUtils.i("SmbRepositoryImpl", "Folder downloaded successfully: " + remotePath);
+                                downloadSuccessful = true;
+                                break; // Exit the retry loop
+                            } catch (Exception e) {
+                                LogUtils.e("SmbRepositoryImpl", "Error during folder download: " + e.getMessage());
+                                lastException = e;
+                                // Don't rethrow here, let the retry mechanism handle it
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    LogUtils.e("SmbRepositoryImpl", "Error downloading folder (attempt " + (retryCount + 1) + "): " + e.getMessage());
+                    lastException = e;
+                    // Don't rethrow here, let the retry mechanism handle it
+                }
 
-                    // Download the folder contents recursively
-                    downloadFolderContents(share, folderPath, localFolder);
-                    LogUtils.i("SmbRepositoryImpl", "Folder downloaded successfully: " + remotePath);
+                retryCount++;
+            }
+
+            if (!downloadSuccessful) {
+                LogUtils.e("SmbRepositoryImpl", "Folder download failed after " + maxRetries + " attempts");
+                if (lastException != null) {
+                    throw lastException;
+                } else {
+                    throw new IOException("Folder download failed after " + maxRetries + " attempts");
                 }
             }
-        } catch (Exception e) {
-            LogUtils.e("SmbRepositoryImpl", "Error downloading folder: " + e.getMessage());
-            throw e;
+        } finally {
+            operationLock.unlock();
         }
     }
 
@@ -688,8 +878,7 @@ public class SmbRepositoryImpl implements SmbRepository {
                     continue;
                 }
 
-                String remoteFilePath = remotePath.isEmpty() || remotePath.equals("\\") ? 
-                    "\\" + fileName : remotePath + "\\" + fileName;
+                String remoteFilePath = remotePath.isEmpty() || remotePath.equals("\\") ? "\\" + fileName : remotePath + "\\" + fileName;
                 java.io.File localFile = new java.io.File(localFolder, fileName);
 
                 if ((file.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0) {
@@ -702,33 +891,79 @@ public class SmbRepositoryImpl implements SmbRepository {
                     }
                     downloadFolderContents(share, remoteFilePath, localFile);
                 } else {
-                    // It's a file, download it
+                    // It's a file, download it with retry logic
                     LogUtils.d("SmbRepositoryImpl", "Downloading file: " + remoteFilePath + " to " + localFile.getAbsolutePath());
-                    try (File remoteFile = share.openFile(
-                            remoteFilePath,
-                            EnumSet.of(AccessMask.GENERIC_READ),
-                            null,
-                            SMB2ShareAccess.ALL,
-                            SMB2CreateDisposition.FILE_OPEN,
-                            null)) {
-                        LogUtils.d("SmbRepositoryImpl", "Remote file opened successfully");
 
-                        try (InputStream is = remoteFile.getInputStream();
-                             java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
-                            LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
+                    int maxRetries = 3;
+                    int retryCount = 0;
+                    boolean downloadSuccessful = false;
+                    Exception lastException = null;
 
-                            byte[] buffer = new byte[8192];
-                            int bytesRead;
-                            long totalBytesRead = 0;
-                            while ((bytesRead = is.read(buffer)) != -1) {
-                                fos.write(buffer, 0, bytesRead);
-                                totalBytesRead += bytesRead;
+                    while (!downloadSuccessful && retryCount < maxRetries) {
+                        if (retryCount > 0) {
+                            LogUtils.i("SmbRepositoryImpl", "Retrying file download (attempt " + (retryCount + 1) + " of " + maxRetries + "): " + remoteFilePath);
+                            // Wait a bit before retrying
+                            try {
+                                Thread.sleep(1000 * retryCount);
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                break;
                             }
-                            LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + totalBytesRead + " bytes");
                         }
-                    } catch (Exception e) {
-                        LogUtils.e("SmbRepositoryImpl", "Error downloading file: " + remoteFilePath + " - " + e.getMessage());
-                        throw new IOException("Error downloading file: " + remoteFilePath, e);
+
+                        try (File remoteFile = share.openFile(remoteFilePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
+                            LogUtils.d("SmbRepositoryImpl", "Remote file opened successfully");
+
+                            // If this is a retry and the file already exists, we need to determine where to resume from
+                            long fileSize = 0;
+                            if (retryCount > 0 && localFile.exists()) {
+                                fileSize = localFile.length();
+                                LogUtils.d("SmbRepositoryImpl", "Resuming download from byte position: " + fileSize);
+                            }
+
+                            try (InputStream is = remoteFile.getInputStream(); java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, fileSize > 0)) {
+                                LogUtils.d("SmbRepositoryImpl", "Starting file transfer");
+
+                                // Skip bytes if resuming
+                                if (fileSize > 0) {
+                                    long skipped = is.skip(fileSize);
+                                    LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes");
+                                }
+
+                                byte[] buffer = new byte[8192];
+                                int bytesRead;
+                                long totalBytesRead = fileSize; // Start from current file size if resuming
+
+                                try {
+                                    while ((bytesRead = is.read(buffer)) != -1) {
+                                        fos.write(buffer, 0, bytesRead);
+                                        totalBytesRead += bytesRead;
+                                    }
+                                    LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + totalBytesRead + " bytes");
+                                    downloadSuccessful = true;
+                                    break; // Exit the retry loop
+                                } catch (Exception e) {
+                                    LogUtils.e("SmbRepositoryImpl", "Error during file transfer: " + e.getMessage());
+                                    lastException = e;
+                                    // Don't rethrow here, let the retry mechanism handle it
+                                }
+                            }
+                        } catch (Exception e) {
+                            LogUtils.e("SmbRepositoryImpl", "Error downloading file (attempt " + (retryCount + 1) + "): " + e.getMessage());
+                            lastException = e;
+                            // Don't rethrow here, let the retry mechanism handle it
+                        }
+
+                        retryCount++;
+                    }
+
+                    if (!downloadSuccessful) {
+                        LogUtils.e("SmbRepositoryImpl", "File download failed after " + maxRetries + " attempts: " + remoteFilePath);
+                        if (lastException != null) {
+                            throw new IOException("Error downloading file: " + remoteFilePath, lastException);
+                        } else {
+                            throw new IOException("File download failed after " + maxRetries + " attempts: " + remoteFilePath);
+                        }
                     }
                 }
             }

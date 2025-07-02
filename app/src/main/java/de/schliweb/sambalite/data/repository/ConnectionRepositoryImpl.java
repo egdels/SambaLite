@@ -36,17 +36,9 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
         // Initialize EncryptedSharedPreferences
         SharedPreferences prefs;
         try {
-            MasterKey masterKey = new MasterKey.Builder(context)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build();
+            MasterKey masterKey = new MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build();
 
-            prefs = EncryptedSharedPreferences.create(
-                    context,
-                    PREFS_NAME,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            );
+            prefs = EncryptedSharedPreferences.create(context, PREFS_NAME, masterKey, EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV, EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
             LogUtils.i("ConnectionRepositoryImpl", "EncryptedSharedPreferences initialized successfully");
         } catch (GeneralSecurityException | IOException e) {
             // Fallback to regular SharedPreferences in case of error
@@ -139,9 +131,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
                 jsonArray.put(jsonObject);
             }
 
-            encryptedPrefs.edit()
-                    .putString(KEY_CONNECTIONS, jsonArray.toString())
-                    .apply();
+            encryptedPrefs.edit().putString(KEY_CONNECTIONS, jsonArray.toString()).apply();
             LogUtils.d("ConnectionRepositoryImpl", "Connections saved successfully to preferences");
         } catch (JSONException e) {
             LogUtils.e("ConnectionRepositoryImpl", "Error saving connections to preferences: " + e.getMessage());

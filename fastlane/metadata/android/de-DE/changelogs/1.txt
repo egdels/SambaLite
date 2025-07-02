@@ -1,7 +1,0 @@
-Erste Version von SambaLite:
-
-• Verbindungen zu SMB/CIFS-Freigaben verwalten
-• Datei-Browser mit Sortier-Optionen
-• Datei-Operationen: Download, Upload, Löschen, Umbenennen
-• Sicheres Speichern der Zugangsdaten
-• Dark/Light Mode Unterstützung

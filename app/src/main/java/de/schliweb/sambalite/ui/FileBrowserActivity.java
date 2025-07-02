@@ -9,14 +9,11 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.*;
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -31,11 +28,7 @@ import de.schliweb.sambalite.util.KeyboardUtils;
 import de.schliweb.sambalite.util.LogUtils;
 
 import javax.inject.Inject;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 
 /**
  * Activity for browsing files on an SMB server.
@@ -48,6 +41,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
     private static final int REQUEST_CODE_CREATE_FOLDER = 3;
     @Inject
     ViewModelProvider.Factory viewModelFactory;
+    private boolean isActivityVisible = true;
     private FileBrowserViewModel viewModel;
     private FileAdapter adapter;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -72,6 +66,20 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        isActivityVisible = true;
+        LogUtils.d("FileBrowserActivity", "visibilityChanged oldVisibility=false newVisibility=true");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isActivityVisible = false;
+        LogUtils.d("FileBrowserActivity", "visibilityChanged oldVisibility=true newVisibility=false");
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         LogUtils.d("FileBrowserActivity", "onCreate called");
         // Get the Dagger component and inject dependencies
@@ -83,12 +91,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         setContentView(R.layout.activity_file_browser);
         LogUtils.d("FileBrowserActivity", "Content view set");
 
-        // Set up toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(R.string.file_browser_title);
-        LogUtils.d("FileBrowserActivity", "Toolbar set up");
+        // Navigation is now handled by the Navigation-Bar
+        LogUtils.d("FileBrowserActivity", "Using Navigation-Bar for navigation");
 
         // Initialize views
         RecyclerView recyclerView = findViewById(R.id.files_recycler_view);
@@ -216,11 +220,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                 emptyView.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
                 recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
 
-                // Update title to show we're in search mode
-                getSupportActionBar().setTitle(R.string.search_results);
+                // We're in search mode
+                LogUtils.d("FileBrowserActivity", "In search mode");
             } else {
-                // Reset title when not in search mode
-                getSupportActionBar().setTitle(R.string.file_browser_title);
+                // Not in search mode
+                LogUtils.d("FileBrowserActivity", "Not in search mode");
                 emptyView.setText(R.string.empty_directory);
             }
         });
@@ -282,10 +286,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         LogUtils.d("FileBrowserActivity", "Search dialog view inflated");
 
         // Get the search query input field
-        com.google.android.material.textfield.TextInputEditText searchQueryEditText =
-                dialogView.findViewById(R.id.search_query_edit_text);
-        com.google.android.material.textfield.TextInputLayout searchQueryLayout =
-                dialogView.findViewById(R.id.search_query_layout);
+        com.google.android.material.textfield.TextInputEditText searchQueryEditText = dialogView.findViewById(R.id.search_query_edit_text);
+        com.google.android.material.textfield.TextInputLayout searchQueryLayout = dialogView.findViewById(R.id.search_query_layout);
 
         // Get the search type radio group
         RadioGroup searchTypeRadioGroup = dialogView.findViewById(R.id.search_type_radio_group);
@@ -295,9 +297,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
         // Create the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.search_files)
-                .setView(dialogView)
-                .setPositiveButton(R.string.search, null) // Set in onShowListener to prevent auto-dismiss
+        builder.setTitle(R.string.search_files).setView(dialogView).setPositiveButton(R.string.search, null) // Set in onShowListener to prevent auto-dismiss
                 .setNegativeButton(R.string.cancel, (dialog, which) -> {
                     LogUtils.d("FileBrowserActivity", "Search dialog cancelled");
                     dialog.dismiss();
@@ -387,12 +387,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
      * For files that are long-clicked, all options (download, rename, delete) are shown.
      * For folders, all options (download, rename, delete) are shown.
      *
-     * @param file           The file or folder to show options for
+     * @param file            The file or folder to show options for
      * @param isFromLongClick Whether this dialog was triggered by a long click action
      */
     private void showFileOptionsDialog(SmbFileItem file, boolean isFromLongClick) {
-        LogUtils.d("FileBrowserActivity", "Showing options dialog for: " + file.getName() +
-                ", isDirectory: " + file.isDirectory() + ", isFromLongClick: " + isFromLongClick);
+        LogUtils.d("FileBrowserActivity", "Showing options dialog for: " + file.getName() + ", isDirectory: " + file.isDirectory() + ", isFromLongClick: " + isFromLongClick);
         String[] options;
 
         if (file.isFile() && !isFromLongClick) {
@@ -404,38 +403,35 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(file.getName())
-                .setItems(options, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        if (file.isFile() && !isFromLongClick) {
-                            // For files that were clicked (not long-clicked), only download option is available
-                            LogUtils.d("FileBrowserActivity", "Download option selected for file: " + file.getName());
+        builder.setTitle(file.getName()).setItems(options, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (file.isFile() && !isFromLongClick) {
+                    // For files that were clicked (not long-clicked), only download option is available
+                    LogUtils.d("FileBrowserActivity", "Download option selected for file: " + file.getName());
+                    downloadFile(file);
+                } else {
+                    // For folders and for files that were long-clicked, handle all options
+                    switch (which) {
+                        case 0: // Download
+                            LogUtils.d("FileBrowserActivity", "Download option selected for: " + file.getName());
                             downloadFile(file);
-                        } else {
-                            // For folders and for files that were long-clicked, handle all options
-                            switch (which) {
-                                case 0: // Download
-                                    LogUtils.d("FileBrowserActivity", "Download option selected for: " + file.getName());
-                                    downloadFile(file);
-                                    break;
-                                case 1: // Rename
-                                    LogUtils.d("FileBrowserActivity", "Rename option selected for: " + file.getName());
-                                    showRenameFileDialog(file);
-                                    break;
-                                case 2: // Delete
-                                    LogUtils.d("FileBrowserActivity", "Delete option selected for: " + file.getName());
-                                    showDeleteFileConfirmationDialog(file);
-                                    break;
-                            }
-                        }
+                            break;
+                        case 1: // Rename
+                            LogUtils.d("FileBrowserActivity", "Rename option selected for: " + file.getName());
+                            showRenameFileDialog(file);
+                            break;
+                        case 2: // Delete
+                            LogUtils.d("FileBrowserActivity", "Delete option selected for: " + file.getName());
+                            showDeleteFileConfirmationDialog(file);
+                            break;
                     }
-                })
-                .setNegativeButton(R.string.cancel, (dialog, which) -> {
-                    LogUtils.d("FileBrowserActivity", "File options dialog cancelled");
-                    dialog.dismiss();
-                })
-                .show();
+                }
+            }
+        }).setNegativeButton(R.string.cancel, (dialog, which) -> {
+            LogUtils.d("FileBrowserActivity", "File options dialog cancelled");
+            dialog.dismiss();
+        }).show();
     }
 
     /**
@@ -454,9 +450,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
         // Create the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.rename_dialog_title)
-                .setView(dialogView)
-                .setPositiveButton(R.string.rename, null) // Set listener later to prevent automatic dismissal
+        builder.setTitle(R.string.rename_dialog_title).setView(dialogView).setPositiveButton(R.string.rename, null) // Set listener later to prevent automatic dismissal
                 .setNegativeButton(R.string.cancel, (dialog, which) -> {
                     LogUtils.d("FileBrowserActivity", "Rename dialog cancelled");
                     dialog.dismiss();
@@ -497,14 +491,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                     public void run() {
                                         if (success) {
                                             LogUtils.i("FileBrowserActivity", "File renamed successfully: " + file.getName() + " to " + newName);
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    R.string.rename_success, Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), R.string.rename_success, Snackbar.LENGTH_LONG).show();
                                             dialog.dismiss();
                                         } else {
                                             LogUtils.e("FileBrowserActivity", "Error renaming file: " + message);
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    getString(R.string.rename_error) + ": " + message,
-                                                    Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), getString(R.string.rename_error) + ": " + message, Snackbar.LENGTH_LONG).show();
                                         }
                                     }
                                 });
@@ -531,40 +522,34 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         LogUtils.d("FileBrowserActivity", "Showing delete confirmation dialog for file: " + file.getName());
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.delete_file_dialog_title)
-                .setMessage(getString(R.string.confirm_delete_file, file.getName()))
-                .setPositiveButton(R.string.delete, (dialog, which) -> {
-                    LogUtils.d("FileBrowserActivity", "Delete confirmed for file: " + file.getName());
+        builder.setTitle(R.string.delete_file_dialog_title).setMessage(getString(R.string.confirm_delete_file, file.getName())).setPositiveButton(R.string.delete, (dialog, which) -> {
+            LogUtils.d("FileBrowserActivity", "Delete confirmed for file: " + file.getName());
 
-                    // Show a progress indicator
-                    Toast.makeText(this, R.string.delete_file, Toast.LENGTH_SHORT).show();
+            // Show a progress indicator
+            Toast.makeText(this, R.string.delete_file, Toast.LENGTH_SHORT).show();
 
-                    // Delete the file
-                    viewModel.deleteFile(file, new FileBrowserViewModel.DeleteFileCallback() {
+            // Delete the file
+            viewModel.deleteFile(file, new FileBrowserViewModel.DeleteFileCallback() {
+                @Override
+                public void onResult(boolean success, String message) {
+                    runOnUiThread(new Runnable() {
                         @Override
-                        public void onResult(boolean success, String message) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (success) {
-                                        LogUtils.i("FileBrowserActivity", "File deleted successfully: " + file.getName());
-                                        Snackbar.make(findViewById(android.R.id.content),
-                                                R.string.delete_success, Snackbar.LENGTH_LONG).show();
-                                    } else {
-                                        LogUtils.e("FileBrowserActivity", "Error deleting file: " + message);
-                                        Snackbar.make(findViewById(android.R.id.content),
-                                                getString(R.string.delete_error) + ": " + message,
-                                                Snackbar.LENGTH_LONG).show();
-                                    }
-                                }
-                            });
+                        public void run() {
+                            if (success) {
+                                LogUtils.i("FileBrowserActivity", "File deleted successfully: " + file.getName());
+                                Snackbar.make(findViewById(android.R.id.content), R.string.delete_success, Snackbar.LENGTH_LONG).show();
+                            } else {
+                                LogUtils.e("FileBrowserActivity", "Error deleting file: " + message);
+                                Snackbar.make(findViewById(android.R.id.content), getString(R.string.delete_error) + ": " + message, Snackbar.LENGTH_LONG).show();
+                            }
                         }
                     });
-                })
-                .setNegativeButton(R.string.cancel, (dialog, which) -> {
-                    LogUtils.d("FileBrowserActivity", "Delete cancelled for file: " + file.getName());
-                    dialog.dismiss();
-                });
+                }
+            });
+        }).setNegativeButton(R.string.cancel, (dialog, which) -> {
+            LogUtils.d("FileBrowserActivity", "Delete cancelled for file: " + file.getName());
+            dialog.dismiss();
+        });
 
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -575,9 +560,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
      * Initiates the download of a file or folder.
      */
     private void downloadFile(SmbFileItem file) {
-        LogUtils.d("FileBrowserActivity", "Initiating download for: " + file.getName() + 
-                  ", type: " + (file.isDirectory() ? "directory" : "file") + 
-                  (file.isFile() ? ", size: " + file.getSize() + " bytes" : ""));
+        LogUtils.d("FileBrowserActivity", "Initiating download for: " + file.getName() + ", type: " + (file.isDirectory() ? "directory" : "file") + (file.isFile() ? ", size: " + file.getSize() + " bytes" : ""));
 
         if (file.isDirectory()) {
             // For directories, we need to create a folder picker
@@ -658,13 +641,10 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                         try {
                                             copyFileToUri(tempFile, uri);
                                             LogUtils.i("FileBrowserActivity", "File downloaded and saved successfully: " + fileToDownload.getName());
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    R.string.download_success, Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
                                         } catch (Exception e) {
                                             LogUtils.e("FileBrowserActivity", "Error copying file to destination: " + e.getMessage());
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    getString(R.string.download_error) + ": " + e.getMessage(),
-                                                    Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                                         } finally {
                                             // Delete the temporary file
                                             LogUtils.d("FileBrowserActivity", "Deleting temporary file: " + tempFile.getAbsolutePath());
@@ -677,16 +657,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                         String userMessage;
                                         if (message.contains("File not found")) {
                                             String fileName = fileToDownload.getName();
-                                            userMessage = getString(R.string.download_error) + ": " +
-                                                    getString(R.string.file_not_found, fileName);
+                                            userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, fileName);
                                             LogUtils.d("FileBrowserActivity", "Showing user-friendly file not found message");
                                         } else {
                                             userMessage = getString(R.string.download_error) + ": " + message;
                                         }
 
-                                        Snackbar.make(findViewById(android.R.id.content),
-                                                userMessage,
-                                                Snackbar.LENGTH_LONG).show();
+                                        Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
                                     }
                                 }
                             });
@@ -694,9 +671,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                     });
                 } catch (Exception e) {
                     LogUtils.e("FileBrowserActivity", "Error setting up download: " + e.getMessage());
-                    Snackbar.make(findViewById(android.R.id.content),
-                            getString(R.string.download_error) + ": " + e.getMessage(),
-                            Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                 }
             } else {
                 LogUtils.w("FileBrowserActivity", "Null URI or fileToDownload in onActivityResult");
@@ -714,9 +689,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                     DocumentFile documentFile = DocumentFile.fromTreeUri(this, uri);
                     if (documentFile == null || !documentFile.exists() || !documentFile.isDirectory()) {
                         LogUtils.e("FileBrowserActivity", "Invalid destination folder");
-                        Snackbar.make(findViewById(android.R.id.content),
-                                getString(R.string.download_error) + ": Invalid destination folder",
-                                Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": Invalid destination folder", Snackbar.LENGTH_LONG).show();
                         return;
                     }
 
@@ -724,9 +697,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                     DocumentFile subFolder = documentFile.createDirectory(fileToDownload.getName());
                     if (subFolder == null) {
                         LogUtils.e("FileBrowserActivity", "Failed to create subfolder: " + fileToDownload.getName());
-                        Snackbar.make(findViewById(android.R.id.content),
-                                getString(R.string.download_error) + ": Failed to create folder",
-                                Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": Failed to create folder", Snackbar.LENGTH_LONG).show();
                         return;
                     }
 
@@ -734,9 +705,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                     File tempFolder = new File(getCacheDir(), "download_" + System.currentTimeMillis());
                     if (!tempFolder.mkdirs()) {
                         LogUtils.e("FileBrowserActivity", "Failed to create temporary folder: " + tempFolder.getAbsolutePath());
-                        Snackbar.make(findViewById(android.R.id.content),
-                                getString(R.string.download_error) + ": Failed to create temporary folder",
-                                Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": Failed to create temporary folder", Snackbar.LENGTH_LONG).show();
                         return;
                     }
                     LogUtils.d("FileBrowserActivity", "Created temporary folder for download: " + tempFolder.getAbsolutePath());
@@ -756,13 +725,10 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                         try {
                                             copyFolderContentsToDocumentFile(tempFolder, subFolder);
                                             LogUtils.i("FileBrowserActivity", "Folder downloaded and saved successfully: " + fileToDownload.getName());
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    R.string.download_success, Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
                                         } catch (Exception e) {
                                             LogUtils.e("FileBrowserActivity", "Error copying folder to destination: " + e.getMessage());
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    getString(R.string.download_error) + ": " + e.getMessage(),
-                                                    Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                                         } finally {
                                             // Delete the temporary folder
                                             LogUtils.d("FileBrowserActivity", "Deleting temporary folder: " + tempFolder.getAbsolutePath());
@@ -775,16 +741,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                         String userMessage;
                                         if (message.contains("Folder not found")) {
                                             String folderName = fileToDownload.getName();
-                                            userMessage = getString(R.string.download_error) + ": " +
-                                                    getString(R.string.file_not_found, folderName);
+                                            userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, folderName);
                                             LogUtils.d("FileBrowserActivity", "Showing user-friendly folder not found message");
                                         } else {
                                             userMessage = getString(R.string.download_error) + ": " + message;
                                         }
 
-                                        Snackbar.make(findViewById(android.R.id.content),
-                                                userMessage,
-                                                Snackbar.LENGTH_LONG).show();
+                                        Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
                                     }
                                 }
                             });
@@ -792,9 +755,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                     });
                 } catch (Exception e) {
                     LogUtils.e("FileBrowserActivity", "Error setting up folder download: " + e.getMessage());
-                    Snackbar.make(findViewById(android.R.id.content),
-                            getString(R.string.download_error) + ": " + e.getMessage(),
-                            Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                 }
             } else {
                 LogUtils.w("FileBrowserActivity", "Null URI or fileToDownload in onActivityResult");
@@ -809,8 +770,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
      */
     private void copyFileToUri(File file, Uri uri) throws Exception {
         LogUtils.d("FileBrowserActivity", "Copying file to URI: " + uri + ", file size: " + file.length() + " bytes");
-        try (FileOutputStream outputStream = (FileOutputStream) getContentResolver().openOutputStream(uri);
-             java.io.FileInputStream inputStream = new java.io.FileInputStream(file)) {
+        try (FileOutputStream outputStream = (FileOutputStream) getContentResolver().openOutputStream(uri); java.io.FileInputStream inputStream = new java.io.FileInputStream(file)) {
 
             byte[] buffer = new byte[8192];
             int bytesRead;
@@ -863,8 +823,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
                 // Copy the file contents
                 Uri uri = newFile.getUri();
-                try (OutputStream outputStream = getContentResolver().openOutputStream(uri);
-                     java.io.FileInputStream inputStream = new java.io.FileInputStream(file)) {
+                try (OutputStream outputStream = getContentResolver().openOutputStream(uri); java.io.FileInputStream inputStream = new java.io.FileInputStream(file)) {
 
                     if (outputStream == null) {
                         LogUtils.e("FileBrowserActivity", "Failed to open output stream for: " + uri);
@@ -934,8 +893,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
             // Copy the content from the URI to the temporary file
             LogUtils.d("FileBrowserActivity", "Copying content from URI to temporary file");
-            try (InputStream inputStream = getContentResolver().openInputStream(uri);
-                 FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            try (InputStream inputStream = getContentResolver().openInputStream(uri); FileOutputStream outputStream = new FileOutputStream(tempFile)) {
 
                 if (inputStream == null) {
                     LogUtils.e("FileBrowserActivity", "Failed to open input stream from URI");
@@ -960,7 +918,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
             LogUtils.d("FileBrowserActivity", "Current path for upload: " + currentPath);
 
             // Construct the remote path
-            String remotePath = currentPath + "/" + fileName;
+            String remotePath;
+            if (currentPath.equals("root")) {
+                // If at root directory, don't add the "root/" prefix
+                remotePath = fileName;
+            } else {
+                remotePath = currentPath + "/" + fileName;
+            }
             LogUtils.d("FileBrowserActivity", "Remote path for upload: " + remotePath);
 
             // Create final copies for use in lambda
@@ -969,40 +933,30 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
             // Upload the file with file existence check
             LogUtils.d("FileBrowserActivity", "Starting upload to remote path: " + remotePath);
-            viewModel.uploadFile(finalTempFile, remotePath,
-                    new FileBrowserViewModel.UploadCallback() {
-                        @Override
-                        public void onResult(boolean success, String message) {
-                            LogUtils.d("FileBrowserActivity", "Upload result: " + (success ? "success" : "failure") + " - " + message);
-                            runOnUiThread(() -> {
-                                if (success) {
-                                    Toast.makeText(FileBrowserActivity.this, "Upload erfolgreich", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(FileBrowserActivity.this, "Upload fehlgeschlagen: " + message, Toast.LENGTH_LONG).show();
-                                }
-                            });
+            viewModel.uploadFile(finalTempFile, remotePath, new FileBrowserViewModel.UploadCallback() {
+                @Override
+                public void onResult(boolean success, String message) {
+                    LogUtils.d("FileBrowserActivity", "Upload result: " + (success ? "success" : "failure") + " - " + message);
+                    runOnUiThread(() -> {
+                        if (success) {
+                            Toast.makeText(FileBrowserActivity.this, "Upload erfolgreich", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(FileBrowserActivity.this, "Upload fehlgeschlagen: " + message, Toast.LENGTH_LONG).show();
                         }
-                    },
-                    (existingFileName, confirmAction) -> {
-                        // This is the FileExistsCallback that will be called if the file exists
-                        runOnUiThread(() -> {
-                            new AlertDialog.Builder(FileBrowserActivity.this)
-                                    .setTitle(R.string.file_exists)
-                                    .setMessage(getString(R.string.file_exists_message, existingFileName))
-                                    .setPositiveButton(R.string.overwrite, (dialog, which) -> {
-                                        // Datei überschreiben
-                                        confirmAction.run();
-                                    })
-                                    .setNegativeButton(R.string.cancel, null)
-                                    .show();
-                        });
-                    },
-                    finalFileName);
+                    });
+                }
+            }, (existingFileName, confirmAction) -> {
+                // This is the FileExistsCallback that will be called if the file exists
+                runOnUiThread(() -> {
+                    new AlertDialog.Builder(FileBrowserActivity.this).setTitle(R.string.file_exists).setMessage(getString(R.string.file_exists_message, existingFileName)).setPositiveButton(R.string.overwrite, (dialog, which) -> {
+                        // Datei überschreiben
+                        confirmAction.run();
+                    }).setNegativeButton(R.string.cancel, null).show();
+                });
+            }, finalFileName);
         } catch (Exception e) {
             LogUtils.e("FileBrowserActivity", "Error handling file upload: " + e.getMessage());
-            Snackbar.make(findViewById(android.R.id.content),
-                    getString(R.string.upload_error) + ": " + e.getMessage(),
-                    Snackbar.LENGTH_LONG).show();
+            Snackbar.make(findViewById(android.R.id.content), getString(R.string.upload_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -1090,17 +1044,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         LogUtils.d("FileBrowserActivity", "Dialog view inflated");
 
         // Get the folder name input field
-        com.google.android.material.textfield.TextInputEditText folderNameEditText =
-                dialogView.findViewById(R.id.folder_name_edit_text);
-        com.google.android.material.textfield.TextInputLayout folderNameLayout =
-                dialogView.findViewById(R.id.folder_name_layout);
+        com.google.android.material.textfield.TextInputEditText folderNameEditText = dialogView.findViewById(R.id.folder_name_edit_text);
+        com.google.android.material.textfield.TextInputLayout folderNameLayout = dialogView.findViewById(R.id.folder_name_layout);
         LogUtils.d("FileBrowserActivity", "Dialog views retrieved");
 
         // Create the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.create_folder_dialog_title)
-                .setView(dialogView)
-                .setPositiveButton(R.string.create_folder, null) // Set in onShowListener to prevent auto-dismiss
+        builder.setTitle(R.string.create_folder_dialog_title).setView(dialogView).setPositiveButton(R.string.create_folder, null) // Set in onShowListener to prevent auto-dismiss
                 .setNegativeButton(R.string.cancel, (dialog, which) -> {
                     LogUtils.d("FileBrowserActivity", "Create folder dialog cancelled");
                     dialog.dismiss();
@@ -1145,14 +1095,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                                     public void run() {
                                         if (success) {
                                             LogUtils.i("FileBrowserActivity", "Folder created successfully: " + folderName);
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    R.string.folder_created, Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), R.string.folder_created, Snackbar.LENGTH_LONG).show();
                                             dialog.dismiss();
                                         } else {
                                             LogUtils.e("FileBrowserActivity", "Folder creation failed: " + message);
-                                            Snackbar.make(findViewById(android.R.id.content),
-                                                    getString(R.string.folder_creation_error) + ": " + message,
-                                                    Snackbar.LENGTH_LONG).show();
+                                            Snackbar.make(findViewById(android.R.id.content), getString(R.string.folder_creation_error) + ": " + message, Snackbar.LENGTH_LONG).show();
                                         }
                                     }
                                 });
@@ -1215,35 +1162,32 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
         // Create the dialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.sort_dialog_title)
-                .setView(dialogView)
-                .setPositiveButton(R.string.sort, (dialog, which) -> {
-                    LogUtils.d("FileBrowserActivity", "Sort dialog confirmed");
+        builder.setTitle(R.string.sort_dialog_title).setView(dialogView).setPositiveButton(R.string.sort, (dialog, which) -> {
+            LogUtils.d("FileBrowserActivity", "Sort dialog confirmed");
 
-                    // Get the selected sort option
-                    FileBrowserViewModel.SortOption sortOption;
-                    int selectedRadioButtonId = sortTypeRadioGroup.getCheckedRadioButtonId();
-                    if (selectedRadioButtonId == R.id.radio_date) {
-                        sortOption = FileBrowserViewModel.SortOption.DATE;
-                    } else if (selectedRadioButtonId == R.id.radio_size) {
-                        sortOption = FileBrowserViewModel.SortOption.SIZE;
-                    } else {
-                        sortOption = FileBrowserViewModel.SortOption.NAME;
-                    }
-                    LogUtils.d("FileBrowserActivity", "Selected sort option: " + sortOption);
+            // Get the selected sort option
+            FileBrowserViewModel.SortOption sortOption;
+            int selectedRadioButtonId = sortTypeRadioGroup.getCheckedRadioButtonId();
+            if (selectedRadioButtonId == R.id.radio_date) {
+                sortOption = FileBrowserViewModel.SortOption.DATE;
+            } else if (selectedRadioButtonId == R.id.radio_size) {
+                sortOption = FileBrowserViewModel.SortOption.SIZE;
+            } else {
+                sortOption = FileBrowserViewModel.SortOption.NAME;
+            }
+            LogUtils.d("FileBrowserActivity", "Selected sort option: " + sortOption);
 
-                    // Get the directories first option
-                    boolean dirsFirst = directoriesFirstCheckbox.isChecked();
-                    LogUtils.d("FileBrowserActivity", "Directories first: " + dirsFirst);
+            // Get the directories first option
+            boolean dirsFirst = directoriesFirstCheckbox.isChecked();
+            LogUtils.d("FileBrowserActivity", "Directories first: " + dirsFirst);
 
-                    // Apply the sorting options
-                    viewModel.setSortOption(sortOption);
-                    viewModel.setDirectoriesFirst(dirsFirst);
-                })
-                .setNegativeButton(R.string.cancel, (dialog, which) -> {
-                    LogUtils.d("FileBrowserActivity", "Sort dialog cancelled");
-                    dialog.dismiss();
-                });
+            // Apply the sorting options
+            viewModel.setSortOption(sortOption);
+            viewModel.setDirectoriesFirst(dirsFirst);
+        }).setNegativeButton(R.string.cancel, (dialog, which) -> {
+            LogUtils.d("FileBrowserActivity", "Sort dialog cancelled");
+            dialog.dismiss();
+        });
 
         // Create and show the dialog
         AlertDialog dialog = builder.create();
@@ -1263,8 +1207,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
                 int[] location = new int[2];
                 v.getLocationOnScreen(location);
 
-                if (x < location[0] || x > location[0] + v.getWidth() ||
-                        y < location[1] || y > location[1] + v.getHeight()) {
+                if (x < location[0] || x > location[0] + v.getWidth() || y < location[1] || y > location[1] + v.getHeight()) {
                     LogUtils.d("FileBrowserActivity", "Touch outside of text field, hiding keyboard");
                     // Touch was outside the text field, hide keyboard
                     // Clear focus first to ensure proper IME callback handling

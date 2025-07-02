@@ -1,0 +1,6 @@
+- SMB connection management with secure credential storage
+- File browsing functionality
+- File operations (download, upload, delete, rename)
+- Connection testing
+- Wildcard search support (using * and ? characters)
+- Ability to cancel ongoing searches

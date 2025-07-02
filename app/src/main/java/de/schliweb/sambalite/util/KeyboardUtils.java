@@ -10,7 +10,8 @@ import android.view.inputmethod.InputMethodManager;
  */
 public class KeyboardUtils {
 
-    private KeyboardUtils() {}
+    private KeyboardUtils() {
+    }
 
     /**
      * Hides the keyboard.

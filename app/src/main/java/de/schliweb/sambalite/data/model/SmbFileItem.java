@@ -17,6 +17,7 @@ public class SmbFileItem {
     private Type type;
     private long size;
     private Date lastModified;
+
     /**
      * Constructor for SmbFileItem.
      *

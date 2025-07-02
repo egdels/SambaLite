@@ -21,7 +21,7 @@ android {
         applicationId "de.schliweb.sambalite"
         minSdkVersion 28
         targetSdk 35 // Configured for borderless display (transparent system bars)
-        versionCode 4
+        versionCode 10
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -86,6 +86,8 @@ dependencies {
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.slf4j:slf4j-simple:2.0.12'
+    // testImplementation 'eu.agno3.jcifs:jcifs-ng:2.1.10'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }

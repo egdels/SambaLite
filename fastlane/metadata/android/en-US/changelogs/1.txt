@@ -1,7 +1,0 @@
-First version of SambaLite:
-
-• Manage connections to SMB/CIFS shares
-• File browser with sorting options
-• File operations: Download, upload, delete, rename
-• Secure storage of credentials
-• Dark/Light Mode support

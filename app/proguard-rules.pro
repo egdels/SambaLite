@@ -84,3 +84,30 @@
 -dontwarn org.ietf.jgss.GSSName
 -dontwarn org.ietf.jgss.Oid
 -dontwarn org.joda.time.Instant
+
+# Keep SMBJ library classes
+-keep class com.hierynomus.** { *; }
+-keepclassmembers class com.hierynomus.** { *; }
+-keepnames class com.hierynomus.** { *; }
+
+# Keep enums used by SMBJ
+-keepclassmembers enum com.hierynomus.** { *; }
+
+# Keep MBassY event bus classes used by SMBJ
+-keep class net.engio.** { *; }
+-keepclassmembers class net.engio.** { *; }
+-keepnames class net.engio.** { *; }
+-keepattributes Signature,*Annotation*
+
+# Keep all constructors
+-keepclassmembers class * {
+    public <init>(...);
+}
+
+# Keep Lombok generated code
+-keep class lombok.** { *; }
+-dontwarn lombok.**
+-keepclassmembers class * {
+    @lombok.* <fields>;
+    @lombok.* <methods>;
+}
