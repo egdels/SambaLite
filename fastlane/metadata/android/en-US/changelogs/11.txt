@@ -1,1 +1,2 @@
-- Enhanced build reproducibility by enabling deterministic APK generation for release builds. This ensures that the built APK remains byte-for-byte identical across different build environments, improving security and F-Droid compatibility.
+Improved reproducibility:
+Proguard/R8 now excludes all inner classes of FileBrowserActivity to reduce non-deterministic build differences and support reproducible builds for F-Droid. No functional changes.

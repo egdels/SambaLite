@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-Enhanced build reproducibility by enabling deterministic APK generation for release builds. This ensures that the built APK remains byte-for-byte identical across different build environments, improving security and F-Droid compatibility.
+Proguard/R8 now excludes all inner classes of FileBrowserActivity to reduce non-deterministic build differences and support reproducible builds for F-Droid. No functional changes.
 
 ## [1.0.0] - 2025-07-02
 
