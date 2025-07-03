@@ -5,7 +5,13 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2023-07-02
+## [1.0.1] - 2025-07-03
+
+### Added
+
+Enhanced build reproducibility by enabling deterministic APK generation for release builds. This ensures that the built APK remains byte-for-byte identical across different build environments, improving security and F-Droid compatibility.
+
+## [1.0.0] - 2025-07-02
 
 ### Added
 - Initial project setup
@@ -17,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wildcard search support (using * and ? characters)
 - Ability to cancel ongoing searches
 
-## [0.1.0] - 2023-06-28
+## [0.1.0] - 2025-06-28
 
 ### Added
 - Initial project structure

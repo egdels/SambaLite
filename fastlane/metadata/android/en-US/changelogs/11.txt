@@ -1,0 +1,1 @@
+- Enhanced build reproducibility by enabling deterministic APK generation for release builds. This ensures that the built APK remains byte-for-byte identical across different build environments, improving security and F-Droid compatibility.
