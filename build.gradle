@@ -15,6 +15,12 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // Enable reproducible builds for all projects
+    tasks.withType(AbstractArchiveTask) {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
 }
 
 task clean(type: Delete) {

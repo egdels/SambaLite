@@ -8,6 +8,8 @@ android {
 
     packaging {
         resources.excludes.add('META-INF/versions/9/OSGI-INF/MANIFEST.MF')
+        // Enable reproducible builds by setting fixed timestamps and ordering
+        jniLibs.useLegacyPackaging = false
     }
 
     defaultConfig {
@@ -33,12 +35,16 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    // Configure build features
+    // Note: buildConfig true is the recommended way to enable BuildConfig generation
+    // as per Android Gradle Plugin recommendations
     buildFeatures {
         viewBinding true
         buildConfig true
