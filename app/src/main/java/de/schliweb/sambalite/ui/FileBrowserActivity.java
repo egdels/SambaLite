@@ -310,46 +310,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         // Set up the positive button click listener
         dialog.setOnShowListener(dialogInterface -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            positiveButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    LogUtils.d("FileBrowserActivity", "Search button clicked in dialog");
-
-                    // Get the search query
-                    String query = searchQueryEditText.getText().toString().trim();
-                    LogUtils.d("FileBrowserActivity", "Search query entered: " + query);
-
-                    // Validate the search query
-                    if (query.isEmpty()) {
-                        LogUtils.w("FileBrowserActivity", "Search query is empty");
-                        searchQueryLayout.setError(getString(R.string.search_query_hint));
-                        return;
-                    }
-
-                    // Clear any previous errors
-                    searchQueryLayout.setError(null);
-
-                    // Get the search type
-                    int searchType = 0; // Default: All
-                    int selectedRadioButtonId = searchTypeRadioGroup.getCheckedRadioButtonId();
-                    if (selectedRadioButtonId == R.id.radio_files) {
-                        searchType = 1; // Files only
-                    } else if (selectedRadioButtonId == R.id.radio_folders) {
-                        searchType = 2; // Folders only
-                    }
-                    LogUtils.d("FileBrowserActivity", "Search type selected: " + searchType);
-
-                    // Get the include subfolders option
-                    boolean includeSubfolders = includeSubfoldersCheckbox.isChecked();
-                    LogUtils.d("FileBrowserActivity", "Include subfolders: " + includeSubfolders);
-
-                    // Perform the search
-                    viewModel.searchFiles(query, searchType, includeSubfolders);
-
-                    // Dismiss the dialog
-                    dialog.dismiss();
-                }
-            });
+            positiveButton.setOnClickListener(new SearchDialogClickListener(
+                dialog, 
+                searchQueryEditText, 
+                searchQueryLayout, 
+                searchTypeRadioGroup, 
+                includeSubfoldersCheckbox
+            ));
         });
 
         dialog.show();
@@ -456,42 +423,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         // Set the positive button click listener
         dialog.setOnShowListener(dialogInterface -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            positiveButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    String newName = fileNameEditText.getText().toString().trim();
-                    LogUtils.d("FileBrowserActivity", "Attempting to rename file to: " + newName);
-
-                    if (newName.isEmpty()) {
-                        LogUtils.w("FileBrowserActivity", "New name is empty");
-                        fileNameEditText.setError(getString(R.string.error_name_required));
-                        return;
-                    }
-
-                    // Hide keyboard
-                    KeyboardUtils.hideKeyboard(FileBrowserActivity.this);
-
-                    // Show a progress indicator
-                    Toast.makeText(FileBrowserActivity.this, R.string.rename, Toast.LENGTH_SHORT).show();
-
-                    // Rename the file
-                    viewModel.renameFile(file, newName, new FileBrowserViewModel.RenameFileCallback() {
-                        @Override
-                        public void onResult(boolean success, String message) {
-                            runOnUiThread(() -> {
-                                if (success) {
-                                    LogUtils.i("FileBrowserActivity", "File renamed successfully: " + file.getName() + " to " + newName);
-                                    Snackbar.make(findViewById(android.R.id.content), R.string.rename_success, Snackbar.LENGTH_LONG).show();
-                                    dialog.dismiss();
-                                } else {
-                                    LogUtils.e("FileBrowserActivity", "Error renaming file: " + message);
-                                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.rename_error) + ": " + message, Snackbar.LENGTH_LONG).show();
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            positiveButton.setOnClickListener(new RenameDialogClickListener(dialog, fileNameEditText, file));
         });
 
         dialog.show();
@@ -608,44 +540,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
                     // Download the file
                     LogUtils.d("FileBrowserActivity", "Starting download of: " + fileToDownload.getName());
-                    viewModel.downloadFile(fileToDownload, tempFile, new FileBrowserViewModel.DownloadCallback() {
-                        @Override
-                        public void onResult(boolean success, String message) {
-                            LogUtils.d("FileBrowserActivity", "Download result: " + (success ? "success" : "failure") + " - " + message);
-                            runOnUiThread(() -> {
-                                if (success) {
-                                    LogUtils.d("FileBrowserActivity", "Download successful, copying to destination URI");
-                                    // Copy the downloaded file to the selected location
-                                    try {
-                                        copyFileToUri(tempFile, uri);
-                                        LogUtils.i("FileBrowserActivity", "File downloaded and saved successfully: " + fileToDownload.getName());
-                                        Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
-                                    } catch (Exception e) {
-                                        LogUtils.e("FileBrowserActivity", "Error copying file to destination: " + e.getMessage());
-                                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
-                                    } finally {
-                                        // Delete the temporary file
-                                        LogUtils.d("FileBrowserActivity", "Deleting temporary file: " + tempFile.getAbsolutePath());
-                                        tempFile.delete();
-                                    }
-                                } else {
-                                    LogUtils.e("FileBrowserActivity", "Download failed: " + message);
-
-                                    // Create a more user-friendly message for file not found errors
-                                    String userMessage;
-                                    if (message.contains("File not found")) {
-                                        String fileName = fileToDownload.getName();
-                                        userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, fileName);
-                                        LogUtils.d("FileBrowserActivity", "Showing user-friendly file not found message");
-                                    } else {
-                                        userMessage = getString(R.string.download_error) + ": " + message;
-                                    }
-
-                                    Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
-                                }
-                            });
-                        }
-                    });
+                    viewModel.downloadFile(fileToDownload, tempFile, new FileDownloadCallbackImpl(tempFile, uri));
                 } catch (Exception e) {
                     LogUtils.e("FileBrowserActivity", "Error setting up download: " + e.getMessage());
                     Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
@@ -689,44 +584,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
                     // Download the folder
                     LogUtils.d("FileBrowserActivity", "Starting download of folder: " + fileToDownload.getName());
-                    viewModel.downloadFolder(fileToDownload, tempFolder, new FileBrowserViewModel.DownloadCallback() {
-                        @Override
-                        public void onResult(boolean success, String message) {
-                            LogUtils.d("FileBrowserActivity", "Download result: " + (success ? "success" : "failure") + " - " + message);
-                            runOnUiThread(() -> {
-                                if (success) {
-                                    LogUtils.d("FileBrowserActivity", "Download successful, copying to destination URI");
-                                    // Copy the downloaded folder contents to the selected location
-                                    try {
-                                        copyFolderContentsToDocumentFile(tempFolder, subFolder);
-                                        LogUtils.i("FileBrowserActivity", "Folder downloaded and saved successfully: " + fileToDownload.getName());
-                                        Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
-                                    } catch (Exception e) {
-                                        LogUtils.e("FileBrowserActivity", "Error copying folder to destination: " + e.getMessage());
-                                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
-                                    } finally {
-                                        // Delete the temporary folder
-                                        LogUtils.d("FileBrowserActivity", "Deleting temporary folder: " + tempFolder.getAbsolutePath());
-                                        deleteRecursive(tempFolder);
-                                    }
-                                } else {
-                                    LogUtils.e("FileBrowserActivity", "Download failed: " + message);
-
-                                    // Create a more user-friendly message for folder not found errors
-                                    String userMessage;
-                                    if (message.contains("Folder not found")) {
-                                        String folderName = fileToDownload.getName();
-                                        userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, folderName);
-                                        LogUtils.d("FileBrowserActivity", "Showing user-friendly folder not found message");
-                                    } else {
-                                        userMessage = getString(R.string.download_error) + ": " + message;
-                                    }
-
-                                    Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
-                                }
-                            });
-                        }
-                    });
+                    viewModel.downloadFolder(fileToDownload, tempFolder, new FolderDownloadCallbackImpl(tempFolder, subFolder));
                 } catch (Exception e) {
                     LogUtils.e("FileBrowserActivity", "Error setting up folder download: " + e.getMessage());
                     Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
@@ -907,19 +765,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
 
             // Upload the file with file existence check
             LogUtils.d("FileBrowserActivity", "Starting upload to remote path: " + remotePath);
-            viewModel.uploadFile(finalTempFile, remotePath, new FileBrowserViewModel.UploadCallback() {
-                @Override
-                public void onResult(boolean success, String message) {
-                    LogUtils.d("FileBrowserActivity", "Upload result: " + (success ? "success" : "failure") + " - " + message);
-                    runOnUiThread(() -> {
-                        if (success) {
-                            Toast.makeText(FileBrowserActivity.this, "Upload erfolgreich", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(FileBrowserActivity.this, "Upload fehlgeschlagen: " + message, Toast.LENGTH_LONG).show();
-                        }
-                    });
-                }
-            }, (existingFileName, confirmAction) -> {
+            viewModel.uploadFile(finalTempFile, remotePath, new UploadCallbackImpl(), (existingFileName, confirmAction) -> {
                 // This is the FileExistsCallback that will be called if the file exists
                 runOnUiThread(() -> new AlertDialog.Builder(FileBrowserActivity.this).setTitle(R.string.file_exists).setMessage(getString(R.string.file_exists_message, existingFileName)).setPositiveButton(R.string.overwrite, (dialog, which) -> {
                     // Datei überschreiben
@@ -1035,45 +881,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
         // Set up the positive button click listener
         dialog.setOnShowListener(dialogInterface -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            positiveButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    LogUtils.d("FileBrowserActivity", "Create folder button clicked in dialog");
-
-                    // Get the folder name
-                    String folderName = folderNameEditText.getText().toString().trim();
-                    LogUtils.d("FileBrowserActivity", "Folder name entered: " + folderName);
-
-                    // Validate the folder name
-                    if (folderName.isEmpty()) {
-                        LogUtils.w("FileBrowserActivity", "Folder name is empty");
-                        folderNameLayout.setError("Folder name is required");
-                        return;
-                    }
-
-                    // Clear any previous errors
-                    folderNameLayout.setError(null);
-
-                    // Create the folder
-                    LogUtils.d("FileBrowserActivity", "Creating folder: " + folderName);
-                    viewModel.createFolder(folderName, new FileBrowserViewModel.CreateFolderCallback() {
-                        @Override
-                        public void onResult(boolean success, String message) {
-                            LogUtils.d("FileBrowserActivity", "Folder creation result: " + (success ? "success" : "failure") + " - " + message);
-                            runOnUiThread(() -> {
-                                if (success) {
-                                    LogUtils.i("FileBrowserActivity", "Folder created successfully: " + folderName);
-                                    Snackbar.make(findViewById(android.R.id.content), R.string.folder_created, Snackbar.LENGTH_LONG).show();
-                                    dialog.dismiss();
-                                } else {
-                                    LogUtils.e("FileBrowserActivity", "Folder creation failed: " + message);
-                                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.folder_creation_error) + ": " + message, Snackbar.LENGTH_LONG).show();
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            positiveButton.setOnClickListener(new CreateFolderDialogClickListener(dialog, folderNameEditText, folderNameLayout));
         });
 
         dialog.show();
@@ -1183,5 +991,317 @@ public class FileBrowserActivity extends AppCompatActivity implements FileAdapte
             }
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    /**
+     * Click listener for the search dialog's positive button.
+     */
+    private class SearchDialogClickListener implements View.OnClickListener {
+        private final AlertDialog dialog;
+        private final com.google.android.material.textfield.TextInputEditText searchQueryEditText;
+        private final com.google.android.material.textfield.TextInputLayout searchQueryLayout;
+        private final RadioGroup searchTypeRadioGroup;
+        private final CheckBox includeSubfoldersCheckbox;
+
+        public SearchDialogClickListener(AlertDialog dialog, 
+                                        com.google.android.material.textfield.TextInputEditText searchQueryEditText,
+                                        com.google.android.material.textfield.TextInputLayout searchQueryLayout,
+                                        RadioGroup searchTypeRadioGroup,
+                                        CheckBox includeSubfoldersCheckbox) {
+            this.dialog = dialog;
+            this.searchQueryEditText = searchQueryEditText;
+            this.searchQueryLayout = searchQueryLayout;
+            this.searchTypeRadioGroup = searchTypeRadioGroup;
+            this.includeSubfoldersCheckbox = includeSubfoldersCheckbox;
+        }
+
+        @Override
+        public void onClick(View v) {
+            LogUtils.d("FileBrowserActivity", "Search button clicked in dialog");
+
+            // Get the search query
+            String query = searchQueryEditText.getText().toString().trim();
+            LogUtils.d("FileBrowserActivity", "Search query entered: " + query);
+
+            // Validate the search query
+            if (query.isEmpty()) {
+                LogUtils.w("FileBrowserActivity", "Search query is empty");
+                searchQueryLayout.setError(getString(R.string.search_query_hint));
+                return;
+            }
+
+            // Clear any previous errors
+            searchQueryLayout.setError(null);
+
+            // Get the search type
+            int searchType = 0; // Default: All
+            int selectedRadioButtonId = searchTypeRadioGroup.getCheckedRadioButtonId();
+            if (selectedRadioButtonId == R.id.radio_files) {
+                searchType = 1; // Files only
+            } else if (selectedRadioButtonId == R.id.radio_folders) {
+                searchType = 2; // Folders only
+            }
+            LogUtils.d("FileBrowserActivity", "Search type selected: " + searchType);
+
+            // Get the include subfolders option
+            boolean includeSubfolders = includeSubfoldersCheckbox.isChecked();
+            LogUtils.d("FileBrowserActivity", "Include subfolders: " + includeSubfolders);
+
+            // Perform the search
+            viewModel.searchFiles(query, searchType, includeSubfolders);
+
+            // Dismiss the dialog
+            dialog.dismiss();
+        }
+    }
+
+    /**
+     * Click listener for the rename dialog's positive button.
+     */
+    private class RenameDialogClickListener implements View.OnClickListener {
+        private final AlertDialog dialog;
+        private final TextInputEditText fileNameEditText;
+        private final SmbFileItem file;
+
+        public RenameDialogClickListener(AlertDialog dialog, TextInputEditText fileNameEditText, SmbFileItem file) {
+            this.dialog = dialog;
+            this.fileNameEditText = fileNameEditText;
+            this.file = file;
+        }
+
+        @Override
+        public void onClick(View v) {
+            String newName = fileNameEditText.getText().toString().trim();
+            LogUtils.d("FileBrowserActivity", "Attempting to rename file to: " + newName);
+
+            if (newName.isEmpty()) {
+                LogUtils.w("FileBrowserActivity", "New name is empty");
+                fileNameEditText.setError(getString(R.string.error_name_required));
+                return;
+            }
+
+            // Hide keyboard
+            KeyboardUtils.hideKeyboard(FileBrowserActivity.this);
+
+            // Show a progress indicator
+            Toast.makeText(FileBrowserActivity.this, R.string.rename, Toast.LENGTH_SHORT).show();
+
+            // Rename the file
+            viewModel.renameFile(file, newName, new RenameFileCallbackImpl(dialog, file, newName));
+        }
+    }
+
+    /**
+     * Callback for handling the result of a file rename operation.
+     */
+    private class RenameFileCallbackImpl implements FileBrowserViewModel.RenameFileCallback {
+        private final AlertDialog dialog;
+        private final SmbFileItem file;
+        private final String newName;
+
+        public RenameFileCallbackImpl(AlertDialog dialog, SmbFileItem file, String newName) {
+            this.dialog = dialog;
+            this.file = file;
+            this.newName = newName;
+        }
+
+        @Override
+        public void onResult(boolean success, String message) {
+            runOnUiThread(() -> {
+                if (success) {
+                    LogUtils.i("FileBrowserActivity", "File renamed successfully: " + file.getName() + " to " + newName);
+                    Snackbar.make(findViewById(android.R.id.content), R.string.rename_success, Snackbar.LENGTH_LONG).show();
+                    dialog.dismiss();
+                } else {
+                    LogUtils.e("FileBrowserActivity", "Error renaming file: " + message);
+                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.rename_error) + ": " + message, Snackbar.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Click listener for the create folder dialog's positive button.
+     */
+    private class CreateFolderDialogClickListener implements View.OnClickListener {
+        private final AlertDialog dialog;
+        private final com.google.android.material.textfield.TextInputEditText folderNameEditText;
+        private final com.google.android.material.textfield.TextInputLayout folderNameLayout;
+
+        public CreateFolderDialogClickListener(AlertDialog dialog, 
+                                              com.google.android.material.textfield.TextInputEditText folderNameEditText,
+                                              com.google.android.material.textfield.TextInputLayout folderNameLayout) {
+            this.dialog = dialog;
+            this.folderNameEditText = folderNameEditText;
+            this.folderNameLayout = folderNameLayout;
+        }
+
+        @Override
+        public void onClick(View v) {
+            LogUtils.d("FileBrowserActivity", "Create folder button clicked in dialog");
+
+            // Get the folder name
+            String folderName = folderNameEditText.getText().toString().trim();
+            LogUtils.d("FileBrowserActivity", "Folder name entered: " + folderName);
+
+            // Validate the folder name
+            if (folderName.isEmpty()) {
+                LogUtils.w("FileBrowserActivity", "Folder name is empty");
+                folderNameLayout.setError("Folder name is required");
+                return;
+            }
+
+            // Clear any previous errors
+            folderNameLayout.setError(null);
+
+            // Create the folder
+            LogUtils.d("FileBrowserActivity", "Creating folder: " + folderName);
+            viewModel.createFolder(folderName, new CreateFolderCallbackImpl(dialog, folderName));
+        }
+    }
+
+    /**
+     * Callback for handling the result of a folder creation operation.
+     */
+    private class CreateFolderCallbackImpl implements FileBrowserViewModel.CreateFolderCallback {
+        private final AlertDialog dialog;
+        private final String folderName;
+
+        public CreateFolderCallbackImpl(AlertDialog dialog, String folderName) {
+            this.dialog = dialog;
+            this.folderName = folderName;
+        }
+
+        @Override
+        public void onResult(boolean success, String message) {
+            LogUtils.d("FileBrowserActivity", "Folder creation result: " + (success ? "success" : "failure") + " - " + message);
+            runOnUiThread(() -> {
+                if (success) {
+                    LogUtils.i("FileBrowserActivity", "Folder created successfully: " + folderName);
+                    Snackbar.make(findViewById(android.R.id.content), R.string.folder_created, Snackbar.LENGTH_LONG).show();
+                    dialog.dismiss();
+                } else {
+                    LogUtils.e("FileBrowserActivity", "Folder creation failed: " + message);
+                    Snackbar.make(findViewById(android.R.id.content), getString(R.string.folder_creation_error) + ": " + message, Snackbar.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Callback for handling the result of a file download operation.
+     */
+    private class FileDownloadCallbackImpl implements FileBrowserViewModel.DownloadCallback {
+        private final File tempFile;
+        private final Uri uri;
+
+        public FileDownloadCallbackImpl(File tempFile, Uri uri) {
+            this.tempFile = tempFile;
+            this.uri = uri;
+        }
+
+        @Override
+        public void onResult(boolean success, String message) {
+            LogUtils.d("FileBrowserActivity", "Download result: " + (success ? "success" : "failure") + " - " + message);
+            runOnUiThread(() -> {
+                if (success) {
+                    LogUtils.d("FileBrowserActivity", "Download successful, copying to destination URI");
+                    // Copy the downloaded file to the selected location
+                    try {
+                        copyFileToUri(tempFile, uri);
+                        LogUtils.i("FileBrowserActivity", "File downloaded and saved successfully: " + fileToDownload.getName());
+                        Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
+                    } catch (Exception e) {
+                        LogUtils.e("FileBrowserActivity", "Error copying file to destination: " + e.getMessage());
+                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
+                    } finally {
+                        // Delete the temporary file
+                        LogUtils.d("FileBrowserActivity", "Deleting temporary file: " + tempFile.getAbsolutePath());
+                        tempFile.delete();
+                    }
+                } else {
+                    LogUtils.e("FileBrowserActivity", "Download failed: " + message);
+
+                    // Create a more user-friendly message for file not found errors
+                    String userMessage;
+                    if (message.contains("File not found")) {
+                        String fileName = fileToDownload.getName();
+                        userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, fileName);
+                        LogUtils.d("FileBrowserActivity", "Showing user-friendly file not found message");
+                    } else {
+                        userMessage = getString(R.string.download_error) + ": " + message;
+                    }
+
+                    Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Callback for handling the result of a folder download operation.
+     */
+    private class FolderDownloadCallbackImpl implements FileBrowserViewModel.DownloadCallback {
+        private final File tempFolder;
+        private final DocumentFile subFolder;
+
+        public FolderDownloadCallbackImpl(File tempFolder, DocumentFile subFolder) {
+            this.tempFolder = tempFolder;
+            this.subFolder = subFolder;
+        }
+
+        @Override
+        public void onResult(boolean success, String message) {
+            LogUtils.d("FileBrowserActivity", "Download result: " + (success ? "success" : "failure") + " - " + message);
+            runOnUiThread(() -> {
+                if (success) {
+                    LogUtils.d("FileBrowserActivity", "Download successful, copying to destination URI");
+                    // Copy the downloaded folder contents to the selected location
+                    try {
+                        copyFolderContentsToDocumentFile(tempFolder, subFolder);
+                        LogUtils.i("FileBrowserActivity", "Folder downloaded and saved successfully: " + fileToDownload.getName());
+                        Snackbar.make(findViewById(android.R.id.content), R.string.download_success, Snackbar.LENGTH_LONG).show();
+                    } catch (Exception e) {
+                        LogUtils.e("FileBrowserActivity", "Error copying folder to destination: " + e.getMessage());
+                        Snackbar.make(findViewById(android.R.id.content), getString(R.string.download_error) + ": " + e.getMessage(), Snackbar.LENGTH_LONG).show();
+                    } finally {
+                        // Delete the temporary folder
+                        LogUtils.d("FileBrowserActivity", "Deleting temporary folder: " + tempFolder.getAbsolutePath());
+                        deleteRecursive(tempFolder);
+                    }
+                } else {
+                    LogUtils.e("FileBrowserActivity", "Download failed: " + message);
+
+                    // Create a more user-friendly message for folder not found errors
+                    String userMessage;
+                    if (message.contains("Folder not found")) {
+                        String folderName = fileToDownload.getName();
+                        userMessage = getString(R.string.download_error) + ": " + getString(R.string.file_not_found, folderName);
+                        LogUtils.d("FileBrowserActivity", "Showing user-friendly folder not found message");
+                    } else {
+                        userMessage = getString(R.string.download_error) + ": " + message;
+                    }
+
+                    Snackbar.make(findViewById(android.R.id.content), userMessage, Snackbar.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+
+    /**
+     * Callback for handling the result of a file upload operation.
+     */
+    private class UploadCallbackImpl implements FileBrowserViewModel.UploadCallback {
+        @Override
+        public void onResult(boolean success, String message) {
+            LogUtils.d("FileBrowserActivity", "Upload result: " + (success ? "success" : "failure") + " - " + message);
+            runOnUiThread(() -> {
+                if (success) {
+                    Toast.makeText(FileBrowserActivity.this, "Upload erfolgreich", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(FileBrowserActivity.this, "Upload fehlgeschlagen: " + message, Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 }

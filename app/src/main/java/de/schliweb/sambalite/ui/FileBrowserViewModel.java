@@ -194,37 +194,36 @@ public class FileBrowserViewModel extends ViewModel {
             }
 
             // Both are directories or both are files, sort according to the current sort option
-            switch (currentSortOption) {
-                case NAME:
-                    return file1.getName().compareToIgnoreCase(file2.getName());
-                case DATE:
-                    // If lastModified is null, treat it as oldest (comes last)
-                    if (file1.getLastModified() == null) {
-                        return file2.getLastModified() == null ? 0 : 1;
+            if (currentSortOption == SortOption.NAME) {
+                return file1.getName().compareToIgnoreCase(file2.getName());
+            } else if (currentSortOption == SortOption.DATE) {
+                // If lastModified is null, treat it as oldest (comes last)
+                if (file1.getLastModified() == null) {
+                    return file2.getLastModified() == null ? 0 : 1;
+                }
+                if (file2.getLastModified() == null) {
+                    return -1;
+                }
+                // Sort by date, newest first
+                return file2.getLastModified().compareTo(file1.getLastModified());
+            } else if (currentSortOption == SortOption.SIZE) {
+                // Directories have size 0, so if directoriesFirst is false, we need to handle this case
+                if (!directoriesFirst) {
+                    if (file1.isDirectory() && file2.isDirectory()) {
+                        // Both are directories, sort by name
+                        return file1.getName().compareToIgnoreCase(file2.getName());
                     }
-                    if (file2.getLastModified() == null) {
-                        return -1;
+                    if (file1.isDirectory()) {
+                        return -1; // Directories come before files when sorting by size
                     }
-                    // Sort by date, newest first
-                    return file2.getLastModified().compareTo(file1.getLastModified());
-                case SIZE:
-                    // Directories have size 0, so if directoriesFirst is false, we need to handle this case
-                    if (!directoriesFirst) {
-                        if (file1.isDirectory() && file2.isDirectory()) {
-                            // Both are directories, sort by name
-                            return file1.getName().compareToIgnoreCase(file2.getName());
-                        }
-                        if (file1.isDirectory()) {
-                            return -1; // Directories come before files when sorting by size
-                        }
-                        if (file2.isDirectory()) {
-                            return 1; // Files come after directories when sorting by size
-                        }
+                    if (file2.isDirectory()) {
+                        return 1; // Files come after directories when sorting by size
                     }
-                    // Sort by size, largest first
-                    return Long.compare(file2.getSize(), file1.getSize());
-                default:
-                    return file1.getName().compareToIgnoreCase(file2.getName());
+                }
+                // Sort by size, largest first
+                return Long.compare(file2.getSize(), file1.getSize());
+            } else {
+                return file1.getName().compareToIgnoreCase(file2.getName());
             }
         });
     }
