@@ -116,4 +116,11 @@
 -keep class de.schliweb.sambalite.ui.FileBrowserActivity { *; }
 -keep class de.schliweb.sambalite.ui.FileBrowserActivity$* { *; }
 
+# Ensure deterministic output for reproducible builds
+# -useuniqueclassmembernames (removed - not supported by R8)
+-optimizationpasses 1
+-allowaccessmodification
+-overloadaggressively
+-repackageclasses
+
 -keepattributes SourceFile,LineNumberTable
