@@ -8,12 +8,6 @@ android {
 
     packaging {
         resources.excludes.add('META-INF/versions/9/OSGI-INF/MANIFEST.MF')
-        // Enable reproducible builds by setting fixed timestamps and ordering
-        jniLibs.useLegacyPackaging = false
-        // Ensure deterministic dex file generation
-        dex {
-            useLegacyPackaging = false
-        }
     }
 
 
@@ -40,7 +34,6 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
         }
     }
     compileOptions {
@@ -101,4 +94,9 @@ tasks.whenTaskAdded { task ->
     if (task.name.contains("ArtProfile")) {
         task.enabled = false
     }
+}
+
+tasks.withType(AbstractArchiveTask) {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }

@@ -44,9 +44,6 @@
 -keep class dagger.internal.** { *; }
 -keep class **Component { *; }
 
-
--keepattributes SourceFile,LineNumberTable
-
 # Timber rules
 -dontwarn org.jetbrains.annotations.**
 -keep class timber.log.** { *; }
@@ -85,42 +82,21 @@
 -dontwarn org.ietf.jgss.Oid
 -dontwarn org.joda.time.Instant
 
-# Keep SMBJ library classes
--keep class com.hierynomus.** { *; }
--keepclassmembers class com.hierynomus.** { *; }
--keepnames class com.hierynomus.** { *; }
-
-# Keep enums used by SMBJ
--keepclassmembers enum com.hierynomus.** { *; }
-
 # Keep MBassY event bus classes used by SMBJ
--keep class net.engio.** { *; }
 -keepclassmembers class net.engio.** { *; }
 -keepnames class net.engio.** { *; }
 -keepattributes Signature,*Annotation*
 
-# Keep all constructors
--keepclassmembers class * {
-    public <init>(...);
-}
+# Reproducible and privacy-aware configuration for F-Droid
+-dontoptimize
+-dontobfuscate
 
-# Keep Lombok generated code
--keep class lombok.** { *; }
--dontwarn lombok.**
--keepclassmembers class * {
-    @lombok.* <fields>;
-    @lombok.* <methods>;
-}
-
-# Fix Ordering problem (ugly /TODO)
--keep class de.schliweb.sambalite.ui.FileBrowserActivity { *; }
--keep class de.schliweb.sambalite.ui.FileBrowserActivity$* { *; }
-
-# Ensure deterministic output for reproducible builds
-# -useuniqueclassmembernames (removed - not supported by R8)
--optimizationpasses 1
--allowaccessmodification
--overloadaggressively
--repackageclasses
-
+-keepattributes Signature,InnerClasses,EnclosingMethod
 -keepattributes SourceFile,LineNumberTable
+
+-keep class de.schliweb.sambalite.** { *; }
+-keep interface de.schliweb.sambalite.** { *; }
+
+# keep third-party libs intact
+-keep class com.hierynomus.** { *; }
+-keep interface com.hierynomus.** { *; }
