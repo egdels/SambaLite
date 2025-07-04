@@ -115,3 +115,5 @@
 # Fix Ordering problem (ugly /TODO)
 -keep class de.schliweb.sambalite.ui.FileBrowserActivity { *; }
 -keep class de.schliweb.sambalite.ui.FileBrowserActivity$* { *; }
+
+-keepattributes SourceFile,LineNumberTable

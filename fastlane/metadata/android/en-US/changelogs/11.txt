@@ -1,3 +1,2 @@
 Improved reproducibility:
-- Proguard/R8 now excludes all inner classes of FileBrowserActivity to reduce non-deterministic build differences and support reproducible builds for F-Droid. No functional changes.
-- android.enableJetifier, shrink/minify disabled
+Proguard/R8 now excludes all inner classes of FileBrowserActivity to reduce non-deterministic build differences and support reproducible builds for F-Droid. No functional changes.

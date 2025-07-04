@@ -6,17 +6,8 @@ android {
     namespace "de.schliweb.sambalite"
     compileSdk 35
 
-    // Add configuration to work around JDK compatibility issues
-    buildFeatures {
-        buildConfig true
-    }
     packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
         resources.excludes.add('META-INF/versions/9/OSGI-INF/MANIFEST.MF')
-        resources.excludes.add('assets/dexopt/baseline.prof')
-        resources.excludes.add('assets/dexopt/baseline.profm')
     }
 
     defaultConfig {
@@ -39,8 +30,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -50,6 +41,7 @@ android {
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 
     testOptions {
