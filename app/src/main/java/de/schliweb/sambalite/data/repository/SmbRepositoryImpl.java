@@ -640,6 +640,7 @@ public class SmbRepositoryImpl implements SmbRepository {
 
     /**
      * Creates an AuthenticationContext from the connection details.
+     * If both username and password are empty, uses guest authentication.
      */
     private AuthenticationContext createAuthContext(SmbConnection connection) {
         LogUtils.d("SmbRepositoryImpl", "Creating authentication context for user: " + connection.getUsername());
@@ -651,6 +652,12 @@ public class SmbRepositoryImpl implements SmbRepository {
             LogUtils.d("SmbRepositoryImpl", "No domain specified");
         } else {
             LogUtils.d("SmbRepositoryImpl", "Using domain: " + domain);
+        }
+
+        // If both username and password are empty, use guest authentication
+        if (username.isEmpty() && password.isEmpty()) {
+            LogUtils.d("SmbRepositoryImpl", "Using guest authentication");
+            return AuthenticationContext.guest();
         }
 
         return new AuthenticationContext(username, password.toCharArray(), domain);

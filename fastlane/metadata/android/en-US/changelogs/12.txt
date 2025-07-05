@@ -1,0 +1,1 @@
+Support for guest authentication when connecting with empty credentials

@@ -89,6 +89,30 @@ public class SmbRepositoryTest {
     }
 
     @Test
+    public void testConnectionWithEmptyCredentials() {
+        try {
+            // Create a connection with empty credentials
+            SmbConnection emptyCredentialsConnection = new SmbConnection();
+            emptyCredentialsConnection.setServer(sambaContainer.getHost());
+            emptyCredentialsConnection.setShare("testshare");
+            emptyCredentialsConnection.setUsername("");
+            emptyCredentialsConnection.setPassword("");
+
+            // Test the connection
+            boolean connected = smbRepository.testConnection(emptyCredentialsConnection);
+
+            // The connection might succeed or fail depending on the server configuration,
+            // but the important thing is that it doesn't throw a NullPointerException
+            System.out.println("[DEBUG_LOG] Connection with empty credentials result: " + connected);
+        } catch (Exception e) {
+            System.out.println("[DEBUG_LOG] Connection with empty credentials exception: " + e.getMessage());
+            // The test should not throw a NullPointerException related to SecretKey
+            assertFalse("Should not get a NullPointerException related to SecretKey", 
+                    e.getMessage().contains("Attempt to invoke interface method 'byte[] javax.crypto.SecretKey.getEncoded()' on a null object reference"));
+        }
+    }
+
+    @Test
     public void testListFiles() {
         try {
             // List files in the root directory

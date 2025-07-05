@@ -9,7 +9,7 @@ allprojects {
     // Defines the group ID used for all projects
     group = 'de.schliweb.sambalite'
     // Sets the version of the project, matching ${revision}
-    version = '1.0.1'
+    version = '1.0.2'
 
     repositories {
         google()
