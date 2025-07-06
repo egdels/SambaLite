@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SambaLite FAQ - Häufig gestellte Fragen</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        h2 {
+            color: #3498db;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .language-selector {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .faq-item {
+            margin-bottom: 30px;
+        }
+        .faq-item h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SambaLite FAQ</h1>
+        <p>Häufig gestellte Fragen und Lösungen für Samba-Verbindungen mit SambaLite</p>
+    </header>
+
+    <div class="language-selector">
+        <a href="faq.html">English</a> | 
+        <a href="faq_de.html">Deutsch</a>
+    </div>
+
+    <div class="container">
+        <div class="faq-item">
+            <h3>1. I can't connect to my Samba server. What can I do?</h3>
+            <ul>
+                <li>Double-check the IP address and share name.</li>
+                <li>Make sure your server is on the same network as your device.</li>
+                <li>Test the connection with another Samba client (e.g., <code>smbclient</code> or VLC) to rule out server issues.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>2. Error: "NT_STATUS_LOGON_FAILURE" or "Authentication failed"</h3>
+            <ul>
+                <li>Check your username and password.</li>
+                <li>Pay attention to upper/lower case.</li>
+                <li>If you want to connect without credentials, the share must be configured with <strong>guest ok = yes</strong>.</li>
+                <li>Make sure the user exists on the Samba server and has a Samba password (<code>sudo smbpasswd &lt;username&gt;</code>).</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>3. I can't create folders or upload files</h3>
+            <ul>
+                <li>Check if the share is set as <strong>read only = yes</strong>. Writing is only possible with <strong>read only = no</strong>.</li>
+                <li>Make sure the shared folder has correct write permissions (e.g., <code>chmod 777</code> for testing).</li>
+                <li>The user you log in as must have write permissions on the server.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>4. Guest access (anonymous login) does not work</h3>
+            <ul>
+                <li>The share must be set with <strong>guest ok = yes</strong>.</li>
+                <li>In the <code>[global]</code> section, add <strong>map to guest = Bad User</strong>.</li>
+                <li>Make sure a guest account exists (default is <code>nobody</code>).</li>
+                <li>The shared folder must be readable by the guest account (<code>chmod 755</code> and <code>chown nobody:nogroup &lt;folder&gt;</code>).</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>5. Error: "NT_STATUS_NO_SUCH_USER" or Guest access is denied</h3>
+            <ul>
+                <li>Check if the user is properly created (<code>sudo smbpasswd -a &lt;username&gt;</code>).</li>
+                <li>For guest access, see previous point.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>6. I don't see the share in the list of available shares</h3>
+            <ul>
+                <li>Make sure <strong>browseable = yes</strong> is set in the share.</li>
+                <li>Check if the firewall is blocking access (port 445/TCP must be open).</li>
+                <li>Not all clients list all shares automatically – with SambaLite, you may need to enter the share name manually.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>7. How can I create server logs for troubleshooting?</h3>
+            <ul>
+                <li>Increase the log level in your smb.conf (<code>log level = 3</code> in <code>[global]</code>).</li>
+                <li>Logs are usually found in <code>/var/log/samba/</code>.</li>
+                <li>Typical command to view logs: <code>cat /var/log/samba/log.smbd</code> or <code>cat /var/log/samba/log.&lt;clientname&gt;</code>.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>8. How do I add a new user?</h3>
+            <pre>sudo useradd -M -s /sbin/nologin &lt;username&gt;
+sudo smbpasswd -a &lt;username&gt;</pre>
+        </div>
+
+        <div class="faq-item">
+            <h3>9. My share is visible on the network, but I can't access it</h3>
+            <ul>
+                <li>Check the share permissions in your smb.conf.</li>
+                <li>Make sure the user is allowed for the share (<code>valid users = &lt;username&gt;</code> in the share section).</li>
+                <li>Verify that Linux filesystem permissions match the user.</li>
+            </ul>
+        </div>
+
+        <div class="faq-item">
+            <h3>10. How can I enable guest access for a share?</h3>
+            <pre>[public]
+   path = /srv/public
+   browseable = yes
+   guest ok = yes
+   read only = yes</pre>
+            <p>And in the <code>[global]</code> section:</p>
+            <pre>map to guest = Bad User
+guest account = nobody</pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <p><a href="index_de.html">← Zurück zur Startseite</a></p>
+    </div>
+
+    <footer>
+        <p>Dieses FAQ wird regelmäßig aktualisiert.</p>
+        <p>&copy; 2025 SambaLite Contributors. Lizenziert unter der Apache License 2.0.</p>
+    </footer>
+</body>
+</html>
