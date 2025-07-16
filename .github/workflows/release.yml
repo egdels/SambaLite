@@ -59,7 +59,10 @@ jobs:
         
     - name: Build Release APK and Bundle
       run: |
-        ./gradlew assembleRelease bundleRelease
+        ./gradlew assembleRelease bundleRelease \
+        -PSIGNING_KEY_ALIAS="${SIGNING_KEY_ALIAS}" \
+        -PSIGNING_KEY_PASSWORD="${SIGNING_KEY_PASSWORD}" \
+        -PSIGNING_STORE_PASSWORD="${SIGNING_STORE_PASSWORD}"
         # Rename outputs with version
         # mv app/build/outputs/apk/release/app-release.apk \
         #   app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
