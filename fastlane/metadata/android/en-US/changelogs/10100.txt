@@ -1,0 +1,10 @@
+• Added folder upload/download with ZIP compression
+• New network discovery to find SMB servers automatically
+• Multi-file operations with progress tracking
+• Background transfers for large files
+• Enhanced search with progress indicator
+• Material Design 3 update with app logo colors
+• Simplified UI - removed long-press actions
+• Better performance and smaller app size
+• Improved stability and error handling
+• Fixed duplicate error messages and keyboard issues
