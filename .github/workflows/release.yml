@@ -55,7 +55,7 @@ jobs:
         
     - name: Decode Keystore
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
         
     - name: Build Release APK and Bundle
       run: |
@@ -130,5 +130,5 @@ jobs:
     - name: Clean up keystore
       if: always()
       run: |
-        rm -f keystore.jks
+        rm -f app/keystore.jks
         echo "Keystore cleaned up"
