@@ -64,7 +64,7 @@ jobs:
         # mv app/build/outputs/apk/release/app-release.apk \
         #   app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
         # mv app/build/outputs/bundle/release/app-release.aab \
-           app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
+        #   app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
       env:
         SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
