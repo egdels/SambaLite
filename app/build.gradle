@@ -34,16 +34,15 @@ android {
 
     signingConfigs {
         release {
-            def storePassword = project.findProperty("SIGNING_STORE_PASSWORD") ?: System.getenv("SIGNING_STORE_PASSWORD")
-            def keyAlias = project.findProperty("SIGNING_KEY_ALIAS") ?: System.getenv("SIGNING_KEY_ALIAS")
-            def keyPassword = project.findProperty("SIGNING_KEY_PASSWORD") ?: System.getenv("SIGNING_KEY_PASSWORD")
-            if (storePassword && keyAlias && keyPassword) {
+            def myStorePassword = project.findProperty("SIGNING_STORE_PASSWORD") ?: System.getenv("SIGNING_STORE_PASSWORD")
+            def myKeyAlias = project.findProperty("SIGNING_KEY_ALIAS") ?: System.getenv("SIGNING_KEY_ALIAS")
+            def myKeyPassword = project.findProperty("SIGNING_KEY_PASSWORD") ?: System.getenv("SIGNING_KEY_PASSWORD")
+            if (myStorePassword && myKeyAlias && myKeyPassword) {
                 storeFile file('keystore.jks')
-                storePassword storePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storePassword myStorePassword
+                keyAlias myKeyAlias
+                keyPassword myKeyPassword
             }
-            // F-Droid: keine Signatur nötig
         }
     }
 
