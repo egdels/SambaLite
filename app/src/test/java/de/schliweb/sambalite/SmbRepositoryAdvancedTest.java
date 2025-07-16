@@ -4,10 +4,12 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -65,8 +67,9 @@ public class SmbRepositoryAdvancedTest {
         testConnection.setPassword(sambaContainer.getPassword());
         testConnection.setDomain(sambaContainer.getDomain());
 
-        // Create the repository
-        smbRepository = new SmbRepositoryImpl();
+        // Create the repository with mock BackgroundSmbManager
+        BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+        smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
     }
 
     @After
@@ -641,6 +644,11 @@ public class SmbRepositoryAdvancedTest {
             System.out.println("[DEBUG_LOG] Very long file names test exception: " + e.getMessage());
         }
     }
+
+    // TODO: Ergänze Tests für:
+    // - ZIP-Transfer mit großen Ordnern
+    // - Resume/Chunked ZIP-Transfer
+    // - Cleanup nach Fehlern
 
     // Helper method to recursively delete a directory
     private void deleteDirectory(File directory) {

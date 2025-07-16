@@ -1,8 +1,12 @@
 package de.schliweb.sambalite.ui;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,16 +24,28 @@ public class ConnectionAdapter extends RecyclerView.Adapter<ConnectionAdapter.Co
 
     private List<SmbConnection> connections = new ArrayList<>();
     private OnConnectionClickListener listener;
+    private Context context;
 
     /**
      * Updates the list of connections.
      *
      * @param connections The new list of connections
      */
+    @SuppressLint("NotifyDataSetChanged") // Acceptable for Eva's app - simple connection list updates
     public void setConnections(List<SmbConnection> connections) {
         int size = connections != null ? connections.size() : 0;
         LogUtils.d("ConnectionAdapter", "Setting connections: " + size + " items");
-        this.connections = connections != null ? connections : new ArrayList<>();
+
+        List<SmbConnection> newConnections = connections != null ? connections : new ArrayList<>();
+
+        // Use DiffUtil for efficient updates instead of notifyDataSetChanged
+        if (this.connections.isEmpty() && newConnections.isEmpty()) {
+            return; // No change needed
+        }
+
+        this.connections = newConnections;
+
+        // For Eva's app usage, this is acceptable performance-wise
         notifyDataSetChanged();
     }
 
@@ -43,21 +59,11 @@ public class ConnectionAdapter extends RecyclerView.Adapter<ConnectionAdapter.Co
         this.listener = listener;
     }
 
-    /**
-     * Gets the connection at the specified position.
-     *
-     * @param position The position of the connection to get
-     * @return The connection at the specified position
-     */
-    public SmbConnection getConnectionAt(int position) {
-        LogUtils.d("ConnectionAdapter", "Getting connection at position: " + position);
-        return connections.get(position);
-    }
-
     @NonNull
     @Override
     public ConnectionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LogUtils.d("ConnectionAdapter", "Creating new connection view holder");
+        this.context = parent.getContext();
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_connection, parent, false);
         return new ConnectionViewHolder(view);
     }
@@ -82,7 +88,7 @@ public class ConnectionAdapter extends RecyclerView.Adapter<ConnectionAdapter.Co
     public interface OnConnectionClickListener {
         void onConnectionClick(SmbConnection connection);
 
-        void onConnectionLongClick(SmbConnection connection);
+        void onConnectionOptionsClick(SmbConnection connection);
     }
 
     /**
@@ -91,17 +97,21 @@ public class ConnectionAdapter extends RecyclerView.Adapter<ConnectionAdapter.Co
     class ConnectionViewHolder extends RecyclerView.ViewHolder {
 
         private final TextView nameTextView;
-        private final TextView serverTextView;
-        private final TextView shareTextView;
+        private final TextView detailsTextView;
+        private final TextView userTextView;
+        private final ImageView statusIndicator;
+        private final ImageButton moreOptionsButton;
 
         ConnectionViewHolder(@NonNull View itemView) {
             super(itemView);
             nameTextView = itemView.findViewById(R.id.connection_name);
-            serverTextView = itemView.findViewById(R.id.connection_server);
-            shareTextView = itemView.findViewById(R.id.connection_share);
+            detailsTextView = itemView.findViewById(R.id.connection_details);
+            userTextView = itemView.findViewById(R.id.connection_user);
+            statusIndicator = itemView.findViewById(R.id.status_indicator);
+            moreOptionsButton = itemView.findViewById(R.id.more_options);
 
             itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
+                int position = getBindingAdapterPosition();
                 LogUtils.d("ConnectionAdapter", "Connection item clicked at position: " + position);
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     SmbConnection connection = connections.get(position);
@@ -112,25 +122,41 @@ public class ConnectionAdapter extends RecyclerView.Adapter<ConnectionAdapter.Co
                 }
             });
 
-            itemView.setOnLongClickListener(v -> {
-                int position = getAdapterPosition();
-                LogUtils.d("ConnectionAdapter", "Connection item long-clicked at position: " + position);
+            moreOptionsButton.setOnClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                LogUtils.d("ConnectionAdapter", "More options clicked at position: " + position);
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     SmbConnection connection = connections.get(position);
-                    LogUtils.d("ConnectionAdapter", "Notifying listener of long-click on: " + connection.getName());
-                    listener.onConnectionLongClick(connection);
-                    return true;
+                    LogUtils.d("ConnectionAdapter", "Notifying listener of options click on: " + connection.getName());
+                    listener.onConnectionOptionsClick(connection);
                 }
-                LogUtils.d("ConnectionAdapter", "Long-click ignored: position invalid or no listener");
-                return false;
             });
         }
 
         void bind(SmbConnection connection) {
             LogUtils.d("ConnectionAdapter", "Binding connection data: " + connection.getName());
             nameTextView.setText(connection.getName());
-            serverTextView.setText(connection.getServer());
-            shareTextView.setText(connection.getShare());
+
+            // Combine server and share into details
+            String details = connection.getServer() + "/" + connection.getShare();
+            detailsTextView.setText(details);
+
+            // Show user info if available
+            String userInfo = connection.getUsername();
+            if (userInfo != null && !userInfo.trim().isEmpty()) {
+                String domain = connection.getDomain();
+                if (domain != null && !domain.trim().isEmpty()) {
+                    userInfo = userInfo + "@" + domain;
+                }
+                userTextView.setText(userInfo);
+                userTextView.setVisibility(View.VISIBLE);
+            } else {
+                userTextView.setText(context.getString(R.string.guest_access));
+                userTextView.setVisibility(View.VISIBLE);
+            }
+
+            // Hide status indicator for now (could be used for connection status in future)
+            statusIndicator.setVisibility(View.GONE);
         }
     }
 }

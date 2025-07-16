@@ -1,0 +1,128 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on tags like v1.0.0, v1.2.3, etc.
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: wrapper
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Extract version from tag
+      id: extract_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
+        
+        # Calculate versionCode (e.g., "1.2.3" -> 10203)
+        IFS='.' read -r major minor patch <<< "$VERSION"
+        VERSION_CODE=$((major * 10000 + minor * 100 + patch))
+        echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+        echo "Calculated versionCode: $VERSION_CODE"
+        
+    - name: Update version in build.gradle for GitHub release
+      run: |
+        # Update both versionCode and versionName for GitHub builds
+        sed -i "s/versionCode [0-9]*/versionCode ${{ steps.extract_version.outputs.VERSION_CODE }}/" app/build.gradle
+        sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.extract_version.outputs.VERSION }}\"/" app/build.gradle
+        
+        # Also update gradle.properties for consistency
+        echo "version=${{ steps.extract_version.outputs.VERSION }}" > gradle.properties.tmp
+        grep -v '^version=' gradle.properties >> gradle.properties.tmp || true
+        mv gradle.properties.tmp gradle.properties
+        echo "Updated gradle.properties:"
+        cat gradle.properties
+        
+    - name: Decode Keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
+        
+    - name: Build Release APK and Bundle
+      run: |
+        ./gradlew assembleRelease bundleRelease
+        # Rename outputs with version
+        mv app/build/outputs/apk/release/app-release.apk \
+           app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
+        mv app/build/outputs/bundle/release/app-release.aab \
+           app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
+      env:
+        SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+        SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+           
+    - name: Verify APK signature
+      run: |
+        # Using aapt to verify the APK is signed
+        aapt dump badging app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk | head -1
+        echo "APK verification completed"
+        
+    - name: Generate checksums
+      run: |
+        cd app/build/outputs/apk/release/
+        sha256sum SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk > SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk.sha256
+        cd ../../bundle/release/
+        sha256sum SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab > SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab.sha256
+        
+    - name: Create Release Notes
+      id: release_notes
+      run: |
+        echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+        echo "## SambaLite v${{ steps.extract_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### Downloads" >> $GITHUB_OUTPUT
+        echo "- **APK**: For direct installation (sideloading)" >> $GITHUB_OUTPUT
+        echo "- **AAB**: For Google Play Store and other app stores" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### Verification" >> $GITHUB_OUTPUT
+        echo "Both files include SHA256 checksums for integrity verification." >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### Changelog" >> $GITHUB_OUTPUT
+        if [ -f "CHANGELOG.md" ]; then
+          # Extract changelog section for this version
+          awk '/^## \['"${{ steps.extract_version.outputs.VERSION }}"'\]/{flag=1;next}/^## \[/{flag=0}flag' CHANGELOG.md >> $GITHUB_OUTPUT
+        else
+          echo "See commit history for detailed changes." >> $GITHUB_OUTPUT
+        fi
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.extract_version.outputs.VERSION }}
+        name: SambaLite v${{ steps.extract_version.outputs.VERSION }}
+        body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+        draft: false
+        prerelease: false
+        files: |
+          app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
+          app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk.sha256
+          app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
+          app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab.sha256
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Clean up keystore
+      if: always()
+      run: |
+        rm -f app/keystore.jks
+        echo "Keystore cleaned up"

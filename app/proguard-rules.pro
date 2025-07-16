@@ -100,3 +100,22 @@
 # keep third-party libs intact
 -keep class com.hierynomus.** { *; }
 -keep interface com.hierynomus.** { *; }
+
+# ===== CORE PROGUARD RULES =====
+
+# ZIP file operations (used by folder upload)
+-keep class java.util.zip.ZipEntry { *; }
+-keep class java.util.zip.ZipOutputStream { *; }
+-keep class java.util.zip.ZipInputStream { *; }
+
+# Security and hashing (used by file operations)
+-keep class java.security.MessageDigest { *; }
+
+# Material Design 3 and UI components
+-keep class com.google.android.material.** { *; }
+-keep class androidx.core.content.ContextCompat { *; }
+
+# Background processing and scheduling
+-keep class java.util.concurrent.Executors { *; }
+
+# ===== END CORE PROGUARD RULES =====

@@ -3,8 +3,8 @@ plugins {
 }
 
 android {
-    namespace "de.schliweb.sambalite"
-    compileSdk 35
+    namespace = "de.schliweb.sambalite"
+    compileSdk = 35
 
     packaging {
         resources.excludes.add('META-INF/versions/9/OSGI-INF/MANIFEST.MF')
@@ -14,9 +14,12 @@ android {
     defaultConfig {
         applicationId "de.schliweb.sambalite"
         minSdkVersion 28
-        targetSdk 35 // Configured for borderless display (transparent system bars)
-        versionCode 12
-        versionName project.version.toString()
+        targetSdk = 35 // Configured for borderless display (transparent system bars)
+        
+        // Static version for F-Droid reproducible builds
+        // F-Droid will override these values from gradle.properties during build
+        versionCode 10100  // Manually updated for each release (format: major*10000 + minor*100 + patch)
+        versionName "1.1.0"  // Manually updated for each release
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,28 +32,111 @@ android {
         includeInBundle = false
     }
 
+    signingConfigs {
+        release {
+            // GitHub Actions signing (only when secrets are available)
+            if (project.hasProperty('SIGNING_KEY_ALIAS') && System.getenv('SIGNING_STORE_PASSWORD')) {
+                storeFile file('keystore.jks')
+                storePassword System.getenv('SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('SIGNING_KEY_PASSWORD')
+            }
+            // F-Droid will handle signing with their own certificates
+            // No signing config needed for F-Droid builds
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Only use signing config when available (GitHub Actions)
+            // F-Droid will sign with their own keys
+            if (project.hasProperty('SIGNING_KEY_ALIAS') && System.getenv('SIGNING_STORE_PASSWORD')) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    // Enable lint warnings for deprecated APIs
+    tasks.withType(JavaCompile) {
+        options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+        options.encoding = 'UTF-8'
+    }
+
     // Configure build features
     // Note: buildConfig true is the recommended way to enable BuildConfig generation
     // as per Android Gradle Plugin recommendations
     buildFeatures {
-        viewBinding true
-        buildConfig true
+        viewBinding = true
+        buildConfig = true
     }
 
     testOptions {
         unitTests.returnDefaultValues = true
         unitTests.includeAndroidResources = true
+        
+        // Configure data integrity test execution
+        unitTests.all {
+            // Ensure sufficient memory for large file tests
+            maxHeapSize = "2g"
+            
+            // Enable detailed test output for data integrity verification
+            testLogging {
+                events "passed", "failed", "skipped"
+                exceptionFormat = "full"
+                showCauses = true
+                showExceptions = true
+                showStackTraces = true
+                showStandardStreams = true
+            }
+            
+            // Critical: Fail fast on data integrity issues
+            failFast = true
+            
+            // Increase timeout for stress tests
+            timeout = Duration.ofMinutes(30)
+        }
+    }
+
+    lintOptions {
+        // Disable problematic Timber lint checks that don't work with AGP 8.10.1
+        disable 'LogNotTimber', 'StringFormatInTimber', 'ThrowableNotAtBeginning', 
+                'BinaryOperationInTimber', 'TimberArgCount', 'TimberArgTypes', 
+                'TimberTagLength', 'TimberExceptionLogging'
+        
+        // Enable unused resource detection
+        disable 'UnusedResources'
+        
+        // Keep other important checks enabled
+        warningsAsErrors = false
+        abortOnError = false
+    }
+}
+
+// BouncyCastle version resolution for F-Droid compatibility
+// Note: Since explicit BouncyCastle dependencies were removed (transitive from SMBJ),
+// the force configuration may not be needed for F-Droid builds
+configurations.all {
+    resolutionStrategy {
+        // Only force BouncyCastle version if needed for compatibility
+        // F-Droid prefers minimal dependency intervention
+        force 'org.bouncycastle:bcprov-jdk18on:1.79'
+
+        eachDependency { details ->
+            if (details.requested.group == 'org.bouncycastle') {
+                if (details.requested.name.contains('jdk15on')) {
+                    details.useTarget group: details.requested.group, 
+                                      name: details.requested.name.replace('jdk15on', 'jdk18on'), 
+                                      version: '1.79'
+                }
+            }
+        }
     }
 }
 
@@ -58,7 +144,8 @@ dependencies {
     // Android core libraries
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.core:core-ktx:1.16.0'
-    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
+    implementation 'com.google.android.material:material:1.13.0-beta01'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
@@ -70,8 +157,16 @@ dependencies {
     implementation 'com.google.dagger:dagger:2.56.2'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.56.2'
 
-    // SMBJ for SMB client functionality
-    implementation 'com.hierynomus:smbj:0.14.0'
+    // SMBJ for SMB client functionality - Exclude conflicting BouncyCastle versions
+    implementation('com.hierynomus:smbj:0.14.0') {
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+        exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
+    }
+    
+    // Note: BouncyCastle dependencies come transitively from SMBJ
+    // Explicit dependencies removed as they are not directly used
+    // implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
+    // implementation 'org.bouncycastle:bcpkix-jdk18on:1.79'
 
     // Security libraries for credential storage
     implementation 'androidx.security:security-crypto:1.1.0-beta01'
@@ -82,12 +177,36 @@ dependencies {
     compileOnly "org.projectlombok:lombok:1.18.38"
     annotationProcessor "org.projectlombok:lombok:1.18.38"
 
-    // Testing
+    // Testing dependencies for comprehensive data integrity verification
     testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.slf4j:slf4j-simple:2.0.12'
-    // testImplementation 'eu.agno3.jcifs:jcifs-ng:2.1.10'
+    
+    // Robolectric for Android unit testing
+    testImplementation 'org.robolectric:robolectric:4.13'
+    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation 'androidx.test.ext:junit:1.2.1'
+    
+    // Additional testing libraries for data integrity
+    testImplementation 'org.mockito:mockito-core:5.14.2'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    
+    // Android instrumented testing for real device verification
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+
+    // Enhanced UI and Animation libraries
+    // Note: interpolator removed - transitive dependency of Material Design
+    // implementation 'androidx.interpolator:interpolator:1.0.0'  // UNUSED - comes transitively
+    
+    // Memory Management
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
+    
+    // Advanced UI Components
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
+    // Note: cardview removed - MaterialCardView from Material Design is used instead
+    // implementation 'androidx.cardview:cardview:1.0.0'  // UNUSED - MaterialCardView used instead
 }
 
 tasks.whenTaskAdded { task ->

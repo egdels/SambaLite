@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.data.repository;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 
@@ -29,6 +30,18 @@ public interface SmbRepository {
      * This method should be called when a user wants to stop a search in progress.
      */
     void cancelSearch();
+
+    /**
+     * Cancels any ongoing download operation.
+     * This method should be called when a user wants to stop a download in progress.
+     */
+    void cancelDownload();
+
+    /**
+     * Cancels any ongoing upload operation.
+     * This method should be called when a user wants to stop an upload in progress.
+     */
+    void cancelUpload();
 
     /**
      * Tests a connection to an SMB server.
@@ -70,6 +83,27 @@ public interface SmbRepository {
     void uploadFile(SmbConnection connection, File localFile, String remotePath) throws Exception;
 
     /**
+     * Uploads a file to the SMB server with progress tracking.
+     *
+     * @param connection       The SMB connection to use
+     * @param localFile        The local file to upload
+     * @param remotePath       The path on the SMB server to upload the file to
+     * @param progressCallback The callback to report progress updates
+     * @throws Exception if an error occurs during the upload
+     */
+    void uploadFileWithProgress(SmbConnection connection, File localFile, String remotePath, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception;
+
+    /**
+     * Downloads a file from the SMB server using a local file path.
+     *
+     * @param connection    The SMB connection to use
+     * @param remotePath    The path to the file on the SMB server
+     * @param localFilePath The path to the local file to save the downloaded file to
+     * @throws Exception if an error occurs during the download
+     */
+    void downloadFile(SmbConnection connection, String remotePath, String localFilePath) throws Exception;
+
+    /**
      * Deletes a file or directory on the SMB server.
      *
      * @param connection The SMB connection to use
@@ -109,6 +143,15 @@ public interface SmbRepository {
     boolean fileExists(SmbConnection connection, String path) throws Exception;
 
     /**
+     * Lists available shares on the SMB server.
+     *
+     * @param connection The SMB connection to use (only server, username, password, domain are needed)
+     * @return A list of share names available on the server
+     * @throws Exception if an error occurs during the share listing
+     */
+    List<String> listShares(SmbConnection connection) throws Exception;
+
+    /**
      * Downloads a folder from the SMB server.
      *
      * @param connection  The SMB connection to use
@@ -117,4 +160,26 @@ public interface SmbRepository {
      * @throws Exception if an error occurs during the download
      */
     void downloadFolder(SmbConnection connection, String remotePath, java.io.File localFolder) throws Exception;
+
+    /**
+     * Downloads a folder from the SMB server with progress tracking.
+     *
+     * @param connection       The SMB connection to use
+     * @param remotePath       The path to the folder on the SMB server
+     * @param localFolder      The local folder to save the downloaded folder to
+     * @param progressCallback The callback to report progress updates
+     * @throws Exception if an error occurs during the download
+     */
+    void downloadFolderWithProgress(SmbConnection connection, String remotePath, java.io.File localFolder, BackgroundSmbManager.MultiFileProgressCallback progressCallback) throws Exception;
+
+    /**
+     * Downloads a file from the SMB server with progress tracking.
+     *
+     * @param connection       The SMB connection to use
+     * @param remotePath       The path to the file on the SMB server
+     * @param localFile        The local file to save the downloaded file to
+     * @param progressCallback The callback to report progress updates
+     * @throws Exception if an error occurs during the download
+     */
+    void downloadFileWithProgress(SmbConnection connection, String remotePath, java.io.File localFile, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception;
 }

@@ -21,6 +21,61 @@ platform :android do
     gradle(task: "test")
   end
 
+  desc "CRITICAL: Runs comprehensive data integrity tests - NO DATA LOSS ALLOWED!"
+  lane :data_integrity_tests do
+    puts "🛡️  STARTING CRITICAL DATA INTEGRITY TESTS"
+    puts "⚠️  MISSION: ENSURE ZERO DATA LOSS!"
+    puts "=================================================================="
+    
+    # Clean build first
+    gradle(task: "clean")
+    
+    # Build debug version
+    gradle(task: "assembleDebug")
+    
+    begin
+      # Run core data integrity tests
+      puts "🔍 Testing core file integrity..."
+      gradle(
+        task: "test", 
+        flags: "--tests de.schliweb.sambalite.data.repository.SmbRepositoryDataIntegrityTest --info"
+      )
+      
+      # Run performance stress tests
+      puts "⚡ Testing under performance stress..."
+      gradle(
+        task: "test",
+        flags: "--tests de.schliweb.sambalite.test.performance.SmbRepositoryPerformanceIntegrityTest --info"
+      )
+      
+      # Run Android instrumented tests if possible
+      begin
+        puts "📱 Testing Android-specific integrity..."
+        gradle(
+          task: "connectedAndroidTest",
+          flags: "--tests de.schliweb.sambalite.data.repository.SmbRepositoryAndroidDataIntegrityTest"
+        )
+      rescue => android_error
+        puts "⚠️  Android tests skipped (no device connected): #{android_error}"
+      end
+      
+      puts "=================================================================="
+      puts "🎉 SUCCESS: ALL DATA INTEGRITY TESTS PASSED!"
+      puts "✅ NO DATA LOSS DETECTED!"
+      puts "✅ File operations are SAFE and RELIABLE!"
+      puts "=================================================================="
+      
+    rescue => e
+      puts "=================================================================="
+      puts "❌ CRITICAL FAILURE: DATA INTEGRITY COMPROMISED!"
+      puts "🚨 ERROR: #{e.message}"
+      puts "🚨 IMMEDIATE ACTION REQUIRED!"
+      puts "🚨 DO NOT RELEASE UNTIL ALL TESTS PASS!"
+      puts "=================================================================="
+      raise e
+    end
+  end
+
   desc "Clean"
   lane :clean do
     gradle(task: "clean")

@@ -1,24 +1,27 @@
 package de.schliweb.sambalite.ui;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.Button;
-import android.widget.Toast;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.*;
+import android.widget.*;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.di.AppComponent;
-import de.schliweb.sambalite.util.KeyboardUtils;
-import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.ui.adapters.DiscoveredServerAdapter;
+import de.schliweb.sambalite.ui.adapters.SharesAdapter;
+import de.schliweb.sambalite.ui.utils.LoadingIndicator;
+import de.schliweb.sambalite.util.*;
 
 import javax.inject.Inject;
 
@@ -33,23 +36,58 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
     private MainViewModel viewModel;
     private ConnectionAdapter adapter;
+    private LoadingIndicator loadingIndicator;
+    private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
+    private NetworkScanner networkScanner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         LogUtils.d("MainActivity", "onCreate called");
+
+        // Start performance tracking
+        long startTime = System.currentTimeMillis();
+
+        // Initialize loading indicator
+        loadingIndicator = new LoadingIndicator(this);
+        LogUtils.d("MainActivity", "Loading indicator initialized");
+
+        // Initialize network scanner
+        networkScanner = new NetworkScanner(this);
+        LogUtils.d("MainActivity", "Network scanner initialized");
+
         // Get the Dagger component and inject dependencies
         AppComponent appComponent = ((SambaLiteApp) getApplication()).getAppComponent();
         appComponent.inject(this);
         LogUtils.d("MainActivity", "Dependencies injected");
 
         super.onCreate(savedInstanceState);
-        // Randlose Anzeige aktivieren
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
+        // Configure edge-to-edge display for better landscape experience
+        Window window = getWindow();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Modern API (Android 11+)
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        } else {
+            // Legacy API (Android 10 and below)
+            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+            window.getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        }
 
         setContentView(R.layout.activity_main);
         LogUtils.d("MainActivity", "Content view set");
 
+        // Set up the toolbar as action bar
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+            LogUtils.d("MainActivity", "Toolbar set as action bar");
+        } else {
+            LogUtils.w("MainActivity", "Toolbar not found in layout");
+        }
 
         // Initialize ViewModel
         viewModel = new ViewModelProvider(this, viewModelFactory).get(MainViewModel.class);
@@ -66,51 +104,110 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         // Long click functionality is used for connection options including delete
         LogUtils.d("MainActivity", "Long click functionality for connection options is already set up");
 
-        // Set up FAB for adding new connections
-        FloatingActionButton fab = findViewById(R.id.fab_add_connection);
-        fab.setOnClickListener(v -> showAddConnectionDialog());
-        LogUtils.d("MainActivity", "FAB set up");
+        // Set up FAB for adding new connections with enhanced animation
+        fab = findViewById(R.id.fab_add_connection);
+        if (fab != null) {
+            fab.setOnClickListener(v -> {
+                EnhancedUIUtils.scaleUp(v);
+                showAddConnectionDialog();
+            });
+            EnhancedUIUtils.addRippleEffect(fab);
+            LogUtils.d("MainActivity", "FAB set up with enhanced animations");
+        } else {
+            LogUtils.w("MainActivity", "FAB not found in layout");
+        }
+
+        // Set up welcome card button
+        com.google.android.material.button.MaterialButton welcomeAddButton = findViewById(R.id.welcome_add_button);
+        if (welcomeAddButton != null) {
+            welcomeAddButton.setOnClickListener(v -> showAddConnectionDialog());
+        }
+
+        // Get UI elements for empty state management
+        View welcomeCard = findViewById(R.id.welcome_card);
+        View connectionsHeader = findViewById(R.id.connections_header);
 
         // Observe connections
         viewModel.getConnections().observe(this, connections -> {
             LogUtils.d("MainActivity", "Connections updated: " + connections.size() + " connections");
+            LogUtils.d("MainActivity", "Connections list: " + (connections != null ? connections.toString() : "null"));
             adapter.setConnections(connections);
-            if (connections.isEmpty()) {
-                LogUtils.d("MainActivity", "No connections available");
-                // Show empty state
-                // TODO: Add empty state view
+
+            // Manage empty state visibility
+            if (connections == null || connections.isEmpty()) {
+                LogUtils.d("MainActivity", "No connections available - showing welcome card");
+                if (welcomeCard != null) welcomeCard.setVisibility(View.VISIBLE);
+                if (connectionsHeader != null) connectionsHeader.setVisibility(View.GONE);
+            } else {
+                LogUtils.d("MainActivity", "Connections available - hiding welcome card");
+                if (welcomeCard != null) welcomeCard.setVisibility(View.GONE);
+                if (connectionsHeader != null) connectionsHeader.setVisibility(View.VISIBLE);
             }
         });
 
-        // Observe error messages
+        // Observe error messages with enhanced UI feedback
         viewModel.getErrorMessage().observe(this, errorMessage -> {
             if (errorMessage != null && !errorMessage.isEmpty()) {
                 LogUtils.w("MainActivity", "Error message received: " + errorMessage);
-                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                EnhancedUIUtils.showError(this, errorMessage);
             }
         });
 
-        // Observe loading state
+        // Observe loading state with unified loading indicator
         viewModel.isLoading().observe(this, isLoading -> {
             LogUtils.d("MainActivity", "Loading state changed: " + isLoading);
-            // TODO: Show/hide loading indicator
+            if (isLoading) {
+                loadingIndicator.show(R.string.loading_files);
+            } else {
+                loadingIndicator.hide();
+            }
         });
 
-        LogUtils.i("MainActivity", "MainActivity initialized");
+        // Log performance metrics
+        long endTime = System.currentTimeMillis();
+        SimplePerformanceMonitor.startOperation("MainActivity.onCreate");
+        SimplePerformanceMonitor.endOperation("MainActivity.onCreate");
+        LogUtils.i("MainActivity", "Memory: " + SimplePerformanceMonitor.getMemoryInfo());
+
+        LogUtils.i("MainActivity", "MainActivity initialized in " + (endTime - startTime) + "ms");
+
+        // Force trigger the initial connections load for debugging
+        LogUtils.d("MainActivity", "Triggering initial connections load");
+        viewModel.loadConnections();
+
+        // Battery optimization check for better background performance
+        checkBatteryOptimizationOnFirstRun();
+
+        // Debug: Check if there are already connections loaded
+        if (viewModel.getConnections().getValue() != null) {
+            LogUtils.d("MainActivity", "ViewModel already has connections: " + viewModel.getConnections().getValue().size());
+        } else {
+            LogUtils.d("MainActivity", "ViewModel connections are null at startup");
+        }
     }
 
     @Override
     public void onConnectionClick(SmbConnection connection) {
         LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
+
+        // Record performance
+        long startTime = System.currentTimeMillis();
+
         // Open file browser activity for this connection
         Intent intent = FileBrowserActivity.createIntent(this, connection.getId());
         startActivity(intent);
+
+        // Record timing
+        SimplePerformanceMonitor.startOperation("MainActivity.connectionClick");
+        SimplePerformanceMonitor.endOperation("MainActivity.connectionClick");
+
+        EnhancedUIUtils.showInfo(this, "Opening " + connection.getName());
         LogUtils.i("MainActivity", "Opening FileBrowserActivity for connection: " + connection.getName());
     }
 
     @Override
-    public void onConnectionLongClick(SmbConnection connection) {
-        LogUtils.d("MainActivity", "Connection long-clicked: " + connection.getName());
+    public void onConnectionOptionsClick(SmbConnection connection) {
+        LogUtils.d("MainActivity", "Connection options clicked: " + connection.getName());
         // Show options menu (edit, delete, etc.)
         showConnectionOptionsDialog(connection);
     }
@@ -149,10 +246,6 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         com.google.android.material.textfield.TextInputLayout nameLayout = dialogView.findViewById(R.id.name_layout);
         com.google.android.material.textfield.TextInputLayout serverLayout = dialogView.findViewById(R.id.server_layout);
         com.google.android.material.textfield.TextInputLayout shareLayout = dialogView.findViewById(R.id.share_layout);
-        com.google.android.material.textfield.TextInputLayout usernameLayout = dialogView.findViewById(R.id.username_layout);
-        com.google.android.material.textfield.TextInputLayout passwordLayout = dialogView.findViewById(R.id.password_layout);
-        com.google.android.material.textfield.TextInputLayout domainLayout = dialogView.findViewById(R.id.domain_layout);
-
         com.google.android.material.textfield.TextInputEditText nameEditText = dialogView.findViewById(R.id.name_edit_text);
         com.google.android.material.textfield.TextInputEditText serverEditText = dialogView.findViewById(R.id.server_edit_text);
         com.google.android.material.textfield.TextInputEditText shareEditText = dialogView.findViewById(R.id.share_edit_text);
@@ -161,9 +254,72 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         com.google.android.material.textfield.TextInputEditText domainEditText = dialogView.findViewById(R.id.domain_edit_text);
 
         Button testConnectionButton = dialogView.findViewById(R.id.test_connection_button);
+        Button scanNetworkButton = dialogView.findViewById(R.id.scan_network_button);
+
+        // Get references to shares UI elements
+        View sharesSection = dialogView.findViewById(R.id.shares_section);
+        ProgressBar sharesProgress = dialogView.findViewById(R.id.shares_progress);
+        RecyclerView sharesRecyclerView = dialogView.findViewById(R.id.shares_recycler_view);
+        TextView sharesStatusText = dialogView.findViewById(R.id.shares_status_text);
+
+        // Set up shares RecyclerView
+        SharesAdapter sharesAdapter = new SharesAdapter();
+        sharesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        sharesRecyclerView.setAdapter(sharesAdapter);
+
+        // Set up share selection listener
+        sharesAdapter.setOnShareSelectedListener(shareName -> {
+            LogUtils.d("MainActivity", "Share selected: " + shareName);
+            shareEditText.setText(shareName);
+        });
+
+        // Set up server field text watcher for automatic share discovery
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final java.util.concurrent.atomic.AtomicReference<Runnable> pendingDiscovery = new java.util.concurrent.atomic.AtomicReference<>();
+
+        serverEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Not needed
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Cancel any pending discovery
+                Runnable pending = pendingDiscovery.get();
+                if (pending != null) {
+                    handler.removeCallbacks(pending);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String serverText = s.toString().trim();
+
+                // Hide shares section if server is empty
+                if (serverText.isEmpty()) {
+                    sharesSection.setVisibility(View.GONE);
+                    return;
+                }
+
+                // Only proceed if server looks like a complete IP address or hostname
+                if (isValidServerAddress(serverText)) {
+                    // Debounce the discovery to avoid excessive network calls
+                    Runnable discoveryTask = () -> {
+                        discoverShares(serverText, usernameEditText.getText().toString().trim(), passwordEditText.getText().toString().trim(), domainEditText.getText().toString().trim(), sharesSection, sharesProgress, sharesAdapter, sharesStatusText);
+                    };
+
+                    pendingDiscovery.set(discoveryTask);
+                    handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
+                } else {
+                    // Hide shares section for incomplete addresses
+                    sharesSection.setVisibility(View.GONE);
+                }
+            }
+        });
 
         // Create the dialog
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.add_new_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.add_new_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
                 .setNegativeButton(R.string.cancel, (dialogInterface, which) -> {
                     LogUtils.d("MainActivity", "Add connection dialog cancelled");
                     dialogInterface.dismiss();
@@ -265,6 +421,12 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 testConnection(testConnection);
             }
         });
+
+        // Set up the scan network button
+        scanNetworkButton.setOnClickListener(v -> {
+            LogUtils.d("MainActivity", "Scan network button clicked");
+            showNetworkScanDialog(serverEditText, nameEditText);
+        });
     }
 
     /**
@@ -274,7 +436,7 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         LogUtils.d("MainActivity", "Showing options dialog for connection: " + connection.getName());
         String[] options = {"Edit", "Test Connection", "Delete"};
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new MaterialAlertDialogBuilder(this);
         builder.setTitle(connection.getName()).setItems(options, (dialog, which) -> {
             switch (which) {
                 case 0: // Edit
@@ -321,10 +483,6 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         com.google.android.material.textfield.TextInputLayout nameLayout = dialogView.findViewById(R.id.name_layout);
         com.google.android.material.textfield.TextInputLayout serverLayout = dialogView.findViewById(R.id.server_layout);
         com.google.android.material.textfield.TextInputLayout shareLayout = dialogView.findViewById(R.id.share_layout);
-        com.google.android.material.textfield.TextInputLayout usernameLayout = dialogView.findViewById(R.id.username_layout);
-        com.google.android.material.textfield.TextInputLayout passwordLayout = dialogView.findViewById(R.id.password_layout);
-        com.google.android.material.textfield.TextInputLayout domainLayout = dialogView.findViewById(R.id.domain_layout);
-
         com.google.android.material.textfield.TextInputEditText nameEditText = dialogView.findViewById(R.id.name_edit_text);
         com.google.android.material.textfield.TextInputEditText serverEditText = dialogView.findViewById(R.id.server_edit_text);
         com.google.android.material.textfield.TextInputEditText shareEditText = dialogView.findViewById(R.id.share_edit_text);
@@ -333,6 +491,68 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         com.google.android.material.textfield.TextInputEditText domainEditText = dialogView.findViewById(R.id.domain_edit_text);
 
         Button testConnectionButton = dialogView.findViewById(R.id.test_connection_button);
+
+        // Get references to shares UI elements
+        View sharesSection = dialogView.findViewById(R.id.shares_section);
+        ProgressBar sharesProgress = dialogView.findViewById(R.id.shares_progress);
+        RecyclerView sharesRecyclerView = dialogView.findViewById(R.id.shares_recycler_view);
+        TextView sharesStatusText = dialogView.findViewById(R.id.shares_status_text);
+
+        // Set up shares RecyclerView
+        SharesAdapter sharesAdapter = new SharesAdapter();
+        sharesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        sharesRecyclerView.setAdapter(sharesAdapter);
+
+        // Set up share selection listener
+        sharesAdapter.setOnShareSelectedListener(shareName -> {
+            LogUtils.d("MainActivity", "Share selected: " + shareName);
+            shareEditText.setText(shareName);
+        });
+
+        // Set up server field text watcher for automatic share discovery
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final java.util.concurrent.atomic.AtomicReference<Runnable> pendingDiscovery = new java.util.concurrent.atomic.AtomicReference<>();
+
+        serverEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // Not needed
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Cancel any pending discovery
+                Runnable pending = pendingDiscovery.get();
+                if (pending != null) {
+                    handler.removeCallbacks(pending);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String serverText = s.toString().trim();
+
+                // Hide shares section if server is empty
+                if (serverText.isEmpty()) {
+                    sharesSection.setVisibility(View.GONE);
+                    return;
+                }
+
+                // Only proceed if server looks like a complete IP address or hostname
+                if (isValidServerAddress(serverText)) {
+                    // Debounce the discovery to avoid excessive network calls
+                    Runnable discoveryTask = () -> {
+                        discoverShares(serverText, usernameEditText.getText().toString().trim(), passwordEditText.getText().toString().trim(), domainEditText.getText().toString().trim(), sharesSection, sharesProgress, sharesAdapter, sharesStatusText);
+                    };
+
+                    pendingDiscovery.set(discoveryTask);
+                    handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
+                } else {
+                    // Hide shares section for incomplete addresses
+                    sharesSection.setVisibility(View.GONE);
+                }
+            }
+        });
 
         // Pre-populate fields with existing connection data
         nameEditText.setText(connection.getName());
@@ -343,7 +563,7 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         domainEditText.setText(connection.getDomain());
 
         // Create the dialog
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.edit_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.edit_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
                 .setNegativeButton(R.string.cancel, (dialogInterface, which) -> {
                     LogUtils.d("MainActivity", "Edit connection dialog cancelled");
                     dialogInterface.dismiss();
@@ -454,11 +674,399 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
      */
     private void confirmDeleteConnection(SmbConnection connection) {
         LogUtils.d("MainActivity", "Showing delete confirmation dialog for: " + connection.getName());
-        new AlertDialog.Builder(this).setTitle(R.string.delete_connection).setMessage(getString(R.string.confirm_delete_connection, connection.getName())).setPositiveButton(R.string.delete, (dialog, which) -> {
+        new MaterialAlertDialogBuilder(this).setTitle(R.string.delete_connection).setMessage(getString(R.string.confirm_delete_connection, connection.getName())).setPositiveButton(R.string.delete, (dialog, which) -> {
             LogUtils.i("MainActivity", "Confirming deletion of connection: " + connection.getName());
             viewModel.deleteConnection(connection.getId());
         }).setNegativeButton(R.string.cancel, (dialog, which) -> {
             LogUtils.d("MainActivity", "Deletion cancelled for connection: " + connection.getName());
         }).show();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        LogUtils.d("MainActivity", "Creating options menu");
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        LogUtils.d("MainActivity", "Options menu created with " + menu.size() + " items");
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_system_monitor) {
+            LogUtils.d("MainActivity", "System Monitor menu item selected");
+            Intent intent = SystemMonitorActivity.createIntent(this);
+            startActivity(intent);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Shows the network scan dialog to discover SMB servers.
+     */
+    private void showNetworkScanDialog(com.google.android.material.textfield.TextInputEditText serverEditText, com.google.android.material.textfield.TextInputEditText nameEditText) {
+        LogUtils.d("MainActivity", "Showing network scan dialog");
+
+        // Check if scanning is supported
+        if (!networkScanner.isScanningSupported()) {
+            EnhancedUIUtils.showError(this, "Network scanning is not available. Please check your network connection.");
+            return;
+        }
+
+        // Inflate the dialog layout
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_network_scan, null);
+
+        // Get UI elements with null checks
+        View scanProgressSection = dialogView.findViewById(R.id.scan_progress_section);
+        View serverListSection = dialogView.findViewById(R.id.server_list_section);
+        ProgressBar progressIndicator = dialogView.findViewById(R.id.scan_progress_indicator);
+        TextView scanStatusText = dialogView.findViewById(R.id.scan_status_text);
+        TextView scanProgressText = dialogView.findViewById(R.id.scan_progress_text);
+        TextView serversFoundLabel = dialogView.findViewById(R.id.servers_found_label);
+        androidx.recyclerview.widget.RecyclerView serversRecyclerView = dialogView.findViewById(R.id.servers_recycler_view);
+        TextView noServersText = dialogView.findViewById(R.id.no_servers_text);
+        LinearLayout customButtonBar = dialogView.findViewById(R.id.custom_button_bar);
+        Button customCancelButton = dialogView.findViewById(R.id.btn_cancel);
+        Button customScanButton = dialogView.findViewById(R.id.btn_scan);
+        Button customUseServerButton = dialogView.findViewById(R.id.btn_use_server);
+
+        // Check for critical UI elements
+        if (customButtonBar == null) {
+            LogUtils.e("MainActivity", "Critical UI element customButtonBar is null - dialog layout may be missing elements");
+            EnhancedUIUtils.showError(this, "Network scan dialog layout is incomplete. Please check the app installation.");
+            return;
+        }
+
+        if (serversRecyclerView == null) {
+            LogUtils.e("MainActivity", "Critical UI element serversRecyclerView is null");
+            EnhancedUIUtils.showError(this, "Network scan dialog is not properly configured.");
+            return;
+        }
+
+        // Set up RecyclerView
+        DiscoveredServerAdapter adapter = new DiscoveredServerAdapter();
+        serversRecyclerView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        serversRecyclerView.setAdapter(adapter);
+
+        // Create the dialog without default buttons (use custom ones)
+        AlertDialog scanDialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.scan_network).setView(dialogView).create();
+
+        // Set up custom buttons
+        scanDialog.setOnShowListener(dialogInterface -> {
+            // Show custom button bar
+            if (customButtonBar != null) {
+                customButtonBar.setVisibility(View.VISIBLE);
+            }
+
+            // Initially hide the "OK" button - will be shown when server is selected
+            if (customUseServerButton != null) {
+                customUseServerButton.setVisibility(View.GONE);
+            }
+
+            // Set up button click listeners
+            if (customCancelButton != null) {
+                customCancelButton.setOnClickListener(v -> {
+                    LogUtils.d("MainActivity", "Network scan cancelled by user");
+                    networkScanner.cancelScan();
+                    scanDialog.dismiss();
+                });
+            }
+
+            if (customScanButton != null) {
+                customScanButton.setOnClickListener(v -> {
+                    LogUtils.d("MainActivity", "Starting network scan");
+                    startNetworkScan(scanProgressSection, serverListSection, progressIndicator, scanStatusText, scanProgressText, serversFoundLabel, noServersText, adapter, customScanButton, customUseServerButton);
+                });
+            }
+
+            if (customUseServerButton != null) {
+                customUseServerButton.setOnClickListener(v -> {
+                    NetworkScanner.DiscoveredServer selectedServer = adapter.getSelectedServer();
+                    if (selectedServer != null) {
+                        LogUtils.d("MainActivity", "Using selected server: " + selectedServer.getDisplayName());
+
+                        // Auto-fill the connection form
+                        serverEditText.setText(selectedServer.getIpAddress());
+
+                        // Generate a name if empty
+                        if (nameEditText.getText().toString().trim().isEmpty()) {
+                            String suggestedName = selectedServer.getHostname() != null ? selectedServer.getHostname() : "Server " + selectedServer.getIpAddress();
+                            nameEditText.setText(suggestedName);
+                        }
+
+                        EnhancedUIUtils.showInfo(MainActivity.this, getString(R.string.server_info_applied, selectedServer.getDisplayName()));
+                        scanDialog.dismiss();
+                    }
+                    // Note: Since OK button is only visible when server is selected, 
+                    // the else case should never happen
+                });
+            }
+        });
+
+        // Set up server selection
+        adapter.setOnServerSelectedListener(server -> {
+            LogUtils.d("MainActivity", "Server selected: " + server.getDisplayName());
+            // Show and update the "OK" button when server is selected
+            if (customUseServerButton != null) {
+                customUseServerButton.setVisibility(View.VISIBLE);
+                customUseServerButton.setText(R.string.ok);
+            }
+        });
+
+        // Show the dialog
+        scanDialog.show();
+
+        // Start initial scan automatically
+        startNetworkScan(scanProgressSection, serverListSection, progressIndicator, scanStatusText, scanProgressText, serversFoundLabel, noServersText, adapter, customScanButton, customUseServerButton);
+    }
+
+    /**
+     * Starts the network scan operation.
+     */
+    private void startNetworkScan(View scanProgressSection, View serverListSection, ProgressBar progressIndicator, TextView scanStatusText, TextView scanProgressText, TextView serversFoundLabel, TextView noServersText, DiscoveredServerAdapter adapter, Button scanButton, Button okButton) {
+
+        LogUtils.d("MainActivity", "Starting network scan operation");
+
+        // Show progress section, hide server list (with null checks)
+        if (scanProgressSection != null) {
+            scanProgressSection.setVisibility(View.VISIBLE);
+        }
+        if (serverListSection != null) {
+            serverListSection.setVisibility(View.GONE);
+        }
+
+        // Hide both scan and OK buttons during scanning
+        if (scanButton != null) {
+            scanButton.setVisibility(View.GONE);
+        }
+        if (okButton != null) {
+            okButton.setVisibility(View.GONE);
+        }
+
+        // Reset progress (with null checks)
+        if (progressIndicator != null) {
+            progressIndicator.setProgress(0);
+        }
+        if (scanStatusText != null) {
+            scanStatusText.setText(R.string.scanning_network);
+        }
+        if (scanProgressText != null) {
+            scanProgressText.setText(R.string.hosts_scan_progress);
+        }
+
+        // Clear previous results
+        if (adapter != null) {
+            adapter.setServers(new java.util.ArrayList<>());
+        }
+
+        // Start the scan
+        networkScanner.scanLocalNetwork(new NetworkScanner.ScanProgressListener() {
+            @Override
+            public void onProgressUpdate(int scannedHosts, int totalHosts, String currentHost) {
+                runOnUiThread(() -> {
+                    int progress = (int) ((scannedHosts / (float) totalHosts) * 100);
+                    if (progressIndicator != null) {
+                        progressIndicator.setProgress(progress);
+                    }
+                    if (scanProgressText != null) {
+                        scanProgressText.setText(getString(R.string.hosts_scanned, scannedHosts, totalHosts));
+                    }
+                    if (scanStatusText != null) {
+                        scanStatusText.setText(getString(R.string.currently_scanning, currentHost));
+                    }
+                });
+            }
+
+            @Override
+            public void onServerFound(NetworkScanner.DiscoveredServer server) {
+                runOnUiThread(() -> {
+                    LogUtils.d("MainActivity", "Found SMB server: " + server.getDisplayName());
+                    if (adapter != null) {
+                        adapter.addServer(server);
+                        // Update the label with count
+                        int serverCount = adapter.getItemCount();
+                        LogUtils.d("MainActivity", "Added server to adapter. New count: " + serverCount);
+                        if (serversFoundLabel != null) {
+                            serversFoundLabel.setText(getString(R.string.servers_found_count, serverCount));
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onScanComplete(java.util.List<NetworkScanner.DiscoveredServer> servers) {
+                runOnUiThread(() -> {
+                    int serverCount = (adapter != null) ? adapter.getItemCount() : 0;
+                    LogUtils.i("MainActivity", "Network scan completed. Scanner found " + servers.size() + " servers, adapter has " + serverCount + " servers");
+
+                    // Hide progress section, show results (with null checks)
+                    if (scanProgressSection != null) {
+                        scanProgressSection.setVisibility(View.GONE);
+                    }
+                    if (serverListSection != null) {
+                        serverListSection.setVisibility(View.VISIBLE);
+                    }
+
+                    // Show scan button again
+                    if (scanButton != null) {
+                        scanButton.setVisibility(View.VISIBLE);
+                        scanButton.setEnabled(true);
+                        scanButton.setText(R.string.scan_network);
+                    }
+
+                    if (serverCount == 0) {
+                        if (noServersText != null) {
+                            noServersText.setVisibility(View.VISIBLE);
+                        }
+                        if (serversFoundLabel != null) {
+                            serversFoundLabel.setVisibility(View.GONE);
+                        }
+                        // Keep OK button hidden when no servers found
+                        if (okButton != null) {
+                            okButton.setVisibility(View.GONE);
+                        }
+                    } else {
+                        if (noServersText != null) {
+                            noServersText.setVisibility(View.GONE);
+                        }
+                        if (serversFoundLabel != null) {
+                            serversFoundLabel.setVisibility(View.VISIBLE);
+                            serversFoundLabel.setText(getString(R.string.servers_found_count, serverCount));
+                        }
+                        // OK button will be shown when user selects a server
+                    }
+
+                    EnhancedUIUtils.showInfo(MainActivity.this, getString(R.string.scan_complete));
+                });
+            }
+
+            @Override
+            public void onScanError(String error) {
+                runOnUiThread(() -> {
+                    LogUtils.e("MainActivity", "Network scan error: " + error);
+
+                    // Hide progress section, show results (with null checks)
+                    if (scanProgressSection != null) {
+                        scanProgressSection.setVisibility(View.GONE);
+                    }
+                    if (serverListSection != null) {
+                        serverListSection.setVisibility(View.VISIBLE);
+                    }
+
+                    // Show scan button again
+                    if (scanButton != null) {
+                        scanButton.setVisibility(View.VISIBLE);
+                        scanButton.setEnabled(true);
+                        scanButton.setText(R.string.scan_network);
+                    }
+
+                    // Keep OK button hidden on error
+                    if (okButton != null) {
+                        okButton.setVisibility(View.GONE);
+                    }
+
+                    // Show error
+                    EnhancedUIUtils.showError(MainActivity.this, getString(R.string.scan_error, error));
+                    if (noServersText != null) {
+                        noServersText.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Checks if the server address is complete enough to attempt a connection.
+     * Validates IP addresses (xxx.xxx.xxx.xxx) and hostnames.
+     */
+    private boolean isValidServerAddress(String serverAddress) {
+        if (serverAddress == null || serverAddress.trim().isEmpty()) {
+            return false;
+        }
+
+        String trimmed = serverAddress.trim();
+
+        // Check if it looks like a complete IP address
+        if (trimmed.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
+            return true;
+        }
+
+        // Check if it looks like a hostname (contains at least one letter and no incomplete IP patterns)
+        if (trimmed.matches(".*[a-zA-Z].*") && !trimmed.matches("\\d+\\.\\d*\\.?\\d*\\.?\\d*")) {
+            return trimmed.length() >= 3; // Minimum reasonable hostname length
+        }
+
+        return false;
+    }
+
+    /**
+     * Discovers available shares on the specified server.
+     */
+    private void discoverShares(String server, String username, String password, String domain, View sharesSection, ProgressBar sharesProgress, SharesAdapter sharesAdapter, TextView sharesStatusText) {
+        LogUtils.d("MainActivity", "Discovering shares on server: " + server);
+
+        // Show shares section and progress
+        sharesSection.setVisibility(View.VISIBLE);
+        sharesProgress.setVisibility(View.VISIBLE);
+        sharesStatusText.setText(R.string.discovering_shares);
+
+        // Clear previous shares
+        sharesAdapter.clearShares();
+
+        // Create a temporary connection for share discovery
+        SmbConnection tempConnection = new SmbConnection();
+        tempConnection.setServer(server);
+        tempConnection.setUsername(username);
+        tempConnection.setPassword(password);
+        tempConnection.setDomain(domain);
+
+        viewModel.listShares(tempConnection, new MainViewModel.ShareListCallback() {
+            @Override
+            public void onSuccess(java.util.List<String> shares) {
+                runOnUiThread(() -> {
+                    LogUtils.d("MainActivity", "Found " + shares.size() + " shares on server: " + server);
+                    sharesProgress.setVisibility(View.GONE);
+
+                    if (shares.isEmpty()) {
+                        sharesStatusText.setText(R.string.no_shares_found);
+                    } else {
+                        sharesStatusText.setText(R.string.tap_share_to_select);
+                        sharesAdapter.setShares(shares);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    LogUtils.w("MainActivity", "Failed to discover shares: " + error);
+                    sharesProgress.setVisibility(View.GONE);
+                    sharesStatusText.setText(R.string.could_not_connect_check_credentials);
+                    sharesAdapter.clearShares();
+                });
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up network scanner
+        if (networkScanner != null) {
+            networkScanner.shutdown();
+        }
+        LogUtils.d("MainActivity", "onDestroy called");
+    }
+
+    /**
+     * Checks battery optimization settings on first app start
+     */
+    private void checkBatteryOptimizationOnFirstRun() {
+        if (BatteryOptimizationUtils.shouldShowBatteryOptimizationDialog(this)) {
+            // Show dialog only after short delay so MainActivity is fully loaded
+            findViewById(android.R.id.content).postDelayed(() -> {
+                BatteryOptimizationUtils.requestBatteryOptimizationExemption(this);
+            }, 2000); // 2 seconds delay
+        }
     }
 }

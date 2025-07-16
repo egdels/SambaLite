@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material Design 3 Light Theme Colors - Custom Blue Palette -->
+    <!-- Primary colors - using logo blue #3DB7DC prominently -->
+    <color name="md_theme_light_primary">#3DB7DC</color>
+    <color name="md_theme_light_onPrimary">#003544</color>
+    <color name="md_theme_light_primaryContainer">#B8EBFF</color>
+    <color name="md_theme_light_onPrimaryContainer">#001F28</color>
+    
+    <!-- Secondary colors - prominent logo blue usage -->
+    <color name="md_theme_light_secondary">#3DB7DC</color>
+    <color name="md_theme_light_onSecondary">#003544</color>
+    <color name="md_theme_light_secondaryContainer">#C2F0FF</color>
+    <color name="md_theme_light_onSecondaryContainer">#001E26</color>
+    
+    <!-- Tertiary colors - accent blue-cyan -->
+    <color name="md_theme_light_tertiary">#3DB7DC</color>
+    <color name="md_theme_light_onTertiary">#FFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#C2F0FF</color>
+    <color name="md_theme_light_onTertiaryContainer">#001E26</color>
+    
+    <!-- Error colors (unchanged) -->
+    <color name="md_theme_light_error">#BA1A1A</color>
+    <color name="md_theme_light_errorContainer">#FFDAD6</color>
+    <color name="md_theme_light_onError">#FFFFFF</color>
+    <color name="md_theme_light_onErrorContainer">#410002</color>
+    
+    <!-- Background and Surface colors - subtle blue tint -->
+    <color name="md_theme_light_background">#F7FCFF</color>
+    <color name="md_theme_light_onBackground">#001E26</color>
+    <color name="md_theme_light_surface">#F7FCFF</color>
+    <color name="md_theme_light_onSurface">#001E26</color>
+    <color name="md_theme_light_surfaceVariant">#DBE8ED</color>
+    <color name="md_theme_light_onSurfaceVariant">#3F484C</color>
+    <color name="md_theme_light_outline">#6F797D</color>
+    <color name="md_theme_light_outlineVariant">#BFC8CD</color>
+    <color name="md_theme_light_scrim">#000000</color>
+    <color name="md_theme_light_inverseSurface">#0E1F26</color>
+    <color name="md_theme_light_inverseOnSurface">#E1F2F9</color>
+    <color name="md_theme_light_inversePrimary">#6DD3FF</color>
+    
+    <!-- Material Design 3 Dark Theme Colors - Custom Blue Palette -->
+    <!-- Primary colors for dark theme - logo blue prominent -->
+    <color name="md_theme_dark_primary">#3DB7DC</color>
+    <color name="md_theme_dark_onPrimary">#003544</color>
+    <color name="md_theme_dark_primaryContainer">#005A72</color>
+    <color name="md_theme_dark_onPrimaryContainer">#B8EBFF</color>
+    
+    <!-- Secondary colors for dark theme - logo blue prominent -->
+    <color name="md_theme_dark_secondary">#3DB7DC</color>
+    <color name="md_theme_dark_onSecondary">#003544</color>
+    <color name="md_theme_dark_secondaryContainer">#005A72</color>
+    <color name="md_theme_dark_onSecondaryContainer">#C2F0FF</color>
+    
+    <!-- Tertiary colors for dark theme -->
+    <color name="md_theme_dark_tertiary">#3DB7DC</color>
+    <color name="md_theme_dark_onTertiary">#00363F</color>
+    <color name="md_theme_dark_tertiaryContainer">#005662</color>
+    <color name="md_theme_dark_onTertiaryContainer">#C2F0FF</color>
+    
+    <!-- Error colors for dark theme (unchanged) -->
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_errorContainer">#93000A</color>
+    <color name="md_theme_dark_onError">#690005</color>
+    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
+    
+    <!-- Background and Surface colors for dark theme - subtle blue tint -->
+    <color name="md_theme_dark_background">#0E1B20</color>
+    <color name="md_theme_dark_onBackground">#E1F2F9</color>
+    <color name="md_theme_dark_surface">#0E1B20</color>
+    <color name="md_theme_dark_onSurface">#E1F2F9</color>
+    <color name="md_theme_dark_surfaceVariant">#3F484C</color>
+    <color name="md_theme_dark_onSurfaceVariant">#BFC8CD</color>
+    <color name="md_theme_dark_outline">#899297</color>
+    <color name="md_theme_dark_outlineVariant">#3F484C</color>
+    <color name="md_theme_dark_scrim">#000000</color>
+    <color name="md_theme_dark_inverseSurface">#E1F2F9</color>
+    <color name="md_theme_dark_inverseOnSurface">#0E1F26</color>
+    <color name="md_theme_dark_inversePrimary">#006A85</color>
+</resources>

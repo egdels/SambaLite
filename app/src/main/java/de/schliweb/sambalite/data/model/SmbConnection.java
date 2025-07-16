@@ -3,12 +3,16 @@ package de.schliweb.sambalite.data.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 /**
  * Model class representing an SMB connection.
  */
 @Setter
 @Getter
-public class SmbConnection {
+public class SmbConnection implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String id;
     private String name;

@@ -5,17 +5,20 @@ import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Adapter for displaying SMB files and directories in a RecyclerView.
@@ -25,7 +28,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     @Getter
     private List<SmbFileItem> files = new ArrayList<>();
     private OnFileClickListener listener;
-    private OnFileLongClickListener longClickListener;
+    private OnFileOptionsClickListener optionsClickListener;
     private boolean showParentDirectory = false;
 
     /**
@@ -38,15 +41,6 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         LogUtils.d("FileAdapter", "Setting files: " + size + " items");
         this.files = files != null ? files : new ArrayList<>();
         notifyDataSetChanged();
-    }
-
-    /**
-     * Gets whether to show a parent directory item at the top of the list.
-     *
-     * @return True if showing parent directory, false otherwise
-     */
-    public boolean getShowParentDirectory() {
-        return showParentDirectory;
     }
 
     /**
@@ -71,13 +65,13 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
 
     /**
-     * Sets the long click listener for files.
+     * Sets the options click listener for files.
      *
      * @param listener The listener to set
      */
-    public void setOnFileLongClickListener(OnFileLongClickListener listener) {
-        LogUtils.d("FileAdapter", "Setting file long click listener");
-        this.longClickListener = listener;
+    public void setOnFileOptionsClickListener(OnFileOptionsClickListener listener) {
+        LogUtils.d("FileAdapter", "Setting file options click listener");
+        this.optionsClickListener = listener;
     }
 
     @NonNull
@@ -112,6 +106,74 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
 
     /**
+     * Returns the appropriate icon resource ID for a file based on its extension.
+     *
+     * @param filename The name of the file
+     * @return Resource ID for the appropriate icon
+     */
+    private int getFileIcon(String filename) {
+        if (filename == null) {
+            return android.R.drawable.ic_menu_save;
+        }
+
+        String extension = EnhancedFileUtils.getFileExtension(filename).toLowerCase(Locale.ROOT);
+
+        switch (extension) {
+            case "pdf":
+                return android.R.drawable.ic_menu_report_image;
+            case "txt":
+            case "md":
+            case "log":
+                return android.R.drawable.ic_menu_edit;
+            case "jpg":
+            case "jpeg":
+            case "png":
+            case "gif":
+            case "bmp":
+            case "webp":
+                return android.R.drawable.ic_menu_gallery;
+            case "mp4":
+            case "avi":
+            case "mkv":
+            case "mov":
+            case "wmv":
+                return android.R.drawable.ic_menu_slideshow;
+            case "mp3":
+            case "wav":
+            case "flac":
+            case "ogg":
+            case "m4a":
+                return android.R.drawable.ic_media_play;
+            case "zip":
+            case "rar":
+            case "7z":
+            case "tar":
+            case "gz":
+                return android.R.drawable.ic_menu_compass;
+            case "doc":
+            case "docx":
+            case "odt":
+                return android.R.drawable.ic_menu_edit;
+            case "xls":
+            case "xlsx":
+            case "ods":
+                return android.R.drawable.ic_menu_view;
+            case "ppt":
+            case "pptx":
+            case "odp":
+                return android.R.drawable.ic_menu_slideshow;
+            case "exe":
+            case "msi":
+            case "deb":
+            case "rpm":
+            case "apk":
+                return android.R.drawable.ic_menu_preferences;
+            default:
+                return android.R.drawable.ic_menu_save;
+        }
+    }
+
+    /**
      * Interface for file click events.
      */
     public interface OnFileClickListener {
@@ -121,12 +183,10 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
 
     /**
-     * Interface for file long click events.
+     * Interface for file options button click events.
      */
-    public interface OnFileLongClickListener {
-        boolean onFileLongClick(SmbFileItem file);
-
-        boolean onParentDirectoryLongClick();
+    public interface OnFileOptionsClickListener {
+        void onFileOptionsClick(SmbFileItem file);
     }
 
     /**
@@ -138,6 +198,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         private final TextView nameView;
         private final TextView dateView;
         private final TextView sizeView;
+        private final ImageButton moreOptionsButton;
 
         FileViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -145,9 +206,10 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             nameView = itemView.findViewById(R.id.file_name);
             dateView = itemView.findViewById(R.id.file_date);
             sizeView = itemView.findViewById(R.id.file_size);
+            moreOptionsButton = itemView.findViewById(R.id.more_options);
 
             itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
+                int position = getBindingAdapterPosition();
                 LogUtils.d("FileAdapter", "File item clicked at position: " + position);
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     if (showParentDirectory && position == 0) {
@@ -166,24 +228,22 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 }
             });
 
-            itemView.setOnLongClickListener(v -> {
-                int position = getAdapterPosition();
-                LogUtils.d("FileAdapter", "File item long clicked at position: " + position);
-                if (position != RecyclerView.NO_POSITION && longClickListener != null) {
+            moreOptionsButton.setOnClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                LogUtils.d("FileAdapter", "More options clicked at position: " + position);
+                if (position != RecyclerView.NO_POSITION && optionsClickListener != null) {
                     if (showParentDirectory && position == 0) {
-                        // Parent directory long clicked
-                        LogUtils.d("FileAdapter", "Parent directory long clicked, notifying listener");
-                        return longClickListener.onParentDirectoryLongClick();
+                        // Parent directory - no options menu
+                        LogUtils.d("FileAdapter", "More options ignored for parent directory");
                     } else {
-                        // Regular file or directory long clicked
+                        // Regular file or directory
                         int filePosition = showParentDirectory ? position - 1 : position;
                         SmbFileItem file = files.get(filePosition);
-                        LogUtils.d("FileAdapter", "File long clicked at adjusted position " + filePosition + ": " + file.getName() + ", isDirectory: " + file.isDirectory());
-                        return longClickListener.onFileLongClick(file);
+                        LogUtils.d("FileAdapter", "File options clicked at adjusted position " + filePosition + ": " + file.getName());
+                        optionsClickListener.onFileOptionsClick(file);
                     }
                 } else {
-                    LogUtils.d("FileAdapter", "Long click ignored: position invalid or no listener");
-                    return false;
+                    LogUtils.d("FileAdapter", "Options click ignored: position invalid or no listener");
                 }
             });
         }
@@ -207,7 +267,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 iconView.setImageResource(android.R.drawable.ic_menu_more);
             } else {
                 LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
-                iconView.setImageResource(android.R.drawable.ic_menu_save);
+                iconView.setImageResource(getFileIcon(file.getName()));
             }
 
             // Set file name

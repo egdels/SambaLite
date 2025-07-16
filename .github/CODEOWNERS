@@ -1,0 +1,33 @@
+# Code Owners
+
+# Global code owners
+* @egdels
+
+# Documentation
+/docs/ @egdels
+*.md @egdels
+
+# GitHub workflows and templates
+/.github/ @egdels
+
+# Build and configuration
+/gradle/ @egdels
+*.gradle @egdels
+gradle.properties @egdels
+
+# Security and sensitive files
+SECURITY.md @egdels
+/.github/workflows/ @egdels
+
+# Core application code
+/app/src/main/java/de/schliweb/sambalite/ @egdels
+
+# UI and resources
+/app/src/main/res/ @egdels
+
+# Tests
+/app/src/test/ @egdels
+/app/src/androidTest/ @egdels
+
+# Scripts
+/scripts/ @egdels

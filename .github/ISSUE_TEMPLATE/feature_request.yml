@@ -1,0 +1,186 @@
+name: 💡 Feature Request
+description: Suggest a new feature or enhancement for SambaLite
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide detailed information to help us understand your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions for similar requests
+          required: true
+        - label: This feature aligns with SambaLite's minimalist philosophy
+          required: true
+        - label: I have considered the complexity and maintenance burden
+          required: false
+
+  - type: textarea
+    id: feature-summary
+    attributes:
+      label: Feature Summary
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Briefly describe the feature in 1-2 sentences
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What user need does it address?
+      placeholder: |
+        Describe the current limitation or problem:
+        - What can't users do today?
+        - What friction or inefficiency exists?
+        - What use case is not covered?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your preferred solution for this feature
+      placeholder: |
+        Explain how this feature would work:
+        - User interface changes
+        - New functionality
+        - Integration points
+        - User workflow
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific examples of how this feature would be used
+      placeholder: |
+        Example scenarios:
+        1. User wants to...
+        2. Administrator needs to...
+        3. When connecting to...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user-type
+    attributes:
+      label: Primary User Type
+      description: Who would primarily benefit from this feature?
+      options:
+        - Home users
+        - Power users
+        - IT administrators
+        - Developers
+        - All users
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Usage Frequency
+      description: How often would users typically use this feature?
+      options:
+        - Daily
+        - Weekly
+        - Monthly
+        - Occasionally
+        - One-time setup
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered? What other solutions exist?
+      placeholder: |
+        - Other apps that provide this functionality
+        - Workarounds you've tried
+        - Different approaches to solving the problem
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical aspects you've thought about
+      placeholder: |
+        Consider:
+        - Android API requirements
+        - SMB protocol limitations
+        - Performance implications
+        - Security considerations
+        - Compatibility concerns
+    validations:
+      required: false
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Implementation Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple - Minor UI or setting change
+        - Medium - New functionality but using existing patterns
+        - Complex - Significant new components or workflows
+        - Very Complex - Major architectural changes
+        - Unknown
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve my workflow
+        - High - Important for my use case
+        - Critical - Blocking my adoption of SambaLite
+    validations:
+      required: true
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups or Examples
+      description: |
+        If you have mockups, sketches, or examples from other apps, please share them here.
+        You can paste images directly into this text area.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that would help us understand this request
+      placeholder: |
+        - Related features that would complement this
+        - Industry standards or best practices
+        - Accessibility considerations
+        - Internationalization needs
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Interest
+      options:
+        - label: I would be interested in contributing to the implementation of this feature
+        - label: I would be available for testing and feedback during development
+        - label: I can provide additional requirements or use cases if needed

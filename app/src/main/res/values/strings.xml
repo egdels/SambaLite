@@ -1,6 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SambaLite</string>
     <string name="add_connection">Add Connection</string>
+    <string name="system_monitor">System Monitor</string>
+    
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Welcome to SambaLite</string>
+    <string name="welcome_subtitle">Connect to your SMB/CIFS shares easily and securely. Tap the + button to add your first connection.</string>
+    <string name="your_connections">Your Connections</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">Connection Status</string>
+    <string name="content_desc_more_options">More options</string>
+    <string name="content_desc_file_type_icon">File type icon</string>
+    <string name="content_desc_selected">Selected</string>
+    <string name="content_desc_share">Share</string>
+    <string name="content_desc_refresh_system_info">Refresh system information</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">Refresh</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
+    <string name="example_share_name">Documents</string>
 
     <!-- Connection Dialog -->
     <string name="connection_name">Connection Name</string>
@@ -9,6 +32,9 @@
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="domain">Domain (optional)</string>
+    <string name="port">Port</string>
+    <string name="connect">Connect</string>
+    <string name="edit">Edit</string>
     <string name="test_connection">Test Connection</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
@@ -34,7 +60,9 @@
     <string name="parent_directory">Parent Directory</string>
     <string name="file_browser_title">Files</string>
     <string name="search_files">Search files</string>
+    <string name="search_title">Search</string>
     <string name="searching">Searching…</string>
+    <string name="searching_files">Searching files…</string>
     <string name="search_results">Search Results</string>
     <string name="no_search_results">No files found matching your search</string>
     <string name="search_query_hint">Enter search term</string>
@@ -64,7 +92,9 @@
     <string name="select_file">Select file to upload</string>
     <string name="file_exists_title">File already exists</string>
     <string name="file_exists_message">The file \"%1$s\" already exists. Do you want to overwrite it?</string>
+    <string name="file_exists_individual_message">The file \"%1$s\" already exists on the server. Do you want to overwrite it or skip this file?</string>
     <string name="overwrite">Overwrite</string>
+    <string name="skip_file">Skip File</string>
 
     <!-- Folder Creation -->
     <string name="create_folder">Create Folder</string>
@@ -96,4 +126,92 @@
     <string name="delete_success">File deleted successfully</string>
     <string name="delete_error">Error deleting file</string>
     <string name="file_exists">File exists</string>
+
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+    
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">Folder Upload</string>
+    <string name="zip_upload_folder">Upload folder as ZIP</string>
+    <string name="zip_download_folder">Upload folder contents</string>
+    <string name="creating_zip">Creating ZIP archive…</string>
+    <string name="uploading_zip">Uploading ZIP archive…</string>
+    <string name="uploading_folder_contents">Uploading folder contents…</string>
+    <string name="processing_files">Processing files…</string>
+    <string name="zip_upload_success">Folder uploaded as ZIP successfully</string>
+    <string name="folder_contents_upload_success">Folder contents uploaded successfully</string>
+    <string name="zip_upload_error">Error uploading ZIP archive</string>
+    <string name="folder_contents_upload_error">Error uploading folder contents</string>
+    <string name="select_folder_to_upload">Select folder to upload as ZIP</string>
+    <string name="select_folder_contents_to_upload">Select folder to upload contents</string>
+    <string name="upload_progress_files">Uploading %1$d of %2$d files</string>
+    <string name="upload_incomplete_warning">Upload was incomplete. Some files may not have been transferred.</string>
+    <string name="cleanup_incomplete_upload">Cleaning up incomplete upload…</string>
+    <string name="folder_structure_created">Folder structure created successfully</string>
+    <string name="verifying_upload_integrity">Verifying upload integrity…</string>
+    
+    <!-- Enhanced UI Strings -->
+    <string name="success">Success</string>
+    <string name="retry">Retry</string>
+    <string name="ok">OK</string>
+    <string name="please_wait">Please wait</string>
+    
+    <!-- Network Scanner -->
+    <string name="scan_network">Scan</string>
+    <string name="scanning_network">Scanning…</string>
+    <string name="servers_found">Available Servers</string>
+    <string name="no_servers_found">No SMB servers found in the local network.\n\nYou can still enter server details manually.</string>
+    <string name="network_scan_instructions">Select a server to auto-fill connection details, or tap "Scan Network" to search for more servers.</string>
+    <string name="scan_complete">Network scan completed</string>
+    <string name="scan_cancelled">Network scan cancelled</string>
+    <string name="scan_error">Scan error: %1$s</string>
+    <string name="server_icon">Server</string>
+    <string name="selected">Selected</string>
+    <string name="hosts_scanned">%1$d / %2$d hosts scanned</string>
+    <string name="currently_scanning">Currently scanning: %1$s</string>
+    <string name="servers_found_count">Found %1$d server(s)</string>
+    <string name="server_info_applied">Server information applied: %1$s</string>
+    <string name="available_shares">Available Shares</string>
+    <string name="discovering_shares">Discovering shares…</string>
+    <string name="no_shares_found">No shares found on this server</string>
+    <string name="tap_share_to_select">Tap a share to select it:</string>
+    <string name="could_not_connect_check_credentials">Could not connect to server. Check credentials.</string>
+    <string name="enter_server_details">Enter server details to discover shares</string>
+    <string name="scan_network_permission_required">Network scanning requires location permission to access WiFi information.</string>
+    <string name="scanning_fallback_networks">WiFi access limited - scanning common network ranges</string>
+    
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">Go to parent directory</string>
+    <string name="refresh_directory">Refresh directory</string>
+    <string name="files_tab">Files</string>
+    <string name="folders_tab">Folders</string>
+    <string name="empty_folder">This folder is empty. Use the + button to upload files or create folders.</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">Upload files</string>
+    <string name="cancel_search_action">Cancel search</string>
+    <string name="loading_system_information">Loading system information…</string>
+    <string name="authentication">Authentication</string>
+    <string name="smb_connection">SMB Connection</string>
+    <string name="add_smb_connection">Add SMB Connection</string>
+    <string name="connect_to_network_share">Connect to your network share</string>
+    <string name="hosts_scan_progress">0 / 254 hosts scanned</string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">Guest access</string>
+    
+
+    <string name="battery_optimization_title">Optimize Background Operations</string>
+    <string name="battery_optimization_message">For reliable SMB downloads and uploads in the background, we recommend excluding the app from battery optimizations.\n\nThis ensures that downloads continue even when the app moves to the background.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="later">Later</string>
+    
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">Recovering connection…</string>
+    <string name="connection_recovered">Connection recovered successfully</string>
+    <string name="connection_recovery_failed">Connection recovery failed</string>
+    <string name="connection_timeout">Connection timeout</string>
+    <string name="connection_broken_pipe">Connection interrupted</string>
+    <string name="connection_retry_attempt">Retrying connection (attempt %1$d of %2$d)</string>
+    
 </resources>

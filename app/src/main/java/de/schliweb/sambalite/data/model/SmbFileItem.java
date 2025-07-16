@@ -3,6 +3,7 @@ package de.schliweb.sambalite.data.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -10,7 +11,9 @@ import java.util.Date;
  */
 @Setter
 @Getter
-public class SmbFileItem {
+public class SmbFileItem implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String name;
     private String path;

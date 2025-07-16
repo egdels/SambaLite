@@ -58,7 +58,34 @@ Feature suggestions are welcome! Please create an issue with:
 
 - Write unit tests for repositories and ViewModels
 - Write UI tests for critical user flows
+- Use the SMB Testing Framework for SMB-related functionality
 - Ensure all tests pass before submitting a PR
+
+#### SMB Testing Framework
+
+Das Projekt verfügt über ein umfassendes SMB-Testing-Framework:
+
+**Mock-basierte Tests (schnell):**
+```java
+SmbTestHelper helper = new SmbTestHelper.Builder()
+    .withMockOnly()
+    .build();
+```
+
+**Container-basierte Tests (realistisch):**
+```java
+SmbTestHelper helper = new SmbTestHelper.Builder()
+    .withContainerOnly()
+    .build();
+```
+
+**Fehler-Testing:**
+```java
+helper.setConnectionFailure(true);
+helper.setNetworkDelay(500);
+```
+
+Siehe [SAMBA_TESTING_FRAMEWORK.md](docs/SAMBA_TESTING_FRAMEWORK.md) für Details.
 
 ## Git Workflow
 

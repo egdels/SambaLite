@@ -1,7 +1,77 @@
-/local.properties
+# SambaLite .gitignore
+
+# Android Studio
+*.iml
+.gradle
+.idea/
+.DS_Store
+.externalNativeBuild
+.cxx
+captures/
+output.json
+
+# Local configuration file (SDK path, etc)
+local.properties
+
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Build directories
 /build/
 /app/build/
-/.idea/
-/.gradle/
+/fastlane/report.xml
+/fastlane/Preview.html
+/fastlane/screenshots
+/fastlane/test_output
+
+# Signing files
+*.jks
+*.keystore
+app/google-services.json
+
+# Fastlane
 /fastlane/.env
-/app/release/
+/fastlane/README.md
+
+# Version control
+.gitattributes
+
+# Log Files
+*.log
+
+# Android Profiling
+*.hprof
+
+# Backup files
+*.bak
+*~
+
+# Cache
+.gradle/
+app/src/main/assets/schemas/
+
+# Generated files
+bin/
+gen/
+out/
+
+# Temporary files
+tmp/
+temp/
+
+# OSX
+.DS_Store
+Thumbs.db
+
+# Test results
+/test-results/
+/app/build/test-results/
+/app/build/reports/
+
+# Security - Never commit these
+*.p12
+*.pem
+release.properties

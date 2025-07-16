@@ -7,6 +7,7 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SmartErrorHandler;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -22,6 +23,7 @@ public class MainViewModel extends ViewModel {
     private final ConnectionRepository connectionRepository;
     private final SmbRepository smbRepository;
     private final Executor executor;
+    private final SmartErrorHandler errorHandler;
 
     private final MutableLiveData<List<SmbConnection>> connections = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
@@ -32,11 +34,15 @@ public class MainViewModel extends ViewModel {
         this.connectionRepository = connectionRepository;
         this.smbRepository = smbRepository;
         this.executor = Executors.newSingleThreadExecutor();
+        this.errorHandler = SmartErrorHandler.getInstance();
 
         LogUtils.d("MainViewModel", "MainViewModel initialized");
 
         // Load connections when the ViewModel is created
         loadConnections();
+
+        // Debug: Add immediate debug log for connections
+        LogUtils.d("MainViewModel", "MainViewModel created, connections LiveData initialized");
     }
 
     /**
@@ -72,6 +78,10 @@ public class MainViewModel extends ViewModel {
                 LogUtils.d("MainViewModel", "Loaded " + connectionList.size() + " connections");
             } catch (Exception e) {
                 LogUtils.e("MainViewModel", "Failed to load connections: " + e.getMessage());
+
+                // Record connection error
+                errorHandler.recordError(e, "MainViewModel.loadConnections", SmartErrorHandler.ErrorSeverity.HIGH);
+
                 errorMessage.postValue("Failed to load connections: " + e.getMessage());
             }
         });
@@ -91,6 +101,10 @@ public class MainViewModel extends ViewModel {
                 loadConnections(); // Reload the list
             } catch (Exception e) {
                 LogUtils.e("MainViewModel", "Failed to save connection: " + e.getMessage());
+
+                // Record save error
+                errorHandler.recordError(e, "MainViewModel.saveConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
+
                 errorMessage.postValue("Failed to save connection: " + e.getMessage());
             }
         });
@@ -110,6 +124,10 @@ public class MainViewModel extends ViewModel {
                 loadConnections(); // Reload the list
             } catch (Exception e) {
                 LogUtils.e("MainViewModel", "Failed to delete connection: " + e.getMessage());
+
+                // Record delete error
+                errorHandler.recordError(e, "MainViewModel.deleteConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
+
                 errorMessage.postValue("Failed to delete connection: " + e.getMessage());
             }
         });
@@ -137,8 +155,35 @@ public class MainViewModel extends ViewModel {
                 callback.onResult(success, success ? "Connection successful" : "Connection failed");
             } catch (Exception e) {
                 LogUtils.e("MainViewModel", "Connection test error: " + e.getMessage());
+
+                // Record network/SMB error
+                errorHandler.recordError(e, "MainViewModel.testConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
+
                 isLoading.postValue(false);
                 callback.onResult(false, "Connection failed: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Lists shares available on the specified server.
+     */
+    public void listShares(SmbConnection connection, ShareListCallback callback) {
+        LogUtils.d("MainViewModel", "Listing shares for server: " + connection.getServer());
+        executor.execute(() -> {
+            try {
+                List<String> shares = smbRepository.listShares(connection);
+                LogUtils.i("MainViewModel", "Found " + shares.size() + " shares on server: " + connection.getServer());
+                callback.onSuccess(shares);
+            } catch (Exception e) {
+                String error = "Failed to list shares on server " + connection.getServer() + ": " + e.getMessage();
+                LogUtils.e("MainViewModel", error);
+                LogUtils.e(e, "Share listing exception details");
+
+                // Record SMB/network error
+                errorHandler.recordError(e, "MainViewModel.listShares", SmartErrorHandler.ErrorSeverity.MEDIUM);
+
+                callback.onError(error);
             }
         });
     }
@@ -148,5 +193,14 @@ public class MainViewModel extends ViewModel {
      */
     public interface ConnectionTestCallback {
         void onResult(boolean success, String message);
+    }
+
+    /**
+     * Callback interface for share listing operations.
+     */
+    public interface ShareListCallback {
+        void onSuccess(List<String> shares);
+
+        void onError(String error);
     }
 }

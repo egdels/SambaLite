@@ -4,6 +4,16 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <!-- Background work permissions for reliable SMB operations -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Request to ignore battery optimizations for reliable background operation -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".SambaLiteApp"
@@ -30,6 +40,19 @@
             android:theme="@style/Theme.SambaLite.NoActionBar"
             android:windowSoftInputMode="adjustResize|stateHidden"
             android:parentActivityName=".ui.MainActivity" />
+
+        <activity
+            android:name=".ui.SystemMonitorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SambaLite"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <!-- Foreground Service for background SMB operations -->
+        <service
+            android:name=".service.SmbBackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>

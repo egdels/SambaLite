@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import android.util.Log;
 import timber.log.Timber;
+import timber.log.Timber.DebugTree;
 
 /**
  * Utility class for logging using Timber.
@@ -27,7 +28,7 @@ public class LogUtils {
     public static void init(boolean isDebugBuild) {
         if (isDebugBuild) {
             // Plant a debug tree in debug builds
-            Timber.plant(new Timber.DebugTree());
+            Timber.plant(new DebugTree());
         } else {
             // Plant a release tree in release builds
             Timber.plant(new ReleaseTree());
@@ -150,25 +151,6 @@ public class LogUtils {
     }
 
     /**
-     * Log a wtf (What a Terrible Failure) message.
-     *
-     * @param message the message to log
-     */
-    public static void wtf(String message) {
-        Timber.wtf(message);
-    }
-
-    /**
-     * Log a wtf (What a Terrible Failure) message with a throwable.
-     *
-     * @param t       the throwable to log
-     * @param message the message to log
-     */
-    public static void wtf(Throwable t, String message) {
-        Timber.wtf(t, message);
-    }
-
-    /**
      * A custom Timber tree for release builds.
      * Filters out logs below a certain priority and logs to Crashlytics.
      */
@@ -189,15 +171,6 @@ public class LogUtils {
             } else {
                 Log.println(priority, logTag, message);
             }
-
-            // In a real app, you might want to log to a crash reporting service like Firebase Crashlytics
-            // For example:
-            // if (priority >= Log.ERROR) {
-            //     Crashlytics.log(priority, logTag, message);
-            //     if (t != null) {
-            //         Crashlytics.logException(t);
-            //     }
-            // }
         }
     }
 }

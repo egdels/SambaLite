@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Upload progress plurals -->
+    <plurals name="upload_progress_files">
+        <item quantity="one">Lade %1$d von %2$d Datei hoch</item>
+        <item quantity="other">Lade %1$d von %2$d Dateien hoch</item>
+    </plurals>
+    
+    <!-- Network scan plurals -->
+    <plurals name="hosts_scanned">
+        <item quantity="one">%1$d / %2$d Host gescannt</item>
+        <item quantity="other">%1$d / %2$d Hosts gescannt</item>
+    </plurals>
+    
+    <plurals name="servers_found_count">
+        <item quantity="one">%1$d Server gefunden</item>
+        <item quantity="other">%1$d Server gefunden</item>
+    </plurals>
+</resources>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">Verbindung hinzufügen</string>
+    <string name="system_monitor">System Monitor</string>
+    
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Willkommen bei SambaLite</string>
+    <string name="welcome_subtitle">Verbinde dich einfach und sicher mit deinen SMB/CIFS-Freigaben. Tippe auf das + Symbol, um deine erste Verbindung hinzuzufügen.</string>
+    <string name="your_connections">Deine Verbindungen</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">Verbindungsstatus</string>
+    <string name="content_desc_more_options">Weitere Optionen</string>
+    <string name="content_desc_file_type_icon">Dateityp-Symbol</string>
+    <string name="content_desc_selected">Ausgewählt</string>
+    <string name="content_desc_share">Freigabe</string>
+    <string name="content_desc_refresh_system_info">Systeminformationen aktualisieren</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">Aktualisieren</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
+    <string name="example_share_name">Dokumente</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">Verbindungsname</string>
+    <string name="server">Server (IP oder Hostname)</string>
+    <string name="share_name">Freigabe-Name</string>
+    <string name="username">Benutzername</string>
+    <string name="password">Passwort</string>
+    <string name="domain">Domäne (optional)</string>
+    <string name="port">Port</string>
+    <string name="connect">Verbinden</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="save">Speichern</string>
+    <string name="delete">Löschen</string>
+    <string name="edit">Bearbeiten</string>
+    <string name="test_connection">Verbindung testen</string>
+    <string name="add_new_connection">Neue Verbindung hinzufügen</string>
+    <string name="edit_connection">Verbindung bearbeiten</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">Verbindungsname ist erforderlich</string>
+    <string name="error_server_required">Server ist erforderlich</string>
+    <string name="error_share_required">Freigabe-Name ist erforderlich</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">Verbindung löschen</string>
+    <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung \'%1$s\' löschen möchten?</string>
+    <string name="connection_deleted">Verbindung \'%1$s\' gelöscht</string>
+    <string name="undo">Rückgängig</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">Dieses Verzeichnis ist leer</string>
+    <string name="loading_files">Lade Dateien…</string>
+    <string name="error_loading_files">Fehler beim Laden der Dateien</string>
+    <string name="parent_directory">Übergeordnetes Verzeichnis</string>
+    <string name="file_browser_title">Dateien</string>
+    <string name="search_files">Dateien suchen</string>
+    <string name="search_title">Suche</string>
+    <string name="searching">Suche…</string>
+    <string name="searching_files">Dateien werden durchsucht…</string>
+    <string name="search_results">Suchergebnisse</string>
+    <string name="no_search_results">Keine Dateien gefunden, die Ihrer Suche entsprechen</string>
+    <string name="search_query_hint">Suchbegriff eingeben</string>
+    <string name="search_wildcard_hint">Unterstützt Wildcards: * (beliebige Zeichen), ? (einzelnes Zeichen)</string>
+    <string name="search_type">Suchen nach</string>
+    <string name="search_type_all">Alle Elemente</string>
+    <string name="search_type_files">Nur Dateien</string>
+    <string name="search_type_folders">Nur Ordner</string>
+    <string name="include_subfolders">Unterordner einschließen</string>
+    <string name="search">Suchen</string>
+    <string name="cancel_search">Suche abbrechen</string>
+
+    <!-- Download -->
+    <string name="download">Herunterladen</string>
+    <string name="downloading">Herunterladen…</string>
+    <string name="download_success">Datei erfolgreich heruntergeladen</string>
+    <string name="download_error">Fehler beim Herunterladen der Datei</string>
+    <string name="file_not_found">Die Datei \"%1$s\" konnte nicht auf dem Server gefunden werden. Bitte prüfen Sie, ob die Datei existiert und versuchen Sie es erneut.</string>
+    <string name="save_file">Datei speichern</string>
+    <string name="file_options">Datei-Optionen</string>
+
+    <!-- Upload -->
+    <string name="upload">Hochladen</string>
+    <string name="uploading">Hochladen…</string>
+    <string name="upload_success">Datei erfolgreich hochgeladen</string>
+    <string name="upload_error">Fehler beim Hochladen der Datei</string>
+    <string name="select_file">Datei zum Hochladen auswählen</string>
+    <string name="file_exists_title">Datei existiert bereits</string>
+    <string name="file_exists_message">Die Datei \"%1$s\" existiert bereits. Möchten Sie sie überschreiben?</string>
+    <string name="file_exists_individual_message">Die Datei \"%1$s\" existiert bereits auf dem Server. Möchten Sie sie überschreiben oder diese Datei überspringen?</string>
+    <string name="overwrite">Überschreiben</string>
+    <string name="skip_file">Datei überspringen</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">Ordner erstellen</string>
+    <string name="create_folder_dialog_title">Neuen Ordner erstellen</string>
+    <string name="folder_name">Ordnername</string>
+    <string name="folder_created">Ordner erfolgreich erstellt</string>
+    <string name="folder_creation_error">Fehler beim Erstellen des Ordners</string>
+
+    <!-- Sorting -->
+    <string name="sort">Sortieren</string>
+    <string name="sort_dialog_title">Dateien sortieren</string>
+    <string name="sort_by">Sortieren nach</string>
+    <string name="sort_by_name">Name</string>
+    <string name="sort_by_date">Datum</string>
+    <string name="sort_by_size">Größe</string>
+    <string name="directories_first">Verzeichnisse zuerst</string>
+
+    <!-- Rename -->
+    <string name="rename">Umbenennen</string>
+    <string name="rename_dialog_title">Datei umbenennen</string>
+    <string name="new_name">Neuer Name</string>
+    <string name="rename_success">Datei erfolgreich umbenannt</string>
+    <string name="rename_error">Fehler beim Umbenennen der Datei</string>
+
+    <!-- Delete -->
+    <string name="delete_file">Löschen</string>
+    <string name="delete_file_dialog_title">Datei löschen</string>
+    <string name="confirm_delete_file">Sind Sie sicher, dass Sie \'%1$s\' löschen möchten?</string>
+    <string name="delete_success">Datei erfolgreich gelöscht</string>
+    <string name="delete_error">Fehler beim Löschen der Datei</string>
+    <string name="file_exists">Datei existiert</string>
+
+    <!-- ZIP Transfer -->
+    <string name="zip_transfer_title">ZIP-Übertragung</string>
+    <string name="zip_upload_folder">Ordner als ZIP hochladen</string>
+    <string name="zip_download_folder">ZIP-Archiv herunterladen und entpacken</string>
+    <string name="creating_zip">Erstelle ZIP-Archiv…</string>
+    <string name="uploading_zip">Lade ZIP-Archiv hoch…</string>
+    <string name="zip_upload_success">Ordner erfolgreich als ZIP hochgeladen</string>
+    <string name="zip_upload_error">Fehler beim Hochladen des ZIP-Archivs</string>
+    <string name="select_folder_to_upload">Ordner zum Hochladen als ZIP auswählen</string>
+
+    <!-- Folder Contents Upload -->
+    <string name="uploading_folder_contents">Lade Ordnerinhalt hoch…</string>
+    <string name="processing_files">Verarbeite Dateien…</string>
+    <string name="folder_contents_upload_success">Ordnerinhalt erfolgreich hochgeladen</string>
+    <string name="folder_contents_upload_error">Fehler beim Hochladen des Ordnerinhalts</string>
+    <string name="select_folder_contents_to_upload">Ordner zum Hochladen des Inhalts auswählen</string>
+    <string name="upload_progress_files">Lade %1$d von %2$d Dateien hoch</string>
+    <string name="upload_incomplete_warning">Upload war unvollständig. Einige Dateien wurden möglicherweise nicht übertragen.</string>
+    <string name="cleanup_incomplete_upload">Bereinige unvollständigen Upload…</string>
+    <string name="folder_structure_created">Ordnerstruktur erfolgreich erstellt</string>
+    <string name="verifying_upload_integrity">Überprüfe Upload-Integrität…</string>
+
+    <!-- Enhanced UI Strings -->
+    <string name="success">Erfolg</string>
+    <string name="retry">Wiederholen</string>
+    <string name="ok">OK</string>
+    <string name="please_wait">Bitte warten</string>
+
+    <!-- Network Scanner -->
+    <string name="scan_network">Scannen</string>
+    <string name="scanning_network">Scanne…</string>
+    <string name="servers_found">Verfügbare Server</string>
+    <string name="no_servers_found">Keine SMB-Server im lokalen Netzwerk gefunden.\n\nSie können Server-Details weiterhin manuell eingeben.</string>
+    <string name="network_scan_instructions">Wählen Sie einen Server aus, um die Verbindungsdetails automatisch auszufüllen, oder tippen Sie auf "Netzwerk scannen", um nach weiteren Servern zu suchen.</string>
+    <string name="scan_complete">Netzwerk-Scan abgeschlossen</string>
+    <string name="scan_cancelled">Netzwerk-Scan abgebrochen</string>
+    <string name="scan_error">Scan-Fehler: %1$s</string>
+    <string name="server_icon">Server</string>
+    <string name="selected">Ausgewählt</string>
+    <string name="hosts_scanned">%1$d / %2$d Hosts gescannt</string>
+    <string name="currently_scanning">Scanne gerade: %1$s</string>
+    <string name="servers_found_count">%1$d Server gefunden</string>
+    <string name="scan_network_permission_required">Netzwerk-Scan benötigt Standort-Berechtigung für WLAN-Informationen.</string>
+    <string name="scanning_fallback_networks">WLAN-Zugriff eingeschränkt - scanne häufige Netzwerkbereiche</string>
+    
+    <!-- File Browser -->
+    <string name="go_to_parent_directory">Zum übergeordneten Verzeichnis</string>
+    <string name="refresh_directory">Verzeichnis aktualisieren</string>
+    <string name="files_tab">Dateien</string>
+    <string name="folders_tab">Ordner</string>
+    <string name="empty_folder">Dieser Ordner ist leer. Verwende den + Button, um Dateien hochzuladen oder Ordner zu erstellen.</string>
+    
+    <!-- Connection Management -->
+    <string name="server_info_applied">Server-Informationen übernommen: %1$s</string>
+    <string name="available_shares">Verfügbare Freigaben</string>
+    <string name="discovering_shares">Suche Freigaben…</string>
+    <string name="no_shares_found">Keine Freigaben auf diesem Server gefunden</string>
+    <string name="tap_share_to_select">Tippe auf eine Freigabe um sie auszuwählen:</string>
+    <string name="could_not_connect_check_credentials">Konnte nicht zum Server verbinden. Prüfe die Anmeldedaten.</string>
+    <string name="enter_server_details">Server-Details eingeben um Freigaben zu entdecken</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">Dateien hochladen</string>
+    <string name="cancel_search_action">Suche abbrechen</string>
+    <string name="loading_system_information">Lade Systeminformationen…</string>
+    <string name="authentication">Authentifizierung</string>
+    <string name="smb_connection">SMB-Verbindung</string>
+    <string name="add_smb_connection">SMB-Verbindung hinzufügen</string>
+    <string name="connect_to_network_share">Verbinde dich mit deiner Netzwerkfreigabe</string>
+    <string name="hosts_scan_progress">0 / 254 Hosts gescannt</string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">Gast-Zugang</string>
+
+    <string name="battery_optimization_title">Background-Operationen optimieren</string>
+    <string name="battery_optimization_message">Für zuverlässige SMB-Downloads und -Uploads im Hintergrund wird empfohlen, die App von den Akku-Optimierungen auszuschließen.\n\nDies stellt sicher, dass Downloads auch dann fortgesetzt werden, wenn die App in den Hintergrund wechselt.</string>
+    <string name="open_settings">Einstellungen öffnen</string>
+    <string name="later">Später</string>
+
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">Verbindung wird wiederhergestellt…</string>
+    <string name="connection_recovered">Verbindung erfolgreich wiederhergestellt</string>
+    <string name="connection_recovery_failed">Verbindungswiederherstellung fehlgeschlagen</string>
+    <string name="connection_timeout">Verbindungs-Timeout</string>
+    <string name="connection_broken_pipe">Verbindung unterbrochen</string>
+    <string name="connection_retry_attempt">Verbindungsversuch wird wiederholt (Versuch %1$d von %2$d)</string>
+    
+</resources>

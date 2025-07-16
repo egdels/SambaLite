@@ -1,0 +1,158 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in SambaLite
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us resolve the issue quickly.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I have tested with the latest version of SambaLite
+          required: true
+        - label: I have read the documentation and FAQ
+          required: false
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened and what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Enter '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe what actually happened instead
+    validations:
+      required: true
+
+  - type: dropdown
+    id: android-version
+    attributes:
+      label: Android Version
+      description: What version of Android are you running?
+      options:
+        - Android 14 (API 34)
+        - Android 13 (API 33)
+        - Android 12 (API 31-32)
+        - Android 11 (API 30)
+        - Android 10 (API 29)
+        - Android 9 (API 28)
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: input
+    id: device-model
+    attributes:
+      label: Device Model
+      description: What device are you using?
+      placeholder: e.g., Samsung Galaxy S23, Google Pixel 7, OnePlus 11
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: SambaLite Version
+      description: What version of SambaLite are you using?
+      placeholder: e.g., 1.1.0, 1.0.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: smb-version
+    attributes:
+      label: SMB Server Type
+      description: What type of SMB server are you connecting to?
+      options:
+        - Windows SMB/CIFS
+        - Samba (Linux)
+        - NAS (Synology, QNAP, etc.)
+        - Other/Unknown
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error Logs
+      description: |
+        Please include any relevant error messages or logs. 
+        You can find logs in Android Studio Logcat or through adb logcat.
+      placeholder: Paste error logs here
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: |
+        If applicable, add screenshots to help explain your problem.
+        You can paste images directly into this text area.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context about the problem here.
+        - Network configuration details
+        - SMB server configuration
+        - File types being transferred
+        - Any workarounds you've found
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severely does this bug affect your usage?
+      options:
+        - Low - Minor inconvenience
+        - Medium - Affects functionality but has workaround
+        - High - Blocks important functionality
+        - Critical - App crashes or data loss
+    validations:
+      required: true

@@ -3,10 +3,12 @@ package de.schliweb.sambalite;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,8 +60,9 @@ public class SambaServerTest {
         testConnection.setPassword(sambaContainer.getPassword());
         testConnection.setDomain(sambaContainer.getDomain());
 
-        // Create the repository
-        smbRepository = new SmbRepositoryImpl();
+        // Create the repository with mock BackgroundSmbManager
+        BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+        smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
     }
 
     @After

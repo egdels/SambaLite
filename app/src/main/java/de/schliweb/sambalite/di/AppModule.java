@@ -8,6 +8,7 @@ import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.LogUtils;
 
 import javax.inject.Singleton;
@@ -26,6 +27,16 @@ public class AppModule {
     Context provideContext(Application application) {
         LogUtils.d("AppModule", "Providing application context");
         return application;
+    }
+
+    /**
+     * Provides the BackgroundSmbManager for background-aware SMB operations.
+     */
+    @Provides
+    @Singleton
+    BackgroundSmbManager provideBackgroundSmbManager(Context context) {
+        LogUtils.d("AppModule", "Providing BackgroundSmbManager");
+        return new BackgroundSmbManager(context);
     }
 
     /**
