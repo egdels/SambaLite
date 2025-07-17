@@ -1,0 +1,5 @@
+• Fixed: App no longer hangs when moved to background during search
+• Enhanced: Search operations automatically cancel when app goes to background
+• Improved: Added timeout protection to prevent infinite waiting
+• Centralized version management for better build system maintenance
+
