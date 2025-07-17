@@ -16,10 +16,8 @@ android {
         minSdkVersion 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        // Version from version.gradle - SINGLE SOURCE OF TRUTH
-        // F-Droid will read these static values directly from this file
-        versionCode rootProject.ext.appVersionCode
-        versionName rootProject.ext.appVersionName
+        versionCode 10101
+        versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
