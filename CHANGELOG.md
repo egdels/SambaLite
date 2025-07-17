@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Thread Safety**: Added timeout protection to prevent infinite waiting during SMB operations
 
 ### Changed
-- **Build System**: Centralized version management using single `version.gradle` file
+- **Build System**: Centralized version management
 - **F-Droid Compatibility**: Maintained compatibility with F-Droid automated builds
 - **Developer Experience**: Version updates now require changes in only one file
 
