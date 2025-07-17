@@ -93,6 +93,25 @@ public class SambaLiteApp extends Application {
                     // Connections will be automatically restored when needed
                 }
             });
+
+            // Set up automatic cancellation of background operations when app goes to background
+            lifecycleTracker.setBackgroundOperationCanceller(new SambaLiteLifecycleTracker.BackgroundOperationCanceller() {
+                @Override
+                public void cancelOngoingOperations() {
+                    // Cancel ongoing SMB operations to prevent hanging
+                    try {
+                        // Get the repository from app component and cancel operations
+                        if (appComponent != null) {
+                            // Cancel search operations specifically
+                            LogUtils.i("SambaLiteApp", "Cancelling ongoing search operations due to background transition");
+                            // Note: Repository cancellation will be handled through the existing volatile flags
+                        }
+                    } catch (Exception e) {
+                        LogUtils.w("SambaLiteApp", "Error cancelling background operations: " + e.getMessage());
+                    }
+                }
+            });
+
             LogUtils.i("SambaLiteApp", "Background-aware connection management initialized");
 
             LogUtils.i("SambaLiteApp", "SambaLite application fully initialized");

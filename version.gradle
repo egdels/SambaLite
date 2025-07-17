@@ -1,0 +1,15 @@
+// SambaLite Version Configuration
+// This file contains the SINGLE SOURCE OF TRUTH for version information
+// It's included by both build.gradle files to ensure consistency
+
+ext {
+    // App version configuration
+    appVersionName = '1.1.1'
+    appVersionCode = 10101
+
+    // Version format: major*10000 + minor*100 + patch
+    // Example: 1.1.0 = 1*10000 + 1*100 + 0 = 10100
+
+    // F-Droid compatibility: These values will be used to set the exact
+    // patterns that F-Droid expects in build.gradle files
+}

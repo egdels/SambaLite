@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
+// Apply version configuration from central file - F-Droid compatible
+// Must be after plugins {} block in modern Gradle versions
+apply from: '../version.gradle'
+
 android {
     namespace = "de.schliweb.sambalite"
     compileSdk = 35
@@ -16,10 +20,10 @@ android {
         minSdkVersion 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        // Static version for F-Droid reproducible builds
-        // F-Droid will override these values from gradle.properties during build
-        versionCode 10100  // Manually updated for each release (format: major*10000 + minor*100 + patch)
-        versionName "1.1.0"  // Manually updated for each release
+        // Version from version.gradle - SINGLE SOURCE OF TRUTH
+        // F-Droid will read these static values directly from this file
+        versionCode rootProject.ext.appVersionCode
+        versionName rootProject.ext.appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

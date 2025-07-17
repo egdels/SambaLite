@@ -18,6 +18,7 @@ import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import de.schliweb.sambalite.util.SambaLiteLifecycleTracker;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -86,8 +87,15 @@ public class SmbRepositoryImpl implements SmbRepository {
     public List<SmbFileItem> searchFiles(SmbConnection connection, String path, String query, int searchType, boolean includeSubfolders) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Searching for files matching query: '" + query + "' in path: " + path + ", searchType: " + searchType + ", includeSubfolders: " + includeSubfolders);
 
-        operationLock.lock();
+        // Use tryLock with timeout to prevent indefinite blocking
+        boolean lockAcquired = false;
         try {
+            lockAcquired = operationLock.tryLock(5, java.util.concurrent.TimeUnit.SECONDS);
+            if (!lockAcquired) {
+                LogUtils.w("SmbRepositoryImpl", "Could not acquire operation lock for search within 5 seconds - possible deadlock");
+                throw new Exception("Search operation timeout - another operation may be blocking");
+            }
+
             // Reset cancellation flag at the start of a new search
             searchCancelled = false;
 
@@ -97,9 +105,9 @@ public class SmbRepositoryImpl implements SmbRepository {
             try (Connection conn = smbClient.connect(connection.getServer())) {
                 LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
 
-                // Check if search was cancelled
-                if (searchCancelled) {
-                    LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to server");
+                // Check if search was cancelled or app went to background
+                if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                    LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after connecting to server");
                     return result;
                 }
 
@@ -107,9 +115,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                 try (Session session = conn.authenticate(authContext)) {
                     LogUtils.d("SmbRepositoryImpl", "Authentication successful");
 
-                    // Check if search was cancelled
-                    if (searchCancelled) {
-                        LogUtils.i("SmbRepositoryImpl", "Search cancelled after authentication");
+                    // Check if search was cancelled or app went to background
+                    if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                        LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after authentication");
                         return result;
                     }
 
@@ -117,17 +125,19 @@ public class SmbRepositoryImpl implements SmbRepository {
                     try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
                         LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
 
-                        // Check if search was cancelled
-                        if (searchCancelled) {
-                            LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to share");
+                        // Check if search was cancelled or app went to background
+                        if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                            LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after connecting to share");
                             return result;
                         }
 
-                        // Perform search with options
+                        // Perform search with options and lifecycle awareness
                         searchFilesRecursive(share, folderPath, query, result, searchType, includeSubfolders);
 
                         if (searchCancelled) {
                             LogUtils.i("SmbRepositoryImpl", "Search was cancelled. Returning partial results: " + result.size() + " items");
+                        } else if (!SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                            LogUtils.i("SmbRepositoryImpl", "Search terminated due to app background. Returning partial results: " + result.size() + " items");
                         } else {
                             LogUtils.i("SmbRepositoryImpl", "Search completed. Found " + result.size() + " matching items");
                         }
@@ -137,6 +147,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                 if (searchCancelled) {
                     LogUtils.i("SmbRepositoryImpl", "Search was cancelled during exception: " + e.getMessage());
                     return result;
+                } else if (!SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                    LogUtils.i("SmbRepositoryImpl", "Search terminated due to app background during exception: " + e.getMessage());
+                    return result;
                 }
                 LogUtils.e("SmbRepositoryImpl", "Error searching files: " + e.getMessage());
                 errorHandler.recordError(e, "SmbRepositoryImpl.searchFiles", SmartErrorHandler.ErrorSeverity.HIGH);
@@ -144,8 +157,14 @@ public class SmbRepositoryImpl implements SmbRepository {
             }
 
             return result;
+        } catch (InterruptedException e) {
+            LogUtils.w("SmbRepositoryImpl", "Search operation interrupted while waiting for lock");
+            Thread.currentThread().interrupt();
+            throw new Exception("Search operation was interrupted");
         } finally {
-            operationLock.unlock();
+            if (lockAcquired) {
+                operationLock.unlock();
+            }
         }
     }
 
@@ -160,8 +179,9 @@ public class SmbRepositoryImpl implements SmbRepository {
      * @param includeSubfolders Whether to include subfolders in the search
      */
     private void searchFilesRecursive(DiskShare share, String path, String query, List<SmbFileItem> result, int searchType, boolean includeSubfolders) {
-        if (searchCancelled) {
-            LogUtils.d("SmbRepositoryImpl", "Search cancelled before searching directory: " + path);
+        // Check for cancellation or app background before processing this directory
+        if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+            LogUtils.d("SmbRepositoryImpl", "Search cancelled or app in background before searching directory: " + path);
             return;
         }
 
@@ -169,8 +189,9 @@ public class SmbRepositoryImpl implements SmbRepository {
 
         try {
             for (FileIdBothDirectoryInformation info : share.list(path)) {
-                if (searchCancelled) {
-                    LogUtils.d("SmbRepositoryImpl", "Search cancelled while processing directory: " + path);
+                // Check for cancellation or app background during each file iteration
+                if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                    LogUtils.d("SmbRepositoryImpl", "Search cancelled or app in background while processing directory: " + path);
                     return;
                 }
 
@@ -184,7 +205,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                     result.add(createSmbFileItem(info, name, fullPath, isDirectory));
                 }
 
-                if (isDirectory && includeSubfolders) {
+                // Recursive call with additional lifecycle check
+                if (isDirectory && includeSubfolders &&
+                    !searchCancelled && SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
                     searchFilesRecursive(share, fullPath, query, result, searchType, includeSubfolders);
                 }
             }
@@ -910,7 +933,7 @@ public class SmbRepositoryImpl implements SmbRepository {
      * This method resets the download cancellation flag, verifies the existence of the remote folder,
      * creates the local folder if necessary, and initiates the download of all folder contents.
      * Progress for each file is reported through the provided {@link BackgroundSmbManager.MultiFileProgressCallback}.
-     * If the download is cancelled before or during the process, an {@link IOException} is thrown.
+     * If the download is cancelled or a background-related connection error occurs, retries are aborted immediately.
      * </p>
      *
      * @param connection      The SMB connection to use for accessing the remote folder.

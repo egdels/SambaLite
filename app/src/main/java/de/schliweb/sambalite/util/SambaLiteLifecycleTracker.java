@@ -20,6 +20,10 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
     @Setter
     private LifecycleListener lifecycleListener;
 
+    // Background operation cancellation callback
+    @Setter
+    private BackgroundOperationCanceller backgroundOperationCanceller;
+
     private SambaLiteLifecycleTracker() {
         LogUtils.d(TAG, "Lifecycle tracker initialized");
     }
@@ -70,6 +74,12 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
             isAppInForeground = false;
             LogUtils.i(TAG, "App moved to BACKGROUND");
 
+            // Cancel ongoing background operations to prevent hanging
+            if (backgroundOperationCanceller != null) {
+                LogUtils.i(TAG, "Cancelling background operations due to app background transition");
+                backgroundOperationCanceller.cancelOngoingOperations();
+            }
+
             if (lifecycleListener != null) {
                 lifecycleListener.onAppMovedToBackground();
             }
@@ -89,7 +99,11 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
     // Callbacks for background/foreground transitions
     public interface LifecycleListener {
         void onAppMovedToBackground();
-
         void onAppMovedToForeground();
+    }
+
+    // Interface for cancelling background operations
+    public interface BackgroundOperationCanceller {
+        void cancelOngoingOperations();
     }
 }
