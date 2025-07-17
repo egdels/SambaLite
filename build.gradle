@@ -14,7 +14,7 @@ allprojects {
     // Defines the group ID used for all projects
     group = 'de.schliweb.sambalite'
     // F-Droid expects this exact pattern: version = 'x.x.x'
-    version = rootProject.ext.appVersionName
+    version = appVersionName
 
     repositories {
         google()
