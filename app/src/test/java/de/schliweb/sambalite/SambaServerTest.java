@@ -1,9 +1,9 @@
 package de.schliweb.sambalite;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
-import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
@@ -33,20 +33,13 @@ public class SambaServerTest {
     @Before
     public void setUp() {
         // Create and start the in-memory Samba server
-        sambaContainer = new SambaContainer()
-                .withUsername("testuser")
-                .withPassword("testpassword")
-                .withDomain("WORKGROUP")
-                .withShare("testshare", "/testshare");
+        sambaContainer = new SambaContainer().withUsername("testuser").withPassword("testpassword").withDomain("WORKGROUP").withShare("testshare", "/testshare");
 
         sambaContainer.start();
 
         // Create a test file in the in-memory server
         try {
-            SambaContainer.ExecResult result = sambaContainer.execInContainer(
-                    "sh", "-c",
-                    "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt"
-            );
+            SambaContainer.ExecResult result = sambaContainer.execInContainer("sh", "-c", "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt");
             assertEquals(0, result.getExitCode());
         } catch (IOException | InterruptedException e) {
             fail("Failed to create test file in server: " + e.getMessage());

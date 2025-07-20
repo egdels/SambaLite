@@ -31,6 +31,7 @@ public class NetworkScanner {
     private final Context context;
     private volatile boolean isScanning = false;
     private ExecutorService currentExecutorService;
+
     public NetworkScanner(Context context) {
         this.context = context;
     }

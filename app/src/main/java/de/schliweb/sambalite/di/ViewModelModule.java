@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModelProvider;
 import dagger.Binds;
 import dagger.Module;
 import dagger.multibindings.IntoMap;
-import de.schliweb.sambalite.ui.FileBrowserViewModel;
+import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.MainViewModel;
+import de.schliweb.sambalite.ui.SearchViewModel;
+import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 
 /**
  * Dagger module for providing ViewModels.
@@ -23,12 +25,28 @@ public abstract class ViewModelModule {
     abstract ViewModel bindMainViewModel(MainViewModel viewModel);
 
     /**
-     * Binds the FileBrowserViewModel to the ViewModelFactory.
+     * Binds the FileListViewModel to the ViewModelFactory.
      */
     @Binds
     @IntoMap
-    @ViewModelKey(FileBrowserViewModel.class)
-    abstract ViewModel bindFileBrowserViewModel(FileBrowserViewModel viewModel);
+    @ViewModelKey(FileListViewModel.class)
+    abstract ViewModel bindFileListViewModel(FileListViewModel viewModel);
+
+    /**
+     * Binds the FileOperationsViewModel to the ViewModelFactory.
+     */
+    @Binds
+    @IntoMap
+    @ViewModelKey(FileOperationsViewModel.class)
+    abstract ViewModel bindFileOperationsViewModel(FileOperationsViewModel viewModel);
+
+    /**
+     * Binds the SearchViewModel to the ViewModelFactory.
+     */
+    @Binds
+    @IntoMap
+    @ViewModelKey(SearchViewModel.class)
+    abstract ViewModel bindSearchViewModel(SearchViewModel viewModel);
 
     /**
      * Binds the ViewModelFactory.

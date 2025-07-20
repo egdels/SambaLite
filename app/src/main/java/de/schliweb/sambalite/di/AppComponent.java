@@ -28,7 +28,7 @@ public interface AppComponent {
     void inject(MainActivity activity);
 
     /**
-     * Injects dependencies into the FileBrowserActivity.
+     * Injects dependencies into the RefactoredFileBrowserActivity.
      */
     void inject(FileBrowserActivity activity);
 

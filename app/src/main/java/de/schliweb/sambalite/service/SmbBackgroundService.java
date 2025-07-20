@@ -9,6 +9,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import androidx.core.app.NotificationCompat;
 import de.schliweb.sambalite.R;
+import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.MainActivity;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
@@ -16,9 +17,20 @@ import de.schliweb.sambalite.util.LogUtils;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Foreground Service for long-running SMB operations in the background.
- * This service ensures that downloads and uploads continue even when
- * the app goes into background or the system tries to terminate the app.
+ * SmbBackgroundService is an Android Service designed to handle background operations
+ * related to SMB (Server Message Block) tasks such as file uploads, downloads, and searches.
+ * This service runs in the foreground to ensure uninterrupted execution, even when the app
+ * is not actively in use, and provides notifications for operation progress.
+ * <p>
+ * This class extends the android.app.Service class and is primarily responsible for:
+ * - Managing background operations such as uploading, downloading, and searching for files.
+ * - Updating users about the progress or completion of these operations through notifications.
+ * - Allowing the configuration of operation-specific parameters (e.g., connections, paths, queries).
+ * - Supporting throttled updates to prevent excessive notification updates.
+ * <p>
+ * The service uses Android's notification system to display progress and status updates to users,
+ * and it implements features to manage concurrent operations and throttle updates to adhere
+ * to Android's notification rate limits.
  */
 public class SmbBackgroundService extends Service {
 
@@ -36,6 +48,17 @@ public class SmbBackgroundService extends Service {
     // Notification throttling for better performance
     private volatile long lastNotificationUpdate = 0;
     private volatile Runnable pendingNotificationUpdate = null;
+    // Operation parameters
+    private String connectionId;
+    private String searchQuery;
+    private int searchType;
+    private boolean includeSubfolders;
+    private boolean isSearchOperation = false;
+    // Upload and download operation parameters
+    private String uploadPath;
+    private String downloadPath;
+    private boolean isUploadOperation = false;
+    private boolean isDownloadOperation = false;
 
     @Override
     public void onCreate() {
@@ -166,7 +189,24 @@ public class SmbBackgroundService extends Service {
      * Updates the progress information of an operation with bytes progress
      */
     public void updateBytesProgress(String operationName, long currentBytes, long totalBytes, String fileName) {
-        int percentage = totalBytes > 0 ? (int) ((currentBytes * 100) / totalBytes) : 0;
+        // Use floating-point division and rounding for more accurate percentage calculation
+        // This ensures the progress bar reaches 100% for large files
+        int percentage;
+        if (totalBytes > 0) {
+            if (currentBytes >= totalBytes) {
+                // Ensure we show 100% when the operation is complete
+                percentage = 100;
+            } else if (totalBytes - currentBytes <= 1024) { // Within 1KB of completion
+                // When we're very close to completion, show 100%
+                percentage = 100;
+            } else {
+                // Use floating-point division for accurate percentage
+                percentage = (int) Math.round((currentBytes * 100.0) / totalBytes);
+            }
+        } else {
+            percentage = 0;
+        }
+
         String progressInfo = fileName + ": " + percentage + "% (" + EnhancedFileUtils.formatFileSize(currentBytes) + " / " + EnhancedFileUtils.formatFileSize(totalBytes) + ")";
 
         // Throttle bytes progress updates - only at 10% steps or at end
@@ -291,14 +331,116 @@ public class SmbBackgroundService extends Service {
     }
 
     /**
+     * Sets search operation parameters
+     */
+    public void setSearchParameters(String connectionId, String searchQuery, int searchType, boolean includeSubfolders) {
+        this.connectionId = connectionId;
+        this.searchQuery = searchQuery;
+        this.searchType = searchType;
+        this.includeSubfolders = includeSubfolders;
+        this.isSearchOperation = true;
+        this.isUploadOperation = false;
+        this.isDownloadOperation = false;
+        LogUtils.d(TAG, "Search parameters set: connectionId=" + connectionId + ", query=" + searchQuery);
+    }
+
+    /**
+     * Sets upload operation parameters
+     */
+    public void setUploadParameters(String connectionId, String uploadPath) {
+        this.connectionId = connectionId;
+        this.uploadPath = uploadPath;
+        this.isUploadOperation = true;
+        this.isSearchOperation = false;
+        this.isDownloadOperation = false;
+        LogUtils.d(TAG, "Upload parameters set: connectionId=" + connectionId + ", path=" + uploadPath);
+    }
+
+    /**
+     * Sets download operation parameters
+     */
+    public void setDownloadParameters(String connectionId, String downloadPath) {
+        this.connectionId = connectionId;
+        this.downloadPath = downloadPath;
+        this.isDownloadOperation = true;
+        this.isSearchOperation = false;
+        this.isUploadOperation = false;
+        LogUtils.d(TAG, "Download parameters set: connectionId=" + connectionId + ", path=" + downloadPath);
+    }
+
+    /**
+     * Clears search operation parameters
+     */
+    public void clearSearchParameters() {
+        this.isSearchOperation = false;
+        LogUtils.d(TAG, "Search parameters cleared");
+    }
+
+    /**
+     * Clears upload operation parameters
+     */
+    public void clearUploadParameters() {
+        this.isUploadOperation = false;
+        LogUtils.d(TAG, "Upload parameters cleared");
+    }
+
+    /**
+     * Clears download operation parameters
+     */
+    public void clearDownloadParameters() {
+        this.isDownloadOperation = false;
+        LogUtils.d(TAG, "Download parameters cleared");
+    }
+
+    /**
      * Creates a notification for the foreground service
      */
     private Notification createNotification(String title, String content) {
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pendingIntent;
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle(title).setContentText(content).setSmallIcon(R.drawable.ic_notification) // Fallback to a standard icon
-                .setContentIntent(pendingIntent).setOngoing(true).setSilent(true).setCategory(NotificationCompat.CATEGORY_SERVICE).build();
+        if (isSearchOperation && title.startsWith("Searching for:") && connectionId != null) {
+            // For search operations, create an intent that opens the RefactoredFileBrowserActivity
+            LogUtils.d(TAG, "Creating search-specific notification");
+            Intent notificationIntent = new Intent(this, FileBrowserActivity.class);
+            notificationIntent.putExtra("extra_connection_id", connectionId);
+            notificationIntent.putExtra("extra_search_query", searchQuery);
+            notificationIntent.putExtra("extra_search_type", searchType);
+            notificationIntent.putExtra("extra_search_include_subfolders", includeSubfolders);
+            notificationIntent.putExtra("extra_from_search_notification", true);
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else if (isUploadOperation && title.startsWith("Uploading:") && connectionId != null && uploadPath != null) {
+            // For upload operations, create an intent that opens the RefactoredFileBrowserActivity
+            LogUtils.d(TAG, "Creating upload-specific notification");
+            Intent notificationIntent = new Intent(this, FileBrowserActivity.class);
+            notificationIntent.putExtra("extra_connection_id", connectionId);
+            notificationIntent.putExtra("extra_directory_path", uploadPath);
+            notificationIntent.putExtra("extra_from_upload_notification", true);
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else if (isDownloadOperation && title.startsWith("Downloading:") && connectionId != null && downloadPath != null) {
+            // For download operations, create an intent that opens the RefactoredFileBrowserActivity
+            LogUtils.d(TAG, "Creating download-specific notification");
+            Intent notificationIntent = new Intent(this, FileBrowserActivity.class);
+            notificationIntent.putExtra("extra_connection_id", connectionId);
+            notificationIntent.putExtra("extra_directory_path", downloadPath);
+            notificationIntent.putExtra("extra_from_download_notification", true);
+            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            // For other operations, create an intent that opens the MainActivity
+            Intent notificationIntent = new Intent(this, MainActivity.class);
+            pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle(title).setContentText(content).setSmallIcon(R.drawable.ic_notification).setOngoing(true).setSilent(true).setCategory(NotificationCompat.CATEGORY_SERVICE);
+
+        // Only set content intent if it's not the "SMB Service ready" notification
+        if (!"SMB Service ready".equals(title)) {
+            builder.setContentIntent(pendingIntent);
+        }
+
+        return builder.build();
     }
 
     public class LocalBinder extends Binder {

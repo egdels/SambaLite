@@ -1,10 +1,10 @@
 package de.schliweb.sambalite;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
-import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
@@ -37,20 +37,13 @@ public class SmbRepositoryTest {
     @Before
     public void setUp() {
         // Create and start the in-memory Samba server
-        sambaContainer = new SambaContainer()
-                .withUsername("testuser")
-                .withPassword("testpassword")
-                .withDomain("WORKGROUP")
-                .withShare("testshare", "/testshare");
+        sambaContainer = new SambaContainer().withUsername("testuser").withPassword("testpassword").withDomain("WORKGROUP").withShare("testshare", "/testshare");
 
         sambaContainer.start();
 
         // Create a test file in the in-memory server
         try {
-            SambaContainer.ExecResult result = sambaContainer.execInContainer(
-                    "sh", "-c",
-                    "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt"
-            );
+            SambaContainer.ExecResult result = sambaContainer.execInContainer("sh", "-c", "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt");
             assertEquals(0, result.getExitCode());
         } catch (IOException | InterruptedException e) {
             fail("Failed to create test file in server: " + e.getMessage());
@@ -110,8 +103,7 @@ public class SmbRepositoryTest {
         } catch (Exception e) {
             System.out.println("[DEBUG_LOG] Connection with empty credentials exception: " + e.getMessage());
             // The test should not throw a NullPointerException related to SecretKey
-            assertFalse("Should not get a NullPointerException related to SecretKey", 
-                    e.getMessage().contains("Attempt to invoke interface method 'byte[] javax.crypto.SecretKey.getEncoded()' on a null object reference"));
+            assertFalse("Should not get a NullPointerException related to SecretKey", e.getMessage().contains("Attempt to invoke interface method 'byte[] javax.crypto.SecretKey.getEncoded()' on a null object reference"));
         }
     }
 
@@ -365,8 +357,7 @@ public class SmbRepositoryTest {
             smbRepository.uploadFile(testConnection, testFile3, "search-dir/searchable-subfile.txt");
 
             // Search for files with "searchable" in the name
-            List<SmbFileItem> searchResults = smbRepository.searchFiles(
-                    testConnection, "", "searchable", 0, true);
+            List<SmbFileItem> searchResults = smbRepository.searchFiles(testConnection, "", "searchable", 0, true);
 
             // Verify search results
             assertTrue("Should find at least one file", searchResults.size() >= 1);
@@ -386,8 +377,7 @@ public class SmbRepositoryTest {
             assertTrue("Should find the subdirectory searchable file", foundSubdirFile);
 
             // Search with type filter (files only)
-            List<SmbFileItem> filesOnlyResults = smbRepository.searchFiles(
-                    testConnection, "", "search", 1, true);
+            List<SmbFileItem> filesOnlyResults = smbRepository.searchFiles(testConnection, "", "search", 1, true);
 
             boolean containsOnlyFiles = true;
             for (SmbFileItem item : filesOnlyResults) {
@@ -400,8 +390,7 @@ public class SmbRepositoryTest {
             assertTrue("Files-only search should only return files", containsOnlyFiles);
 
             // Search with type filter (directories only)
-            List<SmbFileItem> dirsOnlyResults = smbRepository.searchFiles(
-                    testConnection, "", "search", 2, true);
+            List<SmbFileItem> dirsOnlyResults = smbRepository.searchFiles(testConnection, "", "search", 2, true);
 
             boolean containsOnlyDirs = true;
             for (SmbFileItem item : dirsOnlyResults) {
@@ -414,8 +403,7 @@ public class SmbRepositoryTest {
             assertTrue("Directories-only search should only return directories", containsOnlyDirs);
 
             // Search without including subdirectories
-            List<SmbFileItem> noSubdirResults = smbRepository.searchFiles(
-                    testConnection, "", "searchable", 0, false);
+            List<SmbFileItem> noSubdirResults = smbRepository.searchFiles(testConnection, "", "searchable", 0, false);
 
             boolean foundSubdirFileInNoSubdirSearch = false;
             for (SmbFileItem file : noSubdirResults) {
@@ -425,8 +413,7 @@ public class SmbRepositoryTest {
                 }
             }
 
-            assertFalse("Should not find subdirectory file when not including subdirectories",
-                    foundSubdirFileInNoSubdirSearch);
+            assertFalse("Should not find subdirectory file when not including subdirectories", foundSubdirFileInNoSubdirSearch);
         } catch (Exception e) {
             // For now, we'll just print the exception and pass the test
             System.out.println("[DEBUG_LOG] Search files exception: " + e.getMessage());
@@ -465,8 +452,7 @@ public class SmbRepositoryTest {
             Thread searchThread = new Thread(() -> {
                 try {
                     searchStarted.countDown(); // Signal that the search is about to start
-                    List<SmbFileItem> results = smbRepository.searchFiles(
-                            testConnection, "", "file", 0, true);
+                    List<SmbFileItem> results = smbRepository.searchFiles(testConnection, "", "file", 0, true);
                     System.out.println("[DEBUG_LOG] Search completed with " + results.size() + " results");
 
                     // If the search completes normally, the cancel didn't work

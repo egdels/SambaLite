@@ -1,0 +1,12 @@
+• Enhanced folder operations with better progress tracking
+• New background service for long-running operations
+• Lifecycle-aware components to prevent memory leaks
+• Improved progress reporting for all file operations
+• Major architecture refactoring following MVVM best practices
+• Enhanced error handling for network operations
+• Improved thread safety for concurrent operations
+• Smoother UI experience during long-running operations
+• Fixed memory leaks during file operations
+• Improved cleanup when operations are cancelled
+• More descriptive error messages for troubleshooting
+• Better handling of special characters and large folder structures

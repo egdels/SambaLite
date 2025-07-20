@@ -44,10 +44,6 @@ public class AdvancedNetworkOptimizer {
     private static final long CONNECTION_TIMEOUT_MS = 30000;
     private static final long IDLE_CONNECTION_TIMEOUT_MS = 300000; // 5 minutes
 
-    /**
-     * -- GETTER --
-     * Gets the singleton instance.
-     */
     @Getter
     private static AdvancedNetworkOptimizer instance;
     private final ConnectivityManager connectivityManager;
@@ -380,8 +376,8 @@ public class AdvancedNetworkOptimizer {
     }
 
     private static class BandwidthMonitor {
-        private long lastMeasureTime = 0;
         private final long lastByteCount = 0;
+        private long lastMeasureTime = 0;
 
         long measureBandwidth() {
             // Simplified bandwidth measurement

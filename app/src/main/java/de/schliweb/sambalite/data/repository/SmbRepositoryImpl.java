@@ -12,30 +12,20 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
-import de.schliweb.sambalite.data.background.BackgroundSmbManager;
-import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
+import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
-import de.schliweb.sambalite.util.SambaLiteLifecycleTracker;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.Locale;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
 /**
  * Implementation of SmbRepository using the SMBJ library.
@@ -105,9 +95,9 @@ public class SmbRepositoryImpl implements SmbRepository {
             try (Connection conn = smbClient.connect(connection.getServer())) {
                 LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
 
-                // Check if search was cancelled or app went to background
-                if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                    LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after connecting to server");
+                // Check if search was cancelled
+                if (searchCancelled) {
+                    LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to server");
                     return result;
                 }
 
@@ -115,9 +105,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                 try (Session session = conn.authenticate(authContext)) {
                     LogUtils.d("SmbRepositoryImpl", "Authentication successful");
 
-                    // Check if search was cancelled or app went to background
-                    if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                        LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after authentication");
+                    // Check if search was cancelled
+                    if (searchCancelled) {
+                        LogUtils.i("SmbRepositoryImpl", "Search cancelled after authentication");
                         return result;
                     }
 
@@ -125,9 +115,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                     try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
                         LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
 
-                        // Check if search was cancelled or app went to background
-                        if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                            LogUtils.i("SmbRepositoryImpl", "Search cancelled or app in background after connecting to share");
+                        // Check if search was cancelled
+                        if (searchCancelled) {
+                            LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to share");
                             return result;
                         }
 
@@ -136,8 +126,6 @@ public class SmbRepositoryImpl implements SmbRepository {
 
                         if (searchCancelled) {
                             LogUtils.i("SmbRepositoryImpl", "Search was cancelled. Returning partial results: " + result.size() + " items");
-                        } else if (!SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                            LogUtils.i("SmbRepositoryImpl", "Search terminated due to app background. Returning partial results: " + result.size() + " items");
                         } else {
                             LogUtils.i("SmbRepositoryImpl", "Search completed. Found " + result.size() + " matching items");
                         }
@@ -146,9 +134,6 @@ public class SmbRepositoryImpl implements SmbRepository {
             } catch (Exception e) {
                 if (searchCancelled) {
                     LogUtils.i("SmbRepositoryImpl", "Search was cancelled during exception: " + e.getMessage());
-                    return result;
-                } else if (!SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                    LogUtils.i("SmbRepositoryImpl", "Search terminated due to app background during exception: " + e.getMessage());
                     return result;
                 }
                 LogUtils.e("SmbRepositoryImpl", "Error searching files: " + e.getMessage());
@@ -179,9 +164,9 @@ public class SmbRepositoryImpl implements SmbRepository {
      * @param includeSubfolders Whether to include subfolders in the search
      */
     private void searchFilesRecursive(DiskShare share, String path, String query, List<SmbFileItem> result, int searchType, boolean includeSubfolders) {
-        // Check for cancellation or app background before processing this directory
-        if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-            LogUtils.d("SmbRepositoryImpl", "Search cancelled or app in background before searching directory: " + path);
+        // Check for cancellation before processing this directory
+        if (searchCancelled) {
+            LogUtils.d("SmbRepositoryImpl", "Search cancelled before searching directory: " + path);
             return;
         }
 
@@ -189,9 +174,9 @@ public class SmbRepositoryImpl implements SmbRepository {
 
         try {
             for (FileIdBothDirectoryInformation info : share.list(path)) {
-                // Check for cancellation or app background during each file iteration
-                if (searchCancelled || !SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
-                    LogUtils.d("SmbRepositoryImpl", "Search cancelled or app in background while processing directory: " + path);
+                // Check for cancellation during each file iteration
+                if (searchCancelled) {
+                    LogUtils.d("SmbRepositoryImpl", "Search cancelled while processing directory: " + path);
                     return;
                 }
 
@@ -205,9 +190,8 @@ public class SmbRepositoryImpl implements SmbRepository {
                     result.add(createSmbFileItem(info, name, fullPath, isDirectory));
                 }
 
-                // Recursive call with additional lifecycle check
-                if (isDirectory && includeSubfolders &&
-                    !searchCancelled && SambaLiteLifecycleTracker.getInstance().isAppInForeground()) {
+                // Recursive call with cancellation check
+                if (isDirectory && includeSubfolders && !searchCancelled) {
                     searchFilesRecursive(share, fullPath, query, result, searchType, includeSubfolders);
                 }
             }
@@ -217,8 +201,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     }
 
     private boolean matchesSearchCriteria(String name, String query, int searchType, boolean isDirectory) {
-        return ((searchType == 0) || (searchType == 1 && !isDirectory) || (searchType == 2 && isDirectory))
-                && matchesWildcard(name, query);
+        return ((searchType == 0) || (searchType == 1 && !isDirectory) || (searchType == 2 && isDirectory)) && matchesWildcard(name, query);
     }
 
     private SmbFileItem createSmbFileItem(FileIdBothDirectoryInformation info, String name, String fullPath, boolean isDirectory) {
@@ -292,8 +275,10 @@ public class SmbRepositoryImpl implements SmbRepository {
 
     /**
      * Gets the path without the share name.
-     * Note: This method assumes the share name is already handled separately
-     * when connecting to the share, so it just normalizes the path.
+     * This method extracts and removes the share name from the path.
+     * <p>
+     * Note: This method is conservative about removing path segments to avoid
+     * incorrectly removing folder names that might look like share names.
      */
     private String getPathWithoutShare(String fullPath) {
         LogUtils.d("SmbRepositoryImpl", "Getting path without share from: " + fullPath);
@@ -308,9 +293,56 @@ public class SmbRepositoryImpl implements SmbRepository {
             path = path.substring(1);
         }
 
-        // Return the normalized path without removing any segments
-        LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
-        return path;
+        // Extract the first segment of the path (potential share name)
+        int slashIndex = path.indexOf('/');
+        if (slashIndex == -1) {
+            slashIndex = path.indexOf('\\');
+        }
+
+        // If there's no slash, the path might be just a single file or folder in the root
+        if (slashIndex == -1) {
+            LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
+            return path;
+        }
+
+        // Extract the first segment and the rest of the path
+        String firstSegment = path.substring(0, slashIndex);
+        String remainingPath = path.substring(slashIndex + 1);
+
+        // Check if the first segment is likely a share name
+        // In SMB paths, the share name is typically the first segment
+        // For example, in "christian/Test/file.pdf", "christian" is the share name
+
+        // IMPORTANT: We're being more conservative here to avoid removing folder names
+        // Only remove the first segment if we're very confident it's a share name
+        // Common share names like "users", "public", "shared", etc.
+        String[] commonShareNames = {"users", "public", "shared", "documents", "media", "christian"};
+        boolean isLikelyShareName = false;
+
+        for (String shareName : commonShareNames) {
+            if (firstSegment.equalsIgnoreCase(shareName)) {
+                isLikelyShareName = true;
+                break;
+            }
+        }
+
+        // If the first segment contains dots, spaces, or other special characters,
+        // it's likely not a share name (share names typically don't contain these characters)
+        if (firstSegment.contains(".") || firstSegment.contains(" ") || firstSegment.contains("-") || firstSegment.contains("_")) {
+            isLikelyShareName = false;
+        }
+
+        // If we're not confident it's a share name, return the full path
+        if (!isLikelyShareName) {
+            LogUtils.d("SmbRepositoryImpl", "First segment doesn't look like a share name: " + firstSegment);
+            LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
+            return path;
+        }
+
+        // The first segment is likely a share name, so remove it
+        LogUtils.d("SmbRepositoryImpl", "Removed likely share name '" + firstSegment + "' from path");
+        LogUtils.d("SmbRepositoryImpl", "Path without share: " + remainingPath);
+        return remainingPath;
     }
 
     /**
@@ -390,12 +422,16 @@ public class SmbRepositoryImpl implements SmbRepository {
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             if (attempt > 1) {
                 LogUtils.i("SmbRepositoryImpl", "Retrying file download (attempt " + attempt + " of " + maxRetries + "): " + remoteFilePath);
-                try { Thread.sleep(1000L * attempt); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                try {
+                    Thread.sleep(1000L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
             try (File remoteFile = share.openFile(remoteFilePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
                 long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
-                try (InputStream is = remoteFile.getInputStream();
-                     java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
+                try (InputStream is = remoteFile.getInputStream(); java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
                     if (resumeFrom > 0) {
                         long skipped = is.skip(resumeFrom);
                         LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes for resume");
@@ -413,7 +449,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             } catch (Exception e) {
                 LogUtils.e("SmbRepositoryImpl", "Error downloading file (attempt " + attempt + "): " + e.getMessage());
                 lastException = e;
-                
+
                 // Special handling for background-related connection errors
                 if (isBackgroundRelatedError(e)) {
                     LogUtils.w("SmbRepositoryImpl", "Background-related connection error detected - forcing fresh connection");
@@ -425,17 +461,11 @@ public class SmbRepositoryImpl implements SmbRepository {
         throw new IOException("Error downloading file: " + remoteFilePath, lastException);
     }
 
-    // Callback-Interface
-    @FunctionalInterface
-    private interface SmbShareCallback<T> {
-        T doWithShare(DiskShare share) throws Exception;
-    }
-
     // Generic helper method for SMB operations with Background-Awareness
     private <T> T withShare(SmbConnection connection, SmbShareCallback<T> callback) throws Exception {
         return withShareWithRetry(connection, callback, 1);
     }
-    
+
     // Extended withShare with Retry-Logic for Background-Problems
     private <T> T withShareWithRetry(SmbConnection connection, SmbShareCallback<T> callback, int attempt) throws Exception {
         final int MAX_ATTEMPTS = 3;
@@ -445,12 +475,12 @@ public class SmbRepositoryImpl implements SmbRepository {
             try (Session session = conn.authenticate(authContext)) {
                 String shareName = getShareName(connection.getShare());
                 try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-                    
+
                     // Check connection status before use
                     if (!share.isConnected()) {
                         throw new IOException("Share connection failed after creation: " + shareName);
                     }
-                    
+
                     LogUtils.d("SmbRepositoryImpl", "Share connection established: " + shareName + " (attempt " + attempt + ")");
                     return callback.doWithShare(share);
                 }
@@ -458,21 +488,21 @@ public class SmbRepositoryImpl implements SmbRepository {
         } catch (Exception e) {
             LogUtils.w("SmbRepositoryImpl", "Share operation failed (attempt " + attempt + "): " + e.getMessage());
             recordErrorWithContext(e, "shareOperation", "attempt:" + attempt);
-            
+
             // For background-related errors: Retry with exponential backoff
             if (attempt < MAX_ATTEMPTS && isBackgroundRelatedError(e)) {
                 LogUtils.i("SmbRepositoryImpl", "Retrying share operation due to background-related error (attempt " + (attempt + 1) + "/" + MAX_ATTEMPTS + ")");
-                
+
                 try {
-                    Thread.sleep(1000 * attempt); // 1s, 2s, 3s backoff
+                    Thread.sleep(1000L * attempt); // 1s, 2s, 3s backoff
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new IOException("Share retry interrupted", ie);
                 }
-                
+
                 return withShareWithRetry(connection, callback, attempt + 1);
             }
-            
+
             // Non-retryable error or maximum attempts reached
             throw new IOException("Failed to execute share operation after " + attempt + " attempts", e);
         } finally {
@@ -595,7 +625,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     @Override
     public void downloadFile(SmbConnection connection, String remotePath, java.io.File localFile) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Downloading file: " + remotePath + " to " + localFile.getAbsolutePath());
-        
+
         // For larger downloads: Use Background Service
         if (shouldUseBackgroundService(connection, remotePath)) {
             downloadFileWithBackgroundService(connection, remotePath, localFile);
@@ -603,7 +633,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             downloadFileDirectly(connection, remotePath, localFile);
         }
     }
-    
+
     /**
      * Decides whether the background service should be used for download
      */
@@ -611,40 +641,37 @@ public class SmbRepositoryImpl implements SmbRepository {
         // Use Background Service for all downloads to ensure connection stability
         return true;
     }
-    
+
     /**
      * Download mit Background Service Integration
      */
     private void downloadFileWithBackgroundService(SmbConnection connection, String remotePath, java.io.File localFile) throws Exception {
         String operationId = "download_" + System.currentTimeMillis();
         String operationName = "Download: " + localFile.getName();
-        
+
         try {
-            backgroundManager.executeBackgroundOperation(operationId, operationName, 
-                (BackgroundSmbManager.ProgressCallback callback) -> {
-                    return downloadFileDirectly(connection, remotePath, localFile, callback);
-                }
-            ).get(); // Warten auf Completion
-            
+            backgroundManager.executeBackgroundOperation(operationId, operationName, (BackgroundSmbManager.ProgressCallback callback) -> {
+                return downloadFileDirectly(connection, remotePath, localFile, callback);
+            }).get(); // Warten auf Completion
+
         } catch (Exception e) {
             LogUtils.e("SmbRepositoryImpl", "Background download failed: " + e.getMessage());
             throw new Exception("Download failed: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Downloads a file directly from the specified remote SMB path to the given local file.
      *
      * @param connection the SMB connection to use for downloading the file
      * @param remotePath the path of the remote file to download
-     * @param localFile the local file to which the remote file will be downloaded
+     * @param localFile  the local file to which the remote file will be downloaded
      * @return always returns null
      * @throws Exception if an error occurs during the download process
      */
     private Void downloadFileDirectly(SmbConnection connection, String remotePath, java.io.File localFile) throws Exception {
         return downloadFileDirectly(connection, remotePath, localFile, null);
     }
-    
 
     /**
      * Downloads a file directly from an SMB share to a local file.
@@ -662,52 +689,47 @@ public class SmbRepositoryImpl implements SmbRepository {
      * @return Always returns {@code null}.
      * @throws Exception If the file does not exist, the download is cancelled, or any I/O error occurs.
      */
-    private Void downloadFileDirectly(SmbConnection connection, String remotePath, java.io.File localFile, 
-                                     BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
+    private Void downloadFileDirectly(SmbConnection connection, String remotePath, java.io.File localFile, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
         // Reset download cancellation flag at the start
         downloadCancelled = false;
-        
+
         withShare(connection, share -> {
             String filePath = getPathWithoutShare(remotePath);
             if (!share.fileExists(filePath)) {
                 throw new IOException("File not found: " + filePath);
             }
-            
+
             // Check if download was cancelled before starting
             if (downloadCancelled) {
                 LogUtils.i("SmbRepositoryImpl", "Download cancelled before starting: " + filePath);
                 throw new IOException("Download was cancelled by user");
             }
-            
-            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null);
-                 InputStream is = remoteFile.getInputStream();
-                 java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
-                
+
+            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null); InputStream is = remoteFile.getInputStream(); java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
+
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 long totalBytes = 0;
                 long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
-                
+
                 while ((bytesRead = is.read(buffer)) != -1) {
                     // Check for cancellation during download
                     if (downloadCancelled) {
                         LogUtils.i("SmbRepositoryImpl", "Download cancelled during transfer: " + filePath);
                         throw new IOException("Download was cancelled by user");
                     }
-                    
+
                     fos.write(buffer, 0, bytesRead);
                     totalBytes += bytesRead;
-                    
+
                     // Progress Update
                     if (progressCallback != null && fileSize > 0) {
                         int progress = (int) ((totalBytes * 100) / fileSize);
-                        progressCallback.updateProgress("Download: " + progress + "% (" + 
-                            EnhancedFileUtils.formatFileSize(totalBytes) + " / " + EnhancedFileUtils.formatFileSize(fileSize) + ")");
+                        progressCallback.updateProgress("Download: " + progress + "% (" + EnhancedFileUtils.formatFileSize(totalBytes) + " / " + EnhancedFileUtils.formatFileSize(fileSize) + ")");
                     }
                 }
-                
-                LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + localFile.getAbsolutePath() + 
-                          " (" + totalBytes + " bytes)");
+
+                LogUtils.i("SmbRepositoryImpl", "File downloaded successfully: " + localFile.getAbsolutePath() + " (" + totalBytes + " bytes)");
             }
             return null;
         });
@@ -717,8 +739,8 @@ public class SmbRepositoryImpl implements SmbRepository {
     /**
      * Downloads a file from the SMB server using a local file path.
      *
-     * @param connection The SMB connection to use
-     * @param remotePath The path to the file on the SMB server
+     * @param connection    The SMB connection to use
+     * @param remotePath    The path to the file on the SMB server
      * @param localFilePath The path to the local file to save the downloaded file to
      * @throws Exception if an error occurs during the download
      */
@@ -729,7 +751,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     @Override
     public void uploadFile(SmbConnection connection, java.io.File localFile, String remotePath) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Uploading file: " + localFile.getAbsolutePath() + " to " + remotePath);
-        
+
         // For larger uploads: Use Background Service
         if (shouldUseBackgroundService(connection, remotePath)) {
             uploadFileWithBackgroundService(connection, localFile, remotePath);
@@ -739,14 +761,13 @@ public class SmbRepositoryImpl implements SmbRepository {
     }
 
     @Override
-    public void uploadFileWithProgress(SmbConnection connection, java.io.File localFile, String remotePath, 
-                                     BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
+    public void uploadFileWithProgress(SmbConnection connection, java.io.File localFile, String remotePath, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Uploading file with progress: " + localFile.getAbsolutePath() + " to " + remotePath);
-        
+
         // For progress tracking, we should use direct upload to get fine-grained updates
         uploadFileDirectly(connection, localFile, remotePath, progressCallback);
     }
-    
+
     /**
      * Uploads a local file to a remote SMB location using a background service.
      * <p>
@@ -756,34 +777,32 @@ public class SmbRepositoryImpl implements SmbRepository {
      * is thrown with details about the failure.
      * </p>
      *
-     * @param connection  the SMB connection to use for uploading the file
-     * @param localFile   the local file to be uploaded
-     * @param remotePath  the destination path on the remote SMB server
-     * @throws Exception  if the upload operation fails
+     * @param connection the SMB connection to use for uploading the file
+     * @param localFile  the local file to be uploaded
+     * @param remotePath the destination path on the remote SMB server
+     * @throws Exception if the upload operation fails
      */
     private void uploadFileWithBackgroundService(SmbConnection connection, java.io.File localFile, String remotePath) throws Exception {
         String operationId = "upload_" + System.currentTimeMillis();
         String operationName = "Upload: " + localFile.getName();
-        
+
         try {
-            backgroundManager.executeBackgroundOperation(operationId, operationName, 
-                (BackgroundSmbManager.ProgressCallback callback) -> {
-                    return uploadFileDirectly(connection, localFile, remotePath, callback);
-                }
-            ).get(); // Wait for completion
-            
+            backgroundManager.executeBackgroundOperation(operationId, operationName, (BackgroundSmbManager.ProgressCallback callback) -> {
+                return uploadFileDirectly(connection, localFile, remotePath, callback);
+            }).get(); // Wait for completion
+
         } catch (Exception e) {
             LogUtils.e("SmbRepositoryImpl", "Background upload failed: " + e.getMessage());
             throw new Exception("Upload failed: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Uploads a local file directly to the specified remote path using the provided SMB connection.
      * This method delegates to the overloaded version of {@code uploadFileDirectly} with a {@code null} progress listener.
      *
      * @param connection the SMB connection to use for uploading the file
-     * @param localFile the local file to be uploaded
+     * @param localFile  the local file to be uploaded
      * @param remotePath the destination path on the remote SMB server
      * @return always returns {@code null}
      * @throws Exception if an error occurs during the upload process
@@ -791,7 +810,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     private Void uploadFileDirectly(SmbConnection connection, java.io.File localFile, String remotePath) throws Exception {
         return uploadFileDirectly(connection, localFile, remotePath, null);
     }
-    
+
     /**
      * Uploads a local file directly to a remote SMB share.
      *
@@ -800,55 +819,50 @@ public class SmbRepositoryImpl implements SmbRepository {
      * cancellation of the upload process. If the upload is cancelled before or during the transfer, an {@link IOException}
      * is thrown. The method logs relevant information about the upload process, including cancellation and completion.</p>
      *
-     * @param connection      The SMB connection to use for uploading the file.
-     * @param localFile       The local file to upload.
-     * @param remotePath      The remote path (including filename) where the file should be uploaded.
+     * @param connection       The SMB connection to use for uploading the file.
+     * @param localFile        The local file to upload.
+     * @param remotePath       The remote path (including filename) where the file should be uploaded.
      * @param progressCallback Optional callback for reporting upload progress.
-     * @return                Always returns {@code null}.
-     * @throws Exception      If an error occurs during upload, including cancellation or I/O errors.
+     * @return Always returns {@code null}.
+     * @throws Exception If an error occurs during upload, including cancellation or I/O errors.
      */
-    private Void uploadFileDirectly(SmbConnection connection, java.io.File localFile, String remotePath, 
-                                   BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
+    private Void uploadFileDirectly(SmbConnection connection, java.io.File localFile, String remotePath, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
         // Reset upload cancellation flag at the start of a new upload
         uploadCancelled = false;
-        
+
         // Check if upload was cancelled before starting
         if (uploadCancelled) {
             LogUtils.i("SmbRepositoryImpl", "Upload cancelled before starting: " + localFile.getName());
             throw new IOException("Upload was cancelled by user");
         }
-        
+
         withShare(connection, share -> {
             String filePath = getPathWithoutShare(remotePath);
-            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_WRITE), EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL), SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null);
-                 java.io.FileInputStream fis = new java.io.FileInputStream(localFile);
-                 OutputStream os = remoteFile.getOutputStream()) {
-                
+            try (File remoteFile = share.openFile(filePath, EnumSet.of(AccessMask.GENERIC_WRITE), EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL), SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OVERWRITE_IF, null); java.io.FileInputStream fis = new java.io.FileInputStream(localFile); OutputStream os = remoteFile.getOutputStream()) {
+
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 long totalBytes = 0;
                 long fileSize = localFile.length();
-                
+
                 while ((bytesRead = fis.read(buffer)) != -1) {
                     // Check for cancellation during upload
                     if (uploadCancelled) {
                         LogUtils.i("SmbRepositoryImpl", "Upload cancelled during transfer: " + localFile.getName());
                         throw new IOException("Upload was cancelled by user");
                     }
-                    
+
                     os.write(buffer, 0, bytesRead);
                     totalBytes += bytesRead;
-                    
+
                     // Progress Update
                     if (progressCallback != null && fileSize > 0) {
                         int progress = (int) ((totalBytes * 100) / fileSize);
-                        progressCallback.updateProgress("Upload: " + progress + "% (" + 
-                            EnhancedFileUtils.formatFileSize(totalBytes) + " / " + EnhancedFileUtils.formatFileSize(fileSize) + ")");
+                        progressCallback.updateProgress("Upload: " + progress + "% (" + EnhancedFileUtils.formatFileSize(totalBytes) + " / " + EnhancedFileUtils.formatFileSize(fileSize) + ")");
                     }
                 }
-                
-                LogUtils.i("SmbRepositoryImpl", "File uploaded successfully: " + remotePath + 
-                          " (" + totalBytes + " bytes)");
+
+                LogUtils.i("SmbRepositoryImpl", "File uploaded successfully: " + remotePath + " (" + totalBytes + " bytes)");
             }
             return null;
         });
@@ -858,7 +872,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     @Override
     public void downloadFolder(SmbConnection connection, String remotePath, java.io.File localFolder) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Downloading folder: " + remotePath + " to " + localFolder.getAbsolutePath());
-        
+
         // For folder downloads: Use Background Service with file counter
         if (shouldUseBackgroundService(connection, remotePath)) {
             downloadFolderWithBackgroundService(connection, remotePath, localFolder);
@@ -866,38 +880,36 @@ public class SmbRepositoryImpl implements SmbRepository {
             downloadFolderDirectly(connection, remotePath, localFolder);
         }
     }
-    
+
     /**
      * Downloads a folder from a remote SMB share to a local directory using a background service.
      * The operation is tracked for progress and completion, and exceptions are handled and logged.
      *
-     * @param connection   The SMB connection to use for accessing the remote folder.
-     * @param remotePath   The path of the remote folder to download.
-     * @param localFolder  The local directory where the folder contents will be saved.
-     * @throws Exception   If the download operation fails or encounters an error.
+     * @param connection  The SMB connection to use for accessing the remote folder.
+     * @param remotePath  The path of the remote folder to download.
+     * @param localFolder The local directory where the folder contents will be saved.
+     * @throws Exception If the download operation fails or encounters an error.
      */
     private void downloadFolderWithBackgroundService(SmbConnection connection, String remotePath, java.io.File localFolder) throws Exception {
         String operationId = "download_folder_" + System.currentTimeMillis();
         String operationName = "Download Ordner: " + new java.io.File(remotePath).getName();
-        
+
         // First count files for progress
         int totalFiles = countFilesInFolder(connection, remotePath);
         LogUtils.d("SmbRepositoryImpl", "Folder contains " + totalFiles + " files for download");
-        
+
         try {
-            backgroundManager.executeMultiFileOperation(operationId, operationName, totalFiles,
-                (BackgroundSmbManager.MultiFileProgressCallback callback) -> {
-                    downloadFolderWithProgress(connection, remotePath, localFolder, callback);
-                    return null; // Return Void 
-                }
-            ).get(); // Warten auf Completion
-            
+            backgroundManager.executeMultiFileOperation(operationId, operationName, totalFiles, (BackgroundSmbManager.MultiFileProgressCallback callback) -> {
+                downloadFolderWithProgress(connection, remotePath, localFolder, callback);
+                return null; // Return Void
+            }).get(); // Warten auf Completion
+
         } catch (Exception e) {
             LogUtils.e("SmbRepositoryImpl", "Background folder download failed: " + e.getMessage());
             throw new Exception("Folder download failed: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Downloads a folder from a remote SMB share directly to a local directory.
      *
@@ -905,8 +917,8 @@ public class SmbRepositoryImpl implements SmbRepository {
      * creates the local folder if it does not exist, and downloads all contents from the remote folder to the local folder.
      * If the remote folder does not exist or the local folder cannot be created, an {@link IOException} is thrown.
      *
-     * @param connection the SMB connection to use for accessing the remote share
-     * @param remotePath the full path to the remote folder on the SMB share
+     * @param connection  the SMB connection to use for accessing the remote share
+     * @param remotePath  the full path to the remote folder on the SMB share
      * @param localFolder the local directory to which the folder contents will be downloaded
      * @return always returns {@code null}
      * @throws Exception if an error occurs during the download process, such as folder not found or failure to create local folder
@@ -926,7 +938,7 @@ public class SmbRepositoryImpl implements SmbRepository {
         });
         return null;
     }
-    
+
     /**
      * Downloads the contents of a remote SMB folder to a local directory, providing progress updates via a callback.
      * <p>
@@ -936,19 +948,18 @@ public class SmbRepositoryImpl implements SmbRepository {
      * If the download is cancelled or a background-related connection error occurs, retries are aborted immediately.
      * </p>
      *
-     * @param connection      The SMB connection to use for accessing the remote folder.
-     * @param remotePath      The path to the remote folder to download.
-     * @param localFolder     The local directory where the folder contents will be saved.
+     * @param connection       The SMB connection to use for accessing the remote folder.
+     * @param remotePath       The path to the remote folder to download.
+     * @param localFolder      The local directory where the folder contents will be saved.
      * @param progressCallback Callback for reporting progress of each file download.
-     * @throws Exception      If the remote folder does not exist, the local folder cannot be created,
-     *                        the download is cancelled, or any other error occurs during the download process.
+     * @throws Exception If the remote folder does not exist, the local folder cannot be created,
+     *                   the download is cancelled, or any other error occurs during the download process.
      */
     @Override
-    public void downloadFolderWithProgress(SmbConnection connection, String remotePath, java.io.File localFolder, 
-                                           BackgroundSmbManager.MultiFileProgressCallback progressCallback) throws Exception {
+    public void downloadFolderWithProgress(SmbConnection connection, String remotePath, java.io.File localFolder, BackgroundSmbManager.MultiFileProgressCallback progressCallback) throws Exception {
         // Reset download cancellation flag at the start
         downloadCancelled = false;
-        
+
         withShare(connection, share -> {
             String folderPath = getPathWithoutShare(remotePath);
             if (!share.folderExists(folderPath)) {
@@ -957,18 +968,52 @@ public class SmbRepositoryImpl implements SmbRepository {
             if (!localFolder.exists() && !localFolder.mkdirs()) {
                 throw new IOException("Failed to create local folder: " + localFolder.getAbsolutePath());
             }
-            
+
             // Check if download was cancelled before starting
             if (downloadCancelled) {
                 LogUtils.i("SmbRepositoryImpl", "Folder download cancelled before starting: " + folderPath);
                 throw new IOException("Download was cancelled by user");
             }
-            
+
+            // Count total files before starting download
+            int totalFiles = countFilesRecursive(share, folderPath);
+            LogUtils.d("SmbRepositoryImpl", "Folder contains " + totalFiles + " files for download");
+
             // Progress-Counter initialisieren
             final java.util.concurrent.atomic.AtomicInteger fileCounter = new java.util.concurrent.atomic.AtomicInteger(0);
-            
-            downloadFolderContentsWithProgress(share, folderPath, localFolder, progressCallback, fileCounter);
-            
+
+            // Create a wrapper around the callback that includes the total file count
+            final BackgroundSmbManager.MultiFileProgressCallback callbackWithTotal = new BackgroundSmbManager.MultiFileProgressCallback() {
+                @Override
+                public void updateFileProgress(int currentFile, String currentFileName) {
+                    // Calculate percentage based on current file and total files
+                    int percentage = totalFiles > 0 ? (currentFile * 100) / totalFiles : 0;
+
+                    // Update progress with file info and percentage
+                    String progressInfo = "File progress: " + percentage + "% (" + currentFile + "/" + totalFiles + ") " + currentFileName;
+                    progressCallback.updateProgress(progressInfo);
+
+                    // Include percentage and total files in the file name for the FileOperationsViewModel to parse
+                    // Format: [PROGRESS:percentage:currentFile:totalFiles]currentFileName
+                    String enhancedFileName = "[PROGRESS:" + percentage + ":" + currentFile + ":" + totalFiles + "]" + currentFileName;
+
+                    // Forward the call with the enhanced file name
+                    progressCallback.updateFileProgress(currentFile, enhancedFileName);
+                }
+
+                @Override
+                public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
+                    progressCallback.updateBytesProgress(currentBytes, totalBytes, fileName);
+                }
+
+                @Override
+                public void updateProgress(String progressInfo) {
+                    progressCallback.updateProgress(progressInfo);
+                }
+            };
+
+            downloadFolderContentsWithProgress(share, folderPath, localFolder, callbackWithTotal, fileCounter);
+
             if (downloadCancelled) {
                 LogUtils.i("SmbRepositoryImpl", "Folder download was cancelled. Partial download completed: " + remotePath);
                 throw new IOException("Download was cancelled by user");
@@ -987,7 +1032,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             AuthenticationContext authContext = createAuthContext(connection);
             try (Session session = conn.authenticate(authContext)) {
                 List<String> shareList = new ArrayList<>();
-                
+
                 try {
                     // Try to connect to the IPC$ share to enumerate other shares
                     try (DiskShare ipcShare = (DiskShare) session.connectShare("IPC$")) {
@@ -998,10 +1043,10 @@ public class SmbRepositoryImpl implements SmbRepository {
                 } catch (Exception ipcException) {
                     LogUtils.d("SmbRepositoryImpl", "Could not connect to IPC$ share: " + ipcException.getMessage());
                 }
-                
+
                 // Fallback: Try common share names
                 String[] commonShares = {"Users", "Public", "Documents", "Downloads", "Music", "Pictures", "Videos", "Share", "Data", "Files", "Home", "Shared"};
-                
+
                 for (String shareName : commonShares) {
                     try {
                         // Try to connect to the share to see if it exists
@@ -1015,12 +1060,12 @@ public class SmbRepositoryImpl implements SmbRepository {
                         // Share doesn't exist or is not accessible, ignore silently
                     }
                 }
-                
+
                 // If no shares found, suggest the user enter manually
                 if (shareList.isEmpty()) {
                     LogUtils.w("SmbRepositoryImpl", "No accessible shares found using common names");
                 }
-                
+
                 LogUtils.i("SmbRepositoryImpl", "Found " + shareList.size() + " accessible shares on server: " + connection.getServer());
                 return shareList;
             }
@@ -1036,19 +1081,11 @@ public class SmbRepositoryImpl implements SmbRepository {
     private boolean isBackgroundRelatedError(Exception e) {
         String message = e.getMessage();
         if (message == null) return false;
-        
+
         // Common errors after app background transition
-        return message.contains("DiskShare has already been closed") ||
-               message.contains("Connection has been closed") ||
-               message.contains("Socket closed") ||
-               message.contains("Broken pipe") ||
-               message.contains("Connection reset") ||
-               message.contains("Connection refused") ||
-               message.contains("Transport") ||
-               e instanceof java.net.SocketException ||
-               e instanceof java.net.ConnectException;
+        return message.contains("DiskShare has already been closed") || message.contains("Connection has been closed") || message.contains("Socket closed") || message.contains("Broken pipe") || message.contains("Connection reset") || message.contains("Connection refused") || message.contains("Transport") || e instanceof java.net.SocketException || e instanceof java.net.ConnectException;
     }
-    
+
     /**
      * Recursively counts all files in a folder
      */
@@ -1058,7 +1095,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             return countFilesRecursive(share, folderPath);
         });
     }
-    
+
     /**
      * Recursively counts all files in a share folder
      */
@@ -1069,7 +1106,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             for (FileIdBothDirectoryInformation file : files) {
                 String fileName = file.getFileName();
                 if (".".equals(fileName) || "..".equals(fileName)) continue;
-                
+
                 boolean isDirectory = (file.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
                 if (isDirectory) {
                     String remoteFilePath = path.isEmpty() || path.equals("\\") ? "\\" + fileName : path + "\\" + fileName;
@@ -1083,13 +1120,11 @@ public class SmbRepositoryImpl implements SmbRepository {
         }
         return fileCount;
     }
-    
+
     /**
      * Downloads the contents of a folder recursively with progress tracking.
      */
-    private void downloadFolderContentsWithProgress(DiskShare share, String remotePath, java.io.File localFolder,
-                                                   BackgroundSmbManager.MultiFileProgressCallback progressCallback,
-                                                   java.util.concurrent.atomic.AtomicInteger fileCounter) throws IOException {
+    private void downloadFolderContentsWithProgress(DiskShare share, String remotePath, java.io.File localFolder, BackgroundSmbManager.MultiFileProgressCallback progressCallback, java.util.concurrent.atomic.AtomicInteger fileCounter) throws IOException {
         LogUtils.d("SmbRepositoryImpl", "Downloading folder contents with progress: " + remotePath + " to " + localFolder.getAbsolutePath());
         List<FileIdBothDirectoryInformation> files;
         try {
@@ -1124,12 +1159,12 @@ public class SmbRepositoryImpl implements SmbRepository {
                 // Increment file counter and update progress
                 int currentFile = fileCounter.incrementAndGet();
                 progressCallback.updateFileProgress(currentFile, fileName);
-                
+
                 downloadFileWithProgressCallback(share, remoteFilePath, localFile, progressCallback);
             }
         }
     }
-    
+
     /**
      * Downloads a file from a remote SMB share to a local file with progress updates and retry logic.
      * <p>
@@ -1140,62 +1175,80 @@ public class SmbRepositoryImpl implements SmbRepository {
      * <p>
      * If the download is cancelled or a background-related connection error occurs, retries are aborted immediately.
      *
-     * @param share           The {@link DiskShare} representing the SMB share to download from.
-     * @param remoteFilePath  The path to the remote file on the SMB share.
-     * @param localFile       The local {@link java.io.File} to save the downloaded content.
+     * @param share            The {@link DiskShare} representing the SMB share to download from.
+     * @param remoteFilePath   The path to the remote file on the SMB share.
+     * @param localFile        The local {@link java.io.File} to save the downloaded content.
      * @param progressCallback Callback for reporting download progress (may be {@code null}).
      * @throws IOException If the download fails after all retries, is cancelled, or a connection error occurs.
      */
-    private void downloadFileWithProgressCallback(DiskShare share, String remoteFilePath, java.io.File localFile,
-                                                 BackgroundSmbManager.MultiFileProgressCallback progressCallback) throws IOException {
+    private void downloadFileWithProgressCallback(DiskShare share, String remoteFilePath, java.io.File localFile, BackgroundSmbManager.MultiFileProgressCallback progressCallback) throws IOException {
         int maxRetries = 3;
         Exception lastException = null;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             if (attempt > 1) {
                 LogUtils.i("SmbRepositoryImpl", "Retrying file download (attempt " + attempt + " of " + maxRetries + "): " + remoteFilePath);
-                try { Thread.sleep(1000L * attempt); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
+                try {
+                    Thread.sleep(1000L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
             try (File remoteFile = share.openFile(remoteFilePath, EnumSet.of(AccessMask.GENERIC_READ), null, SMB2ShareAccess.ALL, SMB2CreateDisposition.FILE_OPEN, null)) {
                 long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
-                try (InputStream is = remoteFile.getInputStream();
-                     java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
+                try (InputStream is = remoteFile.getInputStream(); java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
                     if (resumeFrom > 0) {
                         long skipped = is.skip(resumeFrom);
                         LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes for resume");
                     }
-                    
+
                     byte[] buffer = new byte[8192];
                     int bytesRead;
                     long totalBytes = resumeFrom;
                     long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
-                    
+
                     // Progress throttling for large files
                     long lastProgressUpdate = 0;
-                    final long PROGRESS_UPDATE_INTERVAL = 2000; // Max every 2 seconds
-                    
+                    final long PROGRESS_UPDATE_INTERVAL = 500; // Max every 0.5 seconds (reduced from 2 seconds)
+
+                    // Limit progress updates to max 300 times (increased from 100)
+                    final int MAX_PROGRESS_UPDATES = 300;
+                    final long updateThreshold = Math.max(fileSize / MAX_PROGRESS_UPDATES, 1); // Ensure at least 1 byte
+                    long lastUpdateBytes = 0;
+
                     while ((bytesRead = is.read(buffer)) != -1) {
                         // Check for cancellation during file download
                         if (downloadCancelled) {
                             LogUtils.i("SmbRepositoryImpl", "Download cancelled during file transfer: " + localFile.getName());
                             throw new IOException("Download was cancelled by user");
                         }
-                        
+
                         fos.write(buffer, 0, bytesRead);
                         totalBytes += bytesRead;
-                        
+
                         // Progress update for bytes - but throttled for large files
                         if (progressCallback != null && fileSize > 0) {
                             long currentTime = System.currentTimeMillis();
-                            int percentage = (int) ((totalBytes * 100) / fileSize);
-                            
-                            // Update at important milestones or after time interval
-                            boolean shouldUpdate = (currentTime - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL) ||
-                                                 (percentage % 10 == 0) || // 10%-Schritte
-                                                 (totalBytes == fileSize); // End of file
-                            
+                            // Use Math.round with floating-point division for accurate percentage calculation
+                            int percentage = (int) Math.round((totalBytes * 100.0) / fileSize);
+
+                            // Update at important milestones or after significant progress
+                            boolean shouldUpdate =
+                                    // Time-based throttling OR bytes-based throttling
+                                    (currentTime - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL) ||
+                                            // Bytes-based throttling (ensure we don't update too frequently)
+                                            (totalBytes - lastUpdateBytes >= updateThreshold) ||
+                                            // Important percentage milestones (every 5% instead of 10%)
+                                            (percentage % 5 == 0 && percentage != 0) ||
+                                            // First update (0%)
+                                            (lastUpdateBytes == 0) ||
+                                            // Last update (100%)
+                                            (totalBytes == fileSize);
+
                             if (shouldUpdate) {
                                 progressCallback.updateBytesProgress(totalBytes, fileSize, localFile.getName());
                                 lastProgressUpdate = currentTime;
+                                lastUpdateBytes = totalBytes;
                             }
                         }
                     }
@@ -1205,13 +1258,13 @@ public class SmbRepositoryImpl implements SmbRepository {
             } catch (Exception e) {
                 LogUtils.e("SmbRepositoryImpl", "Error downloading file (attempt " + attempt + "): " + e.getMessage());
                 lastException = e;
-                
+
                 // If user has cancelled, stop retries immediately
                 if (downloadCancelled || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("SmbRepositoryImpl", "Download was cancelled - stopping retries");
                     break;
                 }
-                
+
                 // Special handling for background-related connection errors
                 if (isBackgroundRelatedError(e)) {
                     LogUtils.w("SmbRepositoryImpl", "Background-related connection error detected - forcing fresh connection");
@@ -1226,17 +1279,16 @@ public class SmbRepositoryImpl implements SmbRepository {
     /**
      * Downloads a file from the SMB server with progress tracking.
      *
-     * @param connection      The SMB connection to use
-     * @param remotePath      The path to the file on the SMB server
-     * @param localFile       The local file to save the downloaded file to
+     * @param connection       The SMB connection to use
+     * @param remotePath       The path to the file on the SMB server
+     * @param localFile        The local file to save the downloaded file to
      * @param progressCallback The callback to report progress updates
      * @throws Exception if an error occurs during the download
      */
     @Override
-    public void downloadFileWithProgress(SmbConnection connection, String remotePath, java.io.File localFile, 
-                                       BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
+    public void downloadFileWithProgress(SmbConnection connection, String remotePath, java.io.File localFile, BackgroundSmbManager.ProgressCallback progressCallback) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Starting file download with progress tracking: " + remotePath);
-        
+
         operationLock.lock();
         try {
             downloadFileDirectly(connection, remotePath, localFile, progressCallback);
@@ -1267,28 +1319,30 @@ public class SmbRepositoryImpl implements SmbRepository {
     private SmartErrorHandler.ErrorSeverity assessErrorSeverity(Exception e) {
         String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
         String className = e.getClass().getSimpleName().toLowerCase();
-        
+
         // Critical errors that prevent core functionality
         if (className.contains("outofmemory") || message.contains("out of memory")) {
             return SmartErrorHandler.ErrorSeverity.CRITICAL;
         }
-        
+
         // High severity errors
-        if (className.contains("authentication") || message.contains("authentication") ||
-            className.contains("access") && message.contains("denied") ||
-            className.contains("connection") && message.contains("refused")) {
+        if (className.contains("authentication") || message.contains("authentication") || className.contains("access") && message.contains("denied") || className.contains("connection") && message.contains("refused")) {
             return SmartErrorHandler.ErrorSeverity.HIGH;
         }
-        
+
         // Network and timeout related errors - usually medium severity
-        if (className.contains("timeout") || message.contains("timeout") ||
-            className.contains("network") || message.contains("network") ||
-            className.contains("socket") || message.contains("connection")) {
+        if (className.contains("timeout") || message.contains("timeout") || className.contains("network") || message.contains("network") || className.contains("socket") || message.contains("connection")) {
             return SmartErrorHandler.ErrorSeverity.MEDIUM;
         }
-        
+
         // Default to medium for unknown exceptions
         return SmartErrorHandler.ErrorSeverity.MEDIUM;
+    }
+
+    // Callback-Interface
+    @FunctionalInterface
+    private interface SmbShareCallback<T> {
+        T doWithShare(DiskShare share) throws Exception;
     }
 }
 

@@ -16,7 +16,7 @@ android {
         minSdkVersion 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        versionCode 10101
+        versionCode 10200
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -186,6 +186,9 @@ dependencies {
     // Additional testing libraries for data integrity
     testImplementation 'org.mockito:mockito-core:5.14.2'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
+    
+    // Architecture Components testing
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
     
     // Android instrumented testing for real device verification
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

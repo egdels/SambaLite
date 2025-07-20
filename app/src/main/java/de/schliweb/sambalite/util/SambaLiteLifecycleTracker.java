@@ -99,6 +99,7 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
     // Callbacks for background/foreground transitions
     public interface LifecycleListener {
         void onAppMovedToBackground();
+
         void onAppMovedToForeground();
     }
 

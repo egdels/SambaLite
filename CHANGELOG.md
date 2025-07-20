@@ -5,6 +5,29 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-07-20
+
+### Added
+- **Enhanced Folder Operations**: Improved handling of folder uploads and downloads with better progress tracking
+- **Background Service Integration**: New dedicated service for handling long-running operations
+- **Lifecycle-Aware Components**: Better handling of Android lifecycle events to prevent memory leaks
+- **Improved Progress Reporting**: More detailed progress information for all file operations
+
+### Changed
+- **Major Architecture Refactoring**: Completely restructured codebase following MVVM best practices
+  - Split monolithic ViewModels into specialized components (FileListViewModel, FileOperationsViewModel)
+  - Extracted UI logic into dedicated controllers (FileOperationsController, ServiceController, ProgressController)
+  - Reduced class complexity and improved separation of concerns
+- **Enhanced Error Handling**: More robust error recovery mechanisms for network operations
+- **Improved Thread Safety**: Better handling of concurrent operations and background tasks
+- **UI Responsiveness**: Smoother UI experience during long-running operations
+
+### Fixed
+- **Memory Leaks**: Resolved issues with resource management during file operations
+- **Cancellation Handling**: Improved cleanup when operations are cancelled
+- **Error Reporting**: More descriptive error messages for troubleshooting
+- **Edge Cases**: Better handling of special characters in filenames and large folder structures
+
 ## [1.1.1] - 2025-07-17
 
 ### Fixed

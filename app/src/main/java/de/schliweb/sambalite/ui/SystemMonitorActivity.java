@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
+import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -168,8 +169,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
         try {
             SambaLiteApp app = (SambaLiteApp) getApplication();
 
-            String fullStatus = "=== SambaLite System Monitor ===\n" +
-                    "Generated: " + getCurrentTimeString() + "\n\n" +
+            String fullStatus = "=== SambaLite System Monitor ===\n" + "Generated: " + getCurrentTimeString() + "\n\n" +
 
                     // Update system overview
                     getSystemOverview(app) + "\n\n" +
@@ -228,10 +228,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
     private String getPerformanceMetrics() {
 
-        String metrics = "=== Performance Metrics ===\n" +
-                "Memory: " + SimplePerformanceMonitor.getMemoryInfo() + "\n" +
-                "Device: " + SimplePerformanceMonitor.getDeviceInfo() + "\n" +
-                "Performance: " + SimplePerformanceMonitor.getPerformanceStats() + "\n";
+        String metrics = "=== Performance Metrics ===\n" + "Memory: " + SimplePerformanceMonitor.getMemoryInfo() + "\n" + "Device: " + SimplePerformanceMonitor.getDeviceInfo() + "\n" + "Performance: " + SimplePerformanceMonitor.getPerformanceStats() + "\n";
 
         return metrics;
     }
@@ -243,13 +240,46 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
         IntelligentCacheManager cacheManager = app.getCacheManager();
         if (cacheManager != null) {
-            IntelligentCacheManager.CacheStatistics cacheStats = cacheManager.getStatistics();
-            stats.append("Memory Entries: ").append(cacheStats.memoryEntries).append("\n");
-            stats.append("Valid Entries: ").append(cacheStats.validEntries).append("\n");
-            stats.append("Expired Entries: ").append(cacheStats.expiredEntries).append("\n");
-            stats.append("Hit Rate: ").append(String.format(Locale.ROOT, "%.1f%%", cacheStats.hitRate * 100)).append("\n");
-            stats.append("Disk Cache Size: ").append(EnhancedFileUtils.formatFileSize(cacheStats.diskSizeBytes)).append("\n");
-            stats.append("Cache Type: Hybrid (Memory + Disk)\n");
+            // Run a cache performance test to verify hit rate calculation
+            cacheManager.testCachePerformance();
+
+            // Perform maintenance to trigger debug logging
+            cacheManager.performMaintenance();
+
+            CacheStatistics.CacheStatisticsSnapshot cacheStats = cacheManager.getStatistics();
+
+            // Memory usage statistics
+            stats.append("\nMemory Usage:\n");
+            stats.append("- Memory Entries: ").append(cacheStats.getMemoryEntries()).append("\n");
+            stats.append("- Disk Size: ").append(EnhancedFileUtils.formatFileSize(cacheStats.getDiskSizeBytes())).append("\n");
+            stats.append("- Valid Entries: ").append(cacheStats.getValidEntries()).append("\n");
+            stats.append("- Expired Entries: ").append(cacheStats.getExpiredEntries()).append("\n");
+
+            // Cache performance statistics
+            stats.append("\nCache Performance:\n");
+            stats.append("- Total Requests: ").append(cacheStats.getCacheRequests()).append("\n");
+            stats.append("- Cache Hits: ").append(cacheStats.getCacheHits()).append("\n");
+            stats.append("- Cache Misses: ").append(cacheStats.getCacheMisses()).append("\n");
+            stats.append("- Hit Rate: ").append(String.format(Locale.US, "%.2f%%", cacheStats.getHitRate() * 100)).append("\n");
+
+            // Operation statistics
+            stats.append("\nOperations:\n");
+            stats.append("- Put Operations: ").append(cacheStats.getPutOperations()).append("\n");
+            stats.append("- Get Operations: ").append(cacheStats.getGetOperations()).append("\n");
+            stats.append("- Remove Operations: ").append(cacheStats.getRemoveOperations()).append("\n");
+
+            // Error statistics
+            int totalErrors = cacheStats.getTotalErrors();
+            stats.append("\nErrors:\n");
+            if (totalErrors > 0) {
+                stats.append("- Total Errors: ").append(totalErrors).append("\n");
+                stats.append("- Serialization Errors: ").append(cacheStats.getSerializationErrors()).append("\n");
+                stats.append("- Deserialization Errors: ").append(cacheStats.getDeserializationErrors()).append("\n");
+                stats.append("- Disk Write Errors: ").append(cacheStats.getDiskWriteErrors()).append("\n");
+                stats.append("- Disk Read Errors: ").append(cacheStats.getDiskReadErrors()).append("\n");
+            } else {
+                stats.append("✓ No errors detected\n");
+            }
         } else {
             stats.append("Cache system not available\n");
         }

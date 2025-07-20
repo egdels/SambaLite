@@ -1,9 +1,9 @@
 package de.schliweb.sambalite;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
-import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
@@ -30,7 +30,7 @@ public class FileIntegrityTest {
     private SambaContainer sambaContainer;
     private SmbRepository smbRepository;
     private SmbConnection testConnection;
-    private Random random = new Random();
+    private final Random random = new Random();
 
     @Before
     public void setUp() {

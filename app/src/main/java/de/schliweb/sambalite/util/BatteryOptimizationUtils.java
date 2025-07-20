@@ -8,7 +8,6 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
-
 import de.schliweb.sambalite.R;
 
 /**
@@ -42,17 +41,11 @@ public class BatteryOptimizationUtils {
 
         LogUtils.d(TAG, "Requesting battery optimization exemption");
 
-        new AlertDialog.Builder(activity)
-                .setTitle(activity.getString(R.string.battery_optimization_title))
-                .setMessage(activity.getString(R.string.battery_optimization_message))
-                .setPositiveButton(activity.getString(R.string.open_settings), (dialog, which) -> {
-                    openBatteryOptimizationSettings(activity);
-                })
-                .setNegativeButton(activity.getString(R.string.later), (dialog, which) -> {
-                    LogUtils.d(TAG, "Battery optimization exemption declined by user");
-                })
-                .setCancelable(true)
-                .show();
+        new AlertDialog.Builder(activity).setTitle(activity.getString(R.string.battery_optimization_title)).setMessage(activity.getString(R.string.battery_optimization_message)).setPositiveButton(activity.getString(R.string.open_settings), (dialog, which) -> {
+            openBatteryOptimizationSettings(activity);
+        }).setNegativeButton(activity.getString(R.string.later), (dialog, which) -> {
+            LogUtils.d(TAG, "Battery optimization exemption declined by user");
+        }).setCancelable(true).show();
     }
 
     /**

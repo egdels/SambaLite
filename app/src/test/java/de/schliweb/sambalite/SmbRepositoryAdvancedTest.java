@@ -1,10 +1,10 @@
 package de.schliweb.sambalite;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
-import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.util.SambaContainer;
 import org.junit.After;
 import org.junit.Before;
@@ -40,20 +40,13 @@ public class SmbRepositoryAdvancedTest {
     @Before
     public void setUp() {
         // Create and start the in-memory Samba server
-        sambaContainer = new SambaContainer()
-                .withUsername("testuser")
-                .withPassword("testpassword")
-                .withDomain("WORKGROUP")
-                .withShare("testshare", "/testshare");
+        sambaContainer = new SambaContainer().withUsername("testuser").withPassword("testpassword").withDomain("WORKGROUP").withShare("testshare", "/testshare");
 
         sambaContainer.start();
 
         // Create a test file in the in-memory server
         try {
-            SambaContainer.ExecResult result = sambaContainer.execInContainer(
-                    "sh", "-c",
-                    "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt"
-            );
+            SambaContainer.ExecResult result = sambaContainer.execInContainer("sh", "-c", "mkdir -p /testshare && echo 'Test content' > /testshare/testfile.txt");
             assertEquals(0, result.getExitCode());
         } catch (IOException | InterruptedException e) {
             fail("Failed to create test file in server: " + e.getMessage());
@@ -86,14 +79,7 @@ public class SmbRepositoryAdvancedTest {
     public void testSpecialCharactersInFilenames() {
         try {
             // Create files with special characters in their names
-            String[] specialFilenames = {
-                    "file with spaces.txt",
-                    "file_with_underscore.txt",
-                    "file-with-hyphens.txt",
-                    "file.with.dots.txt",
-                    "file_with_numbers_123.txt",
-                    "file_with_symbols_!@#$%^&()_+.txt"
-            };
+            String[] specialFilenames = {"file with spaces.txt", "file_with_underscore.txt", "file-with-hyphens.txt", "file.with.dots.txt", "file_with_numbers_123.txt", "file_with_symbols_!@#$%^&()_+.txt"};
 
             for (String filename : specialFilenames) {
                 // Create a temporary file to upload
@@ -196,8 +182,7 @@ public class SmbRepositoryAdvancedTest {
             assertTrue("Should find file in the deepest directory", foundFile);
 
             // Try to search for files in the nested structure
-            List<SmbFileItem> searchResults = smbRepository.searchFiles(
-                    testConnection, "", "file_at_level", 0, true);
+            List<SmbFileItem> searchResults = smbRepository.searchFiles(testConnection, "", "file_at_level", 0, true);
 
             assertEquals("Should find all files in the nested structure", depth, searchResults.size());
 
@@ -277,8 +262,7 @@ public class SmbRepositoryAdvancedTest {
 
             // Verify the file size
             long fileSize = Files.size(tempFile);
-            assertEquals("File size should be approximately " + fileSizeMB + " MB",
-                    fileSizeMB * 1024 * 1024, fileSize, 1024); // Allow 1 KB tolerance
+            assertEquals("File size should be approximately " + fileSizeMB + " MB", fileSizeMB * 1024 * 1024, fileSize, 1024); // Allow 1 KB tolerance
 
             // Upload the large file
             String remotePath = "large-file.dat";
@@ -375,16 +359,14 @@ public class SmbRepositoryAdvancedTest {
                                 break;
 
                             case 4: // Search files
-                                List<SmbFileItem> searchResults = smbRepository.searchFiles(
-                                        testConnection, "", "test", 0, true);
+                                List<SmbFileItem> searchResults = smbRepository.searchFiles(testConnection, "", "test", 0, true);
                                 if (searchResults != null) {
                                     successCount.incrementAndGet();
                                 }
                                 break;
                         }
                     } catch (Exception e) {
-                        System.out.println("[DEBUG_LOG] Concurrent operation exception in thread " +
-                                threadNum + ": " + e.getMessage());
+                        System.out.println("[DEBUG_LOG] Concurrent operation exception in thread " + threadNum + ": " + e.getMessage());
                     }
                 });
 
@@ -429,8 +411,7 @@ public class SmbRepositoryAdvancedTest {
                 fail("Should throw an exception when downloading a non-existent file");
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception when downloading non-existent file: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception when downloading non-existent file: " + e.getMessage());
             }
 
             // Try to delete a non-existent file
@@ -439,8 +420,7 @@ public class SmbRepositoryAdvancedTest {
                 fail("Should throw an exception when deleting a non-existent file");
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception when deleting non-existent file: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception when deleting non-existent file: " + e.getMessage());
             }
 
             // Try to rename a non-existent file
@@ -449,8 +429,7 @@ public class SmbRepositoryAdvancedTest {
                 fail("Should throw an exception when renaming a non-existent file");
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception when renaming non-existent file: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception when renaming non-existent file: " + e.getMessage());
             }
 
             // Clean up
@@ -480,8 +459,7 @@ public class SmbRepositoryAdvancedTest {
                 assertFalse("Connection should fail with invalid credentials", connected);
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception with invalid credentials: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception with invalid credentials: " + e.getMessage());
             }
 
             // Try to list files with invalid credentials
@@ -490,8 +468,7 @@ public class SmbRepositoryAdvancedTest {
                 fail("Should throw an exception when listing files with invalid credentials");
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception when listing files with invalid credentials: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception when listing files with invalid credentials: " + e.getMessage());
             }
         } catch (Exception e) {
             System.out.println("[DEBUG_LOG] Authentication test exception: " + e.getMessage());
@@ -518,8 +495,7 @@ public class SmbRepositoryAdvancedTest {
                 assertFalse("Connection should fail with invalid share name", connected);
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception with invalid share name: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception with invalid share name: " + e.getMessage());
             }
 
             // Try to list files with an invalid share
@@ -528,8 +504,7 @@ public class SmbRepositoryAdvancedTest {
                 fail("Should throw an exception when listing files with invalid share name");
             } catch (Exception e) {
                 // Expected exception
-                System.out.println("[DEBUG_LOG] Expected exception when listing files with invalid share name: " +
-                        e.getMessage());
+                System.out.println("[DEBUG_LOG] Expected exception when listing files with invalid share name: " + e.getMessage());
             }
         } catch (Exception e) {
             System.out.println("[DEBUG_LOG] Invalid share test exception: " + e.getMessage());

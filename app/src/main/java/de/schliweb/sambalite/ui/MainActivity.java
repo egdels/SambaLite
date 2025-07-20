@@ -44,9 +44,6 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
     protected void onCreate(Bundle savedInstanceState) {
         LogUtils.d("MainActivity", "onCreate called");
 
-        // Start performance tracking
-        long startTime = System.currentTimeMillis();
-
         // Initialize loading indicator
         loadingIndicator = new LoadingIndicator(this);
         LogUtils.d("MainActivity", "Loading indicator initialized");
@@ -164,12 +161,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         });
 
         // Log performance metrics
-        long endTime = System.currentTimeMillis();
-        SimplePerformanceMonitor.startOperation("MainActivity.onCreate");
-        SimplePerformanceMonitor.endOperation("MainActivity.onCreate");
-        LogUtils.i("MainActivity", "Memory: " + SimplePerformanceMonitor.getMemoryInfo());
 
-        LogUtils.i("MainActivity", "MainActivity initialized in " + (endTime - startTime) + "ms");
+        LogUtils.i("MainActivity", "Memory: " + SimplePerformanceMonitor.getMemoryInfo());
 
         // Force trigger the initial connections load for debugging
         LogUtils.d("MainActivity", "Triggering initial connections load");
@@ -190,25 +183,17 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
     public void onConnectionClick(SmbConnection connection) {
         LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
 
-        // Record performance
-        long startTime = System.currentTimeMillis();
-
         // Open file browser activity for this connection
         Intent intent = FileBrowserActivity.createIntent(this, connection.getId());
         startActivity(intent);
 
-        // Record timing
-        SimplePerformanceMonitor.startOperation("MainActivity.connectionClick");
-        SimplePerformanceMonitor.endOperation("MainActivity.connectionClick");
-
         EnhancedUIUtils.showInfo(this, "Opening " + connection.getName());
-        LogUtils.i("MainActivity", "Opening FileBrowserActivity for connection: " + connection.getName());
+        LogUtils.i("MainActivity", "Opening RefactoredFileBrowserActivity for connection: " + connection.getName());
     }
 
     @Override
     public void onConnectionOptionsClick(SmbConnection connection) {
         LogUtils.d("MainActivity", "Connection options clicked: " + connection.getName());
-        // Show options menu (edit, delete, etc.)
         showConnectionOptionsDialog(connection);
     }
 

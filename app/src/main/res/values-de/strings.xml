@@ -130,7 +130,7 @@
     <!-- ZIP Transfer -->
     <string name="zip_transfer_title">ZIP-Übertragung</string>
     <string name="zip_upload_folder">Ordner als ZIP hochladen</string>
-    <string name="zip_download_folder">ZIP-Archiv herunterladen und entpacken</string>
+    <string name="zip_download_folder">Ordnerinhalt hochladen</string>
     <string name="creating_zip">Erstelle ZIP-Archiv…</string>
     <string name="uploading_zip">Lade ZIP-Archiv hoch…</string>
     <string name="zip_upload_success">Ordner erfolgreich als ZIP hochgeladen</string>

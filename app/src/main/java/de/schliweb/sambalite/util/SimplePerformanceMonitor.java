@@ -26,8 +26,8 @@ public class SimplePerformanceMonitor {
     private static final Map<String, AtomicLong> totalExecutionTimes = new ConcurrentHashMap<>();
     private static final Map<String, Long> memorySnapshots = new ConcurrentHashMap<>();
     private static final long GC_THRESHOLD_MS = 5000; // 5 seconds
-    private static long lastOperationStart = 0;
     private static final boolean isEnabled = true;
+    private static long lastOperationStart = 0;
     private static long lastGcTime = 0;
 
     /**
