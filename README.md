@@ -4,6 +4,15 @@
 
 SambaLite is a lightweight, modern, and open-source Android client for SMB/CIFS shares (Samba). It provides a minimalistic, reliable, and secure tool for accessing SMB shares on local networks without unnecessary features, ads, or bloat.
 
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
+     alt="Get it on F-Droid"
+     height="80">](https://f-droid.org/packages/de.schliweb.sambalite/)
+[<img src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png"
+     alt="Get it on Google Play"
+     height="80">](https://play.google.com/store/apps/details?id=de.schliweb.sambalite)
+
+Or download the latest APK from the [Releases Section](https://github.com/egdels/SambaLite/releases/latest).
+
 ## Features
 
 | Feature                | Status | Description                                     |
