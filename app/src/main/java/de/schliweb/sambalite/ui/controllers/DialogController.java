@@ -1,6 +1,8 @@
 package de.schliweb.sambalite.ui.controllers;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CheckBox;
@@ -8,9 +10,7 @@ import android.widget.RadioGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
-import de.schliweb.sambalite.ui.FileListViewModel;
-import de.schliweb.sambalite.ui.FileSortOption;
-import de.schliweb.sambalite.ui.SearchViewModel;
+import de.schliweb.sambalite.ui.*;
 import de.schliweb.sambalite.ui.controllers.FileOperationsController.FileOperationRequester;
 import de.schliweb.sambalite.ui.dialogs.DialogHelper;
 import de.schliweb.sambalite.ui.operations.FileOperationCallbacks;
@@ -29,6 +29,7 @@ public class DialogController {
     private final FileOperationsViewModel fileOperationsViewModel;
     private final SearchViewModel searchViewModel;
     private final FileBrowserUIState uiState;
+    private final ShareReceiverViewModel shareReceiverViewModel;
 
     @Setter
     private FileOperationRequester fileOperationRequester;
@@ -64,6 +65,19 @@ public class DialogController {
         this.fileOperationsViewModel = fileOperationsViewModel;
         this.searchViewModel = searchViewModel;
         this.uiState = uiState;
+        this.shareReceiverViewModel = null;
+    }
+
+    public DialogController(Context context, ShareReceiverViewModel viewModel, FileBrowserUIState uiState) {
+        this.context = context;
+        this.shareReceiverViewModel = viewModel;
+        // For ShareReceiverActivity, we do not need file list or operations view models.
+        // Instead, we only need the ShareReceiverViewModel and the UI state.
+        this.fileListViewModel = null;
+        this.fileOperationsViewModel = null;
+        this.searchViewModel = null;
+        this.uiState = uiState;
+        LogUtils.d("DialogController", "Created for ShareReceiverActivity");
     }
 
     /**
@@ -310,6 +324,70 @@ public class DialogController {
                 }
             }
         };
+    }
+
+    /**
+     * Shows a dialog when no target folder is set for sharing.
+     */
+    public void showNeedsTargetFolderDialog() {
+        LogUtils.d("DialogController", "Showing needs target folder dialog");
+        DialogHelper.showNeedsTargetFolderDialog(context,
+            () -> {
+                // Navigate to MainActivity to select folder
+                Intent intent = new Intent(context, MainActivity.class);
+                context.startActivity(intent);
+                ((Activity) context).finish();
+            },
+            () -> {
+                // Cancel and finish
+                ((Activity) context).finish();
+            }
+        );
+    }
+
+
+    /**
+     * Shows a confirmation dialog before uploading shared files.
+     *
+     * @param fileCount Number of files to upload
+     * @param targetFolder Target folder for upload
+     * @param onUpload Callback when user confirms upload
+     * @param onCancel Callback when user cancels upload
+     */
+    public void showShareUploadConfirmationDialog(int fileCount, String targetFolder, Runnable onUpload, Runnable onCancel) {
+        LogUtils.d("DialogController", "Showing share upload confirmation dialog with custom cancel");
+        DialogHelper.showShareUploadConfirmationDialog(context, fileCount, targetFolder, onUpload, onCancel);
+    }
+
+    /**
+     * Shows a dialog after successful uploads with option to view uploaded files.
+     *
+     * @param uploadedCount Number of successfully uploaded files
+     * @param totalCount Total number of files attempted
+     * @param failedCount Number of failed uploads
+     * @param onViewFiles Callback when user wants to view uploaded files
+     */
+    public void showUploadCompleteDialog(int uploadedCount, int totalCount, int failedCount, Runnable onViewFiles) {
+        LogUtils.d("DialogController", "Showing upload complete dialog");
+        DialogHelper.showUploadCompleteDialog(context, uploadedCount, totalCount, failedCount,
+            onViewFiles,
+            () -> {
+                // Close and finish
+                ((Activity) context).finish();
+            }
+        );
+    }
+
+    /**
+     * Shows a dialog when a file already exists during upload.
+     *
+     * @param fileName Name of the existing file
+     * @param onOverwrite Callback when user chooses to overwrite
+     * @param onCancel Callback when user cancels
+     */
+    public void showFileExistsDialog(String fileName, Runnable onOverwrite, Runnable onCancel) {
+        LogUtils.d("DialogController", "Showing file exists dialog for: " + fileName);
+        DialogHelper.showFileExistsDialog(context, fileName, onOverwrite, onCancel);
     }
 
     /**

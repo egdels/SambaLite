@@ -22,6 +22,7 @@ import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
+import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
 
@@ -79,6 +80,14 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     public static Intent createIntent(Context context, String connectionId) {
         Intent intent = new Intent(context, FileBrowserActivity.class);
         intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
+        return intent;
+    }
+
+    public static Intent createIntentFromUploadNotification(Context context, String connectionId, String directoryPath) {
+        Intent intent = new Intent(context, FileBrowserActivity.class);
+        intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
+        intent.putExtra(EXTRA_DIRECTORY_PATH, directoryPath);
+        intent.putExtra(EXTRA_FROM_UPLOAD_NOTIFICATION, true);
         return intent;
     }
 
@@ -178,7 +187,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("File Browser");
+            getSupportActionBar().setTitle(getString(R.string.file_browser_title));
         }
         LogUtils.d("FileBrowserActivity", "Toolbar set up");
     }
@@ -303,6 +312,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         fileListController.setFileClickCallback(this);
         fileListController.setFileOptionsCallback(this);
         fileListController.setFileStatisticsCallback(this);
+        fileListController.setFolderChangeCallback(this::onRemoteFolderChanged);
 
         // Set up DialogController callbacks
         dialogController.setFileOperationCallback(new DialogController.FileOperationCallback() {
@@ -476,6 +486,17 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     /**
+     * Callback for when the remote folder changes.
+     * Updates the current SMB folder in preferences.
+     *
+     * @param newRemotePath The new remote path
+     */
+    private void onRemoteFolderChanged(String newRemotePath) {
+        LogUtils.d("FileBrowserActivity", "Remote folder changed to: " + newRemotePath);
+        PreferenceUtils.setCurrentSmbFolder(this, newRemotePath);
+    }
+
+    /**
      * Checks if the activity was opened from a search notification and handles it.
      */
     private void checkAndHandleSearchNotification() {
@@ -510,9 +531,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
             if (directoryPath != null && !directoryPath.isEmpty()) {
                 LogUtils.i("FileBrowserActivity", "Navigating to upload directory: " + directoryPath);
-
-                // Navigate to the directory
-                fileListViewModel.navigateToPath(directoryPath);
+                // Navigate to the directory with proper hierarchy to enable up navigation
+                fileListViewModel.navigateToPathWithHierarchy(directoryPath);
+                fileListViewModel.refreshCurrentDirectory();
             }
         }
     }
@@ -534,6 +555,19 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 // Navigate to the directory
                 fileListViewModel.navigateToPath(directoryPath);
             }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LogUtils.d("FileBrowserActivity", "onResume called");
+
+        // Refresh the current directory when resuming
+        if (PreferenceUtils.getNeedsRefresh(this)) {
+            LogUtils.i("FileBrowserActivity", "Update needed, refreshing current directory");
+            PreferenceUtils.setNeedsRefresh(this, false);
+            fileListViewModel.refreshCurrentDirectory();
         }
     }
 

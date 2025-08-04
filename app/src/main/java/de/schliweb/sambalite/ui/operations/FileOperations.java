@@ -1,7 +1,9 @@
 package de.schliweb.sambalite.ui.operations;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.util.LogUtils;
 
@@ -135,5 +137,47 @@ public class FileOperations {
         }
 
         LogUtils.d("FileOperations", "Stream copied: " + totalBytes + " bytes");
+    }
+
+    /**
+     * Creates a temporary file from a content URI.
+     * The file is stored in the app's cache directory.
+     */
+    public static File createTempFileFromUri(Context context, Uri uri) throws IOException {
+        String fileName = getDisplayNameFromUri(context, uri);
+        File tempFile = new File(context.getCacheDir(), fileName);
+
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri); OutputStream outputStream = new FileOutputStream(tempFile)) {
+
+            if (inputStream == null) {
+                throw new IOException("Could not open input stream from URI: " + uri);
+            }
+
+            copyStream(inputStream, outputStream);
+        }
+
+        return tempFile;
+    }
+
+
+    /**
+     * Retrieves the display name of a file from its URI.
+     * Uses OpenableColumns to get the display name if available.
+     */
+    public static String getDisplayNameFromUri(Context context, Uri uri) {
+        String result = "shared_file";
+
+        try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    result = cursor.getString(nameIndex);
+                }
+            }
+        } catch (Exception e) {
+            LogUtils.w("FileOperations", "Could not get display name: " + e.getMessage());
+        }
+
+        return result;
     }
 }

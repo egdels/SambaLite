@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">Ajouter une connexion</string>
+    <string name="system_monitor">Moniteur système</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Bienvenue dans SambaLite</string>
+    <string name="welcome_subtitle">Connectez-vous facilement et en toute sécurité à vos partages SMB/CIFS. Appuyez sur le bouton + pour ajouter votre première connexion.</string>
+    <string name="your_connections">Vos connexions</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">Statut de la connexion</string>
+    <string name="content_desc_more_options">Plus d\'options</string>
+    <string name="content_desc_file_type_icon">Icône de type de fichier</string>
+    <string name="content_desc_selected">Sélectionné</string>
+    <string name="content_desc_share">Partage</string>
+    <string name="content_desc_refresh_system_info">Actualiser les informations système</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">Actualiser</string>
+
+    <!-- System Monitor -->
+    <string name="system_monitor_title">Moniteur système</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
+    <string name="example_share_name">Documents</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">Nom de la connexion</string>
+    <string name="server">Serveur (IP ou nom d\'hôte)</string>
+    <string name="share_name">Nom du partage</string>
+    <string name="username">Nom d\'utilisateur</string>
+    <string name="password">Mot de passe</string>
+    <string name="domain">Domaine (optionnel)</string>
+    <string name="port">Port</string>
+    <string name="connect">Connecter</string>
+    <string name="edit">Modifier</string>
+    <string name="test_connection">Tester la connexion</string>
+    <string name="save">Enregistrer</string>
+    <string name="cancel">Annuler</string>
+    <string name="add_new_connection">Ajouter une nouvelle connexion</string>
+    <string name="edit_connection">Modifier la connexion</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">Le nom de la connexion est requis</string>
+    <string name="error_server_required">Le serveur est requis</string>
+    <string name="error_share_required">Le nom du partage est requis</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">Supprimer la connexion</string>
+    <string name="confirm_delete_connection">Êtes-vous sûr de vouloir supprimer la connexion \'%1$s\' ?</string>
+    <string name="delete">Supprimer</string>
+    <string name="connection_deleted">Connexion \'%1$s\' supprimée</string>
+    <string name="undo">Annuler</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">Ce répertoire est vide</string>
+    <string name="loading_files">Chargement des fichiers…</string>
+    <string name="error_loading_files">Erreur lors du chargement des fichiers</string>
+    <string name="parent_directory">Répertoire parent</string>
+    <string name="file_browser_title">Fichiers</string>
+    <string name="search_files">Rechercher des fichiers</string>
+    <string name="search_files_title">Rechercher des fichiers</string>
+    <string name="search_title">Recherche</string>
+    <string name="searching">Recherche…</string>
+    <string name="searching_files">Recherche de fichiers…</string>
+    <string name="search_results">Résultats de recherche</string>
+    <string name="no_search_results">Aucun fichier trouvé correspondant à votre recherche</string>
+    <string name="search_query_hint">Entrez le terme de recherche</string>
+    <string name="search_wildcard_hint">Prend en charge les caractères génériques : * (tous caractères), ? (caractère unique)</string>
+    <string name="search_type">Rechercher</string>
+    <string name="search_type_all">Tous les éléments</string>
+    <string name="search_type_files">Fichiers uniquement</string>
+    <string name="search_type_folders">Dossiers uniquement</string>
+    <string name="include_subfolders">Inclure les sous-dossiers</string>
+    <string name="search">Rechercher</string>
+    <string name="cancel_search">Annuler la recherche</string>
+
+    <!-- Download -->
+    <string name="download">Télécharger</string>
+    <string name="downloading">Téléchargement…</string>
+    <string name="download_success">Fichier téléchargé avec succès</string>
+    <string name="download_error">Erreur lors du téléchargement du fichier</string>
+    <string name="file_not_found">Le fichier \"%1$s\" n\'a pas pu être trouvé sur le serveur. Veuillez vérifier si le fichier existe et réessayer.</string>
+    <string name="save_file">Enregistrer le fichier</string>
+    <string name="file_options">Options de fichier</string>
+
+    <!-- Upload -->
+    <string name="upload">Téléverser</string>
+    <string name="uploading">Téléversement…</string>
+    <string name="upload_success">Fichier téléversé avec succès</string>
+    <string name="upload_error">Erreur lors du téléversement du fichier</string>
+    <string name="select_file">Sélectionner un fichier à téléverser</string>
+    <string name="file_exists_title">Le fichier existe déjà</string>
+    <string name="file_exists_message">Le fichier \"%1$s\" existe déjà. Voulez-vous le remplacer ?</string>
+    <string name="file_exists_individual_message">Le fichier \"%1$s\" existe déjà sur le serveur. Voulez-vous le remplacer ou ignorer ce fichier ?</string>
+    <string name="overwrite">Remplacer</string>
+    <string name="skip_file">Ignorer le fichier</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">Créer un dossier</string>
+    <string name="create_folder_dialog_title">Créer un nouveau dossier</string>
+    <string name="folder_name">Nom du dossier</string>
+    <string name="folder_created">Dossier créé avec succès</string>
+    <string name="folder_creation_error">Erreur lors de la création du dossier</string>
+
+    <!-- Sorting -->
+    <string name="sort">Trier</string>
+    <string name="sort_dialog_title">Trier les fichiers</string>
+    <string name="sort_by">Trier par</string>
+    <string name="sort_by_name">Nom</string>
+    <string name="sort_by_date">Date</string>
+    <string name="sort_by_size">Taille</string>
+    <string name="directories_first">Répertoires en premier</string>
+
+    <!-- Rename -->
+    <string name="rename">Renommer</string>
+    <string name="rename_dialog_title">Renommer le fichier</string>
+    <string name="new_name">Nouveau nom</string>
+    <string name="rename_success">Fichier renommé avec succès</string>
+    <string name="rename_error">Erreur lors du renommage du fichier</string>
+
+    <!-- Delete -->
+    <string name="delete_file">Supprimer</string>
+    <string name="delete_file_dialog_title">Supprimer le fichier</string>
+    <string name="confirm_delete_file">Êtes-vous sûr de vouloir supprimer \'%1$s\' ?</string>
+    <string name="delete_success">Fichier supprimé avec succès</string>
+    <string name="delete_error">Erreur lors de la suppression du fichier</string>
+    <string name="file_exists">Le fichier existe</string>
+
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">Téléversement de dossier</string>
+    <string name="zip_upload_folder">Téléverser le dossier en ZIP</string>
+    <string name="zip_download_folder">Téléverser le contenu du dossier</string>
+    <string name="creating_zip">Création de l\'archive ZIP…</string>
+    <string name="uploading_zip">Téléversement de l\'archive ZIP…</string>
+    <string name="uploading_folder_contents">Téléversement du contenu du dossier…</string>
+    <string name="processing_files">Traitement des fichiers…</string>
+    <string name="zip_upload_success">Dossier téléversé en ZIP avec succès</string>
+    <string name="folder_contents_upload_success">Contenu du dossier téléversé avec succès</string>
+    <string name="zip_upload_error">Erreur lors du téléversement de l\'archive ZIP</string>
+    <string name="folder_contents_upload_error">Erreur lors du téléversement du contenu du dossier</string>
+    <string name="select_folder_to_upload">Sélectionner un dossier à téléverser en ZIP</string>
+    <string name="select_folder_contents_to_upload">Sélectionner un dossier pour téléverser le contenu</string>
+    <string name="upload_progress_files">Téléversement de %1$d sur %2$d fichiers</string>
+    <string name="upload_incomplete_warning">Le téléversement était incomplet. Certains fichiers n\'ont peut-être pas été transférés.</string>
+    <string name="cleanup_incomplete_upload">Nettoyage du téléversement incomplet…</string>
+    <string name="folder_structure_created">Structure de dossier créée avec succès</string>
+    <string name="verifying_upload_integrity">Vérification de l\'intégrité du téléversement…</string>
+
+    <!-- Enhanced UI Strings -->
+    <string name="success">Succès</string>
+    <string name="retry">Réessayer</string>
+    <string name="ok">OK</string>
+    <string name="please_wait">Veuillez patienter</string>
+
+    <!-- Network Scanner -->
+    <string name="scan_network">Scanner</string>
+    <string name="scanning_network">Analyse en cours…</string>
+    <string name="servers_found">Serveurs disponibles</string>
+    <string name="no_servers_found">Aucun serveur SMB trouvé sur le réseau local.\n\nVous pouvez toujours entrer les détails du serveur manuellement.</string>
+    <string name="network_scan_instructions">Sélectionnez un serveur pour remplir automatiquement les détails de connexion, ou appuyez sur \"Scanner le réseau\" pour rechercher plus de serveurs.</string>
+    <string name="scan_complete">Analyse du réseau terminée</string>
+    <string name="scan_cancelled">Analyse du réseau annulée</string>
+    <string name="scan_error">Erreur d\'analyse : %1$s</string>
+    <string name="server_icon">Serveur</string>
+    <string name="selected">Sélectionné</string>
+    <string name="hosts_scanned">%1$d / %2$d hôtes analysés</string>
+    <string name="currently_scanning">Analyse en cours : %1$s</string>
+    <string name="servers_found_count">%1$d serveur(s) trouvé(s)</string>
+    <string name="server_info_applied">Informations du serveur appliquées : %1$s</string>
+    <string name="available_shares">Partages disponibles</string>
+    <string name="discovering_shares">Découverte des partages…</string>
+    <string name="no_shares_found">Aucun partage trouvé sur ce serveur</string>
+    <string name="tap_share_to_select">Appuyez sur un partage pour le sélectionner :</string>
+    <string name="could_not_connect_check_credentials">Impossible de se connecter au serveur. Vérifiez les identifiants.</string>
+    <string name="enter_server_details">Entrez les détails du serveur pour découvrir les partages</string>
+    <string name="scan_network_permission_required">L\'analyse du réseau nécessite une autorisation de localisation pour accéder aux informations WiFi.</string>
+    <string name="scanning_fallback_networks">Accès WiFi limité - analyse des plages de réseau communes</string>
+
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">Aller au répertoire parent</string>
+    <string name="refresh_directory">Actualiser le répertoire</string>
+    <string name="files_tab">Fichiers</string>
+    <string name="folders_tab">Dossiers</string>
+    <string name="empty_folder">Ce dossier est vide. Utilisez le bouton + pour téléverser des fichiers ou créer des dossiers.</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">Téléversement terminé</string>
+    <string name="upload_complete_message">%1$d sur %2$d fichiers téléversés avec succès</string>
+    <string name="upload_some_failed">%1$d fichiers n\'ont pas pu être téléversés</string>
+    <string name="view_uploaded_files">Voir les fichiers téléversés</string>
+    <string name="close">Fermer</string>
+    <string name="upload_failed">Échec du téléversement</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">Progression du téléversement</string>
+    <string name="upload_progress_channel_description">Affiche la progression des téléversements de fichiers vers les partages SMB</string>
+    <string name="uploading_files">Téléversement de fichiers</string>
+    <string name="preparing_upload">Préparation du téléversement…</string>
+    <string name="starting_upload">Démarrage du téléversement…</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">Téléverser des fichiers</string>
+    <string name="cancel_search_action">Annuler la recherche</string>
+    <string name="loading_system_information">Chargement des informations système…</string>
+    <string name="authentication">Authentification</string>
+    <string name="smb_connection">Connexion SMB</string>
+    <string name="add_smb_connection">Ajouter une connexion SMB</string>
+    <string name="connect_to_network_share">Connectez-vous à votre partage réseau</string>
+    <string name="hosts_scan_progress">0 / 254 hôtes analysés</string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">Accès invité</string>
+
+    <string name="battery_optimization_title">Optimiser les opérations en arrière-plan</string>
+    <string name="battery_optimization_message">Pour des téléchargements et téléversements SMB fiables en arrière-plan, nous recommandons d\'exclure l\'application des optimisations de batterie.\n\nCela garantit que les téléchargements continuent même lorsque l\'application passe en arrière-plan.</string>
+    <string name="open_settings">Ouvrir les paramètres</string>
+    <string name="later">Plus tard</string>
+
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">Récupération de la connexion…</string>
+    <string name="connection_recovered">Connexion récupérée avec succès</string>
+    <string name="connection_recovery_failed">Échec de la récupération de connexion</string>
+    <string name="connection_timeout">Délai de connexion dépassé</string>
+    <string name="connection_broken_pipe">Connexion interrompue</string>
+    <string name="connection_retry_attempt">Nouvelle tentative de connexion (tentative %1$d sur %2$d)</string>
+    <string name="error_no_files_to_share">Aucun fichier à partager</string>
+    <string name="share_needs_target_folder_title">Dossier cible requis</string>
+    <string name="share_needs_target_folder_message">Sélectionner le dossier cible</string>
+    <string name="share_needs_target_folder_select">Sélectionner</string>
+    <string name="share_upload_title">Partager des éléments</string>
+    <string name="share_upload_message">Partager</string>
+    <string name="share_upload_select">Sélectionner</string>
+    <string name="items_to">éléments vers</string>
+</resources>

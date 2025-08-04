@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">Verbinding toevoegen</string>
+    <string name="system_monitor">Systeemmonitor</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Welkom bij SambaLite</string>
+    <string name="welcome_subtitle">Verbind eenvoudig en veilig met je SMB/CIFS-shares. Tik op de + knop om je eerste verbinding toe te voegen.</string>
+    <string name="your_connections">Jouw verbindingen</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">Verbindingsstatus</string>
+    <string name="content_desc_more_options">Meer opties</string>
+    <string name="content_desc_file_type_icon">Bestandstype icoon</string>
+    <string name="content_desc_selected">Geselecteerd</string>
+    <string name="content_desc_share">Delen</string>
+    <string name="content_desc_refresh_system_info">Systeeminformatie vernieuwen</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">Vernieuwen</string>
+
+    <!-- System Monitor -->
+    <string name="system_monitor_title">Systeemmonitor</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
+    <string name="example_share_name">Documenten</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">Verbindingsnaam</string>
+    <string name="server">Server (IP of hostnaam)</string>
+    <string name="share_name">Share naam</string>
+    <string name="username">Gebruikersnaam</string>
+    <string name="password">Wachtwoord</string>
+    <string name="domain">Domein (optioneel)</string>
+    <string name="port">Poort</string>
+    <string name="connect">Verbinden</string>
+    <string name="edit">Bewerken</string>
+    <string name="test_connection">Verbinding testen</string>
+    <string name="save">Opslaan</string>
+    <string name="cancel">Annuleren</string>
+    <string name="add_new_connection">Nieuwe verbinding toevoegen</string>
+    <string name="edit_connection">Verbinding bewerken</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">Verbindingsnaam is vereist</string>
+    <string name="error_server_required">Server is vereist</string>
+    <string name="error_share_required">Share naam is vereist</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">Verbinding verwijderen</string>
+    <string name="confirm_delete_connection">Weet je zeker dat je de verbinding \'%1$s\' wilt verwijderen?</string>
+    <string name="delete">Verwijderen</string>
+    <string name="connection_deleted">Verbinding \'%1$s\' verwijderd</string>
+    <string name="undo">Ongedaan maken</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">Deze directory is leeg</string>
+    <string name="loading_files">Bestanden laden…</string>
+    <string name="error_loading_files">Fout bij laden van bestanden</string>
+    <string name="parent_directory">Bovenliggende directory</string>
+    <string name="file_browser_title">Bestanden</string>
+    <string name="search_files">Bestanden zoeken</string>
+    <string name="search_files_title">Bestanden zoeken</string>
+    <string name="search_title">Zoeken</string>
+    <string name="searching">Zoeken…</string>
+    <string name="searching_files">Bestanden zoeken…</string>
+    <string name="search_results">Zoekresultaten</string>
+    <string name="no_search_results">Geen bestanden gevonden die overeenkomen met je zoekopdracht</string>
+    <string name="search_query_hint">Voer zoekterm in</string>
+    <string name="search_wildcard_hint">Ondersteunt wildcards: * (alle tekens), ? (enkel teken)</string>
+    <string name="search_type">Zoeken naar</string>
+    <string name="search_type_all">Alle items</string>
+    <string name="search_type_files">Alleen bestanden</string>
+    <string name="search_type_folders">Alleen mappen</string>
+    <string name="include_subfolders">Submappen insluiten</string>
+    <string name="search">Zoeken</string>
+    <string name="cancel_search">Zoeken annuleren</string>
+
+    <!-- Download -->
+    <string name="download">Downloaden</string>
+    <string name="downloading">Downloaden…</string>
+    <string name="download_success">Bestand succesvol gedownload</string>
+    <string name="download_error">Fout bij downloaden van bestand</string>
+    <string name="file_not_found">Het bestand \"%1$s\" kon niet worden gevonden op de server. Controleer of het bestand bestaat en probeer opnieuw.</string>
+    <string name="save_file">Bestand opslaan</string>
+    <string name="file_options">Bestandsopties</string>
+
+    <!-- Upload -->
+    <string name="upload">Uploaden</string>
+    <string name="uploading">Uploaden…</string>
+    <string name="upload_success">Bestand succesvol geüpload</string>
+    <string name="upload_error">Fout bij uploaden van bestand</string>
+    <string name="select_file">Selecteer bestand om te uploaden</string>
+    <string name="file_exists_title">Bestand bestaat al</string>
+    <string name="file_exists_message">Het bestand \"%1$s\" bestaat al. Wil je het overschrijven?</string>
+    <string name="file_exists_individual_message">Het bestand \"%1$s\" bestaat al op de server. Wil je het overschrijven of dit bestand overslaan?</string>
+    <string name="overwrite">Overschrijven</string>
+    <string name="skip_file">Bestand overslaan</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">Map maken</string>
+    <string name="create_folder_dialog_title">Nieuwe map maken</string>
+    <string name="folder_name">Mapnaam</string>
+    <string name="folder_created">Map succesvol gemaakt</string>
+    <string name="folder_creation_error">Fout bij maken van map</string>
+
+    <!-- Sorting -->
+    <string name="sort">Sorteren</string>
+    <string name="sort_dialog_title">Bestanden sorteren</string>
+    <string name="sort_by">Sorteren op</string>
+    <string name="sort_by_name">Naam</string>
+    <string name="sort_by_date">Datum</string>
+    <string name="sort_by_size">Grootte</string>
+    <string name="directories_first">Mappen eerst</string>
+
+    <!-- Rename -->
+    <string name="rename">Hernoemen</string>
+    <string name="rename_dialog_title">Bestand hernoemen</string>
+    <string name="new_name">Nieuwe naam</string>
+    <string name="rename_success">Bestand succesvol hernoemd</string>
+    <string name="rename_error">Fout bij hernoemen van bestand</string>
+
+    <!-- Delete -->
+    <string name="delete_file">Verwijderen</string>
+    <string name="delete_file_dialog_title">Bestand verwijderen</string>
+    <string name="confirm_delete_file">Weet je zeker dat je \'%1$s\' wilt verwijderen?</string>
+    <string name="delete_success">Bestand succesvol verwijderd</string>
+    <string name="delete_error">Fout bij verwijderen van bestand</string>
+    <string name="file_exists">Bestand bestaat</string>
+
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">Map upload</string>
+    <string name="zip_upload_folder">Map uploaden als ZIP</string>
+    <string name="zip_download_folder">Mapinhoud uploaden</string>
+    <string name="creating_zip">ZIP-archief maken…</string>
+    <string name="uploading_zip">ZIP-archief uploaden…</string>
+    <string name="uploading_folder_contents">Mapinhoud uploaden…</string>
+    <string name="processing_files">Bestanden verwerken…</string>
+    <string name="zip_upload_success">Map succesvol geüpload als ZIP</string>
+    <string name="folder_contents_upload_success">Mapinhoud succesvol geüpload</string>
+    <string name="zip_upload_error">Fout bij uploaden van ZIP-archief</string>
+    <string name="folder_contents_upload_error">Fout bij uploaden van mapinhoud</string>
+    <string name="select_folder_to_upload">Selecteer map om te uploaden als ZIP</string>
+    <string name="select_folder_contents_to_upload">Selecteer map om inhoud te uploaden</string>
+    <string name="upload_progress_files">%1$d van %2$d bestanden uploaden</string>
+    <string name="upload_incomplete_warning">Upload was onvolledig. Sommige bestanden zijn mogelijk niet overgedragen.</string>
+    <string name="cleanup_incomplete_upload">Onvolledige upload opruimen…</string>
+    <string name="folder_structure_created">Mapstructuur succesvol gemaakt</string>
+    <string name="verifying_upload_integrity">Upload-integriteit verifiëren…</string>
+
+    <!-- Enhanced UI Strings -->
+    <string name="success">Succes</string>
+    <string name="retry">Opnieuw proberen</string>
+    <string name="ok">OK</string>
+    <string name="please_wait">Een moment geduld</string>
+
+    <!-- Network Scanner -->
+    <string name="scan_network">Scannen</string>
+    <string name="scanning_network">Scannen…</string>
+    <string name="servers_found">Beschikbare servers</string>
+    <string name="no_servers_found">Geen SMB-servers gevonden in het lokale netwerk.\n\nJe kunt nog steeds handmatig serverdetails invoeren.</string>
+    <string name="network_scan_instructions">Selecteer een server om verbindingsdetails automatisch in te vullen, of tik op \"Netwerk scannen\" om naar meer servers te zoeken.</string>
+    <string name="scan_complete">Netwerkcan voltooid</string>
+    <string name="scan_cancelled">Netwerkscan geannuleerd</string>
+    <string name="scan_error">Scanfout: %1$s</string>
+    <string name="server_icon">Server</string>
+    <string name="selected">Geselecteerd</string>
+    <string name="hosts_scanned">%1$d / %2$d hosts gescand</string>
+    <string name="currently_scanning">Momenteel scannen: %1$s</string>
+    <string name="servers_found_count">%1$d server(s) gevonden</string>
+    <string name="server_info_applied">Serverinformatie toegepast: %1$s</string>
+    <string name="available_shares">Beschikbare shares</string>
+    <string name="discovering_shares">Shares ontdekken…</string>
+    <string name="no_shares_found">Geen shares gevonden op deze server</string>
+    <string name="tap_share_to_select">Tik op een share om deze te selecteren:</string>
+    <string name="could_not_connect_check_credentials">Kon niet verbinden met server. Controleer inloggegevens.</string>
+    <string name="enter_server_details">Voer serverdetails in om shares te ontdekken</string>
+    <string name="scan_network_permission_required">Netwerk scannen vereist locatietoestemming voor toegang tot WiFi-informatie.</string>
+    <string name="scanning_fallback_networks">WiFi-toegang beperkt - scannen van algemene netwerkbereiken</string>
+
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">Ga naar bovenliggende directory</string>
+    <string name="refresh_directory">Directory vernieuwen</string>
+    <string name="files_tab">Bestanden</string>
+    <string name="folders_tab">Mappen</string>
+    <string name="empty_folder">Deze map is leeg. Gebruik de + knop om bestanden te uploaden of mappen te maken.</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">Upload voltooid</string>
+    <string name="upload_complete_message">%1$d van %2$d bestanden succesvol geüpload</string>
+    <string name="upload_some_failed">%1$d bestanden konden niet worden geüpload</string>
+    <string name="view_uploaded_files">Geüploade bestanden bekijken</string>
+    <string name="close">Sluiten</string>
+    <string name="upload_failed">Upload mislukt</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">Upload voortgang</string>
+    <string name="upload_progress_channel_description">Toont de voortgang van bestandsuploads naar SMB-shares</string>
+    <string name="uploading_files">Bestanden uploaden</string>
+    <string name="preparing_upload">Upload voorbereiden…</string>
+    <string name="starting_upload">Upload starten…</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">Bestanden uploaden</string>
+    <string name="cancel_search_action">Zoeken annuleren</string>
+    <string name="loading_system_information">Systeeminformatie laden…</string>
+    <string name="authentication">Authenticatie</string>
+    <string name="smb_connection">SMB-verbinding</string>
+    <string name="add_smb_connection">SMB-verbinding toevoegen</string>
+    <string name="connect_to_network_share">Verbind met je netwerkshare</string>
+    <string name="hosts_scan_progress">0 / 254 hosts gescand</string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">Gasttoegang</string>
+
+    <string name="battery_optimization_title">Achtergrondoperaties optimaliseren</string>
+    <string name="battery_optimization_message">Voor betrouwbare SMB-downloads en uploads op de achtergrond raden we aan de app uit te sluiten van batterijoptimalisaties.\n\nDit zorgt ervoor dat downloads doorgaan zelfs wanneer de app naar de achtergrond gaat.</string>
+    <string name="open_settings">Instellingen openen</string>
+    <string name="later">Later</string>
+
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">Verbinding herstellen…</string>
+    <string name="connection_recovered">Verbinding succesvol hersteld</string>
+    <string name="connection_recovery_failed">Verbindingsherstel mislukt</string>
+    <string name="connection_timeout">Verbindingstime-out</string>
+    <string name="connection_broken_pipe">Verbinding onderbroken</string>
+    <string name="connection_retry_attempt">Verbindingspoging opnieuw proberen (poging %1$d van %2$d)</string>
+    <string name="error_no_files_to_share">Geen bestanden om te delen</string>
+    <string name="share_needs_target_folder_title">Doelmap vereist</string>
+    <string name="share_needs_target_folder_message">Selecteer doelmap</string>
+    <string name="share_needs_target_folder_select">Selecteren</string>
+    <string name="share_upload_title">Items delen</string>
+    <string name="share_upload_message">Delen</string>
+    <string name="share_upload_select">Selecteren</string>
+    <string name="items_to">items naar</string>
+</resources>

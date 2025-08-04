@@ -1,0 +1,2 @@
+• Multi-language Support**: Added localization for Polish, Spanish, Dutch, and French
+• Enhanced Sharing**: Improved sharing functionality for devices with Android 11 (API 30) and higher

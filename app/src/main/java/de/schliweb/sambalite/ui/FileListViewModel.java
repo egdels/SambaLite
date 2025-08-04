@@ -389,4 +389,61 @@ public class FileListViewModel extends ViewModel {
         state.setCurrentPath(path);
         loadFiles();
     }
+
+    /**
+     * Navigates to a path and builds the correct navigation hierarchy.
+     * This method ensures that the navigation stack is properly built so that
+     * the user can navigate back up the directory tree.
+     *
+     * @param path The path to navigate to
+     */
+    public void navigateToPathWithHierarchy(String path) {
+        if (path == null || path.isEmpty()) {
+            LogUtils.w("FileListViewModel", "Cannot navigate to empty path");
+            return;
+        }
+
+        LogUtils.d("FileListViewModel", "Navigating to path with hierarchy: " + path);
+
+        // Clear the navigation stack first
+        while (state.hasParentDirectory()) {
+            state.popPath();
+        }
+
+        // Handle root path
+        if (path.equals("/") || path.isEmpty()) {
+            state.setCurrentPath("");
+            loadFiles();
+            return;
+        }
+
+        // Remove leading slash if present
+        String cleanPath = path.startsWith("/") ? path.substring(1) : path;
+
+        // Split the path into parts
+        String[] pathParts = cleanPath.split("/");
+
+        // Start from root (empty path) and build navigation stack step by step
+        state.setCurrentPath("");
+
+        // For each path segment, push the previous path and navigate to the next
+        String buildPath = "";
+        for (String part : pathParts) {
+            if (part != null && !part.isEmpty()) {
+                // Push the current path before moving to next level
+                state.pushPath(buildPath);
+
+                // Build the next path
+                buildPath = buildPath.isEmpty() ? part : buildPath + "/" + part;
+
+                LogUtils.d("FileListViewModel", "Building navigation hierarchy step: " + buildPath);
+            }
+        }
+
+        // Set the final destination path
+        state.setCurrentPath(buildPath);
+
+        // Load files for the final destination
+        loadFiles();
+    }
 }

@@ -8,6 +8,7 @@ import dagger.multibindings.IntoMap;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.MainViewModel;
 import de.schliweb.sambalite.ui.SearchViewModel;
+import de.schliweb.sambalite.ui.ShareReceiverViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 
 /**
@@ -47,6 +48,14 @@ public abstract class ViewModelModule {
     @IntoMap
     @ViewModelKey(SearchViewModel.class)
     abstract ViewModel bindSearchViewModel(SearchViewModel viewModel);
+
+    /**
+     * Binds the ShareReceiverViewModel to the ViewModelFactory.
+     */
+    @Binds
+    @IntoMap
+    @ViewModelKey(ShareReceiverViewModel.class)
+    abstract ViewModel bindShareReceiverViewModel(ShareReceiverViewModel viewModel);
 
     /**
      * Binds the ViewModelFactory.

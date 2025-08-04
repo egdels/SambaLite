@@ -6,6 +6,7 @@ import dagger.Component;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.MainActivity;
+import de.schliweb.sambalite.ui.ShareReceiverActivity;
 
 import javax.inject.Singleton;
 
@@ -28,9 +29,14 @@ public interface AppComponent {
     void inject(MainActivity activity);
 
     /**
-     * Injects dependencies into the RefactoredFileBrowserActivity.
+     * Injects dependencies into the FileBrowserActivity.
      */
     void inject(FileBrowserActivity activity);
+
+    /**
+     * Injects dependencies into the ShareReceiverActivity.
+     */
+    void inject(ShareReceiverActivity activity);
 
     /**
      * Builder for the AppComponent.

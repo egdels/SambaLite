@@ -20,6 +20,9 @@
     <!-- Menu Items -->
     <string name="menu_refresh">Aktualisieren</string>
 
+    <!-- System Monitor -->
+    <string name="system_monitor_title">System Monitor</string>
+
     <!-- Example Content -->
     <string name="example_ip">192.168.1.100</string>
     <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
@@ -34,11 +37,10 @@
     <string name="domain">Domäne (optional)</string>
     <string name="port">Port</string>
     <string name="connect">Verbinden</string>
-    <string name="cancel">Abbrechen</string>
-    <string name="save">Speichern</string>
-    <string name="delete">Löschen</string>
     <string name="edit">Bearbeiten</string>
     <string name="test_connection">Verbindung testen</string>
+    <string name="save">Speichern</string>
+    <string name="cancel">Abbrechen</string>
     <string name="add_new_connection">Neue Verbindung hinzufügen</string>
     <string name="edit_connection">Verbindung bearbeiten</string>
 
@@ -50,6 +52,7 @@
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbindung löschen</string>
     <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung \'%1$s\' löschen möchten?</string>
+    <string name="delete">Löschen</string>
     <string name="connection_deleted">Verbindung \'%1$s\' gelöscht</string>
     <string name="undo">Rückgängig</string>
 
@@ -60,6 +63,7 @@
     <string name="parent_directory">Übergeordnetes Verzeichnis</string>
     <string name="file_browser_title">Dateien</string>
     <string name="search_files">Dateien suchen</string>
+    <string name="search_files_title">Dateien suchen</string>
     <string name="search_title">Suche</string>
     <string name="searching">Suche…</string>
     <string name="searching_files">Dateien werden durchsucht…</string>
@@ -80,7 +84,7 @@
     <string name="downloading">Herunterladen…</string>
     <string name="download_success">Datei erfolgreich heruntergeladen</string>
     <string name="download_error">Fehler beim Herunterladen der Datei</string>
-    <string name="file_not_found">Die Datei \"%1$s\" konnte nicht auf dem Server gefunden werden. Bitte prüfen Sie, ob die Datei existiert und versuchen Sie es erneut.</string>
+    <string name="file_not_found">Die Datei \"%1$s\" konnte auf dem Server nicht gefunden werden. Bitte überprüfen Sie, ob die Datei existiert und versuchen Sie es erneut.</string>
     <string name="save_file">Datei speichern</string>
     <string name="file_options">Datei-Optionen</string>
 
@@ -127,27 +131,29 @@
     <string name="delete_error">Fehler beim Löschen der Datei</string>
     <string name="file_exists">Datei existiert</string>
 
-    <!-- ZIP Transfer -->
-    <string name="zip_transfer_title">ZIP-Übertragung</string>
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">Ordner-Upload</string>
     <string name="zip_upload_folder">Ordner als ZIP hochladen</string>
     <string name="zip_download_folder">Ordnerinhalt hochladen</string>
-    <string name="creating_zip">Erstelle ZIP-Archiv…</string>
-    <string name="uploading_zip">Lade ZIP-Archiv hoch…</string>
-    <string name="zip_upload_success">Ordner erfolgreich als ZIP hochgeladen</string>
-    <string name="zip_upload_error">Fehler beim Hochladen des ZIP-Archivs</string>
-    <string name="select_folder_to_upload">Ordner zum Hochladen als ZIP auswählen</string>
-
-    <!-- Folder Contents Upload -->
-    <string name="uploading_folder_contents">Lade Ordnerinhalt hoch…</string>
-    <string name="processing_files">Verarbeite Dateien…</string>
+    <string name="creating_zip">ZIP-Archiv wird erstellt…</string>
+    <string name="uploading_zip">ZIP-Archiv wird hochgeladen…</string>
+    <string name="uploading_folder_contents">Ordnerinhalt wird hochgeladen…</string>
+    <string name="processing_files">Dateien werden verarbeitet…</string>
+    <string name="zip_upload_success">Ordner als ZIP erfolgreich hochgeladen</string>
     <string name="folder_contents_upload_success">Ordnerinhalt erfolgreich hochgeladen</string>
+    <string name="zip_upload_error">Fehler beim Hochladen des ZIP-Archivs</string>
     <string name="folder_contents_upload_error">Fehler beim Hochladen des Ordnerinhalts</string>
+    <string name="select_folder_to_upload">Ordner zum Hochladen als ZIP auswählen</string>
     <string name="select_folder_contents_to_upload">Ordner zum Hochladen des Inhalts auswählen</string>
-    <string name="upload_progress_files">Lade %1$d von %2$d Dateien hoch</string>
+    <string name="upload_progress_files">%1$d von %2$d Dateien werden hochgeladen</string>
     <string name="upload_incomplete_warning">Upload war unvollständig. Einige Dateien wurden möglicherweise nicht übertragen.</string>
-    <string name="cleanup_incomplete_upload">Bereinige unvollständigen Upload…</string>
+    <string name="cleanup_incomplete_upload">Unvollständiger Upload wird bereinigt…</string>
     <string name="folder_structure_created">Ordnerstruktur erfolgreich erstellt</string>
-    <string name="verifying_upload_integrity">Überprüfe Upload-Integrität…</string>
+    <string name="verifying_upload_integrity">Upload-Integrität wird überprüft…</string>
 
     <!-- Enhanced UI Strings -->
     <string name="success">Erfolg</string>
@@ -169,17 +175,6 @@
     <string name="hosts_scanned">%1$d / %2$d Hosts gescannt</string>
     <string name="currently_scanning">Scanne gerade: %1$s</string>
     <string name="servers_found_count">%1$d Server gefunden</string>
-    <string name="scan_network_permission_required">Netzwerk-Scan benötigt Standort-Berechtigung für WLAN-Informationen.</string>
-    <string name="scanning_fallback_networks">WLAN-Zugriff eingeschränkt - scanne häufige Netzwerkbereiche</string>
-    
-    <!-- File Browser -->
-    <string name="go_to_parent_directory">Zum übergeordneten Verzeichnis</string>
-    <string name="refresh_directory">Verzeichnis aktualisieren</string>
-    <string name="files_tab">Dateien</string>
-    <string name="folders_tab">Ordner</string>
-    <string name="empty_folder">Dieser Ordner ist leer. Verwende den + Button, um Dateien hochzuladen oder Ordner zu erstellen.</string>
-    
-    <!-- Connection Management -->
     <string name="server_info_applied">Server-Informationen übernommen: %1$s</string>
     <string name="available_shares">Verfügbare Freigaben</string>
     <string name="discovering_shares">Suche Freigaben…</string>
@@ -187,6 +182,30 @@
     <string name="tap_share_to_select">Tippe auf eine Freigabe um sie auszuwählen:</string>
     <string name="could_not_connect_check_credentials">Konnte nicht zum Server verbinden. Prüfe die Anmeldedaten.</string>
     <string name="enter_server_details">Server-Details eingeben um Freigaben zu entdecken</string>
+    <string name="scan_network_permission_required">Netzwerk-Scannen erfordert Standortberechtigung für den Zugriff auf WiFi-Informationen.</string>
+    <string name="scanning_fallback_networks">WiFi-Zugriff eingeschränkt - Scannen allgemeiner Netzwerkbereiche</string>
+
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">Zum übergeordneten Verzeichnis</string>
+    <string name="refresh_directory">Verzeichnis aktualisieren</string>
+    <string name="files_tab">Dateien</string>
+    <string name="folders_tab">Ordner</string>
+    <string name="empty_folder">Dieser Ordner ist leer. Verwende den + Button, um Dateien hochzuladen oder Ordner zu erstellen.</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">Upload abgeschlossen</string>
+    <string name="upload_complete_message">%1$d von %2$d Dateien erfolgreich hochgeladen</string>
+    <string name="upload_some_failed">%1$d Dateien konnten nicht hochgeladen werden</string>
+    <string name="view_uploaded_files">Hochgeladene Dateien anzeigen</string>
+    <string name="close">Schließen</string>
+    <string name="upload_failed">Upload fehlgeschlagen</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">Upload-Fortschritt</string>
+    <string name="upload_progress_channel_description">Zeigt den Fortschritt von Datei-Uploads zu SMB-Freigaben</string>
+    <string name="uploading_files">Dateien hochladen</string>
+    <string name="preparing_upload">Upload wird vorbereitet…</string>
+    <string name="starting_upload">Upload wird gestartet…</string>
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Dateien hochladen</string>
@@ -209,8 +228,15 @@
     <string name="connection_recovering">Verbindung wird wiederhergestellt…</string>
     <string name="connection_recovered">Verbindung erfolgreich wiederhergestellt</string>
     <string name="connection_recovery_failed">Verbindungswiederherstellung fehlgeschlagen</string>
-    <string name="connection_timeout">Verbindungs-Timeout</string>
+    <string name="connection_timeout">Verbindungszeit überschritten</string>
     <string name="connection_broken_pipe">Verbindung unterbrochen</string>
     <string name="connection_retry_attempt">Verbindungsversuch wird wiederholt (Versuch %1$d von %2$d)</string>
-    
+    <string name="error_no_files_to_share">Keine Dateien zum Teilen</string>
+    <string name="share_needs_target_folder_title">Zielordner erforderlich</string>
+    <string name="share_needs_target_folder_message">Zielordner auswählen</string>
+    <string name="share_needs_target_folder_select">Auswählen</string>
+    <string name="share_upload_title">Elemente teilen</string>
+    <string name="share_upload_message">Teile</string>
+    <string name="share_upload_select">Auswählen</string>
+    <string name="items_to">Elemente nach</string>
 </resources>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">Dodaj połączenie</string>
+    <string name="system_monitor">Monitor systemu</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Witamy w SambaLite</string>
+    <string name="welcome_subtitle">Połącz się łatwo i bezpiecznie ze swoimi udziałami SMB/CIFS. Dotknij przycisk +, aby dodać pierwsze połączenie.</string>
+    <string name="your_connections">Twoje połączenia</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">Status połączenia</string>
+    <string name="content_desc_more_options">Więcej opcji</string>
+    <string name="content_desc_file_type_icon">Ikona typu pliku</string>
+    <string name="content_desc_selected">Wybrano</string>
+    <string name="content_desc_share">Udostępnij</string>
+    <string name="content_desc_refresh_system_info">Odśwież informacje systemowe</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">Odśwież</string>
+
+    <!-- System Monitor -->
+    <string name="system_monitor_title">Monitor systemu</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15ms)</string>
+    <string name="example_share_name">Dokumenty</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">Nazwa połączenia</string>
+    <string name="server">Serwer (IP lub nazwa hosta)</string>
+    <string name="share_name">Nazwa udziału</string>
+    <string name="username">Nazwa użytkownika</string>
+    <string name="password">Hasło</string>
+    <string name="domain">Domena (opcjonalna)</string>
+    <string name="port">Port</string>
+    <string name="connect">Połącz</string>
+    <string name="edit">Edytuj</string>
+    <string name="test_connection">Testuj połączenie</string>
+    <string name="save">Zapisz</string>
+    <string name="cancel">Anuluj</string>
+    <string name="add_new_connection">Dodaj nowe połączenie</string>
+    <string name="edit_connection">Edytuj połączenie</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">Nazwa połączenia jest wymagana</string>
+    <string name="error_server_required">Serwer jest wymagany</string>
+    <string name="error_share_required">Nazwa udziału jest wymagana</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">Usuń połączenie</string>
+    <string name="confirm_delete_connection">Czy na pewno chcesz usunąć połączenie \'%1$s\'?</string>
+    <string name="delete">Usuń</string>
+    <string name="connection_deleted">Połączenie \'%1$s\' usunięte</string>
+    <string name="undo">Cofnij</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">Ten katalog jest pusty</string>
+    <string name="loading_files">Ładowanie plików…</string>
+    <string name="error_loading_files">Błąd ładowania plików</string>
+    <string name="parent_directory">Katalog nadrzędny</string>
+    <string name="file_browser_title">Pliki</string>
+    <string name="search_files">Szukaj plików</string>
+    <string name="search_files_title">Szukaj plików</string>
+    <string name="search_title">Szukaj</string>
+    <string name="searching">Szukanie…</string>
+    <string name="searching_files">Szukanie plików…</string>
+    <string name="search_results">Wyniki wyszukiwania</string>
+    <string name="no_search_results">Nie znaleziono plików pasujących do wyszukiwania</string>
+    <string name="search_query_hint">Wprowadź termin wyszukiwania</string>
+    <string name="search_wildcard_hint">Obsługuje wieloznaczniki: * (dowolne znaki), ? (pojedynczy znak)</string>
+    <string name="search_type">Szukaj</string>
+    <string name="search_type_all">Wszystkie elementy</string>
+    <string name="search_type_files">Tylko pliki</string>
+    <string name="search_type_folders">Tylko foldery</string>
+    <string name="include_subfolders">Uwzględnij podfoldery</string>
+    <string name="search">Szukaj</string>
+    <string name="cancel_search">Anuluj wyszukiwanie</string>
+
+    <!-- Download -->
+    <string name="download">Pobierz</string>
+    <string name="downloading">Pobieranie…</string>
+    <string name="download_success">Plik pobrany pomyślnie</string>
+    <string name="download_error">Błąd pobierania pliku</string>
+    <string name="file_not_found">Plik \"%1$s\" nie został znaleziony na serwerze. Sprawdź czy plik istnieje i spróbuj ponownie.</string>
+    <string name="save_file">Zapisz plik</string>
+    <string name="file_options">Opcje pliku</string>
+
+    <!-- Upload -->
+    <string name="upload">Wyślij</string>
+    <string name="uploading">Wysyłanie…</string>
+    <string name="upload_success">Plik wysłany pomyślnie</string>
+    <string name="upload_error">Błąd wysyłania pliku</string>
+    <string name="select_file">Wybierz plik do wysłania</string>
+    <string name="file_exists_title">Plik już istnieje</string>
+    <string name="file_exists_message">Plik \"%1$s\" już istnieje. Czy chcesz go zastąpić?</string>
+    <string name="file_exists_individual_message">Plik \"%1$s\" już istnieje na serwerze. Czy chcesz go zastąpić czy pominąć ten plik?</string>
+    <string name="overwrite">Zastąp</string>
+    <string name="skip_file">Pomiń plik</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">Utwórz folder</string>
+    <string name="create_folder_dialog_title">Utwórz nowy folder</string>
+    <string name="folder_name">Nazwa folderu</string>
+    <string name="folder_created">Folder utworzony pomyślnie</string>
+    <string name="folder_creation_error">Błąd tworzenia folderu</string>
+
+    <!-- Sorting -->
+    <string name="sort">Sortuj</string>
+    <string name="sort_dialog_title">Sortuj pliki</string>
+    <string name="sort_by">Sortuj według</string>
+    <string name="sort_by_name">Nazwa</string>
+    <string name="sort_by_date">Data</string>
+    <string name="sort_by_size">Rozmiar</string>
+    <string name="directories_first">Katalogi na początku</string>
+
+    <!-- Rename -->
+    <string name="rename">Zmień nazwę</string>
+    <string name="rename_dialog_title">Zmień nazwę pliku</string>
+    <string name="new_name">Nowa nazwa</string>
+    <string name="rename_success">Plik przemianowany pomyślnie</string>
+    <string name="rename_error">Błąd zmiany nazwy pliku</string>
+
+    <!-- Delete -->
+    <string name="delete_file">Usuń</string>
+    <string name="delete_file_dialog_title">Usuń plik</string>
+    <string name="confirm_delete_file">Czy na pewno chcesz usunąć \'%1$s\'?</string>
+    <string name="delete_success">Plik usunięty pomyślnie</string>
+    <string name="delete_error">Błąd usuwania pliku</string>
+    <string name="file_exists">Plik istnieje</string>
+
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">Wysyłanie folderu</string>
+    <string name="zip_upload_folder">Wyślij folder jako ZIP</string>
+    <string name="zip_download_folder">Wyślij zawartość folderu</string>
+    <string name="creating_zip">Tworzenie archiwum ZIP…</string>
+    <string name="uploading_zip">Wysyłanie archiwum ZIP…</string>
+    <string name="uploading_folder_contents">Wysyłanie zawartości folderu…</string>
+    <string name="processing_files">Przetwarzanie plików…</string>
+    <string name="zip_upload_success">Folder wysłany jako ZIP pomyślnie</string>
+    <string name="folder_contents_upload_success">Zawartość folderu wysłana pomyślnie</string>
+    <string name="zip_upload_error">Błąd wysyłania archiwum ZIP</string>
+    <string name="folder_contents_upload_error">Błąd wysyłania zawartości folderu</string>
+    <string name="select_folder_to_upload">Wybierz folder do wysłania jako ZIP</string>
+    <string name="select_folder_contents_to_upload">Wybierz folder do wysłania zawartości</string>
+    <string name="upload_progress_files">Wysyłanie %1$d z %2$d plików</string>
+    <string name="upload_incomplete_warning">Wysyłanie było niekompletne. Niektóre pliki mogły nie zostać przesłane.</string>
+    <string name="cleanup_incomplete_upload">Czyszczenie niekompletnego wysyłania…</string>
+    <string name="folder_structure_created">Struktura folderu utworzona pomyślnie</string>
+    <string name="verifying_upload_integrity">Weryfikacja integralności wysyłania…</string>
+
+    <!-- Enhanced UI Strings -->
+    <string name="success">Sukces</string>
+    <string name="retry">Ponów</string>
+    <string name="ok">OK</string>
+    <string name="please_wait">Proszę czekać</string>
+
+    <!-- Network Scanner -->
+    <string name="scan_network">Skanuj</string>
+    <string name="scanning_network">Skanowanie…</string>
+    <string name="servers_found">Dostępne serwery</string>
+    <string name="no_servers_found">Nie znaleziono serwerów SMB w sieci lokalnej.\n\nMożesz nadal wprowadzić szczegóły serwera ręcznie.</string>
+    <string name="network_scan_instructions">Wybierz serwer, aby automatycznie wypełnić szczegóły połączenia, lub dotknij \"Skanuj sieć\", aby wyszukać więcej serwerów.</string>
+    <string name="scan_complete">Skanowanie sieci zakończone</string>
+    <string name="scan_cancelled">Skanowanie sieci anulowane</string>
+    <string name="scan_error">Błąd skanowania: %1$s</string>
+    <string name="server_icon">Serwer</string>
+    <string name="selected">Wybrano</string>
+    <string name="hosts_scanned">%1$d / %2$d hostów przeskanowanych</string>
+    <string name="currently_scanning">Obecnie skanowanie: %1$s</string>
+    <string name="servers_found_count">Znaleziono %1$d serwer(ów)</string>
+    <string name="server_info_applied">Informacje serwera zastosowane: %1$s</string>
+    <string name="available_shares">Dostępne udziały</string>
+    <string name="discovering_shares">Odkrywanie udziałów…</string>
+    <string name="no_shares_found">Nie znaleziono udziałów na tym serwerze</string>
+    <string name="tap_share_to_select">Dotknij udział, aby go wybrać:</string>
+    <string name="could_not_connect_check_credentials">Nie można połączyć się z serwerem. Sprawdź dane uwierzytelniające.</string>
+    <string name="enter_server_details">Wprowadź szczegóły serwera, aby odkryć udziały</string>
+    <string name="scan_network_permission_required">Skanowanie sieci wymaga uprawnienia do lokalizacji dla dostępu do informacji WiFi.</string>
+    <string name="scanning_fallback_networks">Ograniczony dostęp do WiFi - skanowanie wspólnych zakresów sieci</string>
+
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">Przejdź do katalogu nadrzędnego</string>
+    <string name="refresh_directory">Odśwież katalog</string>
+    <string name="files_tab">Pliki</string>
+    <string name="folders_tab">Foldery</string>
+    <string name="empty_folder">Ten folder jest pusty. Użyj przycisku +, aby wysłać pliki lub utworzyć foldery.</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">Wysyłanie zakończone</string>
+    <string name="upload_complete_message">Pomyślnie wysłano %1$d z %2$d plików</string>
+    <string name="upload_some_failed">%1$d plików nie udało się wysłać</string>
+    <string name="view_uploaded_files">Zobacz wysłane pliki</string>
+    <string name="close">Zamknij</string>
+    <string name="upload_failed">Wysyłanie nie powiodło się</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">Postęp wysyłania</string>
+    <string name="upload_progress_channel_description">Pokazuje postęp wysyłania plików do udziałów SMB</string>
+    <string name="uploading_files">Wysyłanie plików</string>
+    <string name="preparing_upload">Przygotowywanie wysyłania…</string>
+    <string name="starting_upload">Rozpoczynanie wysyłania…</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">Wyślij pliki</string>
+    <string name="cancel_search_action">Anuluj wyszukiwanie</string>
+    <string name="loading_system_information">Ładowanie informacji systemowych…</string>
+    <string name="authentication">Uwierzytelnianie</string>
+    <string name="smb_connection">Połączenie SMB</string>
+    <string name="add_smb_connection">Dodaj połączenie SMB</string>
+    <string name="connect_to_network_share">Połącz się ze swoim udziałem sieciowym</string>
+    <string name="hosts_scan_progress">0 / 254 hostów przeskanowanych</string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">Dostęp gościnny</string>
+
+    <string name="battery_optimization_title">Optymalizuj operacje w tle</string>
+    <string name="battery_optimization_message">Aby zapewnić niezawodne pobieranie i wysyłanie SMB w tle, zalecamy wykluczenie aplikacji z optymalizacji baterii.\n\nZapewnia to kontynuację pobierania, nawet gdy aplikacja przechodzi w tło.</string>
+    <string name="open_settings">Otwórz ustawienia</string>
+    <string name="later">Później</string>
+
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">Odzyskiwanie połączenia…</string>
+    <string name="connection_recovered">Połączenie odzyskane pomyślnie</string>
+    <string name="connection_recovery_failed">Odzyskanie połączenia nie powiodło się</string>
+    <string name="connection_timeout">Przekroczenie czasu połączenia</string>
+    <string name="connection_broken_pipe">Połączenie przerwane</string>
+    <string name="connection_retry_attempt">Ponowienie próby połączenia (próba %1$d z %2$d)</string>
+    <string name="error_no_files_to_share">Brak plików do udostępnienia</string>
+    <string name="share_needs_target_folder_title">Wymagany folder docelowy</string>
+    <string name="share_needs_target_folder_message">Wybierz folder docelowy</string>
+    <string name="share_needs_target_folder_select">Wybierz</string>
+    <string name="share_upload_title">Udostępnij elementy</string>
+    <string name="share_upload_message">Udostępnij</string>
+    <string name="share_upload_select">Wybierz</string>
+    <string name="items_to">elementy do</string>
+</resources>

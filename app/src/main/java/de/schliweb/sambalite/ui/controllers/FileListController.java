@@ -37,6 +37,8 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
 
     @Setter
     private FileStatisticsCallback fileStatisticsCallback;
+    @Setter
+    private FolderChangeCallback folderChangeCallback;
 
     /**
      * Creates a new FileListController.
@@ -110,6 +112,10 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         viewModel.getCurrentPath().observe(getLifecycleOwner(), path -> {
             LogUtils.d("FileListController", "Current path updated: " + path);
             currentPathView.setText(path);
+
+            if (folderChangeCallback != null) {
+                folderChangeCallback.onFolderChanged(path);
+            }
         });
 
         // Observe loading state
@@ -286,4 +292,14 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
          */
         void onFileStatisticsUpdated(List<SmbFileItem> files);
     }
+
+    /**
+     * Callback for folder changes.
+     * This can be used to notify when the current folder changes,
+     * for example, to update the UI or perform actions based on the new path.
+     */
+    public interface FolderChangeCallback {
+        void onFolderChanged(String newRemotePath);
+    }
+
 }

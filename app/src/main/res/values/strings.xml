@@ -3,7 +3,7 @@
     <string name="app_name">SambaLite</string>
     <string name="add_connection">Add Connection</string>
     <string name="system_monitor">System Monitor</string>
-    
+   
     <!-- Welcome Screen -->
     <string name="welcome_title">Welcome to SambaLite</string>
     <string name="welcome_subtitle">Connect to your SMB/CIFS shares easily and securely. Tap the + button to add your first connection.</string>
@@ -19,6 +19,9 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Refresh</string>
+
+    <!-- System Monitor -->
+    <string name="system_monitor_title">System Monitor</string>
 
     <!-- Example Content -->
     <string name="example_ip">192.168.1.100</string>
@@ -60,6 +63,7 @@
     <string name="parent_directory">Parent Directory</string>
     <string name="file_browser_title">Files</string>
     <string name="search_files">Search files</string>
+    <string name="search_files_title">Search Files</string>
     <string name="search_title">Search</string>
     <string name="searching">Searching…</string>
     <string name="searching_files">Searching files…</string>
@@ -130,7 +134,7 @@
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
     <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
-    
+
     <!-- Folder Upload Options -->
     <string name="zip_transfer_title">Folder Upload</string>
     <string name="zip_upload_folder">Upload folder as ZIP</string>
@@ -150,13 +154,13 @@
     <string name="cleanup_incomplete_upload">Cleaning up incomplete upload…</string>
     <string name="folder_structure_created">Folder structure created successfully</string>
     <string name="verifying_upload_integrity">Verifying upload integrity…</string>
-    
+
     <!-- Enhanced UI Strings -->
     <string name="success">Success</string>
     <string name="retry">Retry</string>
     <string name="ok">OK</string>
     <string name="please_wait">Please wait</string>
-    
+
     <!-- Network Scanner -->
     <string name="scan_network">Scan</string>
     <string name="scanning_network">Scanning…</string>
@@ -180,13 +184,28 @@
     <string name="enter_server_details">Enter server details to discover shares</string>
     <string name="scan_network_permission_required">Network scanning requires location permission to access WiFi information.</string>
     <string name="scanning_fallback_networks">WiFi access limited - scanning common network ranges</string>
-    
+
     <!-- File Browser Additional Strings -->
     <string name="go_to_parent_directory">Go to parent directory</string>
     <string name="refresh_directory">Refresh directory</string>
     <string name="files_tab">Files</string>
     <string name="folders_tab">Folders</string>
     <string name="empty_folder">This folder is empty. Use the + button to upload files or create folders.</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">Upload Complete</string>
+    <string name="upload_complete_message">Successfully uploaded %1$d of %2$d files</string>
+    <string name="upload_some_failed">%1$d files failed to upload</string>
+    <string name="view_uploaded_files">View Uploaded Files</string>
+    <string name="close">Close</string>
+    <string name="upload_failed">Upload failed</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">Upload Progress</string>
+    <string name="upload_progress_channel_description">Shows progress of file uploads to SMB shares</string>
+    <string name="uploading_files">Uploading Files</string>
+    <string name="preparing_upload">Preparing upload…</string>
+    <string name="starting_upload">Starting upload…</string>
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Upload files</string>
@@ -199,13 +218,13 @@
     <string name="hosts_scan_progress">0 / 254 hosts scanned</string>
     <string name="progress_percentage">0%</string>
     <string name="guest_access">Guest access</string>
-    
+
 
     <string name="battery_optimization_title">Optimize Background Operations</string>
     <string name="battery_optimization_message">For reliable SMB downloads and uploads in the background, we recommend excluding the app from battery optimizations.\n\nThis ensures that downloads continue even when the app moves to the background.</string>
     <string name="open_settings">Open Settings</string>
     <string name="later">Later</string>
-    
+
     <!-- Robust Connection Messages -->
     <string name="connection_recovering">Recovering connection…</string>
     <string name="connection_recovered">Connection recovered successfully</string>
@@ -213,5 +232,12 @@
     <string name="connection_timeout">Connection timeout</string>
     <string name="connection_broken_pipe">Connection interrupted</string>
     <string name="connection_retry_attempt">Retrying connection (attempt %1$d of %2$d)</string>
-    
+    <string name="error_no_files_to_share">No files to share</string>
+    <string name="share_needs_target_folder_title">Target folder required</string>
+    <string name="share_needs_target_folder_message">Select target folder</string>
+    <string name="share_needs_target_folder_select">Select</string>
+    <string name="share_upload_title">Share items</string>
+    <string name="share_upload_message">Share</string>
+    <string name="share_upload_select">Select</string>
+    <string name="items_to">items to</string>
 </resources>

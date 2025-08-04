@@ -228,7 +228,7 @@ public class DialogHelper {
         int padding = (int) (16 * context.getResources().getDisplayMetrics().density);
         input.setPadding(padding, padding, padding, padding);
 
-        AlertDialog dialog = new MaterialAlertDialogBuilder(context).setTitle("Search Files").setView(input).setPositiveButton(android.R.string.ok, (d, which) -> {
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context).setTitle(context.getString(R.string.search_files_title)).setView(input).setPositiveButton(android.R.string.ok, (d, which) -> {
             String query = input.getText().toString().trim();
             if (!query.isEmpty()) {
                 // Default to searching all files with no subfolders
@@ -241,6 +241,93 @@ public class DialogHelper {
         if (context instanceof Activity) {
             KeyboardUtils.showKeyboard(context, input);
         }
+    }
+
+    /**
+     * Shows a dialog when no target folder is set for sharing.
+     *
+     * @param context The context
+     * @param onSelectFolder Callback when user wants to select a folder
+     * @param onCancel Callback when user cancels
+     */
+    public static void showNeedsTargetFolderDialog(Context context, Runnable onSelectFolder, Runnable onCancel) {
+        LogUtils.d("DialogHelper", "Showing needs target folder dialog");
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.share_needs_target_folder_title)
+                .setMessage(R.string.share_needs_target_folder_message)
+                .setPositiveButton(R.string.share_needs_target_folder_select, (dialog, which) -> onSelectFolder.run())
+                .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
+                .setCancelable(false)
+                .show();
+    }
+
+    /**
+     * Shows a dialog to confirm uploading shared files.
+     *
+     * @param context The context
+     * @param fileCount Number of files to upload
+     * @param targetFolder Target folder path
+     * @param onUpload Callback when user confirms upload
+     * @param onCancel Callback when user cancels
+     */
+    public static void showShareUploadConfirmationDialog(Context context, int fileCount, String targetFolder,
+                                                        Runnable onUpload, Runnable onCancel) {
+        LogUtils.d("DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.share_upload_title)
+                .setMessage(context.getString(R.string.share_upload_message) + " " + fileCount + " " +
+                           context.getString(R.string.items_to) + " " + targetFolder)
+                .setPositiveButton(R.string.share_upload_select, (dialog, which) -> onUpload.run())
+                .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
+                .setCancelable(false)
+                .show();
+    }
+
+    /**
+     * Shows a dialog after successful uploads with option to view uploaded files.
+     *
+     * @param context The context
+     * @param uploadedCount Number of successfully uploaded files
+     * @param totalCount Total number of files attempted
+     * @param failedCount Number of failed uploads
+     * @param onViewFiles Callback when user wants to view uploaded files
+     * @param onClose Callback when user wants to close
+     */
+    public static void showUploadCompleteDialog(Context context, int uploadedCount, int totalCount, int failedCount,
+                                               Runnable onViewFiles, Runnable onClose) {
+        LogUtils.d("DialogHelper", "Showing upload complete dialog");
+
+        String message = context.getString(R.string.upload_complete_message, uploadedCount, totalCount);
+        if (failedCount > 0) {
+            message += " " + context.getString(R.string.upload_some_failed, failedCount);
+        }
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.upload_complete_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.view_uploaded_files, (dialog, which) -> onViewFiles.run())
+                .setNegativeButton(R.string.close, (dialog, which) -> onClose.run())
+                .setCancelable(false)
+                .show();
+    }
+
+    /**
+     * Shows a dialog when a file already exists during upload.
+     *
+     * @param context The context
+     * @param fileName Name of the existing file
+     * @param onOverwrite Callback when user chooses to overwrite
+     * @param onCancel Callback when user cancels
+     */
+    public static void showFileExistsDialog(Context context, String fileName, Runnable onOverwrite, Runnable onCancel) {
+        LogUtils.d("DialogHelper", "Showing file exists dialog for: " + fileName);
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.file_exists_title)
+                .setMessage(context.getString(R.string.file_exists_message, fileName))
+                .setPositiveButton(R.string.overwrite, (dialog, which) -> onOverwrite.run())
+                .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
+                .setCancelable(false)
+                .show();
     }
 
     /**
