@@ -239,4 +239,7 @@
     <string name="share_upload_message">Udostępnij</string>
     <string name="share_upload_select">Wybierz</string>
     <string name="items_to">elementy do</string>
+    <string name="permission_title_notifications">Włącz powiadomienia</string>
+    <string name="permission_explain_notifications">SambaLite informuje o postępie przesyłania plików, nawet gdy aplikacja działa w tle. Włącz powiadomienia, aby być na bieżąco z przesyłaniem i pobieraniem plików.</string>
+
 </resources>

@@ -1,14 +1,22 @@
 package de.schliweb.sambalite.ui;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.*;
 import android.widget.*;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -39,6 +47,87 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
     private LoadingIndicator loadingIndicator;
     private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
     private NetworkScanner networkScanner;
+
+    // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
+    private static final String PREFS = "perm_prefs";
+    private static final String KEY_ASKED_NOTIF_ONCE = "asked_notif_once";
+
+    private final ActivityResultLauncher<String> requestNotifPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (!isGranted) {
+                    // Beim ersten Mal: Rationale zeigen (falls möglich) statt direkt in Settings zu springen
+                    if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                        showNotifRationale();
+                    } else {
+                        // Optional: dezente Snackbar/Dialog mit Button "In Einstellungen öffnen"
+                        showGoToSettingsDialog();
+                    }
+                }
+            });
+
+    private void maybeRequestNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33) return;
+
+        // 1) Ist die Runtime-Permission schon erteilt?
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Schon mal gefragt? Dann ggf. Rationale – sonst direkt den System-Prompt
+            boolean askedOnce = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_ASKED_NOTIF_ONCE, false);
+
+            if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                showNotifRationale(); // erklärt kurz & triggert danach request
+            } else {
+                // Erster Versuch: direkt anfragen (zeigt System-Dialog)
+                if (!askedOnce) {
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_ASKED_NOTIF_ONCE, true).apply();
+                    requestNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+                } else {
+                    // Wiederholt abgelehnt (oder OEM-Sonderfall): freundlich zu den Einstellungen anbieten
+                    showGoToSettingsDialog();
+                }
+            }
+            return;
+        }
+
+        // 2) Permission ist erteilt -> sind App-Notifications evtl. global aus?
+        if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+            // Nicht automatisch springen – erst einen Dialog mit Button anbieten:
+            showGoToSettingsDialog();
+        }
+    }
+
+    private void showNotifRationale() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.permission_title_notifications)
+                .setMessage(R.string.permission_explain_notifications)
+                .setPositiveButton(android.R.string.ok, (d, w) ->
+                        requestNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showGoToSettingsDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.permission_title_notifications)
+                .setMessage(R.string.permission_explain_notifications)
+                .setPositiveButton(R.string.open_settings, (d, w) -> openAppNotificationSettings())
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void openAppNotificationSettings() {
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+        } else {
+            intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", getPackageName(), null));
+        }
+        startActivity(intent);
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +166,7 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         setContentView(R.layout.activity_main);
         LogUtils.d("MainActivity", "Content view set");
 
+        maybeRequestNotificationPermission();
         // Set up the toolbar as action bar
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         if (toolbar != null) {

@@ -1,0 +1,15 @@
+
+Fixed
+- Folder Download Freeze at 100%: Resolved an issue where downloading a folder could cause the app to freeze at 100% progress, leaving an empty folder.
+- Upload/Download Finalization: Ensured proper cleanup and finalization of background file operations to prevent incomplete transfers.
+- Service Binding Reliability: Improved lifecycle-aware binding/unbinding of the background service to avoid stale connections and missed progress updates.
+- Thread Safety & Callbacks: Guaranteed main-thread execution for UI callbacks and improved cancellation handling for long-running operations.
+- Notification Permission Flow: Fixed incorrect ordering of runtime permission checks and settings redirection to ensure proper display of system permission prompts and rationale before opening app settings.
+
+Changed
+- SmbBackgroundService: Enhanced operation lifecycle handling with safe cancellation and reliable finalization of transfers.
+- FileOperationsController: Decoupled from direct service dependencies, improved thread-safety, and ensured completion callbacks for all operations.
+- ServiceController: Strengthened service connection handling with lifecycle awareness to maintain stability.
+- FileOperationsViewModel: Improved UI update safety and executor shutdown during cleanup.
+- FileBrowserActivity: Adjusted integration with `ServiceController` to maintain correct service binding and progress updates.
+- Permission Request Logic: Reworked notification permission request flow to prioritize system prompts, show rationale on repeated denials, and only offer settings navigation when necessary.

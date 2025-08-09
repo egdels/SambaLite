@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.IBinder;
 import de.schliweb.sambalite.service.SmbBackgroundService;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -11,182 +12,321 @@ import de.schliweb.sambalite.util.LogUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayDeque;
+import java.util.Objects;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Manager for background-aware SMB connections.
- * Coordinates between the foreground service and SMB operations
- * to ensure reliable background execution.
+ * Manager for handling background SMB operations via a bound service.
+ * This class ensures the service is started and bound, and manages operation execution.
  */
 @Singleton
 public class BackgroundSmbManager {
 
+    private static final long SERVICE_WAIT_MS = 2000;
     private static final String TAG = "BackgroundSmbManager";
+    private final java.util.concurrent.ScheduledExecutorService delayExec =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+    private final Context appContext;
 
-    private final Context context;
     private final AtomicBoolean serviceConnected = new AtomicBoolean(false);
+    private final AtomicBoolean bindingInProgress = new AtomicBoolean(false);
+    private final Queue<Runnable> pendingOps = new ArrayDeque<>();
+    private volatile SmbBackgroundService service;
 
-    private SmbBackgroundService backgroundService;
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
+    @Inject
+    public BackgroundSmbManager(Context context) {
+        this.appContext = context.getApplicationContext();
+        ensureServiceStartedAndBound();
+    }
+
+    private final ServiceConnection conn = new ServiceConnection() {
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            LogUtils.d(TAG, "Background service connected");
-            SmbBackgroundService.LocalBinder binder = (SmbBackgroundService.LocalBinder) service;
-            backgroundService = binder.getService();
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            LogUtils.i(TAG, "Service connected");
+            SmbBackgroundService.LocalBinder b = (SmbBackgroundService.LocalBinder) binder;
+            service = b.getService();
             serviceConnected.set(true);
+            bindingInProgress.set(false);
+            // Ausstehende Operationen abarbeiten
+            drainPendingQueue();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            LogUtils.w(TAG, "Background service disconnected");
-            backgroundService = null;
+            LogUtils.w(TAG, "Service disconnected");
             serviceConnected.set(false);
+            service = null;
+            // Leise Rebind versuchen, wenn noch Operationen eingehen
+            ensureServiceStartedAndBound();
         }
     };
 
-    @Inject
-    public BackgroundSmbManager(Context context) {
-        this.context = context;
-        initializeService();
+    private void ensureServiceStartedAndBound() {
+        if (!bindingInProgress.compareAndSet(false, true)) return;
+
+        try {
+            Intent i = new Intent(appContext, SmbBackgroundService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                appContext.startForegroundService(i);
+            } else {
+                appContext.startService(i);
+            }
+            boolean bound = appContext.bindService(i, conn, Context.BIND_AUTO_CREATE);
+            LogUtils.d(TAG, "bindService -> " + bound);
+        } catch (Throwable t) {
+            LogUtils.e(TAG, "ensureServiceStartedAndBound failed: " + t.getMessage());
+            bindingInProgress.set(false);
+        }
     }
 
-    /**
-     * Initializes the SMB background service by starting it in the foreground and binding it
-     * for direct communication. This method ensures the service is running and establishes
-     * a connection for interaction between the application and the service.
-     */
-    private void initializeService() {
-        LogUtils.d(TAG, "Initializing background service");
-
-        // Service starten
-        Intent serviceIntent = new Intent(context, SmbBackgroundService.class);
-        context.startForegroundService(serviceIntent);
-
-        // Bind service for direct communication
-        context.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+    public void shutdown() {
+        try {
+            if (serviceConnected.get()) appContext.unbindService(conn);
+        } catch (Throwable ignore) {
+        } finally {
+            serviceConnected.set(false);
+            service = null;
+            pendingOps.clear();
+            delayExec.shutdownNow(); // <— wichtig
+        }
     }
 
-    /**
-     * Executes a background operation asynchronously, providing progress updates and completion notifications
-     * to a connected background service if available.
-     *
-     * @param <T>           The type of result produced by the background operation.
-     * @param operationId   A unique identifier for the operation.
-     * @param operationName A human-readable name for the operation, used for logging and service updates.
-     * @param operation     The background operation to execute, which supports progress callbacks.
-     * @return A {@link CompletableFuture} representing the pending result of the operation.
-     *
-     * <p>
-     * The method performs the following steps:
-     * <ul>
-     *   <li>Logs the start of the operation.</li>
-     *   <li>Notifies the background service (if connected) about the operation start.</li>
-     *   <li>Runs the operation asynchronously, providing progress updates via callbacks.</li>
-     *   <li>On completion, notifies the service and completes the future with the result.</li>
-     *   <li>On failure, logs the error, notifies the service, and completes the future exceptionally.</li>
-     * </ul>
-     * </p>
-     */
-    public <T> CompletableFuture<T> executeBackgroundOperation(String operationId, String operationName, BackgroundOperation<T> operation) {
+    public <T> CompletableFuture<T> executeBackgroundOperation(
+            String operationId,
+            String operationName,
+            BackgroundOperation<T> operation) {
 
-        LogUtils.d(TAG, "Starting background operation: " + operationName + " (ID: " + operationId + ")");
+        Objects.requireNonNull(operationName, "operationName");
+        Objects.requireNonNull(operation, "operation");
 
-        CompletableFuture<T> future = new CompletableFuture<>();
+        final CompletableFuture<T> result = new CompletableFuture<>();
 
-        // Inform service about operation start
-        if (serviceConnected.get() && backgroundService != null) {
-            backgroundService.startOperation(operationName);
+        ensureServiceStartedAndBound();
+
+        if (serviceConnected.get() && service != null) {
+            delegateToService(operationName, operation, result);
+            return result;
         }
 
-        // Execute operation in separate thread
-        CompletableFuture.runAsync(() -> {
-            try {
-                T result = operation.execute(new ProgressCallback() {
-                    @Override
-                    public void updateProgress(String progressInfo) {
-                        if (serviceConnected.get() && backgroundService != null) {
-                            backgroundService.updateOperationProgress(operationName, progressInfo);
-                        }
-                    }
+        appContext.getMainExecutor().execute(() -> {
+            appContext.getMainExecutor().execute(() -> {
+            }); // noop to ensure executor initialized
+        });
+        delayExec.schedule(() -> {
+            if (serviceConnected.get() && service != null) {
+                delegateToService(operationName, operation, result);
+            } else {
+                LogUtils.d(TAG, "Queue operation (waiting for service): " + operationName);
+                synchronized (pendingOps) {
+                    pendingOps.add(() -> delegateToService(operationName, operation, result));
+                }
+            }
+        }, SERVICE_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
 
+        return result;
+    }
+
+    public <T> CompletableFuture<T> executeMultiFileOperation(
+            String operationId,
+            String operationName,
+            int totalFiles,
+            MultiFileOperation<T> operation) {
+
+        return executeBackgroundOperation(operationId, operationName, (ProgressCallback cb) ->
+                operation.execute(new MultiFileProgressCallback() {
                     @Override
-                    public void updateFileProgress(int currentFile, int totalFiles, String currentFileName) {
-                        if (serviceConnected.get() && backgroundService != null) {
-                            backgroundService.updateFileProgress(operationName, currentFile, totalFiles, currentFileName);
-                        }
+                    public void updateFileProgress(int currentFile, String currentFileName) {
+                        cb.updateFileProgress(currentFile, totalFiles, currentFileName);
                     }
 
                     @Override
                     public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
-                        if (serviceConnected.get() && backgroundService != null) {
-                            backgroundService.updateBytesProgress(operationName, currentBytes, totalBytes, fileName);
-                        }
+                        cb.updateBytesProgress(currentBytes, totalBytes, fileName);
                     }
-                });
 
-                if (serviceConnected.get() && backgroundService != null) {
-                    backgroundService.finishOperation(operationName, true);
-                }
-                future.complete(result);
-
-            } catch (Exception e) {
-                LogUtils.e(TAG, "Background operation failed: " + operationName + " - " + e.getMessage());
-
-                if (serviceConnected.get() && backgroundService != null) {
-                    backgroundService.finishOperation(operationName, false);
-                }
-                future.completeExceptionally(e);
-            }
-        });
-
-        return future;
+                    @Override
+                    public void updateProgress(String progressInfo) {
+                        cb.updateProgress(progressInfo);
+                    }
+                })
+        );
     }
 
-    /**
-     * Special method for multi-file operations with file counter
-     */
-    public <T> CompletableFuture<T> executeMultiFileOperation(String operationId, String operationName, int totalFiles, MultiFileOperation<T> operation) {
+    public void requestCancelAllOperations() {
+        try {
+            Intent cancel = new Intent(appContext, SmbBackgroundService.class)
+                    .setAction(SmbBackgroundService.ACTION_CANCEL);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                appContext.startForegroundService(cancel);
+            } else {
+                appContext.startService(cancel);
+            }
+            LogUtils.i(TAG, "Cancel request sent to service");
+        } catch (Throwable t) {
+            LogUtils.e(TAG, "Failed to send cancel request: " + t.getMessage());
+        }
+    }
 
-        LogUtils.d(TAG, "Starting multi-file operation: " + operationName + " (" + totalFiles + " files)");
+    private <T> void delegateToService(
+            String operationName,
+            BackgroundOperation<T> operation,
+            CompletableFuture<T> future) {
 
-        return executeBackgroundOperation(operationId, operationName, (ProgressCallback callback) -> {
-            return operation.execute(new MultiFileProgressCallback() {
-                @Override
-                public void updateFileProgress(int currentFile, String currentFileName) {
-                    callback.updateFileProgress(currentFile, totalFiles, currentFileName);
-                }
+        SmbBackgroundService svc = service;
+        if (svc == null) {
+            LogUtils.w(TAG, "Service null on delegate, re-queue: " + operationName);
+            synchronized (pendingOps) {
+                pendingOps.add(() -> delegateToService(operationName, operation, future));
+            }
+            ensureServiceStartedAndBound();
+            return;
+        }
 
-                @Override
-                public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
-                    callback.updateBytesProgress(currentBytes, totalBytes, fileName);
-                }
+        try {
+            svc.executeSmbOperation(operationName, () -> {
+                try {
+                    T r = operation.execute(new ProgressCallback() {
+                        @Override
+                        public void updateProgress(String info) {
+                            svc.updateOperationProgress(operationName, info);
+                        }
 
-                @Override
-                public void updateProgress(String progressInfo) {
-                    callback.updateProgress(progressInfo);
+                        @Override
+                        public void updateFileProgress(int currentFile, int totalFiles, String currentFileName) {
+                            svc.updateFileProgress(operationName, currentFile, totalFiles, currentFileName);
+                        }
+
+                        @Override
+                        public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
+                            svc.updateBytesProgress(operationName, currentBytes, totalBytes, fileName);
+                        }
+                    });
+                    future.complete(r);
+                    return true;
+                } catch (Exception ex) {
+                    future.completeExceptionally(ex);
+                    throw ex;
                 }
             });
-        });
+        } catch (Exception startEx) {
+            LogUtils.e(TAG, "delegateToService failed, re-queue: " + startEx.getMessage());
+            synchronized (pendingOps) {
+                pendingOps.add(() -> delegateToService(operationName, operation, future));
+            }
+            ensureServiceStartedAndBound();
+        }
     }
 
-    /**
-     * Interface for background operations
-     */
+    private void drainPendingQueue() {
+        final Queue<Runnable> copy;
+        synchronized (pendingOps) {
+            if (pendingOps.isEmpty()) return;
+            copy = new ArrayDeque<>(pendingOps);
+            pendingOps.clear();
+        }
+        LogUtils.d(TAG, "Draining pending ops: " + copy.size());
+        while (!copy.isEmpty() && serviceConnected.get() && service != null) {
+            try {
+                copy.poll().run();
+            } catch (Throwable t) {
+                LogUtils.e(TAG, "Pending op failed: " + t.getMessage());
+            }
+        }
+        if (!copy.isEmpty()) {
+            synchronized (pendingOps) {
+                pendingOps.addAll(copy);
+            }
+            ensureServiceStartedAndBound();
+        }
+    }
+
+    public void setSearchContext(String connectionId, String searchQuery, int searchType, boolean includeSubfolders) {
+        if (serviceConnected.get() && service != null) {
+            service.setSearchParameters(connectionId, searchQuery, searchType, includeSubfolders);
+        }
+    }
+
+    // ===== Interfaces =====
+
+    public void setUploadContext(String connectionId, String uploadPath) {
+        if (serviceConnected.get() && service != null) {
+            service.setUploadParameters(connectionId, uploadPath);
+        }
+    }
+
+    public void setDownloadContext(String connectionId, String downloadPath) {
+        if (serviceConnected.get() && service != null) {
+            service.setDownloadParameters(connectionId, downloadPath);
+        }
+    }
+
+    public boolean isServiceConnected() {
+        return serviceConnected.get();
+    }
+
+    public void startOperation(String name) {
+        if (serviceConnected.get() && service != null) {
+            service.startOperation(name);
+        } else {
+            LogUtils.v(TAG, "startOperation skipped (service not connected): " + name);
+        }
+    }
+
+    public void updateOperationProgress(String name, String info) {
+        if (serviceConnected.get() && service != null) {
+            service.updateOperationProgress(name, info);
+        }
+    }
+
+    public void updateFileProgress(String name, int current, int total, String file) {
+        if (serviceConnected.get() && service != null) {
+            service.updateFileProgress(name, current, total, file);
+        }
+    }
+
+    public void updateBytesProgress(String name, long cur, long total, String file) {
+        if (serviceConnected.get() && service != null) {
+            service.updateBytesProgress(name, cur, total, file);
+        }
+    }
+
+    public void finishOperation(String name, boolean success) {
+        if (serviceConnected.get() && service != null) {
+            service.finishOperation(name, success);
+        } else {
+            LogUtils.v(TAG, "finishOperation skipped (service not connected): " + name);
+        }
+    }
+
+    public void setSearchParameters(String connectionId, String query, int type, boolean includeSubfolders) {
+        if (serviceConnected.get() && service != null) {
+            service.setSearchParameters(connectionId, query, type, includeSubfolders);
+        }
+    }
+
+    public void setUploadParameters(String connectionId, String uploadPath) {
+        if (serviceConnected.get() && service != null) {
+            service.setUploadParameters(connectionId, uploadPath);
+        }
+    }
+
+    public void setDownloadParameters(String connectionId, String downloadPath) {
+        if (serviceConnected.get() && service != null) {
+            service.setDownloadParameters(connectionId, downloadPath);
+        }
+    }
+
     public interface BackgroundOperation<T> {
         T execute(ProgressCallback callback) throws Exception;
     }
 
-    /**
-     * Interface for multi-file operations
-     */
     public interface MultiFileOperation<T> {
         T execute(MultiFileProgressCallback callback) throws Exception;
     }
 
-    /**
-     * Special callback interface for multi-file operations
-     */
     public interface MultiFileProgressCallback {
         void updateFileProgress(int currentFile, String currentFileName);
 
@@ -195,43 +335,26 @@ public class BackgroundSmbManager {
         void updateProgress(String progressInfo);
     }
 
-    /**
-     * Callback for progress updates
-     */
     public interface ProgressCallback {
         void updateProgress(String progressInfo);
 
-        /**
-         * Update for multi-file operations with file counter
-         */
         default void updateFileProgress(int currentFile, int totalFiles, String currentFileName) {
             updateProgress("Datei " + currentFile + " von " + totalFiles + ": " + currentFileName);
         }
 
-        /**
-         * Update for bytes progress within a file
-         */
         default void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
-            // Use floating-point division and rounding for more accurate percentage calculation
-            // This ensures the progress bar reaches 100% for large files
-            int percentage;
+            int pct;
             if (totalBytes > 0) {
-                if (currentBytes >= totalBytes) {
-                    // Ensure we show 100% when the operation is complete
-                    percentage = 100;
-                } else if (totalBytes - currentBytes <= 1024) { // Within 1KB of completion
-                    // When we're very close to completion, show 100%
-                    percentage = 100;
-                } else {
-                    // Use floating-point division for accurate percentage
-                    percentage = (int) Math.round((currentBytes * 100.0) / totalBytes);
-                }
+                pct = (currentBytes >= totalBytes || (totalBytes - currentBytes) <= 1024)
+                        ? 100 : (int) Math.round((currentBytes * 100.0) / totalBytes);
             } else {
-                percentage = 0;
+                pct = 0;
             }
-
-            String progress = EnhancedFileUtils.formatFileSize(currentBytes) + " / " + EnhancedFileUtils.formatFileSize(totalBytes);
-            updateProgress(fileName + ": " + percentage + "% (" + progress + ")");
+            String progress = EnhancedFileUtils.formatFileSize(currentBytes)
+                    + " / " + EnhancedFileUtils.formatFileSize(totalBytes);
+            updateProgress(fileName + ": " + pct + "% (" + progress + ")");
         }
     }
+
+
 }

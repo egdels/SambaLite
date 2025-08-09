@@ -239,4 +239,6 @@
     <string name="share_upload_message">Delen</string>
     <string name="share_upload_select">Selecteren</string>
     <string name="items_to">items naar</string>
+    <string name="permission_title_notifications">Meldingen inschakelen</string>
+    <string name="permission_explain_notifications">SambaLite houdt u op de hoogte van de voortgang van bestandsoverdrachten, zelfs wanneer de app op de achtergrond draait. Schakel meldingen in om altijd op de hoogte te blijven van uploads en downloads.</string>
 </resources>

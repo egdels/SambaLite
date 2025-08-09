@@ -239,4 +239,6 @@
     <string name="share_upload_message">Compartir</string>
     <string name="share_upload_select">Seleccionar</string>
     <string name="items_to">elementos a</string>
+    <string name="permission_title_notifications">Activar notificaciones</string>
+    <string name="permission_explain_notifications">SambaLite le mantiene informado sobre el progreso de las transferencias de archivos, incluso cuando la aplicación se ejecuta en segundo plano. Active las notificaciones para estar siempre al tanto de las cargas y descargas.</string>
 </resources>

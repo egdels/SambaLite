@@ -46,6 +46,10 @@ public class FileListViewModel extends ViewModel {
         loadFiles();
     }
 
+    public SmbConnection getConnection() {
+        return state.getConnection();
+    }
+
     /**
      * Gets the list of files as LiveData.
      */

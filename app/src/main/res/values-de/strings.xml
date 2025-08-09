@@ -239,4 +239,6 @@
     <string name="share_upload_message">Teile</string>
     <string name="share_upload_select">Auswählen</string>
     <string name="items_to">Elemente nach</string>
+    <string name="permission_title_notifications">Benachrichtigungen aktivieren</string>
+    <string name="permission_explain_notifications">SambaLite informiert Sie über den Fortschritt von Dateiübertragungen auch dann, wenn die App im Hintergrund läuft. Aktivieren Sie Benachrichtigungen, um stets über Uploads und Downloads auf dem Laufenden zu bleiben.</string>
 </resources>

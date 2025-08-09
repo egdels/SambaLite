@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.di.AppComponent;
@@ -48,6 +49,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
     @Inject
     FileBrowserUIState uiState;
+
+    @Inject
+    BackgroundSmbManager backgroundSmbManager;
 
     // ViewModels
     private FileListViewModel fileListViewModel;
@@ -226,52 +230,53 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
      * Sets up observers for ViewModels.
      */
     private void setupViewModelObservers() {
-        // Observe search state to show/hide progress dialog and manage background notification
         searchViewModel.isSearching().observe(this, isSearching -> {
+            final String query = searchViewModel.getCurrentSearchQuery();
+            final String opName = "Searching for: " + query;
+            final String connId = searchViewModel.getConnectionId();
+            final int type = searchViewModel.getCurrentSearchType();
+            final boolean includeSubs = searchViewModel.isIncludeSubfolders();
+
             if (isSearching) {
-                // Show search progress dialog when search starts
+                // 1) UI
                 progressController.showSearchProgressDialog();
-                LogUtils.d("FileBrowserActivity", "Search started, showing progress dialog");
 
-                // Start search operation in background service for notification
-                String searchQuery = searchViewModel.getCurrentSearchQuery();
-                String operationName = "Searching for: " + searchQuery;
+                // 2) Service: Set context for deep link in notification
+                serviceController.setSearchContext(connId, query, type, includeSubs);
 
-                // Get connection ID and search parameters from the SearchViewModel
-                String connectionId = searchViewModel.getConnectionId();
-                int searchType = searchViewModel.getCurrentSearchType();
-                boolean includeSubfolders = searchViewModel.isIncludeSubfolders();
+                // 3) Service: Start search operation, that runs until the search is complete
+                serviceController.executeOperation("search:" + query, opName, callback -> {
+                    // initial progress message
+                    callback.updateProgress("Searching...");
 
-                // Start search operation with all parameters
-                serviceController.startSearchOperation(operationName, connectionId, searchQuery, searchType, includeSubfolders);
-                serviceController.updateOperationProgress(operationName, "Searching...");
-                LogUtils.d("FileBrowserActivity", "Started search operation in background service");
+                    // Update progress every 800 ms until the search is complete
+                    while (Boolean.TRUE.equals(searchViewModel.isSearching().getValue())) {
+                        // actual hit count, if available
+                        java.util.List<SmbFileItem> results = searchViewModel.getSearchResults().getValue();
+                        if (results != null) {
+                            callback.updateProgress("Found " + results.size() + " results");
+                        }
+                        try {
+                            Thread.sleep(800);
+                        } catch (InterruptedException ie) {
+                            throw ie;
+                        }
+                    }
+                    return true;
+                });
+
             } else {
-                // Hide search progress dialog when search completes
+                // Search is complete -> close progress dialog
                 progressController.hideSearchProgressDialog();
-                LogUtils.d("FileBrowserActivity", "Search completed, hiding progress dialog");
-
-                // Finish search operation in background service
-                String searchQuery = searchViewModel.getCurrentSearchQuery();
-                String operationName = "Searching for: " + searchQuery;
-                serviceController.finishOperation(operationName, true);
-                LogUtils.d("FileBrowserActivity", "Finished search operation in background service");
             }
         });
 
-        // Observe search results to update the UI and background notification
+
         searchViewModel.getSearchResults().observe(this, searchResults -> {
             if (searchViewModel.isInSearchMode() && searchResults != null) {
-                // Update the file list adapter with search results
                 fileListController.updateAdapter(searchResults);
                 LogUtils.d("FileBrowserActivity", "Search results updated: " + searchResults.size() + " items");
-
-                // Update search progress in background service
-                String searchQuery = searchViewModel.getCurrentSearchQuery();
-                String operationName = "Searching for: " + searchQuery;
-                String progressInfo = "Found " + searchResults.size() + " results";
-                serviceController.updateOperationProgress(operationName, progressInfo);
-                LogUtils.d("FileBrowserActivity", "Updated search progress in background service");
+                // No direct Service call needed here – the executeOperation loop handles it.
             }
         });
 
@@ -289,17 +294,14 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
         dialogController = new DialogController(this, fileListViewModel, fileOperationsViewModel, searchViewModel, uiState);
 
-        fileOperationsController = new FileOperationsController(this, fileOperationsViewModel, fileListViewModel, uiState);
+        fileOperationsController = new FileOperationsController(this, fileOperationsViewModel, fileListViewModel, uiState, backgroundSmbManager);
 
         activityResultController = new ActivityResultController(this, uiState, inputController);
 
-        serviceController = new ServiceController(this, uiState);
+        serviceController = new ServiceController(this, uiState, backgroundSmbManager);
 
         // Register lifecycle observers
         getLifecycle().addObserver(serviceController);
-
-        // Set ServiceController in FileOperationsViewModel for background notifications
-        fileOperationsViewModel.setServiceController(serviceController);
 
         LogUtils.d("FileBrowserActivity", "Controllers initialized");
     }
@@ -348,32 +350,6 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         progressController.setSearchCancellationCallback(() -> {
             LogUtils.d("FileBrowserActivity", "Search cancellation callback triggered, cancelling search");
             searchViewModel.cancelSearch();
-        });
-        fileOperationsController.setServiceCallback(new FileOperationsController.ServiceCallback() {
-            @Override
-            public void startOperation(String operationName) {
-                serviceController.startOperation(operationName);
-            }
-
-            @Override
-            public void finishOperation(String operationName, boolean success) {
-                serviceController.finishOperation(operationName, success);
-            }
-
-            @Override
-            public void updateFileProgress(String operationName, int currentFile, int totalFiles, String currentFileName) {
-                serviceController.updateFileProgress(operationName, currentFile, totalFiles, currentFileName);
-            }
-
-            @Override
-            public void updateBytesProgress(String operationName, long currentBytes, long totalBytes, String fileName) {
-                serviceController.updateBytesProgress(operationName, currentBytes, totalBytes, fileName);
-            }
-
-            @Override
-            public void updateOperationProgress(String operationName, String progressInfo) {
-                serviceController.updateOperationProgress(operationName, progressInfo);
-            }
         });
         fileOperationsController.addListener(this);
 

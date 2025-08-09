@@ -150,6 +150,10 @@ public class LogUtils {
         Timber.e(t, message);
     }
 
+    public static void e(String tag, String errorFinalizingTransfer, Exception e) {
+        Timber.tag(tag).e(errorFinalizingTransfer, e);
+    }
+
     /**
      * A custom Timber tree for release builds.
      * Filters out logs below a certain priority and logs to Crashlytics.

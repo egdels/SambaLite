@@ -240,4 +240,6 @@
     <string name="share_upload_message">Share</string>
     <string name="share_upload_select">Select</string>
     <string name="items_to">items to</string>
+    <string name="permission_title_notifications">Enable notifications</string>
+    <string name="permission_explain_notifications">SambaLite keeps you informed about file transfer progress even when the app is running in the background. Enable notifications to stay up to date with uploads and downloads.</string>
 </resources>
