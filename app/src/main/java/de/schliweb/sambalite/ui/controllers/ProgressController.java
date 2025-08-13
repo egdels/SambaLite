@@ -11,9 +11,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.ui.controllers.FileOperationsController.ProgressCallback;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
+import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.ui.utils.UIHelper;
 import de.schliweb.sambalite.util.LogUtils;
 import lombok.Setter;
+
+import java.util.regex.Pattern;
 
 /**
  * Controller for managing progress dialogs, indicators, and progress tracking.
@@ -37,6 +40,14 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     private TextView progressDetails;
     // Search progress dialog
     private AlertDialog searchProgressDialog;
+
+    private int lastOverall = -1;
+    private int lastCur = -1;
+    private int lastTotal = -1;
+    private String lastFile = "";
+    private long lastBytesUiTs = 0L;
+
+    private static final Pattern PCT = Pattern.compile("\\b(\\d{1,3})%");
 
     /**
      * Creates a new ProgressController.
@@ -121,6 +132,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                     progressMessage = dialogView.findViewById(R.id.progress_message);
                     progressPercentage = dialogView.findViewById(R.id.progress_percentage);
                     progressDetails = dialogView.findViewById(R.id.progress_details);
+                    if (progressDetails != null) progressDetails.setSelected(true);
                     progressBar = dialogView.findViewById(R.id.progress_bar);
 
                     titleView.setText(finalTitle);
@@ -163,30 +175,78 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     public void updateDetailedProgress(int percentage, String statusText, String fileName) {
         if (!isActivitySafe()) return;
 
-        // Ensure this runs on the UI thread
-        final int finalPercentage = percentage;
-        final String finalStatusText = statusText;
-        final String finalFileName = fileName;
+        final int overallPct = Math.max(0, Math.min(100, percentage));
+        final String raw = statusText != null ? statusText : "";
+        final String fallbackName = fileName != null ? fileName : "";
 
         activity.runOnUiThread(() -> {
-            if (progressDialog != null && progressDialog.isShowing()) {
-                if (progressBar != null) {
-                    progressBar.setProgress(finalPercentage);
+            if (progressDialog == null || !progressDialog.isShowing()) return;
+
+            ProgressFormat.Result r = ProgressFormat.parse(raw, overallPct, fallbackName);
+
+            int cur = r.cur().orElse(lastCur > 0 ? lastCur : 0);
+            int total = r.total().orElse(lastTotal > 0 ? lastTotal : 0);
+            int filePct = r.filePct().orElse(overallPct);
+            String baseName = r.fileName().orElse("");
+
+            String head = ProgressFormat.toHeadlineNoPercent(r);
+            if (head.isEmpty()) {
+                if (cur > 0 && total > 0) {
+                    head = cur + "/" + total;
+                } else {
+                    head = "";
                 }
-                if (progressPercentage != null) {
-                    progressPercentage.setText(finalPercentage + "%");
-                }
-                if (progressMessage != null) {
-                    progressMessage.setText(finalStatusText);
-                }
-                if (progressDetails != null && finalFileName != null && !finalFileName.isEmpty()) {
-                    String displayName = finalFileName.length() > 40 ? finalFileName.substring(0, 37) + "..." : finalFileName;
-                    progressDetails.setText(displayName);
-                }
-                LogUtils.d("ProgressController", "Progress updated: " + finalPercentage + "% - " + finalStatusText);
             }
+
+            boolean changedOverall = (overallPct != lastOverall);
+            boolean changedIndex = (cur != lastCur) || (total != lastTotal);
+
+            if (progressBar != null && changedOverall) {
+                progressBar.setProgress(overallPct, true);
+            }
+
+            if (progressPercentage != null) {
+                String nextPctText = Math.max(0, Math.min(100, filePct)) + "%";
+                if (!nextPctText.contentEquals(progressPercentage.getText())) {
+                    progressPercentage.setText(nextPctText);
+                }
+            }
+
+            if (progressMessage != null) {
+                if (!head.contentEquals(progressMessage.getText())) {
+                    progressMessage.setText(head);
+                }
+            }
+
+            if (progressDetails != null) {
+                long now = System.currentTimeMillis();
+                boolean fileChanged = !baseName.equals(lastFile);
+                boolean allowUpdate = fileChanged || changedIndex || (now - lastBytesUiTs >= 120);
+
+                if (allowUpdate) {
+                    String nameToShow = baseName != null ? baseName : "";
+                    if (nameToShow.length() > 80) {
+                        nameToShow = nameToShow.substring(0, 77) + "…";
+                    }
+                    if (!nameToShow.contentEquals(progressDetails.getText())) {
+                        progressDetails.setText(nameToShow);
+                    }
+                    lastBytesUiTs = now;
+                }
+            }
+
+            lastOverall = overallPct;
+            if (r.cur().isPresent()) lastCur = r.cur().get();
+            if (r.total().isPresent()) lastTotal = r.total().get();
+            lastFile = baseName;
+
+            LogUtils.d("ProgressController",
+                    "Progress updated: overall=" + overallPct + "%, idx=" +
+                            (cur > 0 ? cur : lastCur) + "/" + (total > 0 ? total : lastTotal) +
+                            ", filePct=" + filePct + ", name=" + baseName);
         });
     }
+
 
     /**
      * Hides the detailed progress dialog.

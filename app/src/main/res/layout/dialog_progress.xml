@@ -18,10 +18,15 @@
         android:id="@+id/progress_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/uploading"
         android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textAlignment="center" />
+        android:textAlignment="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:fontFamily="monospace"
+        android:fontFeatureSettings="tnum" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
@@ -39,10 +44,14 @@
         android:id="@+id/progress_percentage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="8dp"
         android:text="@string/progress_percentage"
         android:textAlignment="center"
-        android:textAppearance="?attr/textAppearanceBodySmall" />
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:maxLines="1"
+        android:includeFontPadding="false"
+        android:fontFamily="monospace"
+        android:fontFeatureSettings="tnum" />
 
     <TextView
         android:id="@+id/progress_details"
@@ -51,6 +60,9 @@
         android:text=""
         android:textAlignment="center"
         android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="?android:attr/textColorSecondary" />
+        android:textColor="?android:attr/textColorSecondary"
+        android:maxLines="1"
+        android:ellipsize="middle"
+        android:includeFontPadding="false" />
 
 </LinearLayout>

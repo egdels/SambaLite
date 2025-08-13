@@ -80,6 +80,9 @@ public class SearchViewModel extends ViewModel {
         state.setSearchMode(true);
         state.setSearching(true);
 
+        // TODO: FIX cached SearchResults
+        IntelligentCacheManager.getInstance().remove(IntelligentCacheManager.getInstance().generateSearchCacheKey(state.getConnection(), state.getCurrentPathString(), state.getCurrentSearchQuery(), searchType, includeSubfolders));
+
         executor.execute(() -> {
             try {
                 // Check if we have cached search results first with comprehensive error handling

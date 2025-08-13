@@ -12,7 +12,7 @@ import androidx.core.app.NotificationCompat;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.MainActivity;
-import de.schliweb.sambalite.util.EnhancedFileUtils;
+import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 
 import java.io.File;
@@ -92,6 +92,23 @@ public class SmbBackgroundService extends Service {
     // Temp storage for safe transfers
     private File tempDir;
 
+    private static String initialContentForOp(ProgressFormat.Op op) {
+        switch (op) {
+            case DOWNLOAD:
+                return "Preparing download…";
+            case UPLOAD:
+                return "Preparing upload…";
+            case DELETE:
+                return "Preparing delete…";
+            case RENAME:
+                return "Preparing rename…";
+            case SEARCH:
+                return "Preparing search…";
+            default:
+                return "Starting…";
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -139,12 +156,10 @@ public class SmbBackgroundService extends Service {
         if (smbOperationExecutor != null) smbOperationExecutor.shutdownNow();
         if (watchdogExecutor != null) watchdogExecutor.shutdownNow();
 
-        // Ausstehende throttled-Updates abbrechen
         if (notificationHandler != null) {
             notificationHandler.removeCallbacksAndMessages(null);
         }
 
-        // Foreground-Notification sicher entfernen
         try {
             stopForeground(true);
         } catch (Throwable t) {
@@ -179,16 +194,20 @@ public class SmbBackgroundService extends Service {
 
     public void startOperation(String operationName) {
         int count = activeOperations.incrementAndGet();
-        currentOperation = operationName;
+
+        ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
+        String title = op.label() + "…";
+        String content = initialContentForOp(op);
+
+        currentOperation = title;
         LogUtils.d(TAG, "Starting operation: " + operationName + " (active=" + count + ")");
-        updateNotificationThrottled(operationName, "Running operation...");
+        updateNotificationThrottled(title, content);
 
         if (wakeLock != null) {
             wakeLock.acquire();
             LogUtils.d(TAG, "Wake lock ++ (op start): " + operationName);
         }
 
-        // start progress clock for watchdog
         lastProgressUpdate.set(System.currentTimeMillis());
         startWatchdog();
     }
@@ -213,42 +232,43 @@ public class SmbBackgroundService extends Service {
         }
     }
 
+
     public void updateOperationProgress(String operationName, String progressInfo) {
-        currentOperation = operationName;
-        updateNotificationThrottled(operationName, progressInfo);
+        ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
+        String title = op.label() + "…";
+        currentOperation = title; // <—
+        updateNotificationThrottled(title, progressInfo != null ? progressInfo : "");
         lastProgressUpdate.set(System.currentTimeMillis());
     }
+
 
     public void updateFileProgress(String operationName, int currentFile, int totalFiles, String currentFileName) {
         int percentage = totalFiles > 0 ? ((currentFile * 100) / totalFiles) : 0;
-        String info = percentage + "% (" + currentFile + "/" + totalFiles + ")";
-        if (currentFileName != null && !currentFileName.isEmpty()) {
-            String display = currentFileName.length() > 30 ? currentFileName.substring(0, 27) + "..." : currentFileName;
-            info += " " + display;
-        }
-        currentOperation = operationName + " (" + percentage + "%)";
+
+        ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
+        String title = op.label() + "…";
+        String info = ProgressFormat.buildUnified(op, currentFile, totalFiles,
+                currentFileName != null ? currentFileName : "");
+
         if (shouldUpdateFileProgress(currentFile, totalFiles, percentage)) {
-            updateNotificationThrottled(operationName, info);
+            currentOperation = title; // <—
+            updateNotificationThrottled(title, info);
         }
         lastProgressUpdate.set(System.currentTimeMillis());
     }
 
+
     public void updateBytesProgress(String operationName, long currentBytes, long totalBytes, String fileName) {
-        int percentage;
-        if (totalBytes > 0) {
-            if (currentBytes >= totalBytes || totalBytes - currentBytes <= 1024) {
-                percentage = 100;
-            } else {
-                percentage = (int) Math.round((currentBytes * 100.0) / totalBytes);
-            }
-        } else {
-            percentage = 0;
-        }
-        String info = (fileName == null ? "" : (fileName + ": ")) + percentage + "% (" +
-                EnhancedFileUtils.formatFileSize(currentBytes) + " / " +
-                EnhancedFileUtils.formatFileSize(totalBytes) + ")";
+        int percentage = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
+
+        ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
+        String title = op.label() + "…";
+        String info = ProgressFormat.formatBytes(op.label(), currentBytes, totalBytes)
+                + (fileName != null && !fileName.isEmpty() ? " - " + fileName : "");
+
         if (shouldUpdateBytesProgress(percentage)) {
-            updateNotificationThrottled(operationName, info);
+            currentOperation = title; // <—
+            updateNotificationThrottled(title, info);
         }
         lastProgressUpdate.set(System.currentTimeMillis());
     }
@@ -500,6 +520,7 @@ public class SmbBackgroundService extends Service {
 
     private void updateNotificationThrottled(String title, String content) {
         long now = System.currentTimeMillis();
+        LogUtils.d(TAG, "updateNotificationThrottled: now=" + now + ", lastUpdate=" + lastNotificationUpdate + ", interval=" + NOTIFICATION_UPDATE_INTERVAL_MS);
         if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {
             updateNotificationImmediate(title, content);
             lastNotificationUpdate = now;
@@ -514,6 +535,7 @@ public class SmbBackgroundService extends Service {
             pendingNotificationUpdate = null;
         };
         long delay = NOTIFICATION_UPDATE_INTERVAL_MS - (now - lastNotificationUpdate);
+        LogUtils.d(TAG, "Throttling notification update: delay=" + delay + "ms");
         notificationHandler.postDelayed(pendingNotificationUpdate, Math.max(delay, 100));
     }
 
@@ -551,9 +573,7 @@ public class SmbBackgroundService extends Service {
         return builder.build();
     }
 
-    // Neu: baue das ContentIntent sauber mit Back-Stack
     private PendingIntent buildContentIntent(String title) {
-        // Default: öffne MainActivity (nur wenn keine Op-Infos vorhanden)
         Intent fallback = new Intent(this, MainActivity.class);
         TaskStackBuilder tsb = TaskStackBuilder.create(this);
 
@@ -570,7 +590,7 @@ public class SmbBackgroundService extends Service {
                     .putExtra("extra_from_search_notification", true)
                     .putExtra("extra_show_progress_dialog", true)
                     .putExtra("extra_operation_name", title);
-            reqKey = "search:" + connectionId + ":" + String.valueOf(searchQuery);
+            reqKey = "search:" + connectionId + ":" + searchQuery;
         } else if (isUploadOperation && connectionId != null && uploadPath != null) {
             toBrowser = new Intent(this, FileBrowserActivity.class)
                     .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.UPLOAD")

@@ -5,6 +5,34 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2025-08-13
+
+### Added
+- **Finalization service bridge:** Status updates during the local SAF finalization step (e.g., “Finalizing…”, “scanning files”, “copying …”, “done”) are now mirrored to the foreground service notification.
+- **Multi-file progress to service:** The controller propagates per-file and byte progress to the service via `MultiFileProgressCallback` where available (single file upload staging and folder-contents upload).
+- **Upload staging feedback:** During single-file uploads, the “staging/preparing” step (URI → temp file) now reports progress both in the UI and in the service notification.
+
+### Changed
+- **BackgroundSmbManager API:** Simplified `executeMultiFileOperation(String id, String name, MultiFileOperation<T> op)` (removed the `totalFiles` parameter). All controller call sites updated accordingly.
+- **Controller → Notification mirroring:** The controller now forwards progress text from finalization phases to the foreground service (e.g., via `cb.updateProgress(...)` in wrapped callbacks), keeping notifications live while local copies run.
+- **Callback wrapping with latches:** The controller wraps operation callbacks with a `CountDownLatch` to keep the service operation alive until the real completion callback fires (prevents premature notification completion).
+- **Single-file upload staging:** Improved error and resource handling during temp-file staging; temp files are reliably cleaned up and the service is informed on failure/success.
+- **Progress UX smoothing:** SMB phase is clamped to `100 - FINALIZE_WINDOW_PCT`, with the finalization phase using the remaining window for steadier overall percentages across UI and notification.
+- **FileOperations throughput & accuracy:** Increased I/O buffer to 64 KB, added a pre-scan (file/byte totals) and consolidated status lines (`"Copying X/Y – name • n% (bytes)"`) for more realistic overall percentages.
+- **FileOperationsController:** Moved finalization steps for downloads (both folders and single files) to asynchronous execution.
+- **FileOperations:** Introduced `copyFolderAsync(...)` and enhanced `copyFileToUri(...)` with buffered streams; local SAF copies now run non-blocking and report progress.
+
+### Fixed
+- **ANR During Large Folder Copies:** Resolved an issue where synchronous copying of folders/files on the main thread could cause the app to freeze.
+- **Folder Download Finalization:** The final copy step into the selected SAF destination folder now runs fully in the background, even with deeply nested directory structures.
+- **Large File Download Finalization:** Copying of large single files into SAF destinations no longer blocks the user interface.
+- **UI Responsiveness:** Significantly improved app responsiveness during and after long-running file operations.
+- **Build & API mismatches:** Updated all controller invocations to the new `executeMultiFileOperation` signature.
+- **Inner-class captures:** Resolved “local variables must be final or effectively final” issues (e.g., by capturing `finalTempFile` in wrapped callbacks).
+- **Robust error propagation:** Staging errors (e.g., `copyUriToFile`) are surfaced to the service and close the operation cleanly with a failure notification.
+
+> **Note:** Local SAF copies now have a cancellation hook in `FileOperations.Callback#isCancelled()`. Wiring a cancel token from the UI into these callbacks (to abort mid-copy) is prepared and can be completed in a follow-up release.
+
 ## [1.2.2] - 2025-08-09
 
 ### Fixed

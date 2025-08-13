@@ -1,0 +1,9 @@
+### What’s new in 1.2.3
+
+* Finalization progress (Scanning/Copying/Done) now appears in the foreground notification during local SAF copies.
+* Multi-file operations mirror per-file and byte progress to the service.
+* Upload staging (URI → temp) reports progress and cleans up temp files reliably.
+* API simplification: `BackgroundSmbManager.executeMultiFileOperation(id, name, op)` (removed `totalFiles`); all call sites updated.
+* Smoother progress: cap SMB phase, reserve the last slice for finalization.
+* Faster, non-blocking local copies (64 KB buffers + pre-scan).
+* Finalization for file & folder downloads runs fully in the background.

@@ -50,7 +50,6 @@ public class BackgroundSmbManager {
             service = b.getService();
             serviceConnected.set(true);
             bindingInProgress.set(false);
-            // Ausstehende Operationen abarbeiten
             drainPendingQueue();
         }
 
@@ -59,7 +58,6 @@ public class BackgroundSmbManager {
             LogUtils.w(TAG, "Service disconnected");
             serviceConnected.set(false);
             service = null;
-            // Leise Rebind versuchen, wenn noch Operationen eingehen
             ensureServiceStartedAndBound();
         }
     };
@@ -90,7 +88,7 @@ public class BackgroundSmbManager {
             serviceConnected.set(false);
             service = null;
             pendingOps.clear();
-            delayExec.shutdownNow(); // <— wichtig
+            delayExec.shutdownNow();
         }
     }
 
@@ -132,14 +130,13 @@ public class BackgroundSmbManager {
     public <T> CompletableFuture<T> executeMultiFileOperation(
             String operationId,
             String operationName,
-            int totalFiles,
             MultiFileOperation<T> operation) {
 
         return executeBackgroundOperation(operationId, operationName, (ProgressCallback cb) ->
                 operation.execute(new MultiFileProgressCallback() {
                     @Override
-                    public void updateFileProgress(int currentFile, String currentFileName) {
-                        cb.updateFileProgress(currentFile, totalFiles, currentFileName);
+                    public void updateFileProgress(int currentFile, int totalFiles, String currentFileName) {
+                        cb.updateFileProgress(currentFile, totalFiles, currentFileName); // <-- echtes totalFiles durchreichen
                     }
 
                     @Override
@@ -153,6 +150,7 @@ public class BackgroundSmbManager {
                     }
                 })
         );
+
     }
 
     public void requestCancelAllOperations() {
@@ -249,8 +247,6 @@ public class BackgroundSmbManager {
         }
     }
 
-    // ===== Interfaces =====
-
     public void setUploadContext(String connectionId, String uploadPath) {
         if (serviceConnected.get() && service != null) {
             service.setUploadParameters(connectionId, uploadPath);
@@ -262,6 +258,9 @@ public class BackgroundSmbManager {
             service.setDownloadParameters(connectionId, downloadPath);
         }
     }
+
+    // ===== Interfaces =====
+
 
     public boolean isServiceConnected() {
         return serviceConnected.get();
@@ -301,24 +300,6 @@ public class BackgroundSmbManager {
         }
     }
 
-    public void setSearchParameters(String connectionId, String query, int type, boolean includeSubfolders) {
-        if (serviceConnected.get() && service != null) {
-            service.setSearchParameters(connectionId, query, type, includeSubfolders);
-        }
-    }
-
-    public void setUploadParameters(String connectionId, String uploadPath) {
-        if (serviceConnected.get() && service != null) {
-            service.setUploadParameters(connectionId, uploadPath);
-        }
-    }
-
-    public void setDownloadParameters(String connectionId, String downloadPath) {
-        if (serviceConnected.get() && service != null) {
-            service.setDownloadParameters(connectionId, downloadPath);
-        }
-    }
-
     public interface BackgroundOperation<T> {
         T execute(ProgressCallback callback) throws Exception;
     }
@@ -328,7 +309,7 @@ public class BackgroundSmbManager {
     }
 
     public interface MultiFileProgressCallback {
-        void updateFileProgress(int currentFile, String currentFileName);
+        void updateFileProgress(int currentFile, int totalFiles, String currentFileName);
 
         void updateBytesProgress(long currentBytes, long totalBytes, String fileName);
 
