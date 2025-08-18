@@ -39,7 +39,8 @@
             android:exported="false"
             android:theme="@style/Theme.SambaLite.NoActionBar"
             android:windowSoftInputMode="adjustResize|stateHidden"
-            android:parentActivityName=".ui.MainActivity">
+            android:parentActivityName=".ui.MainActivity"
+            android:launchMode="singleTop">
         </activity>
 
         <activity

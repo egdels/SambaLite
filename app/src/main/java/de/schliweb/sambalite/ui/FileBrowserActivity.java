@@ -26,6 +26,7 @@ import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import javax.inject.Inject;
 
@@ -64,7 +65,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private FileOperationsController fileOperationsController;
     private ProgressController progressController;
     private ActivityResultController activityResultController;
-    private ServiceController serviceController;
+    // ServiceController removed; using BackgroundSmbManager directly
     private InputController inputController;
 
     // UI Components
@@ -72,6 +73,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private SwipeRefreshLayout swipeRefreshLayout;
     private View emptyView;
     private TextView currentPathView;
+    private FloatingActionButton fab;
+    private FloatingActionButton fabCreateFolder;
     private SmartErrorHandler errorHandler;
 
     /**
@@ -165,22 +168,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     /**
-     * Configures edge-to-edge display for better landscape experience.
+     * Configures edge-to-edge display for better landscape experience without deprecated flags.
      */
     private void configureEdgeToEdgeDisplay() {
         Window window = getWindow();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Modern API (Android 11+)
-            WindowCompat.setDecorFitsSystemWindows(window, false);
-            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-        } else {
-            // Legacy API (Android 10 and below)
-            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        }
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
     }
 
     /**
@@ -204,6 +198,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         swipeRefreshLayout = findViewById(R.id.swipe_refresh);
         emptyView = findViewById(R.id.empty_state);
         currentPathView = findViewById(R.id.current_path);
+        fab = findViewById(R.id.fab);
+        fabCreateFolder = findViewById(R.id.fab_create_folder);
         LogUtils.d("FileBrowserActivity", "UI components initialized");
     }
 
@@ -242,10 +238,10 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 progressController.showSearchProgressDialog();
 
                 // 2) Service: Set context for deep link in notification
-                serviceController.setSearchContext(connId, query, type, includeSubs);
+                backgroundSmbManager.setSearchContext(connId, query, type, includeSubs);
 
                 // 3) Service: Start search operation, that runs until the search is complete
-                serviceController.executeOperation("search:" + query, opName, callback -> {
+                backgroundSmbManager.executeBackgroundOperation("search:" + query, opName, callback -> {
                     // initial progress message
                     callback.updateProgress("Searching...");
 
@@ -298,10 +294,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
         activityResultController = new ActivityResultController(this, uiState, inputController);
 
-        serviceController = new ServiceController(this, uiState, backgroundSmbManager);
-
-        // Register lifecycle observers
-        getLifecycle().addObserver(serviceController);
+        // ServiceController removed; BackgroundSmbManager handles service binding internally.
 
         LogUtils.d("FileBrowserActivity", "Controllers initialized");
     }
@@ -396,13 +389,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         });
 
         // Set up upload button (FAB)
-        findViewById(R.id.fab).setOnClickListener(v -> {
+        fab.setOnClickListener(v -> {
             LogUtils.d("FileBrowserActivity", "Main FAB clicked");
             dialogController.showUploadOptionsDialog();
         });
 
         // Set up create folder button
-        findViewById(R.id.fab_create_folder).setOnClickListener(v -> {
+        fabCreateFolder.setOnClickListener(v -> {
             LogUtils.d("FileBrowserActivity", "Create folder button clicked");
             dialogController.showCreateFolderDialog();
         });
@@ -417,6 +410,36 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         findViewById(R.id.refresh_button).setOnClickListener(v -> {
             LogUtils.d("FileBrowserActivity", "Refresh button clicked");
             fileListViewModel.refreshCurrentDirectory();
+        });
+
+        // Auto-hide/show FABs on scroll
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    // Scrolling down -> hide
+                    if (fab.isShown()) fab.hide();
+                    if (fabCreateFolder.isShown()) fabCreateFolder.hide();
+                } else if (dy < 0) {
+                    // Scrolling up -> show
+                    if (!fab.isShown()) fab.show();
+                    if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+                }
+            }
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    // If at top or idle, ensure FABs are visible
+                    boolean canScrollUp = recyclerView.canScrollVertically(-1);
+                    if (!canScrollUp) {
+                        if (!fab.isShown()) fab.show();
+                        if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+                    }
+                }
+            }
         });
 
         LogUtils.d("FileBrowserActivity", "UI event listeners set up");
@@ -469,7 +492,14 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
      */
     private void onRemoteFolderChanged(String newRemotePath) {
         LogUtils.d("FileBrowserActivity", "Remote folder changed to: " + newRemotePath);
-        PreferenceUtils.setCurrentSmbFolder(this, newRemotePath);
+        // Persist both the connection ID and the path to make uploads robust across renames
+        SmbConnection conn = fileListViewModel.getConnection();
+        if (conn != null) {
+            PreferenceUtils.setCurrentSmbContext(this, conn.getId(), newRemotePath);
+        } else {
+            // Fallback for safety
+            PreferenceUtils.setCurrentSmbFolder(this, newRemotePath);
+        }
     }
 
     /**
@@ -486,10 +516,16 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             boolean includeSubfolders = intent.getBooleanExtra(EXTRA_SEARCH_INCLUDE_SUBFOLDERS, true);
 
             if (searchQuery != null && !searchQuery.isEmpty()) {
-                LogUtils.i("FileBrowserActivity", "Starting search from notification: " + searchQuery);
-
-                // Start the search
-                searchViewModel.searchFiles(searchQuery, searchType, includeSubfolders);
+                boolean alreadySearching = Boolean.TRUE.equals(searchViewModel.isSearching().getValue());
+                if (alreadySearching) {
+                    LogUtils.i("FileBrowserActivity", "Search already in progress – ensuring dialog is visible, not restarting search");
+                    // Just make sure the dialog is visible; the observer will keep it updated
+                    progressController.showSearchProgressDialog();
+                } else {
+                    LogUtils.i("FileBrowserActivity", "Starting search from notification: " + searchQuery);
+                    // Start the search
+                    searchViewModel.searchFiles(searchQuery, searchType, includeSubfolders);
+                }
             }
         }
     }
@@ -548,10 +584,50 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        LogUtils.d("FileBrowserActivity", "onNewIntent received: " + (intent != null ? intent.getAction() : "null"));
+        if (intent == null) return;
+        // Update the stored intent so getIntent() returns the latest one
+        setIntent(intent);
+
+        // If a different connection is requested, reload; otherwise just handle the notification extras
+        String newConnId = intent.getStringExtra(EXTRA_CONNECTION_ID);
+        String currentConnId = null;
+        SmbConnection currentConn = null;
+        try {
+            currentConn = fileListViewModel != null ? fileListViewModel.getConnection() : null;
+            currentConnId = currentConn != null ? currentConn.getId() : null;
+        } catch (Throwable ignore) {
+        }
+
+        if (newConnId != null && !newConnId.equals(currentConnId)) {
+            LogUtils.i("FileBrowserActivity", "New intent targets different connection. Reloading connection context.");
+            loadConnectionFromIntent();
+        } else {
+            // Same connection – handle the specific notification scenarios directly
+            checkAndHandleSearchNotification();
+            checkAndHandleUploadNotification();
+            checkAndHandleDownloadNotification();
+        }
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle toolbar navigation
         if (item.getItemId() == android.R.id.home) {
             LogUtils.d("FileBrowserActivity", "Toolbar back button clicked");
+            // If we are in search mode, exit search and return to the search start folder
+            if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+                // Cancel any in-flight search and return to the starting folder
+                searchViewModel.cancelSearch();
+                return true;
+            }
+            // Try to navigate up within the folder hierarchy first
+            if (fileListController != null && fileListController.navigateUp()) {
+                return true; // consumed by navigating up
+            }
+            // Already at top-level -> finish to return to connections
             finish();
             return true;
         }
@@ -566,6 +642,22 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     @Override
+    public void onBackPressed() {
+        LogUtils.d("FileBrowserActivity", "System back pressed");
+        // If we are in search mode, exit search and return to the search start folder
+        if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+            searchViewModel.cancelSearch();
+            return;
+        }
+        // Try to navigate up within the folder hierarchy first
+        if (fileListController != null && fileListController.navigateUp()) {
+            return; // consumed by navigating up
+        }
+        // Already at top-level -> default behavior (finishes the activity)
+        super.onBackPressed();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         LogUtils.d("FileBrowserActivity", "onDestroy called");
@@ -574,10 +666,17 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         progressController.closeAllDialogs();
         fileOperationsController.removeListener(this);
 
-        // Cancel any ongoing operations
-        fileOperationsViewModel.cancelUpload();
-        fileOperationsViewModel.cancelDownload();
-        searchViewModel.cancelSearch();
+        // Only cancel operations if the Activity is actually finishing (user leaving the screen),
+        // not during configuration changes or lifecycle churn caused by new intents/back stack tweaks.
+        boolean shouldCancelOps = isFinishing() && !isChangingConfigurations();
+        if (shouldCancelOps) {
+            LogUtils.d("FileBrowserActivity", "Activity finishing – requesting operation cancellations");
+            fileOperationsViewModel.cancelUpload();
+            fileOperationsViewModel.cancelDownload();
+            searchViewModel.cancelSearch();
+        } else {
+            LogUtils.d("FileBrowserActivity", "Activity not finishing – keeping operations running");
+        }
     }
 
     // FileListController.FileClickCallback implementation

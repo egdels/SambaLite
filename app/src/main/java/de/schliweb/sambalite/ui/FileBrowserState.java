@@ -43,6 +43,7 @@ public class FileBrowserState {
     private boolean directoriesFirst;
     private boolean isSearchMode = false;
     private String currentSearchQuery = "";
+    private String searchStartPath = "";
     // Operation state
     private volatile boolean uploadCancelled = false;
     private volatile boolean downloadCancelled = false;
@@ -284,6 +285,20 @@ public class FileBrowserState {
      */
     public void setCurrentSearchQuery(String query) {
         this.currentSearchQuery = query;
+    }
+
+    /**
+     * Gets the path where the current search was started.
+     */
+    public String getSearchStartPath() {
+        return searchStartPath;
+    }
+
+    /**
+     * Sets the path where the current search is started.
+     */
+    public void setSearchStartPath(String path) {
+        this.searchStartPath = path != null ? path : "";
     }
 
     /**

@@ -2,9 +2,10 @@ package de.schliweb.sambalite.util;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.LinkProperties;
+import android.net.LinkAddress;
 import lombok.Getter;
 
 import java.net.InetAddress;
@@ -121,23 +122,28 @@ public class NetworkScanner {
         List<String> ranges = new ArrayList<>();
 
         try {
-            // Try to get WiFi network info
-            WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-            if (wifiManager != null && wifiManager.isWifiEnabled()) {
+            // Prefer modern ConnectivityManager APIs to derive active IPv4 subnet
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) {
                 try {
-                    @SuppressWarnings("deprecation") WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                    if (wifiInfo != null) {
-                        int ipAddress = wifiInfo.getIpAddress();
-                        if (ipAddress != 0) {
-                            String subnet = getSubnetFromIp(ipAddress);
-                            if (subnet != null) {
-                                ranges.add(subnet);
-                                LogUtils.d(TAG, "Added WiFi subnet: " + subnet);
+                    Network active = cm.getActiveNetwork();
+                    if (active != null) {
+                        LinkProperties lp = cm.getLinkProperties(active);
+                        if (lp != null) {
+                            for (LinkAddress la : lp.getLinkAddresses()) {
+                                InetAddress addr = la.getAddress();
+                                if (addr != null && addr.isSiteLocalAddress() && addr.getHostAddress() != null && addr.getHostAddress().contains(".")) {
+                                    String subnet = getSubnetFromAddress(addr);
+                                    if (subnet != null && !ranges.contains(subnet)) {
+                                        ranges.add(subnet);
+                                        LogUtils.d(TAG, "Added active network subnet: " + subnet);
+                                    }
+                                }
                             }
                         }
                     }
                 } catch (SecurityException e) {
-                    LogUtils.w(TAG, "WiFi permission not available, using fallback network ranges");
+                    LogUtils.w(TAG, "Connectivity permissions not available, using fallback network ranges");
                 }
             }
 
@@ -317,9 +323,13 @@ public class NetworkScanner {
     public boolean isScanningSupported() {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return false;
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        return activeNetwork != null && activeNetwork.isConnected();
+        Network active = cm.getActiveNetwork();
+        if (active == null) return false;
+        NetworkCapabilities caps = cm.getNetworkCapabilities(active);
+        return caps != null && (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR));
     }
 
     /**

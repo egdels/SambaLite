@@ -68,10 +68,17 @@ public class ShareReceiverActivity extends AppCompatActivity implements
         // Make activity visible and bring to front for progress dialog visibility
         setContentView(R.layout.activity_transparent);
 
-        // Bring activity to front when upload starts
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
-                            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
-                            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Bring activity to front when upload starts (modern, non-deprecated APIs)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        } else {
+            // Fallback for very old devices (not used given minSdk 28, but kept for clarity)
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
+        }
+        // Keep screen on during operation
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Inject dependencies
         AppComponent appComponent = ((SambaLiteApp) getApplication()).getAppComponent();
@@ -170,45 +177,79 @@ public class ShareReceiverActivity extends AppCompatActivity implements
     private void bringToForeground() {
         LogUtils.d(TAG, "Bringing ShareReceiverActivity to foreground for progress dialog");
 
-        // Move task to front
-        moveTaskToBack(false);
-
-        // Start a new intent to bring this activity to front
+        // Start an intent to bring this activity to front within the same task
         Intent intent = new Intent(this, ShareReceiverActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT |
-                       Intent.FLAG_ACTIVITY_NEW_TASK);
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
     }
 
     private SmbConnection getConnectionFromTargetPath(String smbTargetFolder) {
         // Extract connection name from the target folder
-        String connectionName = smbTargetFolder;
-        int slashIdx = smbTargetFolder.indexOf("/");
-        if (slashIdx > 0) {
-            connectionName = smbTargetFolder.substring(0, slashIdx);
-        }
+        String connectionName = getConnectionNameFromTargetFolder(smbTargetFolder);
         LogUtils.d(TAG, "Extracted connection name from target folder: " + connectionName);
         // Get the connection from the repository
         List<SmbConnection> connections = connectionRepository.getAllConnections();
-        SmbConnection connection = null;
+        if (connections == null || connections.isEmpty()) return null;
+
+        // Exact (case-insensitive) match only – no fuzzy guessing
+        String target = connectionName == null ? "" : connectionName.trim();
         for (SmbConnection conn : connections) {
-            if (conn.getName().equals(connectionName)) {
-                connection = conn;
+            String name = conn.getName() == null ? "" : conn.getName().trim();
+            if (name.equalsIgnoreCase(target)) {
+                return conn;
             }
         }
-        return connection;
+
+        // Last resort: if there is exactly one connection saved, use it
+        if (connections.size() == 1) {
+            LogUtils.w(TAG, "No match for connection '" + connectionName + "'. Falling back to the only saved connection '" + connections.get(0).getName() + "'");
+            return connections.get(0);
+        }
+
+        // Not found
+        return null;
     }
 
     private void startUploads() throws IOException {
         LogUtils.d(TAG, "Starting uploads for " + shareUris.size() + " items");
         targetSmbFolder = PreferenceUtils.getCurrentSmbFolder(this);
-        connection = getConnectionFromTargetPath(targetSmbFolder);
+
+        // Preferred strategy: use stable connection ID saved in preferences
+        String savedConnId = PreferenceUtils.getCurrentSmbConnectionId(this);
+        if (savedConnId != null && !savedConnId.isEmpty()) {
+            List<SmbConnection> all = connectionRepository.getAllConnections();
+            for (SmbConnection c : all) {
+                if (savedConnId.equals(c.getId())) {
+                    connection = c;
+                    break;
+                }
+            }
+            if (connection != null) {
+                LogUtils.d(TAG, "Resolved connection by ID: " + connection.getName());
+            } else {
+                LogUtils.w(TAG, "Saved connection ID not found among current connections – falling back to legacy name resolution");
+            }
+        }
+
+        // Legacy fallback: resolve by name within saved folder if ID resolution failed
         if (connection == null) {
-            LogUtils.d(TAG, "No connection found for name " + targetSmbFolder);
-            Toast.makeText(this, getString(R.string.upload_failed) , Toast.LENGTH_LONG).show();
-            progressController.hideDetailedProgressDialog();
-            finish();
-            return;
+            String connectionName = getConnectionNameFromTargetFolder(targetSmbFolder);
+            connection = getConnectionFromTargetPath(targetSmbFolder);
+            if (connection == null) {
+                // Provide clearer diagnostics
+                List<SmbConnection> all = connectionRepository.getAllConnections();
+                StringBuilder names = new StringBuilder();
+                for (SmbConnection c : all) {
+                    if (names.length() > 0) names.append(", ");
+                    names.append(c.getName());
+                }
+                LogUtils.d(TAG, "No connection found for name '" + connectionName + "'. Available: [" + names + "]");
+                Toast.makeText(this, getString(R.string.upload_failed) , Toast.LENGTH_LONG).show();
+                progressController.hideDetailedProgressDialog();
+                finish();
+                return;
+            }
         }
 
         viewModel.setConnection(connection);
@@ -348,6 +389,18 @@ public class ShareReceiverActivity extends AppCompatActivity implements
     }
 
     /**
+     * Extract connection name from target folder (part before the first slash)
+     */
+    private String getConnectionNameFromTargetFolder(String targetFolder) {
+        if (targetFolder == null || targetFolder.isEmpty()) return "";
+        int slashIdx = targetFolder.indexOf("/");
+        if (slashIdx > 0) {
+            return targetFolder.substring(0, slashIdx);
+        }
+        return targetFolder;
+    }
+
+    /**
      * Extract path from target folder (everything after connection name)
      */
     private String getPathFromTargetFolder(String targetFolder) {
@@ -362,26 +415,24 @@ public class ShareReceiverActivity extends AppCompatActivity implements
     }
 
     /**
-     * Android API compatibility helper for getParcelableExtra
+     * Android API compatibility helper for getParcelableExtra (avoids deprecated API on < 33)
      */
-    @SuppressWarnings("deprecation")
     private Uri getParcelableExtraCompat(Intent intent, String key) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return intent.getParcelableExtra(key, Uri.class);
         } else {
-            return intent.getParcelableExtra(key);
+            return androidx.core.content.IntentCompat.getParcelableExtra(intent, key, Uri.class);
         }
     }
 
     /**
-     * Android API compatibility helper for getParcelableArrayListExtra
+     * Android API compatibility helper for getParcelableArrayListExtra (avoids deprecated API on < 33)
      */
-    @SuppressWarnings("deprecation")
     private ArrayList<Uri> getParcelableArrayListExtraCompat(Intent intent, String key) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return intent.getParcelableArrayListExtra(key, Uri.class);
         } else {
-            return intent.getParcelableArrayListExtra(key);
+            return androidx.core.content.IntentCompat.getParcelableArrayListExtra(intent, key, Uri.class);
         }
     }
 }

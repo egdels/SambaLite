@@ -1,0 +1,9 @@
+* File browser: Floating action buttons auto-hide on scroll.
+* Back from search results: returns to the folder where search started.
+* Search caching: stale-while-revalidate with throttled background refresh.
+* Safer search updates with generation token; isolated per connection.
+* Modernized Gradle/AGP 8.10 config; removed deprecated Android APIs.
+* Uploads: stable connection ID + normalized paths (no duplicate share).
+* File browser Back navigates one level up (only exits at root).
+* Notifications: tapping opens correct screen/dialog, no unwanted cancels.
+* Prevented stale/cancelled search results from overwriting the UI.

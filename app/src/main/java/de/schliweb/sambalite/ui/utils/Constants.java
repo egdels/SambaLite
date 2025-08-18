@@ -6,6 +6,7 @@ package de.schliweb.sambalite.ui.utils;
  */
 public class Constants {
     public static final String PREF_CURRENT_SMB_FOLDER = "current_smb_folder";
+    public static final String PREF_CURRENT_SMB_CONNECTION_ID = "current_smb_connection_id";
     public static final String NEEDS_REFRESH = "needs_refresh";
 
     /**
@@ -14,5 +15,4 @@ public class Constants {
     private Constants() {
         // Private constructor to prevent instantiation
     }
-
 }

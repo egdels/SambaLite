@@ -199,9 +199,45 @@ public class SmbBackgroundService extends Service {
         String title = op.label() + "…";
         String content = initialContentForOp(op);
 
+        // Update operation context flags based on the starting operation to ensure
+        // the notification PendingIntent points to the correct screen on tap.
+        boolean prevSearch = isSearchOperation;
+        boolean prevUpload = isUploadOperation;
+        boolean prevDownload = isDownloadOperation;
+        switch (op) {
+            case SEARCH:
+                isSearchOperation = true;
+                isUploadOperation = false;
+                isDownloadOperation = false;
+                break;
+            case UPLOAD:
+                isSearchOperation = false;
+                isUploadOperation = true;
+                isDownloadOperation = false;
+                break;
+            case DOWNLOAD:
+                isSearchOperation = false;
+                isUploadOperation = false;
+                isDownloadOperation = true;
+                break;
+            default:
+                // For other operations, disable specific deep links
+                isSearchOperation = false;
+                isUploadOperation = false;
+                isDownloadOperation = false;
+                break;
+        }
+        boolean contextChanged = (prevSearch != isSearchOperation) || (prevUpload != isUploadOperation) || (prevDownload != isDownloadOperation);
+
         currentOperation = title;
         LogUtils.d(TAG, "Starting operation: " + operationName + " (active=" + count + ")");
-        updateNotificationThrottled(title, content);
+
+        // If the context changed (e.g., Search -> Download), refresh immediately so the tap target updates now.
+        if (contextChanged) {
+            updateNotificationImmediate(title, content);
+        } else {
+            updateNotificationThrottled(title, content);
+        }
 
         if (wakeLock != null) {
             wakeLock.acquire();
@@ -218,6 +254,10 @@ public class SmbBackgroundService extends Service {
 
         if (count <= 0) {
             currentOperation = "";
+            // Reset context flags to avoid stale tap targets when no ops are running
+            isSearchOperation = false;
+            isUploadOperation = false;
+            isDownloadOperation = false;
             updateNotificationThrottled("SMB Service ready", "Ready for background operations");
         } else {
             updateNotificationThrottled(currentOperation, count + " operations active");
@@ -291,6 +331,12 @@ public class SmbBackgroundService extends Service {
         this.isUploadOperation = false;
         this.isDownloadOperation = false;
         LogUtils.d(TAG, "Search parameters set: connectionId=" + connectionId + ", query=" + searchQuery);
+
+        // Immediately refresh notification intent to point to Search context
+        ProgressFormat.Op op = ProgressFormat.Op.SEARCH;
+        String title = op.label() + "…";
+        currentOperation = title;
+        updateNotificationImmediate(title, initialContentForOp(op));
     }
 
     public void setUploadParameters(String connectionId, String uploadPath) {
@@ -300,6 +346,12 @@ public class SmbBackgroundService extends Service {
         this.isSearchOperation = false;
         this.isDownloadOperation = false;
         LogUtils.d(TAG, "Upload parameters set: connectionId=" + connectionId + ", path=" + uploadPath);
+
+        // Immediately refresh notification intent to point to Upload context
+        ProgressFormat.Op op = ProgressFormat.Op.UPLOAD;
+        String title = op.label() + "…";
+        currentOperation = title;
+        updateNotificationImmediate(title, initialContentForOp(op));
     }
 
     public void setDownloadParameters(String connectionId, String downloadPath) {
@@ -309,6 +361,12 @@ public class SmbBackgroundService extends Service {
         this.isSearchOperation = false;
         this.isUploadOperation = false;
         LogUtils.d(TAG, "Download parameters set: connectionId=" + connectionId + ", path=" + downloadPath);
+
+        // Immediately refresh notification intent to point to Download context
+        ProgressFormat.Op op = ProgressFormat.Op.DOWNLOAD;
+        String title = op.label() + "…";
+        currentOperation = title;
+        updateNotificationImmediate(title, initialContentForOp(op));
     }
 
     public void clearSearchParameters() {
@@ -558,31 +616,29 @@ public class SmbBackgroundService extends Service {
                 .setOnlyAlertOnce(true)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setPriority(NotificationCompat.PRIORITY_LOW);
-        /* TODO: Erst klickbar machen, wenn das zurückspringen in den Download/Upload-Dialog funktioniert
         if (!"SMB Service ready".equals(title)) {
             builder.setContentIntent(contentIntent);
-        }*/
+        }
 
-        /* TODO: Erst cancelbar, wenn z.B. das Abbrechen der Suche funktioniert.
-        if (hasActiveOperations()) {
+        // Show Cancel action only for operations other than Search, Upload, and Download
+        boolean isCancelableOp = !(isSearchOperation || isUploadOperation || isDownloadOperation);
+        if (hasActiveOperations() && isCancelableOp) {
             Intent cancelIntent = new Intent(this, SmbBackgroundService.class).setAction(ACTION_CANCEL);
             PendingIntent cancelPI = PendingIntent.getService(
                     this, 1, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             builder.addAction(R.drawable.ic_notification, getString(R.string.cancel), cancelPI);
-        }*/
+        }
         return builder.build();
     }
 
     private PendingIntent buildContentIntent(String title) {
-        Intent fallback = new Intent(this, MainActivity.class);
-        TaskStackBuilder tsb = TaskStackBuilder.create(this);
-
         Intent toBrowser = null;
         String reqKey = "fallback";
 
         if (isSearchOperation && connectionId != null) {
             toBrowser = new Intent(this, FileBrowserActivity.class)
                     .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.SEARCH")
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     .putExtra("extra_connection_id", connectionId)
                     .putExtra("extra_search_query", searchQuery)
                     .putExtra("extra_search_type", searchType)
@@ -594,6 +650,7 @@ public class SmbBackgroundService extends Service {
         } else if (isUploadOperation && connectionId != null && uploadPath != null) {
             toBrowser = new Intent(this, FileBrowserActivity.class)
                     .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.UPLOAD")
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     .putExtra("extra_connection_id", connectionId)
                     .putExtra("extra_directory_path", uploadPath)
                     .putExtra("extra_from_upload_notification", true)
@@ -603,6 +660,7 @@ public class SmbBackgroundService extends Service {
         } else if (isDownloadOperation && connectionId != null && downloadPath != null) {
             toBrowser = new Intent(this, FileBrowserActivity.class)
                     .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.DOWNLOAD")
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     .putExtra("extra_connection_id", connectionId)
                     .putExtra("extra_directory_path", downloadPath)
                     .putExtra("extra_from_download_notification", true)
@@ -611,22 +669,31 @@ public class SmbBackgroundService extends Service {
             reqKey = "download:" + connectionId + ":" + downloadPath;
         }
 
-        if (toBrowser != null) {
-            // Richtiger Back-Stack: MainActivity → FileBrowserActivity
-            tsb.addParentStack(FileBrowserActivity.class);
-            tsb.addNextIntent(toBrowser);
-        } else {
-            // Keine Kontextinfos → nur MainActivity
-            tsb.addNextIntent(fallback);
-        }
-
-        // WICHTIG: eindeutiger requestCode, sonst recycelt Android alte Intents
+        // Unique requestCode so Android doesn't recycle extras
         int requestCode = reqKey.hashCode();
 
-        return tsb.getPendingIntent(
-                requestCode,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        if (toBrowser != null) {
+            return PendingIntent.getActivity(
+                    this,
+                    requestCode,
+                    toBrowser,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+        } else {
+            // No specific deep-link context available: bring FileBrowserActivity to front
+            Intent fallback = new Intent(this, FileBrowserActivity.class)
+                    .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.GENERIC")
+                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    .putExtra("extra_from_generic_notification", true)
+                    .putExtra("extra_show_progress_dialog", true)
+                    .putExtra("extra_operation_name", title);
+            return PendingIntent.getActivity(
+                    this,
+                    requestCode,
+                    fallback,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+        }
     }
 
 

@@ -33,6 +33,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class SmbRepositoryImpl implements SmbRepository {
 
     private final SMBClient smbClient;
+    // Thread-local to track the currently connected share name for path normalization
+    private final ThreadLocal<String> currentShareName = new ThreadLocal<>();
     private final BackgroundSmbManager backgroundManager;
     private final SmartErrorHandler errorHandler;
     /**
@@ -293,56 +295,38 @@ public class SmbRepositoryImpl implements SmbRepository {
             path = path.substring(1);
         }
 
-        // Extract the first segment of the path (potential share name)
-        int slashIndex = path.indexOf('/');
-        if (slashIndex == -1) {
-            slashIndex = path.indexOf('\\');
-        }
-
-        // If there's no slash, the path might be just a single file or folder in the root
-        if (slashIndex == -1) {
-            LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
-            return path;
-        }
-
-        // Extract the first segment and the rest of the path
-        String firstSegment = path.substring(0, slashIndex);
-        String remainingPath = path.substring(slashIndex + 1);
-
-        // Check if the first segment is likely a share name
-        // In SMB paths, the share name is typically the first segment
-        // For example, in "christian/Test/file.pdf", "christian" is the share name
-
-        // IMPORTANT: We're being more conservative here to avoid removing folder names
-        // Only remove the first segment if we're very confident it's a share name
-        // Common share names like "users", "public", "shared", etc.
-        String[] commonShareNames = {"users", "public", "shared", "documents", "media", "christian"};
-        boolean isLikelyShareName = false;
-
-        for (String shareName : commonShareNames) {
-            if (firstSegment.equalsIgnoreCase(shareName)) {
-                isLikelyShareName = true;
-                break;
+        // If we know the active share name, strip it when present as the first segment (case-insensitive)
+        String activeShare = currentShareName.get();
+        if (activeShare != null && !activeShare.isEmpty()) {
+            // Normalize to forward slashes for comparison
+            String normalized = path.replace('\\', '/');
+            String shareNorm = activeShare.replace('\\', '/');
+            // Also strip any leading slashes on share name just in case
+            while (shareNorm.startsWith("/")) {
+                shareNorm = shareNorm.substring(1);
+            }
+            if (normalized.equalsIgnoreCase(shareNorm)) {
+                // Path equals the share itself -> becomes empty (root of share)
+                LogUtils.d("SmbRepositoryImpl", "Path equals active share '" + activeShare + "' -> using root");
+                return "";
+            }
+            if (normalized.toLowerCase(Locale.ROOT).startsWith((shareNorm + "/").toLowerCase(Locale.ROOT))) {
+                String stripped = normalized.substring(shareNorm.length() + 1);
+                LogUtils.d("SmbRepositoryImpl", "Stripped active share '" + activeShare + "' from path -> " + stripped);
+                return stripped;
             }
         }
 
-        // If the first segment contains dots, spaces, or other special characters,
-        // it's likely not a share name (share names typically don't contain these characters)
-        if (firstSegment.contains(".") || firstSegment.contains(" ") || firstSegment.contains("-") || firstSegment.contains("_")) {
-            isLikelyShareName = false;
-        }
-
-        // If we're not confident it's a share name, return the full path
-        if (!isLikelyShareName) {
-            LogUtils.d("SmbRepositoryImpl", "First segment doesn't look like a share name: " + firstSegment);
+        // Fallback: if there is no slash, return as-is (single segment)
+        int slashIndex = Math.max(path.indexOf('/'), path.indexOf('\\'));
+        if (slashIndex == -1) {
             LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
             return path;
         }
 
-        // The first segment is likely a share name, so remove it
-        LogUtils.d("SmbRepositoryImpl", "Removed likely share name '" + firstSegment + "' from path");
-        LogUtils.d("SmbRepositoryImpl", "Path without share: " + remainingPath);
-        return remainingPath;
+        // Conservative fallback (keep original behavior without hardcoded names): do not strip unknown first segment
+        LogUtils.d("SmbRepositoryImpl", "No active share match for first segment; using path as-is: " + path);
+        return path;
     }
 
     /**
@@ -482,7 +466,13 @@ public class SmbRepositoryImpl implements SmbRepository {
                     }
 
                     LogUtils.d("SmbRepositoryImpl", "Share connection established: " + shareName + " (attempt " + attempt + ")");
-                    return callback.doWithShare(share);
+                    // Set active share name for path normalization within this thread
+                    currentShareName.set(shareName);
+                    try {
+                        return callback.doWithShare(share);
+                    } finally {
+                        currentShareName.remove();
+                    }
                 }
             }
         } catch (Exception e) {

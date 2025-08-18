@@ -13,10 +13,10 @@ android {
 
     defaultConfig {
         applicationId "de.schliweb.sambalite"
-        minSdkVersion 28
+        minSdk 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        versionCode 10202
+        versionCode 10204
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -61,9 +61,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    // Enable lint warnings for deprecated APIs
+    // Ensure consistent encoding
     tasks.withType(JavaCompile) {
-        options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
         options.encoding = 'UTF-8'
     }
 
@@ -102,15 +101,14 @@ android {
         }
     }
 
-    lintOptions {
+    lint {
         // Disable problematic Timber lint checks that don't work with AGP 8.10.1
-        disable 'LogNotTimber', 'StringFormatInTimber', 'ThrowableNotAtBeginning', 
-                'BinaryOperationInTimber', 'TimberArgCount', 'TimberArgTypes', 
-                'TimberTagLength', 'TimberExceptionLogging'
-        
-        // Enable unused resource detection
-        disable 'UnusedResources'
-        
+        disable += ['LogNotTimber', 'StringFormatInTimber', 'ThrowableNotAtBeginning',
+                    'BinaryOperationInTimber', 'TimberArgCount', 'TimberArgTypes',
+                    'TimberTagLength', 'TimberExceptionLogging',
+                    // Unused resources detection disabled
+                    'UnusedResources']
+
         // Keep other important checks enabled
         warningsAsErrors = false
         abortOnError = false

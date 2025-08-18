@@ -5,6 +5,43 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-08-18
+
+The ServiceController was successfully removed in favor of direct usage of BackgroundSmbManager in FileBrowserActivity, maintaining all necessary functionality such as setting the search context and executing background operations. All changes were implemented, built, and tests verified successfully. The solution has been submitted.
+The connection resolution for uploads was improved by storing and using a stable connection ID alongside the folder path, instead of relying on the connection name, which can change. This change resolved the issue of uploads failing when the connection name was changed, and the project now builds successfully without errors. The implementation was finalized and is ready for submission.
+The Back functionality in the file browser was updated to navigate up one folder level instead of immediately returning to the Connections view, only leading to Connections when at the topmost folder. The implementation was validated with a successful build. No errors were encountered during the modification process.
+Fix: Upload path normalization no longer duplicates the share name. A thread-local active share name is set during SMB operations and getPathWithoutShare strips it reliably (case-insensitive), preventing paths like \\server\share\share\file and fixing STATUS_OBJECT_PATH_NOT_FOUND during uploads. Built successfully.
+Search caching was improved to handle server-side file changes by removing cache entries only when necessary and managing search state upon connection changes. A generation token was introduced to prevent stale updates after cancellations. All changes were verified, and there were no errors reported during testing.
+
+### Added
+- File browser: Floating action buttons now automatically hide when scrolling down and reappear when scrolling up or at the top of the list, providing more screen space while browsing files.
+- Back from search results: Pressing BACK while viewing search results exits search mode and returns to the exact folder where the search was started. Works for both toolbar back and system back; also cancels any in-flight search safely.
+
+### Changed
+- Search caching: Introduced stale-while-revalidate with throttled background revalidation (per key, ≥2 min interval). Cached results show immediately; a background refresh updates the cache/UI if the server-side content changed.
+- Search robustness: Added a generation token to prevent stale UI updates after cancellations or context switches; isolated searches by connection to avoid cross-connection leakage of results.
+- Removed deprecated Android APIs and suppressions across the app:
+  - Replaced legacy system UI flags (SYSTEM_UI_FLAG_*) with WindowCompat edge-to-edge configuration.
+  - Migrated deprecated network APIs (NetworkInfo, WifiManager.getConnectionInfo) to ConnectivityManager with LinkProperties/NetworkCapabilities in NetworkScanner.
+  - Updated parcelable retrieval to type-safe getParcelableExtra(key, Class) on Android 13+ with IntentCompat fallbacks for older versions.
+- Modernized Gradle configuration for AGP 8.10.x:
+  - Switched from deprecated lintOptions { } to lint { } DSL and consolidated disabled checks.
+  - Switched from minSdkVersion to minSdk in defaultConfig.
+- General deprecation cleanup: removed remaining @SuppressWarnings("deprecation") and aligned code with current Android SDK recommendations.
+- Notifications: Operation notifications for Search, Upload, and Download remain tappable but no longer show a Cancel action button.
+
+### Fixed
+- Tapping an operation notification (Search/Upload/Download) now opens the correct screen and dialog, even if the file browser is already running (added proper PendingIntent and onNewIntent handling). Additionally set FileBrowserActivity launchMode to singleTop and added CLEAR_TOP | SINGLE_TOP flags to notification intents to prevent activity recreation that previously canceled running searches.
+- Immediate notification refresh on operation context changes prevents stale tap targets (e.g., after a search followed by a large download, tapping now opens the Download dialog instead of the Search dialog).
+- After cancelling a search and starting a download, tapping the notification no longer opens the Search dialog. The service now derives and updates the notification deep-link context at operation start (Search/Upload/Download), ensuring the tap target is always correct immediately.
+- Tapping a download/upload/search notification no longer cancels the running operation: the generic fallback intent now brings FileBrowserActivity to front instead of launching MainActivity, avoiding Activity finish and unintended cancellation.
+- Search robustness during transfers: If a search refresh times out because another operation (upload/download) is running, existing search results are preserved and the UI is not cleared to 0 items.
+- Back from cached search results: Pressing BACK now exits search mode and returns to the starting folder even when results came from cache (previously the UI could stay on search results and required repeated presses).
+- Prevented stale or post-cancel search results from overwriting the UI by guarding updates with the generation token.
+- Ensured cached search results are only applied if still current; background revalidation updates them when server-side changes are detected.
+
+> Developer note: These changes eliminate deprecation warnings on current toolchains (Java 17, AGP 8.10.1) and improve forward compatibility without altering app behavior.
+
 ## [1.2.3] - 2025-08-13
 
 ### Added

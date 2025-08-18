@@ -148,20 +148,11 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
         super.onCreate(savedInstanceState);
 
-        // Configure edge-to-edge display for better landscape experience
+        // Configure edge-to-edge display for better landscape experience (no deprecated flags)
         Window window = getWindow();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Modern API (Android 11+)
-            WindowCompat.setDecorFitsSystemWindows(window, false);
-            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-        } else {
-            // Legacy API (Android 10 and below)
-            window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-            window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
-            window.getDecorView().setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE | android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        }
+        WindowCompat.setDecorFitsSystemWindows(window, false);
+        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
 
         setContentView(R.layout.activity_main);
         LogUtils.d("MainActivity", "Content view set");

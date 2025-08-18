@@ -647,7 +647,7 @@ public class FileOperationsController {
                 if (success) {
                     updateFinalizingProgress(OPERATION_UPLOAD, file, fileName, false);
                     handleOperationSuccess(OPERATION_UPLOAD, file, fileName, false,
-                            "File uploaded successfully", true, null);
+                            context.getString(de.schliweb.sambalite.R.string.upload_success), true, null);
                 } else {
                     handleOperationError(OPERATION_UPLOAD, file, message, null, false, null);
                 }
@@ -668,7 +668,7 @@ public class FileOperationsController {
                 if (success) {
                     updateFinalizingProgress(OPERATION_FOLDER_UPLOAD, null, folderName, true);
                     handleOperationSuccess(OPERATION_FOLDER_UPLOAD, null, folderName, true,
-                            "Folder contents uploaded successfully", true, null);
+                            context.getString(de.schliweb.sambalite.R.string.folder_contents_upload_success), true, null);
                 } else {
                     if (message != null && (message.contains("incomplete") || message.contains("of"))) {
                         String enhanced = message + "\n\nSome files were uploaded successfully. Check the server and retry if needed.";
