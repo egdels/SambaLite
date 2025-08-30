@@ -3,6 +3,9 @@ package de.schliweb.sambalite.ui.operations;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.documentfile.provider.DocumentFile;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -19,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileOperationsViewModel extends ViewModel {
 
@@ -29,6 +33,59 @@ public class FileOperationsViewModel extends ViewModel {
     private final FileListViewModel fileListViewModel;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private final AtomicInteger uploadCount = new AtomicInteger(0);
+    private final AtomicInteger downloadCount = new AtomicInteger(0);
+
+    private final MutableLiveData<Boolean> uploading = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> downloading = new MutableLiveData<>(false);
+    private final MediatorLiveData<Boolean> anyOperationActive = new MediatorLiveData<>();
+
+    public LiveData<Boolean> isUploading() {
+        return uploading;
+    }
+
+    public LiveData<Boolean> isDownloading() {
+        return downloading;
+    }
+
+    public LiveData<Boolean> isAnyOperationActive() {
+        return anyOperationActive;
+    }
+
+    private void incUpload() {
+        int c = uploadCount.incrementAndGet();
+        mainHandler.post(() -> uploading.setValue(c > 0));
+    }
+
+    private void decUpload() {
+        int c = Math.max(0, uploadCount.decrementAndGet());
+        mainHandler.post(() -> uploading.setValue(c > 0));
+    }
+
+    private void incDownload() {
+        int c = downloadCount.incrementAndGet();
+        mainHandler.post(() -> downloading.setValue(c > 0));
+    }
+
+    private void decDownload() {
+        int c = Math.max(0, downloadCount.decrementAndGet());
+        mainHandler.post(() -> downloading.setValue(c > 0));
+    }
+
+    public record TransferProgress(int percentage, String statusText, String fileName) {
+    }
+
+    private final MutableLiveData<TransferProgress> transferProgress = new MutableLiveData<>();
+
+    public LiveData<TransferProgress> getTransferProgress() {
+        return transferProgress;
+    }
+
+    private void emitProgress(String status, int pct, String fileName) {
+        int clamped = Math.max(0, Math.min(100, pct));
+        transferProgress.postValue(new TransferProgress(clamped, status, fileName));
+    }
 
     @Inject
     public FileOperationsViewModel(SmbRepository smbRepository,
@@ -41,6 +98,12 @@ public class FileOperationsViewModel extends ViewModel {
         this.fileListViewModel = fileListViewModel;
         this.executor = Executors.newSingleThreadExecutor();
         LogUtils.d("FileOperationsViewModel", "FileOperationsViewModel initialized");
+
+        anyOperationActive.setValue(false);
+        anyOperationActive.addSource(uploading, u ->
+                anyOperationActive.setValue(Boolean.TRUE.equals(u) || Boolean.TRUE.equals(downloading.getValue())));
+        anyOperationActive.addSource(downloading, d ->
+                anyOperationActive.setValue(Boolean.TRUE.equals(d) || Boolean.TRUE.equals(uploading.getValue())));
     }
 
     public void cancelDownload() {
@@ -73,6 +136,7 @@ public class FileOperationsViewModel extends ViewModel {
 
         LogUtils.d("FileOperationsViewModel", "Downloading file: " + file.getName() + " to " + localFile.getAbsolutePath());
 
+        incDownload();
         executor.execute(() -> {
             try {
                 state.setDownloadCancelled(false);
@@ -102,6 +166,7 @@ public class FileOperationsViewModel extends ViewModel {
                                         int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
                                         if (throttle.allow(pct)) {
                                             int p = pct;
+                                            emitProgress(progressInfo, p, file.getName());
                                             mainHandler.post(() -> callback.onProgress(progressInfo, p));
                                         }
                                         if (pct > lastPctBox[0]) lastPctBox[0] = pct;
@@ -116,6 +181,7 @@ public class FileOperationsViewModel extends ViewModel {
                                         int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
                                         if (throttle.allow(pct)) {
                                             String status = ProgressFormat.formatBytes("Downloading", currentBytes, totalBytes);
+                                            emitProgress(status, pct, fileName);
                                             int p = pct;
                                             mainHandler.post(() -> callback.onProgress(status, p));
                                         }
@@ -147,6 +213,8 @@ public class FileOperationsViewModel extends ViewModel {
                     }
                     state.setErrorMessage("Failed to download file: " + e.getMessage());
                 }
+            } finally {
+                decDownload();
             }
         });
     }
@@ -165,6 +233,7 @@ public class FileOperationsViewModel extends ViewModel {
 
         LogUtils.d("FileOperationsViewModel", "Downloading folder: " + folder.getName() + " to " + localFolder.getAbsolutePath());
 
+        incDownload();
         executor.execute(() -> {
             try {
                 state.setDownloadCancelled(false);
@@ -201,11 +270,13 @@ public class FileOperationsViewModel extends ViewModel {
                                             (int) Math.floor(((Math.max(currentFile - 1, 0)) * 100.0) / Math.max(lastTotalFiles, 1)),
                                             lastProgressPercentage
                                     );
+
                                     if (callback != null && throttle.allow(pct)) {
                                         String status = (lastTotalFiles > 0 && lastCurrentFile > 0)
                                                 ? ProgressFormat.formatIdx("Downloading", lastCurrentFile, lastTotalFiles, currentFileName)
                                                 : "Downloading: " + currentFileName;
                                         final int p = pct;
+                                        emitProgress(status, pct, currentFileName);
                                         mainHandler.post(() -> callback.onProgress(status, p));
                                     }
                                     if (pct > lastProgressPercentage) lastProgressPercentage = pct;
@@ -229,6 +300,7 @@ public class FileOperationsViewModel extends ViewModel {
                                                 ? base + " • " + filePct + "% (" + ProgressFormat.formatBytesOnly(currentBytes, totalBytes) + ")"
                                                 : base;
 
+                                        emitProgress(status, pct, fileName);
                                         final int p = pct;
                                         mainHandler.post(() -> callback.onProgress(status, p));
                                     }
@@ -242,6 +314,7 @@ public class FileOperationsViewModel extends ViewModel {
                                     int raw = ProgressFormat.parsePercent(progressInfo);
                                     int pct = ensureMonotonicDownloadPct(raw, lastProgressPercentage);
                                     if (callback != null && throttle.allow(pct)) {
+                                        emitProgress(progressInfo, pct, null);
                                         final int p = pct;
                                         mainHandler.post(() -> callback.onProgress(progressInfo, p));
                                     }
@@ -272,6 +345,8 @@ public class FileOperationsViewModel extends ViewModel {
                     }
                     state.setErrorMessage("Failed to download folder: " + e.getMessage());
                 }
+            } finally {
+                decDownload();
             }
         });
     }
@@ -338,6 +413,7 @@ public class FileOperationsViewModel extends ViewModel {
         LogUtils.d("FileOperationsViewModel", "Uploading file: " + localFile.getName() + " to " + remotePath);
         state.setLoading(true);
 
+        incUpload();
         executor.execute(() -> {
             try {
                 state.setUploadCancelled(false);
@@ -351,6 +427,7 @@ public class FileOperationsViewModel extends ViewModel {
                             public void updateProgress(String progressInfo) {
                                 if (callback != null) {
                                     int percentage = ProgressFormat.parsePercent(progressInfo);
+                                    emitProgress(progressInfo, percentage, localFile.getName());
                                     mainHandler.post(() -> callback.onProgress(progressInfo, percentage));
                                 }
                             }
@@ -360,6 +437,7 @@ public class FileOperationsViewModel extends ViewModel {
                                 if (callback != null) {
                                     String status = ProgressFormat.formatBytes("Uploading", currentBytes, totalBytes);
                                     int p = calculateAccuratePercentage(currentBytes, totalBytes);
+                                    emitProgress(status, p, fileName);
                                     mainHandler.post(() -> callback.onProgress(status, p));
                                 }
                             }
@@ -390,6 +468,8 @@ public class FileOperationsViewModel extends ViewModel {
                     }
                     state.setErrorMessage("Failed to upload file: " + e.getMessage());
                 }
+            } finally {
+                decUpload();
             }
         });
     }
@@ -501,6 +581,7 @@ public class FileOperationsViewModel extends ViewModel {
                                             BackgroundSmbManager.MultiFileProgressCallback serviceProgress) {
         LogUtils.d("FileOperationsViewModel", "Starting folder contents upload from URI (with service bridge): " + localFolderUri);
 
+        incUpload();
         executor.execute(() -> {
             List<FileUploadTask> uploadTasks = new ArrayList<>();
             List<String> uploadedServerPaths = new ArrayList<>();
@@ -516,6 +597,7 @@ public class FileOperationsViewModel extends ViewModel {
                 mainHandler.post(() -> {
                     if (callback != null) callback.onProgress("Analyzing folder structure...", 0);
                 });
+                emitProgress("Analyzing folder structure...", 0, null);
                 if (serviceProgress != null) serviceProgress.updateProgress("Analyzing folder structure...");
 
                 DocumentFile sourceFolder = DocumentFile.fromTreeUri(context, localFolderUri);
@@ -537,6 +619,7 @@ public class FileOperationsViewModel extends ViewModel {
                 mainHandler.post(() -> {
                     if (callback != null) callback.onProgress("Creating folder structure...", 5);
                 });
+                emitProgress("Creating folder structure...", 5, null);
                 if (serviceProgress != null) serviceProgress.updateProgress("Creating folder structure...");
 
                 createFolderStructure(uploadTasks, createdFolders);
@@ -638,10 +721,11 @@ public class FileOperationsViewModel extends ViewModel {
                     }
                 });
                 if (serviceProgress != null) serviceProgress.updateProgress("Upload failed");
+            } finally {
+                decUpload();
             }
         });
     }
-
 
     public void uploadFolderContentsFromUri(android.net.Uri localFolderUri,
                                             FileOperationCallbacks.UploadCallback callback,
@@ -831,6 +915,7 @@ public class FileOperationsViewModel extends ViewModel {
                                 "Uploading", currentFileIndex, totalFiles, task.fileName
                         ) + " • " + filePercentage + "%";
 
+                        emitProgress(progressMessage, overallPercentage, task.fileName);
                         mainHandler.post(() -> callback.onProgress(progressMessage, overallPercentage));
 
                         if (serviceProgress != null) {
@@ -850,6 +935,9 @@ public class FileOperationsViewModel extends ViewModel {
                                     ((currentFileIndex - 1) * 100.0 + ProgressFormat.percentOfBytes(currentBytes, totalBytes))
                                             / totalFiles
                             );
+
+                            emitProgress(status, overallRaw, fileName);
+
                             mainHandler.post(() -> callback.onProgress(status, overallRaw));
                         }
 

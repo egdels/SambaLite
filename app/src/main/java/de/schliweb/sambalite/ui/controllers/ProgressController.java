@@ -125,6 +125,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                         progressDialog.dismiss();
                     }
 
+                    resetUiProgressCache();
+
                     // Inflate custom progress dialog layout
                     View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
 
@@ -162,6 +164,14 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                 }
             });
         }
+    }
+
+    private void resetUiProgressCache() {
+        lastOverall = -1;
+        lastCur = -1;
+        lastTotal = -1;
+        lastFile = "";
+        lastBytesUiTs = 0L;
     }
 
     /**
@@ -260,6 +270,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             if (progressDialog != null && progressDialog.isShowing()) {
                 progressDialog.dismiss();
                 progressDialog = null;
+                resetUiProgressCache();
                 LogUtils.d("ProgressController", "Detailed progress dialog hidden");
             }
         });
@@ -550,6 +561,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                 if (progressDialog != null && progressDialog.isShowing()) {
                     LogUtils.d("ProgressController", "Closing progress dialog");
                     progressDialog.dismiss();
+                    resetUiProgressCache();
                     progressDialog = null;
                 }
 
@@ -566,6 +578,27 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             }
         });
     }
+
+    public boolean isTransferDialogShowing() {
+        return progressDialog != null && progressDialog.isShowing();
+    }
+
+    public void showTransferProgressDialog() {
+        showDetailedProgressDialog(activity.getString(R.string.transfer_title),
+                activity.getString(R.string.preparing_transfer));
+    }
+
+    public void showTransferProgressDialog(String messageOrTitle) {
+        showDetailedProgressDialog(messageOrTitle != null && !messageOrTitle.isEmpty()
+                        ? messageOrTitle
+                        : activity.getString(R.string.transfer_title),
+                activity.getString(R.string.preparing_transfer));
+    }
+
+    public void hideTransferProgressDialog() {
+        hideDetailedProgressDialog();
+    }
+
 
     /**
      * Checks if the activity is safe for UI operations (not finishing or destroyed).

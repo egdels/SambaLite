@@ -10,6 +10,7 @@ import android.view.Window;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
+import androidx.activity.EdgeToEdge;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -47,11 +48,8 @@ public class SystemMonitorActivity extends AppCompatActivity {
         loadingIndicator = new LoadingIndicator(this);
         LogUtils.d(TAG, "Loading indicator initialized");
 
-        // Configure edge-to-edge display for better landscape experience without deprecated flags
-        Window window = getWindow();
-        WindowCompat.setDecorFitsSystemWindows(window, false);
-        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        // Configure edge-to-edge display using backward-compatible helper (Android 15+ safe)
+        EdgeToEdge.enable(this);
 
         LogUtils.d(TAG, "SystemMonitorActivity created");
 

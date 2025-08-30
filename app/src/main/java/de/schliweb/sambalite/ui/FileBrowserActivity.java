@@ -3,18 +3,17 @@ package de.schliweb.sambalite.ui;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 import android.widget.TextView;
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.WindowCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -26,7 +25,6 @@ import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import javax.inject.Inject;
 
@@ -148,14 +146,16 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         // Initialize ViewModels
         initializeViewModels();
 
-        // Set up ViewModel observers
-        setupViewModelObservers();
-
         // Initialize shared state
         initializeSharedState();
 
         // Initialize controllers
         initializeControllers();
+
+        // Set up ViewModel observers
+        setupViewModelObservers();
+
+        restoreProgressDialogsIfNeeded();
 
         // Set up controller callbacks
         setupControllerCallbacks();
@@ -171,10 +171,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
      * Configures edge-to-edge display for better landscape experience without deprecated flags.
      */
     private void configureEdgeToEdgeDisplay() {
-        Window window = getWindow();
-        WindowCompat.setDecorFitsSystemWindows(window, false);
-        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        // Use Activity EdgeToEdge helper for backward-compatible, borderless display
+        EdgeToEdge.enable(this);
     }
 
     /**
@@ -276,7 +274,105 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             }
         });
 
+        // Ensure FABs visibility reflects current list state, especially for empty folders
+        fileListViewModel.getFiles().observe(this, files -> {
+            // In an empty folder, explicitly show upload and create-folder buttons
+            if (files == null || files.isEmpty()) {
+                if (!fab.isShown()) fab.show();
+                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+            } else {
+                // Also ensure they are visible when content loads (top of list)
+                if (!fab.isShown()) fab.show();
+                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+            }
+        });
+
+        fileOperationsViewModel.isAnyOperationActive().observe(this, active -> {
+            if (Boolean.TRUE.equals(active)) {
+                if (!progressController.isTransferDialogShowing()) {
+                    String title = Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
+                            ? getString(R.string.uploading)
+                            : getString(R.string.downloading);
+                    progressController.showTransferProgressDialog(title);
+                    progressController.setDetailedProgressDialogCancelAction(() -> {
+                        if (Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())) {
+                            fileOperationsViewModel.cancelUpload();
+                        } else if (Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue())) {
+                            fileOperationsViewModel.cancelDownload();
+                        }
+                    });
+                }
+            } else {
+                progressController.hideTransferProgressDialog();
+            }
+        });
+
+
+        fileOperationsViewModel.getTransferProgress().observe(this, tp -> {
+            if (tp == null) return;
+
+            if (!progressController.isTransferDialogShowing()
+                    && Boolean.TRUE.equals(fileOperationsViewModel.isAnyOperationActive().getValue())) {
+                String title = Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
+                        ? getString(R.string.uploading)
+                        : getString(R.string.downloading);
+                progressController.showTransferProgressDialog(title);
+                progressController.setDetailedProgressDialogCancelAction(() -> {
+                    if (Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())) {
+                        fileOperationsViewModel.cancelUpload();
+                    } else if (Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue())) {
+                        fileOperationsViewModel.cancelDownload();
+                    }
+                });
+            }
+
+            progressController.updateDetailedProgress(tp.percentage(), tp.statusText(), tp.fileName());
+        });
+
+
         LogUtils.d("FileBrowserActivity", "ViewModel observers set up");
+    }
+
+    /**
+     * Restores progress dialogs for ongoing operations if needed.
+     * <p>
+     * This method checks the current state of ongoing operations such as searching, uploading,
+     * and downloading using the respective ViewModel instances. If an operation is active,
+     * the corresponding progress dialog is displayed.
+     * <p>
+     * The following scenarios are handled:
+     * 1. Shows a search progress dialog if a search operation is active.
+     * 2. Shows a transfer progress dialog in the case of an ongoing file upload or download,
+     * with appropriate titles indicating "Uploading" or "Downloading".
+     * 3. Allows setting a cancel action for the transfer progress dialog to support
+     * interruption of ongoing file operations based on user input.
+     */
+    private void restoreProgressDialogsIfNeeded() {
+        if (Boolean.TRUE.equals(searchViewModel.isSearching().getValue())) {
+            progressController.showSearchProgressDialog();
+        }
+
+        boolean uploading = Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue());
+        boolean downloading = Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue());
+        boolean any = uploading || downloading || Boolean.TRUE.equals(fileOperationsViewModel.isAnyOperationActive().getValue());
+
+        if (any) {
+            if (uploading) {
+                progressController.showTransferProgressDialog(getString(R.string.uploading));
+            } else if (downloading) {
+                progressController.showTransferProgressDialog(getString(R.string.downloading));
+            } else {
+                progressController.showTransferProgressDialog();
+            }
+
+            progressController.setDetailedProgressDialogCancelAction(() -> {
+                if (Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())) {
+                    fileOperationsViewModel.cancelUpload();
+                } else if (Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue())) {
+                    fileOperationsViewModel.cancelDownload();
+                }
+            });
+        }
     }
 
     /**
@@ -662,12 +758,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         super.onDestroy();
         LogUtils.d("FileBrowserActivity", "onDestroy called");
 
-        // Clean up controllers
-        progressController.closeAllDialogs();
         fileOperationsController.removeListener(this);
 
-        // Only cancel operations if the Activity is actually finishing (user leaving the screen),
-        // not during configuration changes or lifecycle churn caused by new intents/back stack tweaks.
+        // Immer schließen, sonst WindowLeaked bei Rotation
+        progressController.closeAllDialogs();
+
         boolean shouldCancelOps = isFinishing() && !isChangingConfigurations();
         if (shouldCancelOps) {
             LogUtils.d("FileBrowserActivity", "Activity finishing – requesting operation cancellations");
@@ -678,6 +773,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             LogUtils.d("FileBrowserActivity", "Activity not finishing – keeping operations running");
         }
     }
+
 
     // FileListController.FileClickCallback implementation
     @Override

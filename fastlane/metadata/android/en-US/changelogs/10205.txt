@@ -1,0 +1,10 @@
+* Unified transfer pipeline with status flags + replayable progress.
+* Cancel actions in UI (cancelUpload, cancelDownload).
+* Background search with cancellable progress dialog.
+* SAF folder upload: structure, overwrite prompts, multi-file progress, cleanup.
+* Edge-to-edge display via androidx.activity EdgeToEdge (borderless, backward-compatible).
+* Transfer dialog now driven by FileOperationsViewModel state.
+* Smoother progress (throttled, monotonic %, byte-based, finalizing phase).
+* Closed dialogs in onDestroy() to prevent leaks.
+* Safer UI access in ProgressController.
+* FABs (Upload/Create Folder) visible in empty folders.

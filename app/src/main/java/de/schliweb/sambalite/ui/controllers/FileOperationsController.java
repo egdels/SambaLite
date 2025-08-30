@@ -86,8 +86,6 @@ public class FileOperationsController {
 
     // ---- Unified progress helpers ----
     private void updateOperationProgress(String operationType, SmbFileItem file, String itemName, int percentage, String status) {
-        String displayName = (file != null) ? file.getName() : itemName;
-        if (progressCallback != null) progressCallback.updateDetailedProgress(percentage, status, displayName);
         notifyOperationProgress(operationType, file, percentage, status);
         LogUtils.d("FileOperationsController", "Progress: " + operationType + " " + percentage + "% - " + status);
     }
@@ -113,20 +111,17 @@ public class FileOperationsController {
         return new FileOperationRequesterImpl();
     }
 
+    /**
+     * Öffnet KEINEN Transfer-Dialog mehr (macht die Activity).
+     * Hängt – falls vorhanden – nur die Cancel-Action an einen bereits offenen Dialog.
+     */
     private void showProgressShell(String operationType, String operationName, Runnable onCancel) {
-        if (progressCallback == null) return;
-        String initial = OPERATION_DOWNLOAD.equals(operationType) ? "Preparing download..." : "Preparing upload...";
-        String selected = uiState.getSelectedFile() != null ? uiState.getSelectedFile().getName() : "";
-        progressCallback.showDetailedProgressDialog(operationName, initial);
-        progressCallback.updateDetailedProgress(0, initial, selected);
-        // Falls du eine ProgressController-Impl hast: Cancel-Action setzen
-        try {
-            if (progressCallback instanceof ProgressController pc) {
+        if (progressCallback instanceof ProgressController pc && pc.isTransferDialogShowing()) {
+            try {
                 pc.setDetailedProgressDialogCancelAction(onCancel);
-            }
-        } catch (Throwable ignore) { /* optional */ }
+            } catch (Throwable ignore) { /* optional */ }
+        }
     }
-
 
     // ---- File operations ----
     public void handleFileDownload(Uri uri) {
@@ -461,7 +456,6 @@ public class FileOperationsController {
 
         final java.util.concurrent.atomic.AtomicBoolean FINALIZING = new java.util.concurrent.atomic.AtomicBoolean(false);
 
-
         return new FileOperationCallbacks.DownloadCallback() {
             @Override
             public void onProgress(String status, int percentage) {
@@ -532,7 +526,6 @@ public class FileOperationsController {
     private FileOperationCallbacks.DownloadCallback createFolderDownloadCallbackWithNotification(
             File tempFolder, DocumentFile destFolder, SmbFileItem folder, AtomicBoolean cancelFinalize, BackgroundSmbManager.MultiFileProgressCallback serviceCb) {
 
-
         final java.util.concurrent.atomic.AtomicBoolean FINALIZING = new java.util.concurrent.atomic.AtomicBoolean(false);
 
         final java.util.function.IntUnaryOperator mapSmb = p -> Math.max(0, Math.min(SMB_CAP, p)); // 0..SMB_CAP
@@ -574,8 +567,7 @@ public class FileOperationsController {
                             @Override
                             public void onStart() {
                                 String txt = "Finalizing… scanning files";
-                                updateOperationProgress(OPERATION_DOWNLOAD, folder, null, SMB_CAP,
-                                        txt);
+                                updateOperationProgress(OPERATION_DOWNLOAD, folder, null, SMB_CAP, txt);
                                 serviceCb.updateProgress(txt);
                             }
 
@@ -606,10 +598,9 @@ public class FileOperationsController {
 
                             @Override
                             public void onError(Exception e) {
-                                String txt = "";
+                                String txt;
                                 if (e instanceof FileOperations.OperationCancelledException) {
                                     txt = "Download cancelled by user during local copy";
-                                    // NEU: sauberer Cancel
                                     handleOperationError(
                                             OPERATION_DOWNLOAD, folder,
                                             txt,
@@ -729,8 +720,7 @@ public class FileOperationsController {
         notifyOperationCompleted(operationType, file, true, successMessage);
         if (progressCallback != null) {
             progressCallback.hideLoadingIndicator();
-            progressCallback.hideDetailedProgressDialog();
-            LogUtils.d("FileOperationsController", "Progress dialog hidden after success");
+            LogUtils.d("FileOperationsController", "Progress (short UI) cleaned up after success");
         }
     }
 
@@ -749,8 +739,7 @@ public class FileOperationsController {
         notifyOperationCompleted(operationType, file, false, errorMessage);
         if (progressCallback != null) {
             progressCallback.hideLoadingIndicator();
-            progressCallback.hideDetailedProgressDialog();
-            LogUtils.d("FileOperationsController", "Progress dialog hidden after error");
+            LogUtils.d("FileOperationsController", "Progress (short UI) cleaned up after error");
         }
     }
 

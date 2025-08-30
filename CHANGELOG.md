@@ -5,6 +5,28 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2025-08-30
+
+### Added
+- Unified transfer pipeline (upload/download) with `isUploading`, `isDownloading`, `isAnyOperationActive`, and replayable `TransferProgress`.
+- Cancel actions wired to UI (`cancelUpload()`, `cancelDownload()`).
+- Search flow runs in background with cancellable progress dialog.
+- Folder upload (SAF): recursive scan, structure creation, overwrite prompts, multi-file progress, cleanup.
+- Edge-to-edge display via `androidx.activity` **EdgeToEdge** helper: borderless layout under system bars, backward-compatible, no deprecated flags.
+
+### Changed
+- Transfer dialog lifecycle now driven by `FileOperationsViewModel` (`isAnyOperationActive` + `getTransferProgress()`).
+- Kept `fileOperationsController.setProgressCallback(progressController)` for user feedback (info/success/error & overwrite dialog), not for dialog lifecycle.
+- Smoother progress: throttled updates, monotonic percentages, accurate byte-based calc, and a “finalizing” phase for local SAF copy.
+
+### Fixed
+- Prevented window leaks by closing dialogs in `onDestroy()`.
+- Safe UI access checks in `ProgressController`.
+- In empty folders, **Upload** and **Create Folder** FABs are shown again (explicitly visible when a directory has no items).
+
+### Removed
+- `ServiceController` (responsibilities moved into `BackgroundSmbManager`).
+
 ## [1.2.4] - 2025-08-18
 
 The ServiceController was successfully removed in favor of direct usage of BackgroundSmbManager in FileBrowserActivity, maintaining all necessary functionality such as setting the search context and executing background operations. All changes were implemented, built, and tests verified successfully. The solution has been submitted.

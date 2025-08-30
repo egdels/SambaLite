@@ -16,7 +16,7 @@ android {
         minSdk 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        versionCode 10204
+        versionCode 10205
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -137,6 +137,8 @@ configurations.all {
 }
 
 dependencies {
+    // Activity library for EdgeToEdge helper
+    implementation 'androidx.activity:activity:1.9.2'
     // Android core libraries
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.core:core-ktx:1.16.0'

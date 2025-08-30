@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.activity.EdgeToEdge;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -148,11 +149,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
         super.onCreate(savedInstanceState);
 
-        // Configure edge-to-edge display for better landscape experience (no deprecated flags)
-        Window window = getWindow();
-        WindowCompat.setDecorFitsSystemWindows(window, false);
-        window.setStatusBarColor(android.graphics.Color.TRANSPARENT);
-        window.setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+        // Configure edge-to-edge display with backward-compatible helper
+        EdgeToEdge.enable(this);
 
         setContentView(R.layout.activity_main);
         LogUtils.d("MainActivity", "Content view set");

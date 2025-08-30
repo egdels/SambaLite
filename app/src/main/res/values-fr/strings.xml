@@ -241,4 +241,7 @@
     <string name="items_to">éléments vers</string>
     <string name="permission_title_notifications">Activer les notifications</string>
     <string name="permission_explain_notifications">SambaLite vous informe de l’avancement des transferts de fichiers, même lorsque l’application fonctionne en arrière-plan. Activez les notifications pour rester informé des envois et téléchargements.</string>
+
+    <string name="transfer_title">Transfert en cours …</string>
+    <string name="preparing_transfer">Veuillez patienter</string>
 </resources>
