@@ -8,10 +8,10 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.ui.FileBrowserActivity;
-import de.schliweb.sambalite.ui.MainActivity;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 
@@ -190,7 +190,23 @@ public class SmbBackgroundService extends Service {
         super.onDestroy();
     }
 
-    // ===== Public API used by controllers =====
+    @RequiresApi(35)
+    @Override
+    public void onTimeout(int startId, int fgType) {
+        LogUtils.w(TAG, "onTimeout(type=" + fgType + ", startId=" + startId + ")");
+        cancelAllOperations("Foreground service time limit reached");
+        try {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } catch (Throwable ignored) {
+        }
+        if (wakeLock != null && wakeLock.isHeld()) {
+            try {
+                wakeLock.release();
+            } catch (Throwable ignore) {
+            }
+        }
+        stopSelf();
+    }
 
     public void startOperation(String operationName) {
         int count = activeOperations.incrementAndGet();
@@ -280,7 +296,6 @@ public class SmbBackgroundService extends Service {
         updateNotificationThrottled(title, progressInfo != null ? progressInfo : "");
         lastProgressUpdate.set(System.currentTimeMillis());
     }
-
 
     public void updateFileProgress(String operationName, int currentFile, int totalFiles, String currentFileName) {
         int percentage = totalFiles > 0 ? ((currentFile * 100) / totalFiles) : 0;
@@ -483,31 +498,42 @@ public class SmbBackgroundService extends Service {
 
     @Override
     public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
-        LogUtils.d(TAG, "onStartCommand flags=" + flags + " id=" + startId + " intent=" + (intent != null ? intent.getAction() : "null"));
-
-        // 1) Start foreground immediately (<= 5s rule)
         if (!isRunning) {
-            startForeground(NOTIFICATION_ID, createNotification("SMB Service ready", "Ready for background operations"));
-            isRunning = true;
+            try {
+                startForeground(NOTIFICATION_ID, createNotification("SMB Service ready", "Ready for background operations"));
+                isRunning = true;
+            } catch (Exception e) {
+                boolean isStartNotAllowed =
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                                && "android.app.ForegroundServiceStartNotAllowedException".equals(e.getClass().getName());
+
+                if (isStartNotAllowed) {
+                    try {
+                        notificationManager.notify(
+                                NOTIFICATION_ID,
+                                createNotification(getString(R.string.app_name),
+                                        "Foreground service limit reached. Please try again later."));
+                    } catch (Throwable ignore) {
+                    }
+                    stopSelf();
+                    return START_NOT_STICKY;
+                } else {
+                    stopSelf();
+                    return START_NOT_STICKY;
+                }
+            }
         }
 
-        // 2) Handle specific actions from intents
         if (intent != null) {
             String action = intent.getAction();
             if (ACTION_CANCEL.equals(action)) {
-                LogUtils.i(TAG, "Cancel action received");
                 cancelAllOperations("Canceled by user");
                 return START_NOT_STICKY;
             }
-            // optional: other actions (e.g. to start a specific operation)
         }
 
-        // 3) Run watchdog if we have active operations
-        if (hasActiveOperations()) {
-            startWatchdog();
-        } else {
-            stopWatchdog();
-        }
+        if (hasActiveOperations()) startWatchdog();
+        else stopWatchdog();
 
         return START_STICKY;
     }
@@ -561,15 +587,10 @@ public class SmbBackgroundService extends Service {
         }
     }
 
-    // ===== Notifications =====
-
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "SMB Background Operations",
-                    NotificationManager.IMPORTANCE_LOW
-            );
+                    CHANNEL_ID, "SMB Background Operations", NotificationManager.IMPORTANCE_LOW);
             channel.setDescription("Shows the status of SMB operations in the background");
             channel.setShowBadge(false);
             notificationManager.createNotificationChannel(channel);
@@ -674,13 +695,8 @@ public class SmbBackgroundService extends Service {
 
         if (toBrowser != null) {
             return PendingIntent.getActivity(
-                    this,
-                    requestCode,
-                    toBrowser,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
+                    this, requestCode, toBrowser, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            // No specific deep-link context available: bring FileBrowserActivity to front
             Intent fallback = new Intent(this, FileBrowserActivity.class)
                     .setAction("de.schliweb.sambalite.OPEN_FROM_NOTIFICATION.GENERIC")
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
@@ -688,14 +704,9 @@ public class SmbBackgroundService extends Service {
                     .putExtra("extra_show_progress_dialog", true)
                     .putExtra("extra_operation_name", title);
             return PendingIntent.getActivity(
-                    this,
-                    requestCode,
-                    fallback,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
+                    this, requestCode, fallback, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
     }
-
 
     private void startWatchdog() {
         if (watchdogExecutor == null || watchdogExecutor.isShutdown()) {
@@ -711,7 +722,6 @@ public class SmbBackgroundService extends Service {
                 }
             }
         }, PROGRESS_WATCHDOG_INTERVAL_SECONDS, PROGRESS_WATCHDOG_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        LogUtils.d(TAG, "Watchdog started interval=" + PROGRESS_WATCHDOG_INTERVAL_SECONDS + "s");
     }
 
     private boolean shouldUpdateFileProgress(int currentFile, int totalFiles, int percentage) {

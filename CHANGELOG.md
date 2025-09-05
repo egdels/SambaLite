@@ -5,6 +5,19 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2025-09-05
+
+### Fixed
+- **Foreground-Service Timeout (API 35/36):** Implemented `onTimeout(...)` to cleanly stop the foreground service on system timeout (releases wakelock, cancels running jobs, calls `stopForeground(STOP_FOREGROUND_REMOVE)` and `stopSelf()`), preventing `RemoteServiceException$ForegroundServiceDidNotStopInTimeException`.
+- **Start Not Allowed (API 31+):** Guarded `startForeground(...)` with runtime-safe handling for `ForegroundServiceStartNotAllowedException` (detected by class name on API ≥ 31). The service now exits with `START_NOT_STICKY` instead of crashing when the `dataSync` budget is exhausted.
+
+### Changed
+- **Startup Robustness:** If `startForeground(...)` fails for any reason, the service no longer continues running without foreground state; it stops itself deterministically.
+- **Cancellation Path:** `cancelAllOperations(...)` now reliably tears down background work and watchdogs so the service can shut down promptly when idle or on timeout.
+
+### Developer Notes
+- No change to `minSdk`. All new behaviors are gated by SDK checks (API 31+, API 35+).
+
 ## [1.2.5] - 2025-08-30
 
 ### Added

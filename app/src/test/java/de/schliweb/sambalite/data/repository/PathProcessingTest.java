@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.data.repository;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -19,11 +20,19 @@ public class PathProcessingTest {
     private BackgroundSmbManager mockBackgroundManager;
 
     private SmbRepositoryImpl smbRepository;
+    private AutoCloseable mocks;
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        if (mocks != null) {
+            mocks.close();
+        }
     }
 
     /**

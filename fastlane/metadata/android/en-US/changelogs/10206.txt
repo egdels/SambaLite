@@ -1,0 +1,7 @@
+Fixed
+- Foreground service now cleanly stops on system timeout (API 35/36) to prevent crashes
+- Guarded startForeground(...) on API 31+ to handle exhausted dataSync budget without crashing
+
+Changed
+- If startForeground(...) fails, the service stops instead of continuing without foreground state
+- Cancellation tears down background work and watchdogs more reliably
