@@ -42,6 +42,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private static final String EXTRA_DIRECTORY_PATH = "extra_directory_path";
     private static final String EXTRA_FROM_UPLOAD_NOTIFICATION = "extra_from_upload_notification";
     private static final String EXTRA_FROM_DOWNLOAD_NOTIFICATION = "extra_from_download_notification";
+        // Share handoff extras
+        private static final String EXTRA_FROM_SHARE_UPLOAD = "extra_from_share_upload";
+        private static final String EXTRA_SHARE_URIS = "extra_share_uris";
 
     @Inject
     ViewModelProvider.Factory viewModelFactory;
@@ -113,6 +116,20 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         intent.putExtra(EXTRA_SEARCH_TYPE, searchType);
         intent.putExtra(EXTRA_SEARCH_INCLUDE_SUBFOLDERS, includeSubfolders);
         intent.putExtra(EXTRA_FROM_SEARCH_NOTIFICATION, true);
+        return intent;
+    }
+
+    /**
+     * Creates an intent to start this activity for a Share handoff that will upload URIs to a target path.
+     */
+    public static Intent createIntentForShareUpload(Context context, String connectionId, String directoryPath, java.util.ArrayList<android.net.Uri> shareUris) {
+        Intent intent = new Intent(context, FileBrowserActivity.class);
+        intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
+        intent.putExtra(EXTRA_DIRECTORY_PATH, directoryPath);
+        intent.putExtra(EXTRA_FROM_SHARE_UPLOAD, true);
+        intent.putParcelableArrayListExtra(EXTRA_SHARE_URIS, shareUris);
+        // Reorder to front if an instance is running
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return intent;
     }
 
@@ -565,10 +582,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                     LogUtils.i("FileBrowserActivity", "Connection found: " + connection.getName());
                     fileListViewModel.setConnection(connection);
 
-                    // Check if we were opened from a notification and handle it
+                    // Check if we were opened from a notification or share handoff and handle it
                     checkAndHandleSearchNotification();
                     checkAndHandleUploadNotification();
                     checkAndHandleDownloadNotification();
+                    checkAndHandleShareUpload();
                     return;
                 }
             }
@@ -643,6 +661,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 fileListViewModel.navigateToPathWithHierarchy(directoryPath);
                 fileListViewModel.refreshCurrentDirectory();
             }
+
+            // Ensure the regular transfer progress dialog is visible, even if this Activity
+            // did not initiate the upload (e.g., upload started from ShareReceiverActivity).
+            // This mirrors the regular in-app upload UX when opening from notification.
+            String title = getString(R.string.uploading);
+            progressController.showTransferProgressDialog(title);
+            progressController.setDetailedProgressDialogCancelAction(() -> fileOperationsViewModel.cancelUpload());
         }
     }
 
@@ -662,6 +687,47 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
                 // Navigate to the directory
                 fileListViewModel.navigateToPath(directoryPath);
+            }
+        }
+    }
+
+    /**
+     * Handles a Share handoff intent to start uploads in this activity (foreground UI).
+     */
+    private void checkAndHandleShareUpload() {
+        Intent intent = getIntent();
+        if (intent.getBooleanExtra(EXTRA_FROM_SHARE_UPLOAD, false)) {
+            LogUtils.d("FileBrowserActivity", "Activity opened from Share handoff for upload");
+
+            String directoryPath = intent.getStringExtra(EXTRA_DIRECTORY_PATH);
+            java.util.ArrayList<android.net.Uri> uris = intent.getParcelableArrayListExtra(EXTRA_SHARE_URIS);
+
+            if (directoryPath != null && !directoryPath.isEmpty()) {
+                fileListViewModel.navigateToPathWithHierarchy(directoryPath);
+            }
+
+            if (uris != null && !uris.isEmpty()) {
+                // Best-effort persist or self-grant read permissions for each URI
+                final int modeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+                for (android.net.Uri u : uris) {
+                    try {
+                        getContentResolver().takePersistableUriPermission(u, modeFlags);
+                    } catch (Exception e) {
+                        LogUtils.w("FileBrowserActivity", "takePersistableUriPermission failed: " + e.getMessage());
+                    }
+                    try {
+                        grantUriPermission(getPackageName(), u, modeFlags);
+                    } catch (Exception e) {
+                        LogUtils.w("FileBrowserActivity", "grantUriPermission failed: " + e.getMessage());
+                    }
+                }
+
+                LogUtils.i("FileBrowserActivity", "Starting Share uploads for " + uris.size() + " items to " + directoryPath);
+                // Batch uploads via controller to ensure sequential processing and consistent progress
+                fileOperationsController.handleMultipleFileUploads(uris);
+                // Clear the flag to avoid duplicate starts if onNewIntent/setIntent happens again
+                intent.removeExtra(EXTRA_FROM_SHARE_UPLOAD);
+                setIntent(intent);
             }
         }
     }
@@ -705,6 +771,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             checkAndHandleSearchNotification();
             checkAndHandleUploadNotification();
             checkAndHandleDownloadNotification();
+            checkAndHandleShareUpload();
         }
     }
 

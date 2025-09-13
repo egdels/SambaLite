@@ -16,7 +16,7 @@ android {
         minSdk 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        versionCode 10206
+        versionCode 10207
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

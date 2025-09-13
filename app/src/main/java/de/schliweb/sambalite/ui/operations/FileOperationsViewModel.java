@@ -53,6 +53,21 @@ public class FileOperationsViewModel extends ViewModel {
         return anyOperationActive;
     }
 
+    /**
+     * Marks the beginning of a batch upload. Keeps the consolidated upload state active
+     * across multiple individual file uploads to avoid closing/reopening the progress UI.
+     */
+    public void beginBatchUpload() {
+        incUpload();
+    }
+
+    /**
+     * Marks the end of a previously started batch upload.
+     */
+    public void endBatchUpload() {
+        decUpload();
+    }
+
     private void incUpload() {
         int c = uploadCount.incrementAndGet();
         mainHandler.post(() -> uploading.setValue(c > 0));
@@ -1000,7 +1015,8 @@ public class FileOperationsViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        executor.shutdownNow();
+        // Allow in-flight operations to complete so background uploads/downloads aren't interrupted
+        executor.shutdown();
     }
 
     private static final long PROGRESS_THROTTLE_MS = 100; // ~10 Updates/Sek.

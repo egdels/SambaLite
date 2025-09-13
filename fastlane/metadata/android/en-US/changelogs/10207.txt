@@ -1,0 +1,12 @@
+Added
+- Share uploads now run in the main file browser with a single, cancellable transfer dialog.
+- Batch upload for multiple shared files with unified, smoother progress.
+- Reliable URI access: self‑granted/persistable read permissions and ClipData propagation.
+
+Changed
+- Simplified Share screen: confirms, hands off, and finishes; progress lives in FileBrowser.
+- Notification deep‑links open directly into the transfer dialog and target path.
+
+Fixed
+- Uploads keep running in background; no more accidental cancellations or window leaks.
+- Prevented duplicate Recents entries; improved multi‑file reliability during staging.

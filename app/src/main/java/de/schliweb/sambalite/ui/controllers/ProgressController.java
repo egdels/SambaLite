@@ -114,56 +114,63 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     public void showDetailedProgressDialog(String title, String message) {
         LogUtils.d("ProgressController", "Showing detailed progress dialog: " + title + " - " + message);
 
-        // Ensure this runs on the UI thread
-        if (isActivitySafe()) {
-            final String finalTitle = title;
-            final String finalMessage = message;
-
-            activity.runOnUiThread(() -> {
-                try {
-                    if (progressDialog != null && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                    }
-
-                    resetUiProgressCache();
-
-                    // Inflate custom progress dialog layout
-                    View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
-
-                    TextView titleView = dialogView.findViewById(R.id.progress_title);
-                    progressMessage = dialogView.findViewById(R.id.progress_message);
-                    progressPercentage = dialogView.findViewById(R.id.progress_percentage);
-                    progressDetails = dialogView.findViewById(R.id.progress_details);
-                    if (progressDetails != null) progressDetails.setSelected(true);
-                    progressBar = dialogView.findViewById(R.id.progress_bar);
-
-                    titleView.setText(finalTitle);
-                    progressMessage.setText(finalMessage);
-                    progressPercentage.setText("0%");
-                    progressDetails.setText("");
-                    progressBar.setProgress(0);
-                    progressBar.setMax(100);
-                    progressBar.setVisibility(View.VISIBLE);
-                    progressBar.setIndeterminate(false);
-
-                    MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(activity);
-                    builder.setView(dialogView).setCancelable(false);
-
-                    // Add cancel button for download
-                    builder.setNegativeButton(R.string.cancel, (dialog, which) -> {
-                        LogUtils.d("ProgressController", "User requested cancellation from progress dialog");
-                        // The actual cancellation will be handled by the callback
-                    });
-
-                    progressDialog = builder.create();
-                    progressDialog.show();
-
-                    LogUtils.d("ProgressController", "Detailed progress dialog shown");
-                } catch (Exception e) {
-                    LogUtils.e("ProgressController", "Error showing detailed progress dialog: " + e.getMessage());
-                }
-            });
+        // Do not show if activity is not in foreground state
+        if (!isActivitySafe() || !isLifecycleAtLeastResumed()) {
+            LogUtils.w("ProgressController", "Activity not in RESUMED state, skipping progress dialog show");
+            return;
         }
+
+        final String finalTitle = title;
+        final String finalMessage = message;
+
+        activity.runOnUiThread(() -> {
+            try {
+                if (!isActivitySafe() || !isLifecycleAtLeastResumed()) {
+                    LogUtils.w("ProgressController", "Activity not safe/resumed during dialog show, aborting");
+                    return;
+                }
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+
+                resetUiProgressCache();
+
+                // Inflate custom progress dialog layout
+                View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
+
+                TextView titleView = dialogView.findViewById(R.id.progress_title);
+                progressMessage = dialogView.findViewById(R.id.progress_message);
+                progressPercentage = dialogView.findViewById(R.id.progress_percentage);
+                progressDetails = dialogView.findViewById(R.id.progress_details);
+                if (progressDetails != null) progressDetails.setSelected(true);
+                progressBar = dialogView.findViewById(R.id.progress_bar);
+
+                titleView.setText(finalTitle);
+                progressMessage.setText(finalMessage);
+                progressPercentage.setText("0%");
+                progressDetails.setText("");
+                progressBar.setProgress(0);
+                progressBar.setMax(100);
+                progressBar.setVisibility(View.VISIBLE);
+                progressBar.setIndeterminate(false);
+
+                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(activity);
+                builder.setView(dialogView).setCancelable(false);
+
+                // Add cancel button for download
+                builder.setNegativeButton(R.string.cancel, (dialog, which) -> {
+                    LogUtils.d("ProgressController", "User requested cancellation from progress dialog");
+                    // The actual cancellation will be handled by the callback
+                });
+
+                progressDialog = builder.create();
+                progressDialog.show();
+
+                LogUtils.d("ProgressController", "Detailed progress dialog shown");
+            } catch (Exception e) {
+                LogUtils.e("ProgressController", "Error showing detailed progress dialog: " + e.getMessage());
+            }
+        });
     }
 
     private void resetUiProgressCache() {
@@ -184,6 +191,19 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     @Override
     public void updateDetailedProgress(int percentage, String statusText, String fileName) {
         if (!isActivitySafe()) return;
+
+        // Lazily open the dialog if not already showing and the activity is safely RESUMED
+        if (progressDialog == null || !progressDialog.isShowing()) {
+            if (isLifecycleAtLeastResumed()) {
+                String initialTitle = activity.getString(R.string.transfer_title);
+                String initialMsg = (statusText != null && !statusText.isEmpty())
+                        ? statusText
+                        : activity.getString(R.string.preparing_transfer);
+                showDetailedProgressDialog(initialTitle, initialMsg);
+            } else {
+                // If not resumed, skip dialog creation; update will be applied once visible
+            }
+        }
 
         final int overallPct = Math.max(0, Math.min(100, percentage));
         final String raw = statusText != null ? statusText : "";
@@ -608,6 +628,32 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     private boolean isActivitySafe() {
         if (activity instanceof AppCompatActivity appCompatActivity) {
             return !appCompatActivity.isFinishing() && !appCompatActivity.isDestroyed();
+        }
+        return true;
+    }
+
+    private boolean isLifecycleAtLeastStarted() {
+        if (activity instanceof AppCompatActivity appCompatActivity) {
+            try {
+                return appCompatActivity.getLifecycle().getCurrentState()
+                        .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED);
+            } catch (Exception e) {
+                LogUtils.w("ProgressController", "Lifecycle check failed: " + e.getMessage());
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isLifecycleAtLeastResumed() {
+        if (activity instanceof AppCompatActivity appCompatActivity) {
+            try {
+                return appCompatActivity.getLifecycle().getCurrentState()
+                        .isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);
+            } catch (Exception e) {
+                LogUtils.w("ProgressController", "Lifecycle check failed: " + e.getMessage());
+                return false;
+            }
         }
         return true;
     }

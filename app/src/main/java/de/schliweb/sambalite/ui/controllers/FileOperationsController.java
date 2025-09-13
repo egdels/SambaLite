@@ -289,6 +289,8 @@ public class FileOperationsController {
     }
 
     public void handleFileUpload(Uri uri) {
+        // Best-effort ensure the app holds read grant for the URI before background staging
+        trySelfGrantRead(uri);
         final String fileNameFromUri = getFileNameFromUri(uri);
         final String fileName = fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
         final String opTitle = titleFor(OPERATION_UPLOAD, fileName);
@@ -400,6 +402,108 @@ public class FileOperationsController {
                     return Boolean.TRUE;
                 }
         );
+    }
+
+    /**
+     * Batch upload multiple URIs within one service operation. Files are processed sequentially.
+     */
+    public void handleMultipleFileUploads(java.util.List<Uri> uris) {
+        if (uris == null || uris.isEmpty()) return;
+        final int total = uris.size();
+        final String opTitle = titleFor(OPERATION_UPLOAD, "multiple files");
+
+        showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+
+        backgroundSmbManager.executeMultiFileOperation(
+                "batchUpload:" + System.currentTimeMillis(),
+                opTitle,
+                cb -> {
+                    // Keep consolidated upload state active across the entire batch
+                    operationsViewModel.beginBatchUpload();
+                    try {
+                        int index = 0;
+                        for (Uri uri : uris) {
+                            // Best-effort ensure the app holds read grant for the URI before background staging
+                            trySelfGrantRead(uri);
+                            final String fileNameFromUri = getFileNameFromUri(uri);
+                            final String fileName = fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
+                            final int current = ++index;
+                            cb.updateFileProgress(current, total, fileName);
+
+                            File tempFile = null;
+                            try {
+                                tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
+                                uiState.setTempFile(tempFile);
+                                cb.updateProgress("Preparing upload… staging file");
+                                FileOperations.copyUriToFile(uri, tempFile, context);
+                            } catch (Exception ex) {
+                                if (tempFile != null) tempFile.delete();
+                                uiState.setTempFile(null);
+                                cb.updateProgress("Staging failed for " + fileName + ": " + ex.getMessage());
+                                LogUtils.e("FileOperationsController", "Staging failed for " + fileName + ": " + ex.getMessage());
+                                continue; // skip to next file
+                            }
+
+                            String remotePath = buildRemotePath(fileName);
+                            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+
+                            FileOperationCallbacks.UploadCallback inner = createUploadCallbackWithNotification(null, fileName);
+                            File finalTempFile = tempFile;
+                            FileOperationCallbacks.UploadCallback wrapped = new FileOperationCallbacks.UploadCallback() {
+                                @Override
+                                public void onProgress(String status, int percentage) {
+                                    inner.onProgress(status, percentage);
+                                    cb.updateProgress(status);
+                                }
+
+                                @Override
+                                public void onResult(boolean success, String message) {
+                                    try {
+                                        inner.onResult(success, message);
+                                    } finally {
+                                        if (finalTempFile != null) finalTempFile.delete();
+                                        uiState.setTempFile(null);
+                                        done.countDown();
+                                    }
+                                }
+                            };
+
+                            operationsViewModel.uploadFile(
+                                    tempFile,
+                                    remotePath,
+                                    wrapped,
+                                    createFileExistsCallback(),
+                                    fileName
+                            );
+
+                            try {
+                                done.await();
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                cb.updateProgress("Upload interrupted: " + fileName);
+                                break;
+                            }
+                        }
+                    } finally {
+                        operationsViewModel.endBatchUpload();
+                    }
+                    return Boolean.TRUE;
+                }
+        );
+    }
+
+    private void trySelfGrantRead(Uri uri) {
+        try {
+            context.grantUriPermission(context.getPackageName(), uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception e) {
+            LogUtils.w("FileOperationsController", "Self-grant read failed: " + e.getMessage());
+        }
+        try {
+            // Attempt to persist if possible (will fail silently if not persistable)
+            context.getContentResolver().takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception e) {
+            // Not all providers allow this; ignore
+        }
     }
 
     // ---- Helpers for download destinations ----

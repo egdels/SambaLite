@@ -5,6 +5,30 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2025-09-13
+
+### Added
+- Share handoff to FileBrowserActivity: Share uploads are now executed in the main file browser, showing the regular consolidated transfer dialog with a working Cancel action.
+- Batch upload for multiple shared files: New FileOperationsController.handleMultipleFileUploads(...) processes shared URIs sequentially inside one background operation, providing a single, smooth progress surface.
+- URI permission handover: Self‑grant and persistable read permissions for shared URIs, and ClipData propagation with FLAG_GRANT_READ_URI_PERMISSION during the handoff to ensure reliable staging.
+
+### Changed
+- ShareReceiverActivity simplified: No in‑activity uploads or progress UI. It now only parses the share intent, asks for confirmation, hands off to FileBrowserActivity, and finishes.
+- Unified progress lifecycle: ProgressController lazily opens the transfer dialog only when the activity is RESUMED, and FileOperationsViewModel emits a single TransferProgress stream for both uploads and downloads.
+- FileBrowserActivity notification deep‑links: Opening from upload notifications now immediately shows the regular transfer dialog and navigates to the target path.
+
+### Fixed
+- Background continuity: Share uploads are no longer canceled when the Share activity goes to background/destroys; onDestroy no longer aborts transfers.
+- Window leaks prevented: Added robust lifecycle gating (RESUMED checks and re‑checks on the UI thread) to avoid android.view.WindowLeaked when activities background during dialog creation.
+- Recents duplication: FileBrowserActivity launchMode set to singleTask and ShareReceiverActivity excluded from Recents; prevents multiple app cards when sharing.
+- Multi‑file reliability: All shared items are now uploaded; replaced parallel fire‑and‑forget starts with sequenced batch processing guarded by latches.
+- Permission Denial during staging: Mitigated by proactively granting/taking persistable URI permissions and passing ClipData across the handoff.
+
+### Developer Notes
+- BackgroundSmbManager/SmbBackgroundService continues uploads in the background; UI dialogs are restored when the app returns to foreground.
+- ProgressController auto‑opens the transfer dialog upon receiving progress while the activity is RESUMED; otherwise it defers UI until safe.
+
+
 ## [1.2.6] - 2025-09-05
 
 ### Fixed
