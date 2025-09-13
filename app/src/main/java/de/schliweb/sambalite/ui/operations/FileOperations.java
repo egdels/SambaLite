@@ -220,6 +220,64 @@ public class FileOperations {
         }
     }
 
+    public static void copyFileToUriAsync(File sourceFile, Uri destUri, Context context, Callback cb) {
+        if (cb == null) cb = new Callback() {};
+        final Callback callback = cb;
+        callback.onStart();
+
+        COPY_EXECUTOR.submit(() -> {
+            boolean completedThisFile = false;
+            try (OutputStream os = context.getContentResolver().openOutputStream(destUri);
+                 BufferedOutputStream bos = new BufferedOutputStream(require(os, "output stream for URI: " + destUri), BUFFER_SIZE);
+                 BufferedInputStream bis = new BufferedInputStream(new FileInputStream(sourceFile), BUFFER_SIZE)) {
+
+                byte[] buf = new byte[BUFFER_SIZE];
+                int n;
+                long local = 0L;
+                long lastEmit = System.nanoTime();
+                final long fileTotal = Math.max(1L, sourceFile.length());
+
+                while ((n = bis.read(buf)) != -1) {
+                    throwIfCancelled(callback);
+                    bos.write(buf, 0, n);
+                    local += n;
+
+                    long now = System.nanoTime();
+                    if (now - lastEmit > 80_000_000L) {
+                        int filePct = pct(local, fileTotal);
+                        String base = ProgressFormat.formatIdx("Copying", 1, 1, sourceFile.getName());
+                        String status = base + " • " + filePct + "% (" + ProgressFormat.formatBytesOnly(local, fileTotal) + ")";
+                        callback.onProgress(filePct, status);
+                        lastEmit = now;
+                    }
+                }
+                bos.flush();
+                completedThisFile = true;
+
+            } catch (OperationCancelledException oce) {
+                try {
+                    androidx.documentfile.provider.DocumentFile tgt = androidx.documentfile.provider.DocumentFile.fromSingleUri(context, destUri);
+                    if (tgt != null) tgt.delete();
+                } catch (Throwable ignore) {}
+                callback.onError(oce);
+                return;
+            } catch (Exception e) {
+                callback.onError(e);
+                return;
+            }
+
+            if (completedThisFile) {
+                try {
+                    callback.onProgress(100, "Copying • 100%");
+                } catch (Throwable ignore) {}
+                try {
+                    callback.onFileCopied(sourceFile.getName(), sourceFile.length());
+                } catch (Throwable ignore) {}
+                callback.onDone();
+            }
+        });
+    }
+
     public static boolean deleteRecursive(File fileOrDirectory) {
         LogUtils.d("FileOperations", "Deleting: " + fileOrDirectory.getAbsolutePath());
         if (fileOrDirectory.isDirectory()) {

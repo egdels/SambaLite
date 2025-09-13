@@ -477,48 +477,70 @@ public class FileOperationsController {
                     return;
                 }
 
-                try {
-                    FINALIZING.set(true);
-                    updateOperationProgress(OPERATION_DOWNLOAD, file, null, SMB_CAP, "Finalizing…");
-                    updateFinalizingProgress(OPERATION_DOWNLOAD, file, null, /*isFolder*/ false);
+                FINALIZING.set(true);
+                updateOperationProgress(OPERATION_DOWNLOAD, file, null, SMB_CAP, "Finalizing… preparing copy to destination");
 
-                    String fname = (file != null ? file.getName() : "file");
-                    serviceCb.updateProgress("Finalizing… copying " + fname);
+                final java.util.function.IntUnaryOperator mapFinal = p -> SMB_CAP + Math.max(
+                        0,
+                        Math.min(FINALIZE_WINDOW_PCT, (int) Math.round(p * (FINALIZE_WINDOW_PCT / 100.0)))
+                );
 
-                    FileOperations.copyFileToUri(
-                            tempFile,
-                            uri,
-                            context,
-                            new FileOperations.Callback() {
-                                @Override
-                                public boolean isCancelled() {
-                                    return cancelFinalize.get();
+                FileOperations.copyFileToUriAsync(
+                        tempFile,
+                        uri,
+                        context,
+                        new FileOperations.Callback() {
+                            @Override
+                            public boolean isCancelled() {
+                                return cancelFinalize.get();
+                            }
+
+                            @Override
+                            public void onProgress(int percent, String status) {
+                                int mapped = mapFinal.applyAsInt(percent);
+                                String normalized = normalizePercentInStatus(status, mapped);
+                                updateOperationProgress(OPERATION_DOWNLOAD, file, null, mapped, normalized);
+                                serviceCb.updateProgress(normalized);
+                            }
+
+                            @Override
+                            public void onDone() {
+                                serviceCb.updateProgress("Finalizing… done");
+                                updateOperationProgress(OPERATION_DOWNLOAD, file, null, 100, "Completed");
+                                handleOperationSuccess(
+                                        OPERATION_DOWNLOAD, file, file != null ? file.getName() : null, false,
+                                        "File downloaded successfully",
+                                        false,
+                                        () -> { if (tempFile != null) tempFile.delete(); }
+                                );
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                String txt;
+                                if (e instanceof FileOperations.OperationCancelledException) {
+                                    txt = "Download cancelled by user during local copy";
+                                    handleOperationError(
+                                            OPERATION_DOWNLOAD, file,
+                                            txt,
+                                            "Cancelled",
+                                            false,
+                                            () -> { if (tempFile != null) tempFile.delete(); }
+                                    );
+                                } else {
+                                    txt = "Error copying file to destination: " + e.getMessage();
+                                    handleOperationError(
+                                            OPERATION_DOWNLOAD, file,
+                                            txt,
+                                            "Finalize error",
+                                            false,
+                                            () -> { if (tempFile != null) tempFile.delete(); }
+                                    );
                                 }
+                                serviceCb.updateProgress(txt);
                             }
-                    );
-
-                    serviceCb.updateProgress("Finalizing… done");
-
-                    updateOperationProgress(OPERATION_DOWNLOAD, file, null, 100, "Completed");
-                    handleOperationSuccess(
-                            OPERATION_DOWNLOAD, file, file != null ? file.getName() : null, false,
-                            "File downloaded successfully",
-                            /*refreshFileList*/ false,
-                            () -> {
-                                if (tempFile != null) tempFile.delete();
-                            }
-                    );
-                } catch (Exception e) {
-                    handleOperationError(
-                            OPERATION_DOWNLOAD, file,
-                            "Error copying file to URI: " + e.getMessage(),
-                            "Finalize error",
-                            false,
-                            () -> {
-                                if (tempFile != null) tempFile.delete();
-                            }
-                    );
-                }
+                        }
+                );
             }
         };
     }
@@ -714,14 +736,15 @@ public class FileOperationsController {
             successMessage = Character.toUpperCase(itemType.charAt(0)) + itemType.substring(1) + " " + opName + " successfully";
         }
         if (progressCallback != null) progressCallback.animateSuccess();
+        // Dismiss any progress dialog first so the success Snackbar is visible above the navbar
+        if (progressCallback != null) {
+            progressCallback.hideLoadingIndicator();
+            LogUtils.d("FileOperationsController", "Progress (short UI) cleaned up before showing success");
+        }
         showSuccess(successMessage);
         if (refreshFileList) fileListViewModel.loadFiles(false);
         if (customSuccessAction != null) customSuccessAction.run();
         notifyOperationCompleted(operationType, file, true, successMessage);
-        if (progressCallback != null) {
-            progressCallback.hideLoadingIndicator();
-            LogUtils.d("FileOperationsController", "Progress (short UI) cleaned up after success");
-        }
     }
 
     private void handleOperationError(String operationType, SmbFileItem file, String errorMessage, String customErrorTitle,
