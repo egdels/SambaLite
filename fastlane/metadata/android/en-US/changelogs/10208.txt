@@ -1,0 +1,5 @@
+SambaLite 1.2.8
+
+- Share: More reliable multi‑file uploads. Removed the 60s absolute batch timeout; now a per‑file inactivity watchdog prevents stalls without aborting long uploads.
+- Google Photos (Share): Don’t request persistable URI permission; rely on the intent’s temporary grant → fewer warnings and more dependable starts.
+- Fix: Premature cancellation (~60s) when the first shared file is large.

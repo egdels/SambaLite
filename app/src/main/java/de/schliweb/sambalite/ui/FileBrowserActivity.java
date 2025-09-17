@@ -42,9 +42,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private static final String EXTRA_DIRECTORY_PATH = "extra_directory_path";
     private static final String EXTRA_FROM_UPLOAD_NOTIFICATION = "extra_from_upload_notification";
     private static final String EXTRA_FROM_DOWNLOAD_NOTIFICATION = "extra_from_download_notification";
-        // Share handoff extras
-        private static final String EXTRA_FROM_SHARE_UPLOAD = "extra_from_share_upload";
-        private static final String EXTRA_SHARE_URIS = "extra_share_uris";
+    private static final String EXTRA_FROM_SHARE_UPLOAD = "extra_from_share_upload";
+    private static final String EXTRA_SHARE_URIS = "extra_share_uris";
 
     @Inject
     ViewModelProvider.Factory viewModelFactory;
@@ -711,9 +710,15 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 final int modeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
                 for (android.net.Uri u : uris) {
                     try {
-                        getContentResolver().takePersistableUriPermission(u, modeFlags);
+                        String auth = u.getAuthority();
+                        // Google Photos provides only temporary grants; do NOT attempt to persist
+                        if (auth == null || !auth.startsWith("com.google.android.apps.photos")) {
+                            getContentResolver().takePersistableUriPermission(u, modeFlags);
+                        } else {
+                            LogUtils.d("FileBrowserActivity", "Skipping persistable permission for Google Photos URI: " + u);
+                        }
                     } catch (Exception e) {
-                        LogUtils.w("FileBrowserActivity", "takePersistableUriPermission failed: " + e.getMessage());
+                        LogUtils.w("FileBrowserActivity", "takePersistableUriPermission skipped/failed: " + e.getMessage());
                     }
                     try {
                         grantUriPermission(getPackageName(), u, modeFlags);

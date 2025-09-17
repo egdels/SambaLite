@@ -426,13 +426,9 @@ public class SmbBackgroundService extends Service {
             }
         };
 
-        Runnable absoluteTimeout = () -> {
-            LogUtils.w(TAG, "Absolute timeout reached: cancelling " + operationName);
-            ctx.cancelled.set(true);
-            Future<?> f = ctx.future;
-            if (f != null) f.cancel(true);
-            updateNotificationImmediate("Operation timed out", "Exceeded " + SMB_OPERATION_TIMEOUT_SECONDS + "s limit");
-        };
+        // Absolute timeout disabled: rely on inactivity watchdog reset by progress updates
+        // to avoid cancelling long-running multi-file uploads. See issue: share-intent batch
+        // uploads being cancelled after ~60s.
 
         ctx.inactivityTask = watchdogExecutor.scheduleAtFixedRate(
                 inactivityCheck,
@@ -440,10 +436,8 @@ public class SmbBackgroundService extends Service {
                 PROGRESS_WATCHDOG_INTERVAL_SECONDS,
                 TimeUnit.SECONDS);
 
-        ctx.absoluteTimeoutTask = watchdogExecutor.schedule(
-                absoluteTimeout,
-                SMB_OPERATION_TIMEOUT_SECONDS,
-                TimeUnit.SECONDS);
+        // Do not schedule any absolute timeout
+        ctx.absoluteTimeoutTask = null;
 
         ctx.future = smbOperationExecutor.submit(() -> {
             try {

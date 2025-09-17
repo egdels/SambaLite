@@ -5,6 +5,19 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.8] - 2025-09-17
+
+### Improvements
+- Share intent: More reliable multi-file uploads. The previous absolute 60-second timeout for entire batches has been removed. Instead, a per-file inactivity watchdog (reset by progress) is used. Long uploads will no longer be aborted prematurely.
+- Google Photos (Share): More robust URI handling. For URIs with the authority `com.google.android.apps.photos` we no longer call `takePersistableUriPermission()`; we rely on the temporary read grant from the intent and still perform best-effort self grants. This reduces log warnings and makes starting uploads more reliable.
+
+### Fixed
+- Premature cancellation after ~60s when the first shared file is large in the share workflow.
+
+### Developer Notes
+- `SmbBackgroundService.executeSmbOperation`: removed absolute batch timeout; only the inactivity watchdog remains.
+- `FileBrowserActivity.checkAndHandleShareUpload`: skip persistable permissions for Google Photos URIs.
+
 ## [1.2.7] - 2025-09-13
 
 ### Added
