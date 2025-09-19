@@ -27,3 +27,5 @@ Security & Privacy:
 • Minimal permissions (only network and access to user-selected storage locations)
 
 SambaLite is the open-source Samba client for Android that many have wanted for years: Modern, lean, secure, without unnecessary features, but with everything needed for practical access to SMB shares.
+
+SambaLite is free and open source. If you find it useful, please consider supporting development: https://ko-fi.com/egdels
