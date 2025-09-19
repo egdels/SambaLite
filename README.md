@@ -57,6 +57,13 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 - Minimal permissions required (only network and user-selected storage access)
 - Be cautious when using SMB in public or untrusted networks
 
+## ❤️ Support this project
+SambaLite is free and open source.
+If you find it useful, please consider supporting development:
+
+[![Ko-fi](https://img.shields.io/badge/Buy%20me%20a%20coffee-Ko--fi-orange)](https://ko-fi.com/egdels)
+[![PayPal](https://img.shields.io/badge/Donate-PayPal-blue)](https://www.paypal.com/paypalme/egdels)
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
