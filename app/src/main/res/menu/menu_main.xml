@@ -6,6 +6,6 @@
         android:id="@+id/action_system_monitor"
         android:title="@string/system_monitor"
         android:icon="@android:drawable/ic_dialog_info"
-        app:showAsAction="ifRoom" />
-        
+        app:showAsAction="ifRoom"
+        android:orderInCategory="10" />
 </menu>

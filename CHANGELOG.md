@@ -5,6 +5,12 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.9] - 2025-10-01
+
+### Developer Notes
+
+Code cleanup, no functional changes
+
 ## [1.2.8] - 2025-09-17
 
 ### Improvements
@@ -256,3 +262,9 @@ Improved reproducibility for F-Droid
 - Basic UI components
 - SMB client implementation using SMBJ
 - Secure credential storage using EncryptedSharedPreferences
+
+
+
+---
+Note for releases: Please append a short support line at the end of each release entry:
+If you like this update, support SambaLite here: https://github.com/sponsors/egdels • https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels

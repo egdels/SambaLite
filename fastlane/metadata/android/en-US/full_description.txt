@@ -16,7 +16,7 @@ Main features:
 • Enhanced search: Find files and folders with progress indicator and cancel option
 • Refresh view ("Pull-to-Refresh")
 • Sorting options (name, date, size)
-• File operations: Download, upload, delete, rename, open with external app
+• File operations: Download, upload, delete, rename
 • Display file properties
 • Modern Material Design 3 interface with app logo colors
 • Dark/Light Mode (system default)
