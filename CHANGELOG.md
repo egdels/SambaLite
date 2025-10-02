@@ -267,4 +267,4 @@ Improved reproducibility for F-Droid
 
 ---
 Note for releases: Please append a short support line at the end of each release entry:
-If you like this update, support SambaLite here: https://github.com/sponsors/egdels • https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
