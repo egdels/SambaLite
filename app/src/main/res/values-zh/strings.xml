@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SambaLite</string>
+    <string name="add_connection">添加连接</string>
+    <string name="system_monitor">系统监控器</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">欢迎来到 SambaLite</string>
+    <string name="welcome_subtitle">轻松安全地连接到 SMB/CIFS 分享。轻触 + 按钮添加你的第一个连接。</string>
+    <string name="your_connections">你的连接</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_connection_status">连接状态</string>
+    <string name="content_desc_more_options">更多选项</string>
+    <string name="content_desc_file_type_icon">文件类型图标</string>
+    <string name="content_desc_selected">已选</string>
+    <string name="content_desc_share">分享</string>
+    <string name="content_desc_refresh_system_info">刷新系统信息</string>
+
+    <!-- Menu Items -->
+    <string name="menu_refresh">刷新</string>
+
+    <!-- System Monitor -->
+    <string name="system_monitor_title">系统监控器</string>
+
+    <!-- Example Content -->
+    <string name="example_ip">192.168.1.100</string>
+    <string name="example_status">SMB: ✓ NetBIOS: ✓ (15毫秒)</string>
+    <string name="example_share_name">文档</string>
+
+    <!-- Connection Dialog -->
+    <string name="connection_name">连接名</string>
+    <string name="server">服务器（IP 或主机）</string>
+    <string name="share_name">分享名</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="domain">域名 （可选）</string>
+    <string name="port">端口</string>
+    <string name="connect">连接</string>
+    <string name="edit">编辑</string>
+    <string name="test_connection">测试连接</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="add_new_connection">新增连接</string>
+    <string name="edit_connection">编辑连接</string>
+
+    <!-- Validation Messages -->
+    <string name="error_name_required">连接名是必需的</string>
+    <string name="error_server_required">服务器是必需的</string>
+    <string name="error_share_required">分享名是必需的</string>
+
+    <!-- Delete Dialog -->
+    <string name="delete_connection">删除连接</string>
+    <string name="confirm_delete_connection">确定要删除 \'%1$s\' 连接？</string>
+    <string name="delete">删除</string>
+    <string name="connection_deleted">删除了 \'%1$s\' 连接</string>
+    <string name="undo">撤销</string>
+
+    <!-- File Browser -->
+    <string name="empty_directory">此目录为空</string>
+    <string name="loading_files">加载文件中…</string>
+    <string name="error_loading_files">加载文件出错</string>
+    <string name="parent_directory">主目录</string>
+    <string name="file_browser_title">文件</string>
+    <string name="search_files">搜索文件</string>
+    <string name="search_files_title">搜索文件</string>
+    <string name="search_title">搜索</string>
+    <string name="searching">搜索中…</string>
+    <string name="searching_files">正在搜索文件…</string>
+    <string name="search_results">搜索结果</string>
+    <string name="no_search_results">没找到匹配你搜索的结果</string>
+    <string name="search_query_hint">输入搜索词</string>
+    <string name="search_wildcard_hint">支持通配符： * （任意字符）、 ? （单个字符）</string>
+    <string name="search_type">搜索</string>
+    <string name="search_type_all">所有项目</string>
+    <string name="search_type_files">仅文件</string>
+    <string name="search_type_folders">仅文件夹</string>
+    <string name="include_subfolders">包括子文件夹</string>
+    <string name="search">搜索</string>
+    <string name="cancel_search">取消搜索</string>
+
+    <!-- Download -->
+    <string name="download">下载</string>
+    <string name="downloading">下载中…</string>
+    <string name="download_success">成功下载了文件</string>
+    <string name="download_error">下载文件出错</string>
+    <string name="file_not_found">服务器上找不到 \"%1$s\" 文件。 请检查文件是否存在并重试。</string>
+    <string name="save_file">保存文件</string>
+    <string name="file_options">文件选项</string>
+
+    <!-- Upload -->
+    <string name="upload">上传</string>
+    <string name="uploading">上传中…</string>
+    <string name="upload_success">文件上传成功</string>
+    <string name="upload_error">上传文件出错</string>
+    <string name="select_file">选择要上传的文件</string>
+    <string name="file_exists_title">文件已存在</string>
+    <string name="file_exists_message">\"%1$s\" 文件已存在。要覆盖它吗？</string>
+    <string name="file_exists_individual_message">\"%1$s\" 文件已存在于服务器上。要覆盖它还是跳过这个文件？</string>
+    <string name="overwrite">覆盖</string>
+    <string name="skip_file">跳过文件</string>
+
+    <!-- Folder Creation -->
+    <string name="create_folder">创建文件夹</string>
+    <string name="create_folder_dialog_title">新建文件夹</string>
+    <string name="folder_name">文件夹名</string>
+    <string name="folder_created">成功创建了文件夹</string>
+    <string name="folder_creation_error">创建文件夹出错</string>
+
+    <!-- Sorting -->
+    <string name="sort">排序</string>
+    <string name="sort_dialog_title">文件排序</string>
+    <string name="sort_by">排序依据</string>
+    <string name="sort_by_name">名称</string>
+    <string name="sort_by_date">日期</string>
+    <string name="sort_by_size">大小</string>
+    <string name="directories_first">目录优先</string>
+
+    <!-- Rename -->
+    <string name="rename">重命名</string>
+    <string name="rename_dialog_title">重命名文件</string>
+    <string name="new_name">新名称</string>
+    <string name="rename_success">文件重命名成功</string>
+    <string name="rename_error">文件重命名出错</string>
+
+    <!-- Delete -->
+    <string name="delete_file">删除</string>
+    <string name="delete_file_dialog_title">删除文件</string>
+    <string name="confirm_delete_file">确定要删除 \'%1$s\'？</string>
+    <string name="delete_success">成功删除了文件</string>
+    <string name="delete_error">删除文件出错</string>
+    <string name="file_exists">文件存在</string>
+
+    <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
+    <!-- Code Simplification: File operations moved to FileOperations utility -->
+    <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
+
+    <!-- Folder Upload Options -->
+    <string name="zip_transfer_title">文件夹上传</string>
+    <string name="zip_upload_folder">将文件夹上传为 ZIP</string>
+    <string name="zip_download_folder">上传文件夹内容</string>
+    <string name="creating_zip">正在创建 ZIP 压缩文件…</string>
+    <string name="uploading_zip">正在上传 ZIP 压缩文件…</string>
+    <string name="uploading_folder_contents">正在上传文件夹内容…</string>
+    <string name="processing_files">正在处理文件…</string>
+    <string name="zip_upload_success">成功将文件夹上传为 ZIP</string>
+    <string name="folder_contents_upload_success">成功上传了文件夹内容</string>
+    <string name="zip_upload_error">上传 ZIP 压缩文件出错</string>
+    <string name="folder_contents_upload_error">上传文件夹内容出错</string>
+    <string name="select_folder_to_upload">选择要上传为 ZIP 文件的文件夹</string>
+    <string name="select_folder_contents_to_upload">选择要上传内容的文件夹</string>
+    <string name="upload_progress_files">正在上传第 %1$d 个文件，共 %2$d 个</string>
+    <string name="upload_incomplete_warning">上传不完整。一些文件可能尚未被传输。</string>
+    <string name="cleanup_incomplete_upload">正在清理不完整的上传…</string>
+    <string name="folder_structure_created">成功创建了文件夹结构</string>
+    <string name="verifying_upload_integrity">正在验证上传完整性…</string>
+
+    <!-- Enhanced UI Strings -->
+    <string name="success">成功</string>
+    <string name="retry">重试</string>
+    <string name="ok">好</string>
+    <string name="please_wait">请等待</string>
+
+    <!-- Network Scanner -->
+    <string name="scan_network">扫描</string>
+    <string name="scanning_network">扫描中…</string>
+    <string name="servers_found">可用的服务器</string>
+    <string name="no_servers_found">本地网络没有找到 SMB 服务器。\n\n你仍可以手动输入服务器详情。</string>
+    <string name="network_scan_instructions">选择要自动填充连接详情的服务器，或轻触 “扫描网络”获取更多服务器。</string>
+    <string name="scan_complete">完成了网络扫描</string>
+    <string name="scan_cancelled">取消了网络扫描</string>
+    <string name="scan_error">扫描错误：%1$s</string>
+    <string name="server_icon">服务器</string>
+    <string name="selected">已选中</string>
+    <string name="hosts_scanned">已扫描 %1$d / %2$d 个主机</string>
+    <string name="currently_scanning">当前扫描：%1$s</string>
+    <string name="servers_found_count">找到了 %1$d 台服务器</string>
+    <string name="server_info_applied">采用的服务器信息： %1$s</string>
+    <string name="available_shares">可用的分享</string>
+    <string name="discovering_shares">正在发现分享…</string>
+    <string name="no_shares_found">这台服务器上未找到分享</string>
+    <string name="tap_share_to_select">轻触分享来选中它：</string>
+    <string name="could_not_connect_check_credentials">无法连接到服务器。检查凭据。</string>
+    <string name="enter_server_details">输入服务器详情来发现分享</string>
+    <string name="scan_network_permission_required">网络扫描需要位置权限来访问 WiFi 信息。</string>
+    <string name="scanning_fallback_networks">WiFi 访问受限 - 正扫描常见网络段</string>
+
+    <!-- File Browser Additional Strings -->
+    <string name="go_to_parent_directory">转到主目录</string>
+    <string name="refresh_directory">刷新目录</string>
+    <string name="files_tab">文件</string>
+    <string name="folders_tab">文件夹</string>
+    <string name="empty_folder">此文件夹是空的。用 + 按钮上传文件或创建文件夹。</string>
+
+    <!-- Upload Completion -->
+    <string name="upload_complete_title">上传完毕</string>
+    <string name="upload_complete_message">成功上传了 %1$d 个文件，总数 %2$d 个</string>
+    <string name="upload_some_failed">%1$d 个文件上传失败</string>
+    <string name="view_uploaded_files">查看已上传的文件</string>
+    <string name="close">关闭</string>
+    <string name="upload_failed">上传失败了</string>
+
+    <!-- Upload Progress Notifications -->
+    <string name="upload_progress_channel_name">上传进度</string>
+    <string name="upload_progress_channel_description">显示 SMB 分享文件上传的进度</string>
+    <string name="uploading_files">正在上传文件</string>
+    <string name="preparing_upload">正在准备上传…</string>
+    <string name="starting_upload">正在开始上传…</string>
+
+    <!-- Additional UI Strings -->
+    <string name="upload_files">上传文件</string>
+    <string name="cancel_search_action">取消搜索</string>
+    <string name="loading_system_information">正在加载系统信息…</string>
+    <string name="authentication">身份认证</string>
+    <string name="smb_connection">SMB 连接</string>
+    <string name="add_smb_connection">添加 SMB 连接</string>
+    <string name="connect_to_network_share">连接到网络分享</string>
+    <string name="hosts_scan_progress">扫描了 0 / 254 主机 </string>
+    <string name="progress_percentage">0%</string>
+    <string name="guest_access">来宾访问</string>
+
+
+    <string name="battery_optimization_title">优化后台操作</string>
+    <string name="battery_optimization_message">为了可靠的 SMB 后台下载和上传，建议将本应用排除在电池优化之外。\n\n这确保即使应用移到后台下载仍然会继续。</string>
+    <string name="open_settings">打开设置</string>
+    <string name="later">之后再说</string>
+
+    <!-- Robust Connection Messages -->
+    <string name="connection_recovering">恢复连接中…</string>
+    <string name="connection_recovered">成功恢复了连接</string>
+    <string name="connection_recovery_failed">连接恢复失败</string>
+    <string name="connection_timeout">连接超时</string>
+    <string name="connection_broken_pipe">连接被中断</string>
+    <string name="connection_retry_attempt">正在重试连接 （第 %1$d 次尝试，共 %2$d 次）</string>
+    <string name="error_no_files_to_share">无分享文件</string>
+    <string name="share_needs_target_folder_title">需要目标文件夹</string>
+    <string name="share_needs_target_folder_message">选择目标文件夹</string>
+    <string name="share_needs_target_folder_select">选择</string>
+    <string name="share_upload_title">分享项目</string>
+    <string name="share_upload_message">分享</string>
+    <string name="share_upload_select">选择</string>
+    <string name="items_to">项目到</string>
+    <string name="permission_title_notifications">启用通知</string>
+    <string name="permission_explain_notifications">即使在后台运行，SambaLite 仍让你知道传输进度。开启通知了解上传和下载的最新情况。</string>
+
+    <string name="transfer_title">正在传输 …</string>
+    <string name="preparing_transfer">请等待</string>
+</resources>
