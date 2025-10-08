@@ -9,16 +9,18 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.*;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.*;
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.WindowCompat;
-import androidx.activity.EdgeToEdge;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -48,6 +50,10 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
     private LoadingIndicator loadingIndicator;
     private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
     private NetworkScanner networkScanner;
+
+    // Temporary flags for share discovery to honor per-connection security during discovery
+    private boolean discoverRequireEncrypt = false;
+    private boolean discoverRequireSigning = false;
 
     // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
     private static final String PREFS = "perm_prefs";
@@ -319,6 +325,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
         Button testConnectionButton = dialogView.findViewById(R.id.test_connection_button);
         Button scanNetworkButton = dialogView.findViewById(R.id.scan_network_button);
+        com.google.android.material.materialswitch.MaterialSwitch encryptSwitch = dialogView.findViewById(R.id.encrypt_switch);
+        com.google.android.material.materialswitch.MaterialSwitch signingSwitch = dialogView.findViewById(R.id.signing_switch);
 
         // Get references to shares UI elements
         View sharesSection = dialogView.findViewById(R.id.shares_section);
@@ -370,6 +378,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 if (isValidServerAddress(serverText)) {
                     // Debounce the discovery to avoid excessive network calls
                     Runnable discoveryTask = () -> {
+                        discoverRequireEncrypt = (encryptSwitch != null && encryptSwitch.isChecked());
+                        discoverRequireSigning = (signingSwitch != null && signingSwitch.isChecked());
                         discoverShares(serverText, usernameEditText.getText().toString().trim(), passwordEditText.getText().toString().trim(), domainEditText.getText().toString().trim(), sharesSection, sharesProgress, sharesAdapter, sharesStatusText);
                     };
 
@@ -440,6 +450,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 connection.setUsername(usernameEditText.getText().toString().trim());
                 connection.setPassword(passwordEditText.getText().toString().trim());
                 connection.setDomain(domainEditText.getText().toString().trim());
+                if (encryptSwitch != null) connection.setEncryptData(encryptSwitch.isChecked());
+                if (signingSwitch != null) connection.setSigningRequired(signingSwitch.isChecked());
 
                 LogUtils.i("MainActivity", "Saving new connection: " + name);
                 viewModel.saveConnection(connection);
@@ -480,6 +492,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 testConnection.setUsername(usernameEditText.getText().toString().trim());
                 testConnection.setPassword(passwordEditText.getText().toString().trim());
                 testConnection.setDomain(domainEditText.getText().toString().trim());
+                if (encryptSwitch != null) testConnection.setEncryptData(encryptSwitch.isChecked());
+                if (signingSwitch != null) testConnection.setSigningRequired(signingSwitch.isChecked());
 
                 LogUtils.i("MainActivity", "Testing connection to server: " + server);
                 testConnection(testConnection);
@@ -555,6 +569,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         com.google.android.material.textfield.TextInputEditText domainEditText = dialogView.findViewById(R.id.domain_edit_text);
 
         Button testConnectionButton = dialogView.findViewById(R.id.test_connection_button);
+        com.google.android.material.materialswitch.MaterialSwitch encryptSwitchEdit = dialogView.findViewById(R.id.encrypt_switch);
+        com.google.android.material.materialswitch.MaterialSwitch signingSwitchEdit = dialogView.findViewById(R.id.signing_switch);
 
         // Get references to shares UI elements
         View sharesSection = dialogView.findViewById(R.id.shares_section);
@@ -606,6 +622,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 if (isValidServerAddress(serverText)) {
                     // Debounce the discovery to avoid excessive network calls
                     Runnable discoveryTask = () -> {
+                        discoverRequireEncrypt = (encryptSwitchEdit != null && encryptSwitchEdit.isChecked());
+                        discoverRequireSigning = (signingSwitchEdit != null && signingSwitchEdit.isChecked());
                         discoverShares(serverText, usernameEditText.getText().toString().trim(), passwordEditText.getText().toString().trim(), domainEditText.getText().toString().trim(), sharesSection, sharesProgress, sharesAdapter, sharesStatusText);
                     };
 
@@ -625,6 +643,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         usernameEditText.setText(connection.getUsername());
         passwordEditText.setText(connection.getPassword());
         domainEditText.setText(connection.getDomain());
+        if (encryptSwitchEdit != null) encryptSwitchEdit.setChecked(connection.isEncryptData());
+        if (signingSwitchEdit != null) signingSwitchEdit.setChecked(connection.isSigningRequired());
 
         // Create the dialog
         AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.edit_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
@@ -687,6 +707,9 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 updatedConnection.setPassword(passwordEditText.getText().toString().trim());
                 updatedConnection.setDomain(domainEditText.getText().toString().trim());
 
+                if (encryptSwitchEdit != null) updatedConnection.setEncryptData(encryptSwitchEdit.isChecked());
+                if (signingSwitchEdit != null) updatedConnection.setSigningRequired(signingSwitchEdit.isChecked());
+
                 LogUtils.i("MainActivity", "Updating connection: " + name);
                 viewModel.saveConnection(updatedConnection);
                 dialog.dismiss();
@@ -728,6 +751,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 testConnection.setDomain(domainEditText.getText().toString().trim());
 
                 LogUtils.i("MainActivity", "Testing connection to server: " + server + " (from edit dialog)");
+                if (encryptSwitchEdit != null) testConnection.setEncryptData(encryptSwitchEdit.isChecked());
+                if (signingSwitchEdit != null) testConnection.setSigningRequired(signingSwitchEdit.isChecked());
                 testConnection(testConnection);
             }
         });
@@ -1083,6 +1108,9 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         tempConnection.setUsername(username);
         tempConnection.setPassword(password);
         tempConnection.setDomain(domain);
+        // Honor current security toggles for discovery
+        tempConnection.setEncryptData(discoverRequireEncrypt);
+        tempConnection.setSigningRequired(discoverRequireSigning);
 
         viewModel.listShares(tempConnection, new MainViewModel.ShareListCallback() {
             @Override

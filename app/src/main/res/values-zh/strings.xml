@@ -245,4 +245,9 @@
 
     <string name="transfer_title">正在传输 …</string>
     <string name="preparing_transfer">请等待</string>
+
+    <!-- Security options -->
+    <string name="security_options">安全</string>
+    <string name="require_encryption">要求加密（SMB3）</string>
+    <string name="require_signing">要求签名</string>
 </resources>

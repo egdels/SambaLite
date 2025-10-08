@@ -244,4 +244,9 @@
 
     <string name="transfer_title">Overdracht bezig …</string>
     <string name="preparing_transfer">Een ogenblik geduld alstublieft</string>
+
+    <!-- Security options -->
+    <string name="security_options">Beveiliging</string>
+    <string name="require_encryption">Versleuteling vereist (SMB3)</string>
+    <string name="require_signing">Ondertekening vereist</string>
 </resources>

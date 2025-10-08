@@ -6,6 +6,7 @@ import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
@@ -48,6 +49,98 @@ public class SmbRepositoryImpl implements SmbRepository {
     private volatile boolean searchCancelled = false;
     private volatile boolean downloadCancelled = false;
     private volatile boolean uploadCancelled = false;
+
+    /**
+     * Retrieves an SMBClient instance configured based on the given SmbConnection settings.
+     *
+     * @param connection the SmbConnection containing configuration details for encryption and signing
+     * @return an SMBClient instance with customized or default settings, based on the SmbConnection
+     */
+    private SMBClient getClientFor(SmbConnection connection) {
+        boolean encrypt = false;
+        boolean sign = false;
+        try {
+            // Use getters; Lombok generates them
+            encrypt = connection.isEncryptData();
+            sign = connection.isSigningRequired();
+        } catch (Throwable ignore) {
+        }
+        if (!encrypt && !sign) {
+            return this.smbClient; // default shared client
+        }
+        SmbConfig.Builder builder = SmbConfig.builder();
+        try {
+            builder = builder.withEncryptData(encrypt);
+        } catch (Throwable t) {
+            // keep default if method not available at runtime
+        }
+        try {
+            // SMBJ 0.14.0 uses withSigningRequired(boolean)
+            builder = builder.withSigningRequired(sign);
+        } catch (Throwable t) {
+            try {
+                // Fallback if API differs (older naming)
+                java.lang.reflect.Method m = builder.getClass().getMethod("withSigningEnabled", boolean.class);
+                m.invoke(builder, sign);
+            } catch (Exception ignored) {
+            }
+        }
+        SmbConfig cfg = builder.build();
+        return new SMBClient(cfg);
+    }
+
+    /**
+     * Enforces security requirements such as encryption and signing for the SMB connection.
+     * Validates the session configuration against the required security settings, and throws an
+     * exception if the requirements are not met.
+     *
+     * @param cfg     the SMB connection configuration containing the security requirements
+     *                (e.g., encryption and signing settings).
+     * @param session the current SMB session to be validated against the security requirements.
+     * @throws IOException if the server does not support the required security features such as
+     *                     encryption or signing.
+     */
+    private void enforceSecurityRequirements(SmbConnection cfg, Session session) throws IOException {
+        boolean requireEncrypt = false;
+        boolean requireSigning = false;
+        try {
+            requireEncrypt = cfg.isEncryptData();
+            requireSigning = cfg.isSigningRequired();
+        } catch (Throwable ignore) {
+        }
+        if (!requireEncrypt && !requireSigning) return;
+
+        boolean sessionEncryptActive = false;
+        boolean sessionSigningRequired = false;
+        try {
+            Object sc = session.getClass().getMethod("getSessionContext").invoke(session);
+            try {
+                java.lang.reflect.Method m = sc.getClass().getMethod("isEncryptData");
+                Object r = m.invoke(sc);
+                if (r instanceof Boolean) sessionEncryptActive = (Boolean) r;
+            } catch (NoSuchMethodException nsme) {
+                // Older/newer SMBJ: best-effort only
+            }
+            try {
+                java.lang.reflect.Method m2 = sc.getClass().getMethod("isSigningRequired");
+                Object r2 = m2.invoke(sc);
+                if (r2 instanceof Boolean) sessionSigningRequired = (Boolean) r2;
+            } catch (NoSuchMethodException nsme) {
+                // Best-effort
+            }
+        } catch (Exception e) {
+            LogUtils.w("SmbRepositoryImpl", "Could not introspect SessionContext for security flags: " + e.getMessage());
+        }
+
+        if (requireEncrypt && !sessionEncryptActive) {
+            LogUtils.w("SmbRepositoryImpl", "Encryption required by app but not active on session - failing connection");
+            throw new IOException("Server does not support required SMB encryption");
+        }
+        if (requireSigning && !sessionSigningRequired) {
+            LogUtils.w("SmbRepositoryImpl", "Signing required by app but not active on session - failing connection");
+            throw new IOException("Server does not support required SMB signing");
+        }
+    }
 
     @Inject
     public SmbRepositoryImpl(BackgroundSmbManager backgroundManager) {
@@ -93,7 +186,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             List<SmbFileItem> result = new ArrayList<>();
             String folderPath = path == null || path.isEmpty() ? "" : path;
 
-            try (Connection conn = smbClient.connect(connection.getServer())) {
+            try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
                 LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
 
                 // Check if search was cancelled
@@ -105,6 +198,9 @@ public class SmbRepositoryImpl implements SmbRepository {
                 AuthenticationContext authContext = createAuthContext(connection);
                 try (Session session = conn.authenticate(authContext)) {
                     LogUtils.d("SmbRepositoryImpl", "Authentication successful");
+
+                    // Enforce per-connection security requirements (encryption/signing)
+                    enforceSecurityRequirements(connection, session);
 
                     // Check if search was cancelled
                     if (searchCancelled) {
@@ -454,9 +550,11 @@ public class SmbRepositoryImpl implements SmbRepository {
     private <T> T withShareWithRetry(SmbConnection connection, SmbShareCallback<T> callback, int attempt) throws Exception {
         final int MAX_ATTEMPTS = 3;
         operationLock.lock();
-        try (Connection conn = smbClient.connect(connection.getServer())) {
+        try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
             AuthenticationContext authContext = createAuthContext(connection);
             try (Session session = conn.authenticate(authContext)) {
+                // Enforce per-connection security requirements (encryption/signing)
+                enforceSecurityRequirements(connection, session);
                 String shareName = getShareName(connection.getShare());
                 try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
 
@@ -987,9 +1085,11 @@ public class SmbRepositoryImpl implements SmbRepository {
     public List<String> listShares(SmbConnection connection) throws Exception {
         LogUtils.d("SmbRepositoryImpl", "Listing shares on server: " + connection.getServer());
         operationLock.lock();
-        try (Connection conn = smbClient.connect(connection.getServer())) {
+        try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
             AuthenticationContext authContext = createAuthContext(connection);
             try (Session session = conn.authenticate(authContext)) {
+                // Enforce per-connection security requirements (encryption/signing)
+                enforceSecurityRequirements(connection, session);
                 List<String> shareList = new ArrayList<>();
 
                 try {

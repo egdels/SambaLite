@@ -150,6 +150,9 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
         jsonObject.put("username", connection.getUsername());
         jsonObject.put("password", connection.getPassword());
         jsonObject.put("domain", connection.getDomain());
+        // Persist security flags (defaults false if absent)
+        jsonObject.put("encryptData", connection.isEncryptData());
+        jsonObject.put("signingRequired", connection.isSigningRequired());
         return jsonObject;
     }
 
@@ -165,6 +168,9 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
         connection.setUsername(jsonObject.optString("username", ""));
         connection.setPassword(jsonObject.optString("password", ""));
         connection.setDomain(jsonObject.optString("domain", ""));
+        // Read security flags with defaults for backward compatibility
+        connection.setEncryptData(jsonObject.optBoolean("encryptData", false));
+        connection.setSigningRequired(jsonObject.optBoolean("signingRequired", false));
         return connection;
     }
 }

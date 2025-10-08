@@ -245,4 +245,9 @@
 
     <string name="transfer_title">Transfer in progress …</string>
     <string name="preparing_transfer">Please wait</string>
+
+    <!-- Security options -->
+    <string name="security_options">Security</string>
+    <string name="require_encryption">Require encryption (SMB3)</string>
+    <string name="require_signing">Require signing</string>
 </resources>

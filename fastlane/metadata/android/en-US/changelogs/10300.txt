@@ -1,0 +1,4 @@
+- New: Per-connection security options — toggles to Require encryption (SMB3) and Require signing.
+- Fixed: Connections now work with shares that require encryption/signing (Samba smb encrypt = required).
+- Improved: Use per-connection SMB client configuration when needed for better compatibility.
+- Translations: Added labels for the new options (de, es, fr, nl, pl, zh).

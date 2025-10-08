@@ -22,6 +22,12 @@ public class SmbConnection implements Serializable {
     private String password;
     private String domain;
 
+    // Security settings (per connection)
+    // If true, require SMB3 encryption for data
+    private boolean encryptData = false;
+    // If true, require SMB signing
+    private boolean signingRequired = false;
+
     /**
      * Default constructor for SmbConnection.
      */
@@ -30,6 +36,6 @@ public class SmbConnection implements Serializable {
 
     @Override
     public String toString() {
-        return "SmbConnection{" + "id='" + id + '\'' + ", name='" + name + '\'' + ", server='" + server + '\'' + ", share='" + share + '\'' + ", username='" + username + '\'' + ", password='********'" + ", domain='" + domain + '\'' + '}';
+        return "SmbConnection{" + "id='" + id + '\'' + ", name='" + name + '\'' + ", server='" + server + '\'' + ", share='" + share + '\'' + ", username='" + username + '\'' + ", password='********'" + ", domain='" + domain + '\'' + ", encryptData=" + encryptData + ", signingRequired=" + signingRequired + '}';
     }
 }

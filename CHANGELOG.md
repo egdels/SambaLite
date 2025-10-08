@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-08
+
+### Added
+- Per-connection security options in Add/Edit Connection: toggles to "Require encryption (SMB3)" and "Require signing".
+- Translations for the new security options: de, es, fr, nl, pl, zh.
+
+### Changed
+- Use a per-connection SMB client configuration (encryption/signing) when needed instead of relying solely on a single global client.
+
+### Fixed
+- Connection failures to Samba shares with `smb encrypt = required` or signing requirements. The app now negotiates encrypted/signed sessions when configured per connection.
+
+### Developer Notes
+- SmbConnection: added boolean fields `encryptData` and `signingRequired` (persisted via ConnectionRepositoryImpl; defaults to false for existing entries).
+- SmbRepositoryImpl: new `getClientFor(SmbConnection)` builds an `SmbConfig` with `withEncryptData(...)` and `withSigningRequired(...)` (fallback to `withSigningEnabled(...)` if needed) and uses it across search/list/withShare.
+- UI: `dialog_add_connection.xml` adds security switches; MainActivity wires them for Add/Edit and Test Connection.
+
 ## [1.2.10] - 2025-10-06
 
 ### Added

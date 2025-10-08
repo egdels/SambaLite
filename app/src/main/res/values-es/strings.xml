@@ -244,4 +244,9 @@
 
     <string name="transfer_title">Transferencia en curso …</string>
     <string name="preparing_transfer">Por favor, espere</string>
+
+    <!-- Security options -->
+    <string name="security_options">Seguridad</string>
+    <string name="require_encryption">Requerir cifrado (SMB3)</string>
+    <string name="require_signing">Requerir firma</string>
 </resources>
