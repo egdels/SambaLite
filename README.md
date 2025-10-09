@@ -60,6 +60,9 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 - Minimal permissions required (only network and user-selected storage access)
 - Be cautious when using SMB in public or untrusted networks
 
+**Privacy notice:** SambaLite processes all data locally on your device.  
+No personal data is transmitted to the developer or any third parties.
+
 ## ❤️ Support this project
 SambaLite is free and open source.
 If you find it useful, please consider supporting development:
