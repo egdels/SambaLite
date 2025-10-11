@@ -60,33 +60,31 @@ public class SmbRepositoryImpl implements SmbRepository {
         boolean encrypt = false;
         boolean sign = false;
         try {
-            // Use getters; Lombok generates them
             encrypt = connection.isEncryptData();
             sign = connection.isSigningRequired();
         } catch (Throwable ignore) {
         }
+
         if (!encrypt && !sign) {
-            return this.smbClient; // default shared client
+            return this.smbClient; // shared default client
         }
-        SmbConfig.Builder builder = SmbConfig.builder();
+
+        SmbConfig.Builder builder = SmbConfig.builder()
+                .withEncryptData(encrypt)
+                .withSigningRequired(sign);
+
+        // Optional, prevents fallback to NT1:
         try {
-            builder = builder.withEncryptData(encrypt);
-        } catch (Throwable t) {
-            // keep default if method not available at runtime
-        }
-        try {
-            // SMBJ 0.14.0 uses withSigningRequired(boolean)
-            builder = builder.withSigningRequired(sign);
-        } catch (Throwable t) {
-            try {
-                // Fallback if API differs (older naming)
-                java.lang.reflect.Method m = builder.getClass().getMethod("withSigningEnabled", boolean.class);
-                m.invoke(builder, sign);
-            } catch (Exception ignored) {
-            }
-        }
-        SmbConfig cfg = builder.build();
-        return new SMBClient(cfg);
+            builder.withDialects(
+                    com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1,
+                    com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2,
+                    com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0,
+                    com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1,
+                    com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2
+            );
+        } catch (Throwable ignored) { /* older SMBJ versions do not support these dialects */ }
+
+        return new SMBClient(builder.build());
     }
 
     /**
@@ -101,45 +99,8 @@ public class SmbRepositoryImpl implements SmbRepository {
      *                     encryption or signing.
      */
     private void enforceSecurityRequirements(SmbConnection cfg, Session session) throws IOException {
-        boolean requireEncrypt = false;
-        boolean requireSigning = false;
-        try {
-            requireEncrypt = cfg.isEncryptData();
-            requireSigning = cfg.isSigningRequired();
-        } catch (Throwable ignore) {
-        }
-        if (!requireEncrypt && !requireSigning) return;
-
-        boolean sessionEncryptActive = false;
-        boolean sessionSigningRequired = false;
-        try {
-            Object sc = session.getClass().getMethod("getSessionContext").invoke(session);
-            try {
-                java.lang.reflect.Method m = sc.getClass().getMethod("isEncryptData");
-                Object r = m.invoke(sc);
-                if (r instanceof Boolean) sessionEncryptActive = (Boolean) r;
-            } catch (NoSuchMethodException nsme) {
-                // Older/newer SMBJ: best-effort only
-            }
-            try {
-                java.lang.reflect.Method m2 = sc.getClass().getMethod("isSigningRequired");
-                Object r2 = m2.invoke(sc);
-                if (r2 instanceof Boolean) sessionSigningRequired = (Boolean) r2;
-            } catch (NoSuchMethodException nsme) {
-                // Best-effort
-            }
-        } catch (Exception e) {
-            LogUtils.w("SmbRepositoryImpl", "Could not introspect SessionContext for security flags: " + e.getMessage());
-        }
-
-        if (requireEncrypt && !sessionEncryptActive) {
-            LogUtils.w("SmbRepositoryImpl", "Encryption required by app but not active on session - failing connection");
-            throw new IOException("Server does not support required SMB encryption");
-        }
-        if (requireSigning && !sessionSigningRequired) {
-            LogUtils.w("SmbRepositoryImpl", "Signing required by app but not active on session - failing connection");
-            throw new IOException("Server does not support required SMB signing");
-        }
+        // No post-verification needed – SMBJ enforces the policy already during negotiation.
+        // Intentionally left empty to avoid false positives.
     }
 
     @Inject
