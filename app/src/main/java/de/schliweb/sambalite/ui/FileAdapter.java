@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -29,7 +31,13 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private List<SmbFileItem> files = new ArrayList<>();
     private OnFileClickListener listener;
     private OnFileOptionsClickListener optionsClickListener;
+    private OnFileLongClickListener longClickListener;
     private boolean showParentDirectory = false;
+
+    // Selection support (minimal UI highlight via itemView.setActivated)
+    private boolean selectionMode = false;
+    private java.util.Set<String> selectedPaths = new java.util.HashSet<>();
+
 
     /**
      * Updates the list of files.
@@ -72,6 +80,32 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     public void setOnFileOptionsClickListener(OnFileOptionsClickListener listener) {
         LogUtils.d("FileAdapter", "Setting file options click listener");
         this.optionsClickListener = listener;
+    }
+
+    /**
+     * Sets the long-click listener for files.
+     *
+     * @param listener The long-click listener to set
+     */
+    public void setOnFileLongClickListener(OnFileLongClickListener listener) {
+        LogUtils.d("FileAdapter", "Setting file long click listener");
+        this.longClickListener = listener;
+    }
+
+    /**
+     * Enables or disables selection mode (affects highlighting only).
+     */
+    public void setSelectionMode(boolean enabled) {
+        this.selectionMode = enabled;
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Updates the selected paths used for highlighting.
+     */
+    public void setSelectedPaths(java.util.Set<String> selectedPaths) {
+        this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -190,6 +224,13 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
 
     /**
+     * Interface for long-click events on files.
+     */
+    public interface OnFileLongClickListener {
+        void onFileLongClick(SmbFileItem file);
+    }
+
+    /**
      * ViewHolder for a file item.
      */
     class FileViewHolder extends RecyclerView.ViewHolder {
@@ -199,6 +240,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         private final TextView dateView;
         private final TextView sizeView;
         private final ImageButton moreOptionsButton;
+        private final View selectionIndicator;
+        private final MaterialCardView rootCard;
 
         FileViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -207,6 +250,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             dateView = itemView.findViewById(R.id.file_date);
             sizeView = itemView.findViewById(R.id.file_size);
             moreOptionsButton = itemView.findViewById(R.id.more_options);
+            selectionIndicator = itemView.findViewById(R.id.selection_indicator);
+            rootCard = (itemView instanceof MaterialCardView) ? (MaterialCardView) itemView : null;
 
             itemView.setOnClickListener(v -> {
                 int position = getBindingAdapterPosition();
@@ -226,6 +271,23 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 } else {
                     LogUtils.d("FileAdapter", "Click ignored: position invalid or no listener");
                 }
+            });
+
+            itemView.setOnLongClickListener(v -> {
+                int position = getBindingAdapterPosition();
+                LogUtils.d("FileAdapter", "File item long-clicked at position: " + position);
+                if (position != RecyclerView.NO_POSITION && longClickListener != null) {
+                    if (showParentDirectory && position == 0) {
+                        // Ignore long press on parent directory
+                        return true;
+                    } else {
+                        int filePosition = showParentDirectory ? position - 1 : position;
+                        SmbFileItem file = files.get(filePosition);
+                        longClickListener.onFileLongClick(file);
+                        return true;
+                    }
+                }
+                return false;
             });
 
             moreOptionsButton.setOnClickListener(v -> {
@@ -291,6 +353,23 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             } else {
                 LogUtils.d("FileAdapter", "No size for directory: " + file.getName());
                 sizeView.setText("");
+            }
+
+            // Enhanced visual selection highlight for multi-select
+            boolean selected = selectionMode && selectedPaths.contains(file.getPath());
+            itemView.setActivated(selected);
+
+            // Show selection indicator
+            /*if (selectionIndicator != null) {
+                selectionIndicator.setVisibility(selected ? View.VISIBLE : View.GONE);
+            }*/
+
+            // Change card background color to make selection more prominent
+            if (rootCard != null) {
+                int bgColor = MaterialColors.getColor(itemView, selected
+                        ? com.google.android.material.R.attr.colorSecondaryContainer
+                        : com.google.android.material.R.attr.colorSurface);
+                rootCard.setCardBackgroundColor(bgColor);
             }
         }
     }

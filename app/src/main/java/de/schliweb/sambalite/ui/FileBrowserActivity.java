@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -68,6 +70,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     // ServiceController removed; using BackgroundSmbManager directly
     private InputController inputController;
 
+    // Selection state for toolbar actions
+    private int selectionCount = 0;
+    private java.util.List<SmbFileItem> selectedItems = new java.util.ArrayList<>();
+    private Menu optionsMenu;
+
     // UI Components
     private RecyclerView recyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
@@ -75,6 +82,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private TextView currentPathView;
     private FloatingActionButton fab;
     private FloatingActionButton fabCreateFolder;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabDeleteSelected;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabDownloadSelected;
+    private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fabClearSelection;
     private SmartErrorHandler errorHandler;
 
     /**
@@ -214,6 +224,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         currentPathView = findViewById(R.id.current_path);
         fab = findViewById(R.id.fab);
         fabCreateFolder = findViewById(R.id.fab_create_folder);
+        fabDeleteSelected = findViewById(R.id.fab_delete_selected);
+        fabDownloadSelected = findViewById(R.id.fab_download_selected);
+        fabClearSelection = findViewById(R.id.fab_clear_selection);
         LogUtils.d("FileBrowserActivity", "UI components initialized");
     }
 
@@ -292,14 +305,22 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
         // Ensure FABs visibility reflects current list state, especially for empty folders
         fileListViewModel.getFiles().observe(this, files -> {
-            // In an empty folder, explicitly show upload and create-folder buttons
-            if (files == null || files.isEmpty()) {
-                if (!fab.isShown()) fab.show();
-                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+            // Respect multi-select: do not show regular FABs while selection is active
+            boolean selectionActive = fileListController != null && fileListController.isSelectionMode() && selectionCount > 0;
+            if (selectionActive) {
+                // Keep regular FABs fully gone so they don't take space
+                fab.setVisibility(View.GONE);
+                fabCreateFolder.setVisibility(View.GONE);
             } else {
-                // Also ensure they are visible when content loads (top of list)
-                if (!fab.isShown()) fab.show();
-                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+                // In an empty folder, explicitly show upload and create-folder buttons
+                if (files == null || files.isEmpty()) {
+                    if (!fab.isShown()) fab.show();
+                    if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+                } else {
+                    // Also ensure they are visible when content loads (top of list)
+                    if (!fab.isShown()) fab.show();
+                    if (!fabCreateFolder.isShown()) fabCreateFolder.show();
+                }
             }
         });
 
@@ -472,13 +493,52 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
             @Override
             public void onFolderDownloadResult(Uri uri) {
-                fileOperationsController.handleFolderDownload(uri);
+                if (uiState.isMultiDownloadPending()) {
+                    fileOperationsController.handleMultipleFileDownloadsWithTargetUri(uri);
+                } else {
+                    fileOperationsController.handleFolderDownload(uri);
+                }
             }
 
             @Override
             public void onFolderUploadResult(Uri uri) {
                 fileOperationsController.handleFolderContentsUpload(uri);
             }
+        });
+
+        // Listen for selection changes to update toolbar actions
+        fileListController.setSelectionChangedCallback((count, items) -> {
+            selectionCount = count;
+            selectedItems = new java.util.ArrayList<>(items);
+            // Update toolbar subtitle with selection count
+            if (getSupportActionBar() != null) {
+                if (fileListController.isSelectionMode() && selectionCount > 0) {
+                    getSupportActionBar().setSubtitle(selectionCount + " " + getString(R.string.selected));
+                } else {
+                    getSupportActionBar().setSubtitle(null);
+                }
+            }
+            // Toggle FAB visibility for multi-select actions
+            boolean showMultiFabs = fileListController.isSelectionMode() && selectionCount > 0;
+            if (showMultiFabs) {
+                // Ensure regular FABs do not take space
+                fab.setVisibility(View.GONE);
+                fabCreateFolder.setVisibility(View.GONE);
+                // Improve placement of multi-select FABs when regular ones are hidden
+                adjustMultiSelectFabPlacement(true);
+                if (fabDeleteSelected.getVisibility() != View.VISIBLE) fabDeleteSelected.show();
+                if (fabDownloadSelected.getVisibility() != View.VISIBLE) fabDownloadSelected.show();
+                if (fabClearSelection.getVisibility() != View.VISIBLE) fabClearSelection.show();
+            } else {
+                // Restore default visibility of regular FABs
+                fab.setVisibility(View.VISIBLE);
+                fabCreateFolder.setVisibility(View.VISIBLE);
+                if (fabDeleteSelected.isShown()) fabDeleteSelected.hide();
+                if (fabDownloadSelected.isShown()) fabDownloadSelected.hide();
+                if (fabClearSelection.isShown()) fabClearSelection.hide();
+            }
+            // Update menu item visibility/enabled state
+            invalidateOptionsMenu();
         });
 
         LogUtils.d("FileBrowserActivity", "Controller callbacks set up");
@@ -529,6 +589,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+                boolean selectionActive = fileListController != null && fileListController.isSelectionMode() && selectionCount > 0;
+                if (selectionActive) {
+                    // Do not manipulate regular FABs during selection
+                    return;
+                }
                 if (dy > 0) {
                     // Scrolling down -> hide
                     if (fab.isShown()) fab.hide();
@@ -544,6 +609,13 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    boolean selectionActive = fileListController != null && fileListController.isSelectionMode() && selectionCount > 0;
+                    if (selectionActive) {
+                        // Keep regular FABs gone during selection
+                        fab.setVisibility(View.GONE);
+                        fabCreateFolder.setVisibility(View.GONE);
+                        return;
+                    }
                     // If at top or idle, ensure FABs are visible
                     boolean canScrollUp = recyclerView.canScrollVertically(-1);
                     if (!canScrollUp) {
@@ -553,6 +625,30 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 }
             }
         });
+
+        // Multi-select FABs
+        if (fabDownloadSelected != null) {
+            fabDownloadSelected.setOnClickListener(v -> {
+                LogUtils.d("FileBrowserActivity", "FAB download selected clicked (" + selectionCount + ")");
+                if (selectionCount > 0) {
+                    fileOperationsController.handleMultipleFileDownloads(selectedItems);
+                }
+            });
+        }
+        if (fabDeleteSelected != null) {
+            fabDeleteSelected.setOnClickListener(v -> {
+                LogUtils.d("FileBrowserActivity", "FAB delete selected clicked (" + selectionCount + ")");
+                if (selectionCount > 0) {
+                    fileOperationsController.handleMultipleFileDelete(selectedItems);
+                }
+            });
+        }
+        if (fabClearSelection != null) {
+            fabClearSelection.setOnClickListener(v -> {
+                LogUtils.d("FileBrowserActivity", "FAB clear selection clicked");
+                fileListController.clearSelection();
+            });
+        }
 
         LogUtils.d("FileBrowserActivity", "UI event listeners set up");
     }
@@ -781,7 +877,80 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+        this.optionsMenu = menu;
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem multiDownload = menu.findItem(R.id.action_multi_download);
+        MenuItem multiDelete = menu.findItem(R.id.action_multi_delete);
+        MenuItem selectAll = menu.findItem(R.id.action_select_all);
+        MenuItem clearSel = menu.findItem(R.id.action_clear_selection);
+        boolean hasSelection = selectionCount > 0;
+        boolean opActive = Boolean.TRUE.equals(fileOperationsViewModel.isAnyOperationActive().getValue());
+        boolean enableActions = hasSelection && !opActive;
+        if (multiDownload != null) {
+            multiDownload.setVisible(hasSelection);
+            multiDownload.setEnabled(enableActions);
+        }
+        if (multiDelete != null) {
+            multiDelete.setVisible(hasSelection);
+            multiDelete.setEnabled(enableActions);
+        }
+        // Selection mode helpers
+        boolean inSelectionMode = fileListController != null && fileListController.isSelectionMode();
+        if (selectAll != null) {
+            selectAll.setVisible(inSelectionMode);
+            selectAll.setEnabled(!opActive);
+        }
+        if (clearSel != null) {
+            clearSel.setVisible(inSelectionMode);
+            clearSel.setEnabled(hasSelection && !opActive);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        // Multi-select actions
+        int id = item.getItemId();
+        if (id == R.id.action_multi_download) {
+            if (selectionCount > 0) {
+                // Delegate to controller
+                fileOperationsController.handleMultipleFileDownloads(fileListController.getSelectedItems());
+                // Minimal UX: exit selection mode immediately after starting batch action
+                fileListController.enableSelectionMode(false);
+                if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
+                invalidateOptionsMenu();
+            }
+            return true;
+        } else if (id == R.id.action_multi_delete) {
+            if (selectionCount > 0) {
+                fileOperationsController.handleMultipleFileDelete(fileListController.getSelectedItems());
+                // Minimal UX: exit selection mode immediately after starting batch action
+                fileListController.enableSelectionMode(false);
+                if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
+                invalidateOptionsMenu();
+            }
+            return true;
+        } else if (id == R.id.action_select_all) {
+            if (fileListController != null && fileListController.isSelectionMode()) {
+                fileListController.selectAllVisible();
+                invalidateOptionsMenu();
+            }
+            return true;
+        } else if (id == R.id.action_clear_selection) {
+            if (fileListController != null && fileListController.isSelectionMode()) {
+                fileListController.clearSelection();
+                if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
+                invalidateOptionsMenu();
+            }
+            return true;
+        }
         // Handle toolbar navigation
         if (item.getItemId() == android.R.id.home) {
             LogUtils.d("FileBrowserActivity", "Toolbar back button clicked");
@@ -902,10 +1071,56 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     @Override
     public void onFileOperationCompleted(String operationType, SmbFileItem file, boolean success, String message) {
         LogUtils.d("FileBrowserActivity", "File operation completed: " + operationType + " on " + (file != null ? file.getName() : "null") + ", success: " + success + ", message: " + message);
+        // UX polish: always reset selection UI and subtitle after any operation completes
+        try {
+            if (fileListController != null && fileListController.isSelectionMode()) {
+                fileListController.clearSelection();
+                fileListController.enableSelectionMode(false);
+            }
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setSubtitle(null);
+            }
+            invalidateOptionsMenu();
+        } catch (Throwable t) {
+            LogUtils.w("FileBrowserActivity", "Failed to reset selection UI after operation: " + t.getMessage());
+        }
     }
 
     @Override
     public void onFileOperationProgress(String operationType, SmbFileItem file, int progress, String message) {
         LogUtils.d("FileBrowserActivity", "File operation progress: " + operationType + " on " + (file != null ? file.getName() : "null") + ", progress: " + progress + "%, message: " + message);
     }
+
+    // Adjust placement of multi-select FABs when regular FABs are hidden so they sit closer to the bottom
+    private void adjustMultiSelectFabPlacement(boolean compact) {
+        try {
+            if (fabDeleteSelected == null || fabDownloadSelected == null || fabClearSelection == null) return;
+            // Compact layout: stack with 64dp gaps starting at 32dp from bottom
+            int base = dpToPx(32);
+            int gap = dpToPx(64);
+            setFabBottomMargin(fabClearSelection, base);
+            setFabBottomMargin(fabDownloadSelected, base + gap);
+            setFabBottomMargin(fabDeleteSelected, base + gap + gap);
+        } catch (Throwable ignore) {
+            // best-effort adjustment only
+        }
+    }
+
+    private void setFabBottomMargin(View v, int bottomMarginPx) {
+        if (v == null) return;
+        android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
+        if (lp instanceof android.view.ViewGroup.MarginLayoutParams) {
+            android.view.ViewGroup.MarginLayoutParams mlp = (android.view.ViewGroup.MarginLayoutParams) lp;
+            if (mlp.bottomMargin != bottomMarginPx) {
+                mlp.bottomMargin = bottomMarginPx;
+                v.setLayoutParams(mlp);
+            }
+        }
+    }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
 }

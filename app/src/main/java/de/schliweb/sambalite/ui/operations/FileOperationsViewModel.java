@@ -144,7 +144,8 @@ public class FileOperationsViewModel extends ViewModel {
         if (state.getConnection() == null || file == null || !file.isFile()) {
             LogUtils.w("FileOperationsViewModel", "Cannot download: invalid file or connection");
             if (callback != null) {
-                mainHandler.post(() -> callback.onResult(false, "Invalid file or connection"));
+                String msg = context.getString(de.schliweb.sambalite.R.string.invalid_file_or_connection);
+                mainHandler.post(() -> callback.onResult(false, msg));
             }
             return;
         }
@@ -158,7 +159,7 @@ public class FileOperationsViewModel extends ViewModel {
 
                 if (state.isDownloadCancelled()) {
                     LogUtils.d("FileOperationsViewModel", "Download cancelled before starting");
-                    handleDownloadCancellation(localFile, "file download pre-start cancellation", callback, "Download cancelled by user");
+                    handleDownloadCancellation(localFile, "file download pre-start cancellation", callback, context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
                     return;
                 }
 
@@ -195,7 +196,7 @@ public class FileOperationsViewModel extends ViewModel {
                                         int raw = calculateAccuratePercentage(currentBytes, totalBytes);
                                         int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
                                         if (throttle.allow(pct)) {
-                                            String status = ProgressFormat.formatBytes("Downloading", currentBytes, totalBytes);
+                                            String status = ProgressFormat.formatBytes(context.getString(de.schliweb.sambalite.R.string.downloading), currentBytes, totalBytes);
                                             emitProgress(status, pct, fileName);
                                             int p = pct;
                                             mainHandler.post(() -> callback.onProgress(status, p));
@@ -212,21 +213,22 @@ public class FileOperationsViewModel extends ViewModel {
 
                 LogUtils.i("FileOperationsViewModel", "File downloaded successfully: " + file.getName());
                 if (callback != null) {
-                    mainHandler.post(() -> callback.onResult(true, "File downloaded successfully"));
+                    String ok = context.getString(de.schliweb.sambalite.R.string.download_success);
+                    mainHandler.post(() -> callback.onResult(true, ok));
                 }
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Download failed: " + e.getMessage());
 
                 if (state.isDownloadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Download was cancelled by user");
-                    handleDownloadCancellation(localFile, "file download user cancellation", callback, "Download cancelled by user");
+                    handleDownloadCancellation(localFile, "file download user cancellation", callback, context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
                 } else {
                     cleanupDownloadFiles(localFile, "file download failure");
                     if (callback != null) {
-                        String msg = "Download failed: " + e.getMessage();
+                        String msg = context.getString(de.schliweb.sambalite.R.string.download_failed_with_reason, e.getMessage());
                         mainHandler.post(() -> callback.onResult(false, msg));
                     }
-                    state.setErrorMessage("Failed to download file: " + e.getMessage());
+                    state.setErrorMessage(context.getString(de.schliweb.sambalite.R.string.failed_to_download_file_with_reason, e.getMessage()));
                 }
             } finally {
                 decDownload();
@@ -241,7 +243,8 @@ public class FileOperationsViewModel extends ViewModel {
         if (state.getConnection() == null || folder == null || !folder.isDirectory()) {
             LogUtils.w("FileOperationsViewModel", "Cannot download: invalid folder or connection");
             if (callback != null) {
-                mainHandler.post(() -> callback.onResult(false, "Invalid folder or connection"));
+                String msg = context.getString(de.schliweb.sambalite.R.string.invalid_folder_or_connection);
+                mainHandler.post(() -> callback.onResult(false, msg));
             }
             return;
         }
@@ -255,7 +258,7 @@ public class FileOperationsViewModel extends ViewModel {
 
                 if (state.isDownloadCancelled()) {
                     LogUtils.d("FileOperationsViewModel", "Folder download cancelled before starting");
-                    handleDownloadCancellation(localFolder, "folder download pre-start cancellation", callback, "Download cancelled by user");
+                    handleDownloadCancellation(localFolder, "folder download pre-start cancellation", callback, context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
                     return;
                 }
 
@@ -288,8 +291,8 @@ public class FileOperationsViewModel extends ViewModel {
 
                                     if (callback != null && throttle.allow(pct)) {
                                         String status = (lastTotalFiles > 0 && lastCurrentFile > 0)
-                                                ? ProgressFormat.formatIdx("Downloading", lastCurrentFile, lastTotalFiles, currentFileName)
-                                                : "Downloading: " + currentFileName;
+                                                ? ProgressFormat.formatIdx(context.getString(de.schliweb.sambalite.R.string.downloading), lastCurrentFile, lastTotalFiles, currentFileName)
+                                                : context.getString(de.schliweb.sambalite.R.string.downloading_colon, currentFileName);
                                         final int p = pct;
                                         emitProgress(status, pct, currentFileName);
                                         mainHandler.post(() -> callback.onProgress(status, p));
@@ -308,8 +311,8 @@ public class FileOperationsViewModel extends ViewModel {
                                     int pct = ensureMonotonicDownloadPct(overallRaw, lastProgressPercentage);
                                     if (callback != null && throttle.allow(pct)) {
                                         String base = (lastTotalFiles > 0 && lastCurrentFile > 0)
-                                                ? ProgressFormat.formatIdx("Downloading", lastCurrentFile, lastTotalFiles, fileName)
-                                                : "Downloading: " + fileName;
+                                                ? ProgressFormat.formatIdx(context.getString(de.schliweb.sambalite.R.string.downloading), lastCurrentFile, lastTotalFiles, fileName)
+                                                : context.getString(de.schliweb.sambalite.R.string.downloading_colon, fileName);
 
                                         String status = (filePct >= 0 && totalBytes > 0)
                                                 ? base + " • " + filePct + "% (" + ProgressFormat.formatBytesOnly(currentBytes, totalBytes) + ")"
@@ -344,18 +347,19 @@ public class FileOperationsViewModel extends ViewModel {
 
                 LogUtils.i("FileOperationsViewModel", "Folder downloaded successfully: " + folder.getName());
                 if (callback != null) {
-                    mainHandler.post(() -> callback.onResult(true, "Folder downloaded successfully"));
+                    String ok = context.getString(de.schliweb.sambalite.R.string.folder_download_success);
+                    mainHandler.post(() -> callback.onResult(true, ok));
                 }
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Folder download failed: " + e.getMessage());
 
                 if (state.isDownloadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Folder download was cancelled by user");
-                    handleDownloadCancellation(localFolder, "folder download user cancellation", callback, "Download cancelled by user");
+                    handleDownloadCancellation(localFolder, "folder download user cancellation", callback, context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
                 } else {
                     cleanupDownloadFiles(localFolder, "folder download failure");
                     if (callback != null) {
-                        String msg = "Download failed: " + e.getMessage();
+                        String msg = context.getString(de.schliweb.sambalite.R.string.download_failed_with_reason, e.getMessage());
                         mainHandler.post(() -> callback.onResult(false, msg));
                     }
                     state.setErrorMessage("Failed to download folder: " + e.getMessage());
@@ -374,7 +378,8 @@ public class FileOperationsViewModel extends ViewModel {
         if (state.getConnection() == null || localFile == null || !localFile.exists()) {
             LogUtils.w("FileOperationsViewModel", "Cannot upload: invalid file or connection");
             if (callback != null) {
-                mainHandler.post(() -> callback.onResult(false, "Invalid file or connection"));
+                String msg = context.getString(de.schliweb.sambalite.R.string.invalid_file_or_connection);
+                mainHandler.post(() -> callback.onResult(false, msg));
             }
             return;
         }
@@ -398,7 +403,8 @@ public class FileOperationsViewModel extends ViewModel {
                     Runnable cancelAction = () -> {
                         LogUtils.d("FileOperationsViewModel", "User cancelled file upload for: " + localFile.getName());
                         if (callback != null) {
-                            mainHandler.post(() -> callback.onResult(false, "Upload cancelled by user"));
+                            String msg = context.getString(de.schliweb.sambalite.R.string.upload_cancelled_by_user);
+                            mainHandler.post(() -> callback.onResult(false, msg));
                         }
                     };
 
@@ -414,10 +420,10 @@ public class FileOperationsViewModel extends ViewModel {
                 LogUtils.e("FileOperationsViewModel", "Error checking if file exists: " + e.getMessage());
                 state.setLoading(false);
                 if (callback != null) {
-                    String msg = "Error checking if file exists: " + e.getMessage();
+                    String msg = context.getString(de.schliweb.sambalite.R.string.error_checking_file_exists, e.getMessage());
                     mainHandler.post(() -> callback.onResult(false, msg));
                 }
-                state.setErrorMessage("Failed to check if file exists: " + e.getMessage());
+                state.setErrorMessage(context.getString(de.schliweb.sambalite.R.string.error_checking_file_exists, e.getMessage()));
             }
         });
     }
@@ -450,7 +456,7 @@ public class FileOperationsViewModel extends ViewModel {
                             @Override
                             public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
                                 if (callback != null) {
-                                    String status = ProgressFormat.formatBytes("Uploading", currentBytes, totalBytes);
+                                    String status = ProgressFormat.formatBytes(context.getString(de.schliweb.sambalite.R.string.uploading), currentBytes, totalBytes);
                                     int p = calculateAccuratePercentage(currentBytes, totalBytes);
                                     emitProgress(status, p, fileName);
                                     mainHandler.post(() -> callback.onProgress(status, p));
@@ -462,7 +468,8 @@ public class FileOperationsViewModel extends ViewModel {
                 LogUtils.i("FileOperationsViewModel", "File uploaded successfully: " + localFile.getName());
                 state.setLoading(false);
                 if (callback != null) {
-                    mainHandler.post(() -> callback.onResult(true, "File uploaded successfully"));
+                    String ok = context.getString(de.schliweb.sambalite.R.string.upload_success);
+                    mainHandler.post(() -> callback.onResult(true, ok));
                 }
 
                 invalidateCacheAndRefreshUI();
@@ -473,15 +480,16 @@ public class FileOperationsViewModel extends ViewModel {
                 if (state.isUploadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Upload was cancelled by user");
                     if (callback != null) {
-                        mainHandler.post(() -> callback.onResult(false, "Upload cancelled by user"));
+                        String msg = context.getString(de.schliweb.sambalite.R.string.upload_cancelled_by_user);
+                        mainHandler.post(() -> callback.onResult(false, msg));
                     }
                     fileListViewModel.refreshCurrentDirectory();
                 } else {
                     if (callback != null) {
-                        String msg = "Upload failed: " + e.getMessage();
+                        String msg = context.getString(de.schliweb.sambalite.R.string.upload_failed_with_reason, e.getMessage());
                         mainHandler.post(() -> callback.onResult(false, msg));
                     }
-                    state.setErrorMessage("Failed to upload file: " + e.getMessage());
+                    state.setErrorMessage(context.getString(de.schliweb.sambalite.R.string.failed_to_upload_file_with_reason, e.getMessage()));
                 }
             } finally {
                 decUpload();
@@ -523,7 +531,10 @@ public class FileOperationsViewModel extends ViewModel {
     public void deleteFile(SmbFileItem file, FileOperationCallbacks.DeleteFileCallback callback) {
         if (state.getConnection() == null || file == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot delete: invalid file or connection");
-            if (callback != null) mainHandler.post(() -> callback.onResult(false, "Invalid file or connection"));
+            if (callback != null) {
+                String msg = context.getString(de.schliweb.sambalite.R.string.invalid_file_or_connection);
+                mainHandler.post(() -> callback.onResult(false, msg));
+            }
             return;
         }
 
@@ -535,7 +546,10 @@ public class FileOperationsViewModel extends ViewModel {
                 smbRepository.deleteFile(state.getConnection(), file.getPath());
                 LogUtils.i("FileOperationsViewModel", "File deleted successfully: " + file.getName());
                 state.setLoading(false);
-                if (callback != null) mainHandler.post(() -> callback.onResult(true, "File deleted successfully"));
+                if (callback != null) {
+                    String ok = context.getString(de.schliweb.sambalite.R.string.delete_success);
+                    mainHandler.post(() -> callback.onResult(true, ok));
+                }
 
                 String cachePattern = "conn_" + state.getConnection().getId() + "_path_" + state.getCurrentPathString().hashCode();
                 IntelligentCacheManager.getInstance().invalidateSync(cachePattern);
@@ -544,9 +558,11 @@ public class FileOperationsViewModel extends ViewModel {
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "File deletion failed: " + e.getMessage());
                 state.setLoading(false);
-                if (callback != null)
-                    mainHandler.post(() -> callback.onResult(false, "File deletion failed: " + e.getMessage()));
-                state.setErrorMessage("Failed to delete file: " + e.getMessage());
+                if (callback != null) {
+                    String msg = context.getString(de.schliweb.sambalite.R.string.delete_failed_with_reason, e.getMessage());
+                    mainHandler.post(() -> callback.onResult(false, msg));
+                }
+                state.setErrorMessage(context.getString(de.schliweb.sambalite.R.string.failed_to_delete_file_with_reason, e.getMessage()));
             }
         });
     }

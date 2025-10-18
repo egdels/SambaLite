@@ -35,6 +35,11 @@ public class FileBrowserUIState {
     private Uri selectedUri;
     @Setter
     private DocumentFile selectedDocumentFile;
+    // Multi-download pending state
+    @Setter
+    private java.util.List<de.schliweb.sambalite.data.model.SmbFileItem> pendingMultiDownloadItems;
+    @Setter
+    private boolean multiDownloadPending;
     // Service state
     @Setter
     private SmbBackgroundService backgroundService;

@@ -18,7 +18,7 @@ import java.util.List;
  * Controller for managing the file list display in the FileBrowserActivity.
  * Handles the RecyclerView, adapter, and file list interactions.
  */
-public class FileListController implements FileAdapter.OnFileClickListener, FileAdapter.OnFileOptionsClickListener {
+public class FileListController implements FileAdapter.OnFileClickListener, FileAdapter.OnFileOptionsClickListener, FileAdapter.OnFileLongClickListener {
 
     private final RecyclerView recyclerView;
     private final SwipeRefreshLayout swipeRefreshLayout;
@@ -27,6 +27,13 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
     private final FileAdapter adapter;
     private final FileListViewModel viewModel;
     private final FileBrowserUIState uiState;
+
+    // Selection state
+    private boolean selectionMode = false;
+    private final java.util.LinkedHashSet<String> selectedPaths = new java.util.LinkedHashSet<>();
+
+    @Setter
+    private SelectionChangedCallback selectionChangedCallback;
 
     // Callback interfaces
     @Setter
@@ -62,6 +69,7 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         this.adapter = new FileAdapter();
         this.adapter.setOnFileClickListener(this);
         this.adapter.setOnFileOptionsClickListener(this);
+        this.adapter.setOnFileLongClickListener(this);
 
         // Set up the RecyclerView
         setupRecyclerView();
@@ -99,6 +107,9 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         viewModel.getFiles().observe(getLifecycleOwner(), files -> {
             LogUtils.d("FileListController", "File list updated: " + files.size() + " files");
             adapter.setFiles(files);
+            // Propagate current selection state to adapter
+            adapter.setSelectionMode(selectionMode);
+            adapter.setSelectedPaths(selectedPaths);
             updateEmptyView(files);
             swipeRefreshLayout.setRefreshing(false);
 
@@ -154,6 +165,14 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
     @Override
     public void onFileClick(SmbFileItem file) {
         LogUtils.d("FileListController", "File clicked: " + file.getName());
+
+        // Selection mode: toggle selection for files, ignore directories.
+        if (selectionMode) {
+            if (file.isFile()) {
+                toggleSelection(file);
+            }
+            return;
+        }
 
         // Store the selected file in the UI state
         uiState.setSelectedFile(file);
@@ -257,6 +276,85 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         updateEmptyView(files);
     }
 
+    // --- Selection mode APIs ---
+    public void enableSelectionMode(boolean enabled) {
+        if (this.selectionMode == enabled) return;
+        this.selectionMode = enabled;
+        if (!enabled) {
+            selectedPaths.clear();
+            adapter.setSelectedPaths(selectedPaths);
+        }
+        adapter.setSelectionMode(enabled);
+        notifySelectionChanged();
+    }
+
+    public boolean isSelectionMode() {
+        return selectionMode;
+    }
+
+    public void toggleSelection(SmbFileItem file) {
+        if (file == null || !file.isFile()) return;
+        String path = file.getPath();
+        if (path == null) return;
+        if (selectedPaths.contains(path)) {
+            selectedPaths.remove(path);
+        } else {
+            selectedPaths.add(path);
+        }
+        adapter.setSelectedPaths(selectedPaths);
+        notifySelectionChanged();
+    }
+
+    public void clearSelection() {
+        selectedPaths.clear();
+        adapter.setSelectedPaths(selectedPaths);
+        notifySelectionChanged();
+    }
+
+    public void selectAllVisible() {
+        List<SmbFileItem> files = adapter.getFiles();
+        for (SmbFileItem f : files) {
+            if (f != null && f.isFile() && f.getPath() != null) {
+                selectedPaths.add(f.getPath());
+            }
+        }
+        adapter.setSelectedPaths(selectedPaths);
+        notifySelectionChanged();
+    }
+
+    public java.util.Set<String> getSelectedPaths() {
+        return new java.util.LinkedHashSet<>(selectedPaths);
+    }
+
+    public java.util.List<SmbFileItem> getSelectedItems() {
+        java.util.ArrayList<SmbFileItem> items = new java.util.ArrayList<>();
+        List<SmbFileItem> files = adapter.getFiles();
+        java.util.HashSet<String> lookup = new java.util.HashSet<>(selectedPaths);
+        for (SmbFileItem f : files) {
+            if (f != null && lookup.contains(f.getPath())) {
+                items.add(f);
+            }
+        }
+        return items;
+    }
+
+    private void notifySelectionChanged() {
+        if (selectionChangedCallback != null) {
+            selectionChangedCallback.onSelectionChanged(selectedPaths.size(), getSelectedItems());
+        }
+    }
+
+    @Override
+    public void onFileLongClick(SmbFileItem file) {
+        LogUtils.d("FileListController", "File long-clicked: " + (file != null ? file.getName() : "null"));
+        if (file != null && file.isFile()) {
+            if (!selectionMode) {
+                enableSelectionMode(true);
+            }
+            toggleSelection(file);
+        }
+    }
+
     /**
      * Callback for file clicks.
      */
@@ -300,6 +398,13 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
      */
     public interface FolderChangeCallback {
         void onFolderChanged(String newRemotePath);
+    }
+
+    /**
+     * Callback when the multi-selection changes.
+     */
+    public interface SelectionChangedCallback {
+        void onSelectionChanged(int count, java.util.List<SmbFileItem> selectedItems);
     }
 
 }

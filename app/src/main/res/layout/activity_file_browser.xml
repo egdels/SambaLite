@@ -327,6 +327,50 @@
         app:tint="#FFFFFF"
         app:rippleColor="#693DB7DC" />
 
+    <!-- Multi-select FABs: only visible in selection mode -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_clear_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="176dp"
+        android:text="@string/clear_selection"
+        android:contentDescription="@string/clear_selection"
+        android:visibility="gone"
+        app:icon="@android:drawable/ic_menu_close_clear_cancel"
+        app:backgroundTint="#3DB7DC"
+        app:iconTint="#FFFFFF"
+        android:textColor="#FFFFFF"
+        app:rippleColor="#693DB7DC" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_download_selected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="240dp"
+        android:contentDescription="@string/download_selected"
+        android:visibility="gone"
+        android:src="@android:drawable/ic_menu_save"
+        app:backgroundTint="#3DB7DC"
+        app:tint="#FFFFFF"
+        app:rippleColor="#693DB7DC" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_delete_selected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="304dp"
+        android:contentDescription="@string/delete_selected"
+        android:visibility="gone"
+        android:src="@android:drawable/ic_menu_delete"
+        app:backgroundTint="?attr/colorErrorContainer"
+        app:tint="?attr/colorOnErrorContainer" />
+
     <!-- Search FAB - in TopBar integriert über Toolbar Menu -->
     <!-- Sort FAB - in TopBar integriert über Toolbar Menu -->
     <!-- ZIP Transfer - in Haupt-FAB Menü integriert -->

@@ -217,6 +217,17 @@ public class ActivityResultController {
     }
 
     /**
+     * Initiates folder selection for multi-file download target.
+     * Reuses the folder download callback path (onFolderDownloadResult).
+     */
+    public void selectFolderForDownloadTarget() {
+        LogUtils.d("ActivityResultController", "Selecting folder for multi-file download target");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        // Use createFolderLauncher so the result routes to onFolderDownloadResult
+        createFolderLauncher.launch(intent);
+    }
+
+    /**
      * Callback for file operations.
      */
     public interface FileOperationCallback {

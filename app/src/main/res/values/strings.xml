@@ -19,6 +19,13 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Refresh</string>
+    <string name="action_multi_download">Download</string>
+    <string name="action_multi_delete">Delete</string>
+    <string name="action_select_all">Select All</string>
+    <string name="action_clear_selection">Clear Selection</string>
+    <string name="clear_selection">Clear selection</string>
+    <string name="download_selected">Download selected</string>
+    <string name="delete_selected">Delete selected</string>
 
     <!-- System Monitor -->
     <string name="system_monitor_title">System Monitor</string>
@@ -250,4 +257,61 @@
     <string name="security_options">Security</string>
     <string name="require_encryption">Require encryption (SMB3)</string>
     <string name="require_signing">Require signing</string>
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Delete files</string>
+    <string name="confirm_delete_multiple">Delete %1$d files?</string>
+    <string name="multi_delete_summary_success">Deleted %1$d of %2$d files</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">No files selected</string>
+    <string name="multi_only_files_delete">Only files can be deleted in multi-select</string>
+    <string name="multi_only_files_download">Only files can be downloaded in multi-select</string>
+    <string name="preparing_ellipsis">Preparing…</string>
+    <string name="deleting_ellipsis">Deleting…</string>
+    <string name="download_error_invalid_destination">Invalid destination folder</string>
+    <string name="multi_download_summary">Downloaded %1$d of %2$d files</string>
+    <string name="cancelled_suffix">cancelled</string>
+    <string name="failed_count_suffix">%1$d failed</string>
+    <string name="saf_persist_permission_failed">Could not persist permission for the selected folder. You may be asked again next time.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Downloading: %1$s</string>
+    <string name="uploading_colon">Uploading: %1$s</string>
+    <string name="deleting_colon">Deleting: %1$s</string>
+    <string name="renaming_colon">Renaming: %1$s</string>
+    <string name="finalizing_operation">Finalizing %1$s %2$s…</string>
+    <string name="finalizing_done">Finalizing… done</string>
+    <string name="finalizing_scanning_files">Finalizing… scanning files</string>
+    <string name="download_cancelled_local_copy">Download cancelled by user during local copy</string>
+    <string name="error_copying_file_to_destination">Error copying file to destination: %1$s</string>
+    <string name="error_copying_folder_to_destination">Error copying folder to destination: %1$s</string>
+    <string name="folder_download_success">Folder downloaded successfully</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Invalid file or connection</string>
+    <string name="invalid_folder_or_connection">Invalid folder or connection</string>
+    <string name="download_cancelled_by_user">Download cancelled by user</string>
+    <string name="download_failed_with_reason">Download failed: %1$s</string>
+    <string name="failed_to_download_file_with_reason">Failed to download file: %1$s</string>
+    <string name="upload_cancelled_by_user">Upload cancelled by user</string>
+    <string name="upload_failed_with_reason">Upload failed: %1$s</string>
+    <string name="failed_to_upload_file_with_reason">Failed to upload file: %1$s</string>
+    <string name="error_checking_file_exists">Error checking if file exists: %1$s</string>
+    <string name="delete_failed_with_reason">Delete failed: %1$s</string>
+    <string name="failed_to_delete_file_with_reason">Failed to delete file: %1$s</string>
+    
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Preparing upload… staging file</string>
+    <string name="staging_failed_with_reason">Staging failed: %1$s</string>
+    <string name="upload_interrupted_with_name">Upload interrupted: %1$s</string>
+    
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">multiple files</string>
+    <string name="download_error_cannot_open_folder_picker">Cannot open folder picker</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">Failed to create target file</string>
+    <string name="cannot_create_temp_file">Cannot create temp file</string>
+    <string name="interrupted_suffix">(interrupted)</string>
 </resources>
+

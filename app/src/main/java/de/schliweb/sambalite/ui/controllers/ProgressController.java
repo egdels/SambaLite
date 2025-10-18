@@ -41,6 +41,10 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     // Search progress dialog
     private AlertDialog searchProgressDialog;
 
+    // If a cancel action is provided before the dialog is visible (lazy-open case),
+    // cache it here and apply as soon as the dialog is shown.
+    private Runnable pendingCancelAction;
+
     private int lastOverall = -1;
     private int lastCur = -1;
     private int lastTotal = -1;
@@ -165,6 +169,14 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
                 progressDialog = builder.create();
                 progressDialog.show();
+
+                // If a cancel action was set before the dialog was shown (lazy-open case),
+                // apply it now to ensure the Cancel button works immediately.
+                try {
+                    if (pendingCancelAction != null) {
+                        setDetailedProgressDialogCancelAction(pendingCancelAction);
+                    }
+                } catch (Throwable ignore) {}
 
                 LogUtils.d("ProgressController", "Detailed progress dialog shown");
             } catch (Exception e) {
@@ -291,6 +303,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                 progressDialog.dismiss();
                 progressDialog = null;
                 resetUiProgressCache();
+                // Clear any pending cancel action to avoid leaking across operations
+                pendingCancelAction = null;
                 LogUtils.d("ProgressController", "Detailed progress dialog hidden");
             }
         });
@@ -303,6 +317,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
      * @param cancelAction The action to take when the dialog is cancelled
      */
     public void setDetailedProgressDialogCancelAction(Runnable cancelAction) {
+        // Always remember the latest cancel action to apply even if the dialog is lazily opened later
+        pendingCancelAction = cancelAction;
         if (!isActivitySafe() || progressDialog == null || !progressDialog.isShowing()) return;
 
         // Ensure this runs on the UI thread
@@ -315,7 +331,12 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                     // Set the click listener for the cancel button
                     cancelButton.setOnClickListener(v -> {
                         LogUtils.d("ProgressController", "User requested cancellation from progress dialog");
-                        finalCancelAction.run();
+                        try {
+                            finalCancelAction.run();
+                        } finally {
+                            // Close the dialog immediately on user cancel to avoid UI hanging
+                            try { hideDetailedProgressDialog(); } catch (Throwable ignore) {}
+                        }
                     });
                     LogUtils.d("ProgressController", "Cancel action set for detailed progress dialog");
                 }
