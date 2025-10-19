@@ -306,13 +306,23 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
             selectedPaths.add(path);
         }
         adapter.setSelectedPaths(selectedPaths);
-        notifySelectionChanged();
+        // If no items remain selected, exit selection mode to restore normal navigation behavior
+        if (selectionMode && selectedPaths.isEmpty()) {
+            enableSelectionMode(false);
+        } else {
+            notifySelectionChanged();
+        }
     }
 
     public void clearSelection() {
         selectedPaths.clear();
         adapter.setSelectedPaths(selectedPaths);
-        notifySelectionChanged();
+        // Exit selection mode when selection is cleared to allow normal navigation
+        if (selectionMode) {
+            enableSelectionMode(false);
+        } else {
+            notifySelectionChanged();
+        }
     }
 
     public void selectAllVisible() {
