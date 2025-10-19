@@ -176,7 +176,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                     if (pendingCancelAction != null) {
                         setDetailedProgressDialogCancelAction(pendingCancelAction);
                     }
-                } catch (Throwable ignore) {}
+                } catch (Throwable ignore) {
+                }
 
                 LogUtils.d("ProgressController", "Detailed progress dialog shown");
             } catch (Exception e) {
@@ -335,7 +336,10 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                             finalCancelAction.run();
                         } finally {
                             // Close the dialog immediately on user cancel to avoid UI hanging
-                            try { hideDetailedProgressDialog(); } catch (Throwable ignore) {}
+                            try {
+                                hideDetailedProgressDialog();
+                            } catch (Throwable ignore) {
+                            }
                         }
                     });
                     LogUtils.d("ProgressController", "Cancel action set for detailed progress dialog");
@@ -506,7 +510,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
         activity.runOnUiThread(() -> {
             try {
-                UIHelper.showConfirmation(activity, finalTitle, finalMessage, activity.getString(android.R.string.yes), activity.getString(android.R.string.no), finalOnConfirm, finalOnCancel);
+                UIHelper.showConfirmation(activity, finalTitle, finalMessage, activity.getString(android.R.string.ok), activity.getString(android.R.string.cancel), finalOnConfirm, finalOnCancel);
 
                 LogUtils.d("ProgressController", "Confirmation dialog shown");
             } catch (Exception e) {

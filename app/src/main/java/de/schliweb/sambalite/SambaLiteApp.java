@@ -172,16 +172,10 @@ public class SambaLiteApp extends Application {
         super.onTrimMemory(level);
         LogUtils.d("SambaLiteApp", "Memory trim requested with level: " + level);
 
-        switch (level) {
-            case TRIM_MEMORY_RUNNING_CRITICAL:
-            case TRIM_MEMORY_UI_HIDDEN:
-            case TRIM_MEMORY_BACKGROUND:
-            case TRIM_MEMORY_MODERATE:
-            case TRIM_MEMORY_COMPLETE:
-                // Perform garbage collection for critical memory situations
-                System.gc();
-                LogUtils.w("SambaLiteApp", "Performed memory cleanup");
-                break;
+        // Perform cleanup for significant memory pressure using non-deprecated levels
+        if (level == TRIM_MEMORY_UI_HIDDEN || level >= TRIM_MEMORY_BACKGROUND) {
+            System.gc();
+            LogUtils.w("SambaLiteApp", "Performed memory cleanup");
         }
     }
 

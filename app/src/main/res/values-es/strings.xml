@@ -19,6 +19,14 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Actualizar</string>
+    <string name="action_multi_download">Descargar</string>
+    <string name="action_multi_delete">Eliminar</string>
+    <string name="action_select_all">Seleccionar todo</string>
+    <string name="action_clear_selection">Borrar selección</string>
+    <string name="clear_selection">Borrar selección</string>
+    <string name="download_selected">Descargar seleccionados</string>
+    <string name="delete_selected">Eliminar seleccionados</string>
+
 
     <!-- System Monitor -->
     <string name="system_monitor_title">Monitor del sistema</string>
@@ -249,4 +257,61 @@
     <string name="security_options">Seguridad</string>
     <string name="require_encryption">Requerir cifrado (SMB3)</string>
     <string name="require_signing">Requerir firma</string>
+
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Eliminar archivos</string>
+    <string name="confirm_delete_multiple">¿Eliminar %1$d archivos?</string>
+    <string name="multi_delete_summary_success">Se eliminaron %1$d de %2$d archivos</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">No se seleccionaron archivos</string>
+    <string name="multi_only_files_delete">En la selección múltiple solo se pueden eliminar archivos</string>
+    <string name="multi_only_files_download">En la selección múltiple solo se pueden descargar archivos</string>
+    <string name="preparing_ellipsis">Preparando…</string>
+    <string name="deleting_ellipsis">Eliminando…</string>
+    <string name="download_error_invalid_destination">Carpeta de destino no válida</string>
+    <string name="multi_download_summary">Se descargaron %1$d de %2$d archivos</string>
+    <string name="cancelled_suffix">cancelado</string>
+    <string name="failed_count_suffix">%1$d fallidos</string>
+    <string name="saf_persist_permission_failed">No se pudo conservar el permiso para la carpeta seleccionada. Es posible que se te solicite de nuevo la próxima vez.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Descargando: %1$s</string>
+    <string name="uploading_colon">Subiendo: %1$s</string>
+    <string name="deleting_colon">Eliminando: %1$s</string>
+    <string name="renaming_colon">Renombrando: %1$s</string>
+    <string name="finalizing_operation">Finalizando %1$s %2$s…</string>
+    <string name="finalizing_done">Finalizando… completado</string>
+    <string name="finalizing_scanning_files">Finalizando… escaneando archivos</string>
+    <string name="download_cancelled_local_copy">Descarga cancelada por el usuario durante la copia local</string>
+    <string name="error_copying_file_to_destination">Error al copiar el archivo al destino: %1$s</string>
+    <string name="error_copying_folder_to_destination">Error al copiar la carpeta al destino: %1$s</string>
+    <string name="folder_download_success">Carpeta descargada correctamente</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Archivo o conexión no válida</string>
+    <string name="invalid_folder_or_connection">Carpeta o conexión no válida</string>
+    <string name="download_cancelled_by_user">Descarga cancelada por el usuario</string>
+    <string name="download_failed_with_reason">Error en la descarga: %1$s</string>
+    <string name="failed_to_download_file_with_reason">No se pudo descargar el archivo: %1$s</string>
+    <string name="upload_cancelled_by_user">Subida cancelada por el usuario</string>
+    <string name="upload_failed_with_reason">Error en la subida: %1$s</string>
+    <string name="failed_to_upload_file_with_reason">No se pudo subir el archivo: %1$s</string>
+    <string name="error_checking_file_exists">Error al comprobar si el archivo existe: %1$s</string>
+    <string name="delete_failed_with_reason">Error al eliminar: %1$s</string>
+    <string name="failed_to_delete_file_with_reason">No se pudo eliminar el archivo: %1$s</string>
+
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Preparando la subida… creando archivo temporal</string>
+    <string name="staging_failed_with_reason">Error en la preparación: %1$s</string>
+    <string name="upload_interrupted_with_name">Subida interrumpida: %1$s</string>
+
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">varios archivos</string>
+    <string name="download_error_cannot_open_folder_picker">No se puede abrir el selector de carpetas</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">No se pudo crear el archivo de destino</string>
+    <string name="cannot_create_temp_file">No se puede crear el archivo temporal</string>
+    <string name="interrupted_suffix">(interrumpido)</string>
 </resources>

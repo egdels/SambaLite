@@ -10,6 +10,7 @@ import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
 import de.schliweb.sambalite.util.LogUtils;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
     private final FileBrowserUIState uiState;
 
     // Selection state
+    @Getter
     private boolean selectionMode = false;
     private final java.util.LinkedHashSet<String> selectedPaths = new java.util.LinkedHashSet<>();
 
@@ -123,6 +125,12 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         viewModel.getCurrentPath().observe(getLifecycleOwner(), path -> {
             LogUtils.d("FileListController", "Current path updated: " + path);
             currentPathView.setText(path);
+
+            // If user navigated to a different folder while in multi-select, clear and exit selection mode
+            if (selectionMode) {
+                clearSelection();
+                enableSelectionMode(false);
+            }
 
             if (folderChangeCallback != null) {
                 folderChangeCallback.onFolderChanged(path);
@@ -286,10 +294,6 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
         }
         adapter.setSelectionMode(enabled);
         notifySelectionChanged();
-    }
-
-    public boolean isSelectionMode() {
-        return selectionMode;
     }
 
     public void toggleSelection(SmbFileItem file) {

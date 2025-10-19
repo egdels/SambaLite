@@ -30,7 +30,9 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
 
     private final SharedPreferences encryptedPrefs;
 
+
     @Inject
+    @SuppressWarnings("deprecation")
     public ConnectionRepositoryImpl(Context context) {
         LogUtils.d("ConnectionRepositoryImpl", "Initializing ConnectionRepositoryImpl");
         // Initialize EncryptedSharedPreferences

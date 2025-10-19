@@ -1,0 +1,5 @@
+1.3.1
+- New: Multi-select for files with batch Download and Delete.
+- UX: Contextual FAB icons in selection mode; toolbar shows selected count; Clear Selection.
+- Reliability: Hardened dialog lifecycle (open/close on success/error/cancel), unified i18n wording, and temp resource cleanup.
+- Polish: Selection is cleared on folder change and when actions start/finish.

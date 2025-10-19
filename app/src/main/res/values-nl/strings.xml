@@ -19,6 +19,13 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Vernieuwen</string>
+    <string name="action_multi_download">Downloaden</string>
+    <string name="action_multi_delete">Verwijderen</string>
+    <string name="action_select_all">Alles selecteren</string>
+    <string name="action_clear_selection">Selectie wissen</string>
+    <string name="clear_selection">Selectie wissen</string>
+    <string name="download_selected">Geselecteerde downloaden</string>
+    <string name="delete_selected">Geselecteerde verwijderen</string>
 
     <!-- System Monitor -->
     <string name="system_monitor_title">Systeemmonitor</string>
@@ -249,4 +256,61 @@
     <string name="security_options">Beveiliging</string>
     <string name="require_encryption">Versleuteling vereist (SMB3)</string>
     <string name="require_signing">Ondertekening vereist</string>
+
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Bestanden verwijderen</string>
+    <string name="confirm_delete_multiple">%1$d bestanden verwijderen?</string>
+    <string name="multi_delete_summary_success">%1$d van %2$d bestanden verwijderd</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">Geen bestanden geselecteerd</string>
+    <string name="multi_only_files_delete">Alleen bestanden kunnen worden verwijderd in de multiselectie</string>
+    <string name="multi_only_files_download">Alleen bestanden kunnen worden gedownload in de multiselectie</string>
+    <string name="preparing_ellipsis">Bezig met voorbereiden…</string>
+    <string name="deleting_ellipsis">Bezig met verwijderen…</string>
+    <string name="download_error_invalid_destination">Ongeldige doelmap</string>
+    <string name="multi_download_summary">%1$d van %2$d bestanden gedownload</string>
+    <string name="cancelled_suffix">geannuleerd</string>
+    <string name="failed_count_suffix">%1$d mislukt</string>
+    <string name="saf_persist_permission_failed">Kon de machtiging voor de geselecteerde map niet behouden. Mogelijk wordt de toestemming de volgende keer opnieuw gevraagd.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Bezig met downloaden: %1$s</string>
+    <string name="uploading_colon">Bezig met uploaden: %1$s</string>
+    <string name="deleting_colon">Bezig met verwijderen: %1$s</string>
+    <string name="renaming_colon">Bezig met hernoemen: %1$s</string>
+    <string name="finalizing_operation">Bezig met voltooien van %1$s %2$s…</string>
+    <string name="finalizing_done">Voltooien… klaar</string>
+    <string name="finalizing_scanning_files">Voltooien… bestanden scannen</string>
+    <string name="download_cancelled_local_copy">Download geannuleerd door gebruiker tijdens lokale kopie</string>
+    <string name="error_copying_file_to_destination">Fout bij het kopiëren van bestand naar doel: %1$s</string>
+    <string name="error_copying_folder_to_destination">Fout bij het kopiëren van map naar doel: %1$s</string>
+    <string name="folder_download_success">Map succesvol gedownload</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Ongeldig bestand of verbinding</string>
+    <string name="invalid_folder_or_connection">Ongeldige map of verbinding</string>
+    <string name="download_cancelled_by_user">Download geannuleerd door gebruiker</string>
+    <string name="download_failed_with_reason">Download mislukt: %1$s</string>
+    <string name="failed_to_download_file_with_reason">Kan bestand niet downloaden: %1$s</string>
+    <string name="upload_cancelled_by_user">Upload geannuleerd door gebruiker</string>
+    <string name="upload_failed_with_reason">Upload mislukt: %1$s</string>
+    <string name="failed_to_upload_file_with_reason">Kan bestand niet uploaden: %1$s</string>
+    <string name="error_checking_file_exists">Fout bij het controleren of bestand bestaat: %1$s</string>
+    <string name="delete_failed_with_reason">Verwijderen mislukt: %1$s</string>
+    <string name="failed_to_delete_file_with_reason">Kan bestand niet verwijderen: %1$s</string>
+
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Upload voorbereiden… tijdelijke bestanden</string>
+    <string name="staging_failed_with_reason">Voorbereiding mislukt: %1$s</string>
+    <string name="upload_interrupted_with_name">Upload onderbroken: %1$s</string>
+
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">meerdere bestanden</string>
+    <string name="download_error_cannot_open_folder_picker">Kan de mapkiezer niet openen</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">Kan doelbestand niet maken</string>
+    <string name="cannot_create_temp_file">Kan tijdelijk bestand niet maken</string>
+    <string name="interrupted_suffix">(onderbroken)</string>
 </resources>

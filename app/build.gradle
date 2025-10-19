@@ -13,11 +13,11 @@ android {
 
     defaultConfig {
         applicationId "de.schliweb.sambalite"
-        minSdk 28
+        minSdk = 28
         targetSdk = 35 // Configured for borderless display (transparent system bars)
         
-        versionCode 10301
-        versionName project.version.toString()
+        versionCode = 10301
+        versionName = project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -64,6 +64,8 @@ android {
     // Ensure consistent encoding
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
+        // Show deprecation details during compilation to identify and fix them
+        options.compilerArgs << '-Xlint:deprecation'
     }
 
     // Configure build features
@@ -143,17 +145,17 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.core:core-ktx:1.16.0'
     implementation 'androidx.documentfile:documentfile:1.1.0'
-    implementation 'com.google.android.material:material:1.13.0-beta01'
+    implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
     // MVVM components
-    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.9.1'
-    implementation 'androidx.lifecycle:lifecycle-livedata:2.9.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.9.4'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.9.4'
 
     // Dagger 2 for dependency injection
-    implementation 'com.google.dagger:dagger:2.56.2'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.56.2'
+    implementation 'com.google.dagger:dagger:2.57.2'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.57.2'
 
     // SMBJ for SMB client functionality - Exclude conflicting BouncyCastle versions
     implementation('com.hierynomus:smbj:0.14.0') {
@@ -167,34 +169,34 @@ dependencies {
     // implementation 'org.bouncycastle:bcpkix-jdk18on:1.79'
 
     // Security libraries for credential storage
-    implementation 'androidx.security:security-crypto:1.1.0-beta01'
+    implementation 'androidx.security:security-crypto:1.1.0'
 
     // Timber for logging
     implementation 'com.jakewharton.timber:timber:4.7.1'
 
-    compileOnly "org.projectlombok:lombok:1.18.38"
-    annotationProcessor "org.projectlombok:lombok:1.18.38"
+    compileOnly "org.projectlombok:lombok:1.18.42"
+    annotationProcessor "org.projectlombok:lombok:1.18.42"
 
     // Testing dependencies for comprehensive data integrity verification
     testImplementation 'junit:junit:4.13.2'
     
     // Robolectric for Android unit testing
-    testImplementation 'org.robolectric:robolectric:4.13'
-    testImplementation 'androidx.test:core:1.6.1'
-    testImplementation 'androidx.test.ext:junit:1.2.1'
+    testImplementation 'org.robolectric:robolectric:4.16'
+    testImplementation 'androidx.test:core:1.7.0'
+    testImplementation 'androidx.test.ext:junit:1.3.0'
     
     // Additional testing libraries for data integrity
-    testImplementation 'org.mockito:mockito-core:5.14.2'
+    testImplementation 'org.mockito:mockito-core:5.20.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
     
     // Architecture Components testing
     testImplementation 'androidx.arch.core:core-testing:2.2.0'
     
     // Android instrumented testing for real device verification
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
-    androidTestImplementation 'androidx.test:runner:1.6.2'
-    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
 
     // Enhanced UI and Animation libraries
@@ -202,7 +204,7 @@ dependencies {
     // implementation 'androidx.interpolator:interpolator:1.0.0'  // UNUSED - comes transitively
     
     // Memory Management
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.14'
     
     // Advanced UI Components
     implementation 'androidx.recyclerview:recyclerview:1.4.0'

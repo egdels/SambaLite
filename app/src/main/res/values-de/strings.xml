@@ -19,6 +19,13 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Aktualisieren</string>
+    <string name="action_multi_download">Herunterladen</string>
+    <string name="action_multi_delete">Löschen</string>
+    <string name="action_select_all">Alle auswählen</string>
+    <string name="action_clear_selection">Auswahl aufheben</string>
+    <string name="clear_selection">Auswahl aufheben</string>
+    <string name="download_selected">Ausgewählte herunterladen</string>
+    <string name="delete_selected">Ausgewählte löschen</string>
 
     <!-- System Monitor -->
     <string name="system_monitor_title">System Monitor</string>
@@ -249,4 +256,61 @@
     <string name="security_options">Sicherheit</string>
     <string name="require_encryption">Verschlüsselung erforderlich (SMB3)</string>
     <string name="require_signing">Signierung erforderlich</string>
+
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Dateien löschen</string>
+    <string name="confirm_delete_multiple">%1$d Dateien löschen?</string>
+    <string name="multi_delete_summary_success">%1$d von %2$d Dateien gelöscht</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">Keine Dateien ausgewählt</string>
+    <string name="multi_only_files_delete">Im Mehrfachauswahlmodus können nur Dateien gelöscht werden</string>
+    <string name="multi_only_files_download">Im Mehrfachauswahlmodus können nur Dateien heruntergeladen werden</string>
+    <string name="preparing_ellipsis">Wird vorbereitet…</string>
+    <string name="deleting_ellipsis">Wird gelöscht…</string>
+    <string name="download_error_invalid_destination">Ungültiger Zielordner</string>
+    <string name="multi_download_summary">%1$d von %2$d Dateien heruntergeladen</string>
+    <string name="cancelled_suffix">abgebrochen</string>
+    <string name="failed_count_suffix">%1$d fehlgeschlagen</string>
+    <string name="saf_persist_permission_failed">Berechtigung für den ausgewählten Ordner konnte nicht gespeichert werden. Möglicherweise wirst du beim nächsten Mal erneut gefragt.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Wird heruntergeladen: %1$s</string>
+    <string name="uploading_colon">Wird hochgeladen: %1$s</string>
+    <string name="deleting_colon">Wird gelöscht: %1$s</string>
+    <string name="renaming_colon">Wird umbenannt: %1$s</string>
+    <string name="finalizing_operation">Wird abgeschlossen: %1$s %2$s…</string>
+    <string name="finalizing_done">Abschließen… fertig</string>
+    <string name="finalizing_scanning_files">Abschließen… Dateien werden gescannt</string>
+    <string name="download_cancelled_local_copy">Download vom Benutzer während der lokalen Kopie abgebrochen</string>
+    <string name="error_copying_file_to_destination">Fehler beim Kopieren der Datei zum Ziel: %1$s</string>
+    <string name="error_copying_folder_to_destination">Fehler beim Kopieren des Ordners zum Ziel: %1$s</string>
+    <string name="folder_download_success">Ordner erfolgreich heruntergeladen</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Ungültige Datei oder Verbindung</string>
+    <string name="invalid_folder_or_connection">Ungültiger Ordner oder Verbindung</string>
+    <string name="download_cancelled_by_user">Download vom Benutzer abgebrochen</string>
+    <string name="download_failed_with_reason">Download fehlgeschlagen: %1$s</string>
+    <string name="failed_to_download_file_with_reason">Datei konnte nicht heruntergeladen werden: %1$s</string>
+    <string name="upload_cancelled_by_user">Upload vom Benutzer abgebrochen</string>
+    <string name="upload_failed_with_reason">Upload fehlgeschlagen: %1$s</string>
+    <string name="failed_to_upload_file_with_reason">Datei konnte nicht hochgeladen werden: %1$s</string>
+    <string name="error_checking_file_exists">Fehler beim Prüfen, ob die Datei existiert: %1$s</string>
+    <string name="delete_failed_with_reason">Löschen fehlgeschlagen: %1$s</string>
+    <string name="failed_to_delete_file_with_reason">Datei konnte nicht gelöscht werden: %1$s</string>
+
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Upload wird vorbereitet… Datei wird zwischengespeichert</string>
+    <string name="staging_failed_with_reason">Vorbereitung fehlgeschlagen: %1$s</string>
+    <string name="upload_interrupted_with_name">Upload unterbrochen: %1$s</string>
+
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">mehrere Dateien</string>
+    <string name="download_error_cannot_open_folder_picker">Ordnerauswahl kann nicht geöffnet werden</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">Zieldatei konnte nicht erstellt werden</string>
+    <string name="cannot_create_temp_file">Temporäre Datei kann nicht erstellt werden</string>
+    <string name="interrupted_suffix">(unterbrochen)</string>
 </resources>

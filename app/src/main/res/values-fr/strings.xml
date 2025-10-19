@@ -19,6 +19,14 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Actualiser</string>
+    <string name="action_multi_download">Télécharger</string>
+    <string name="action_multi_delete">Supprimer</string>
+    <string name="action_select_all">Tout sélectionner</string>
+    <string name="action_clear_selection">Effacer la sélection</string>
+    <string name="clear_selection">Effacer la sélection</string>
+    <string name="download_selected">Télécharger la sélection</string>
+    <string name="delete_selected">Supprimer la sélection</string>
+
 
     <!-- System Monitor -->
     <string name="system_monitor_title">Moniteur système</string>
@@ -249,4 +257,61 @@
     <string name="security_options">Sécurité</string>
     <string name="require_encryption">Exiger le chiffrement (SMB3)</string>
     <string name="require_signing">Exiger la signature</string>
+
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Supprimer des fichiers</string>
+    <string name="confirm_delete_multiple">Supprimer %1$d fichiers ?</string>
+    <string name="multi_delete_summary_success">%1$d fichiers sur %2$d supprimés</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">Aucun fichier sélectionné</string>
+    <string name="multi_only_files_delete">En mode multi-sélection, seuls les fichiers peuvent être supprimés</string>
+    <string name="multi_only_files_download">En mode multi-sélection, seuls les fichiers peuvent être téléchargés</string>
+    <string name="preparing_ellipsis">Préparation…</string>
+    <string name="deleting_ellipsis">Suppression…</string>
+    <string name="download_error_invalid_destination">Dossier de destination invalide</string>
+    <string name="multi_download_summary">%1$d fichiers sur %2$d téléchargés</string>
+    <string name="cancelled_suffix">annulé</string>
+    <string name="failed_count_suffix">%1$d échec(s)</string>
+    <string name="saf_persist_permission_failed">Impossible de conserver l’autorisation pour le dossier sélectionné. Vous pourriez être invité à nouveau la prochaine fois.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Téléchargement : %1$s</string>
+    <string name="uploading_colon">Envoi : %1$s</string>
+    <string name="deleting_colon">Suppression : %1$s</string>
+    <string name="renaming_colon">Renommage : %1$s</string>
+    <string name="finalizing_operation">Finalisation de %1$s %2$s…</string>
+    <string name="finalizing_done">Finalisation… terminée</string>
+    <string name="finalizing_scanning_files">Finalisation… analyse des fichiers</string>
+    <string name="download_cancelled_local_copy">Téléchargement annulé par l’utilisateur pendant la copie locale</string>
+    <string name="error_copying_file_to_destination">Erreur lors de la copie du fichier vers la destination : %1$s</string>
+    <string name="error_copying_folder_to_destination">Erreur lors de la copie du dossier vers la destination : %1$s</string>
+    <string name="folder_download_success">Dossier téléchargé avec succès</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Fichier ou connexion invalide</string>
+    <string name="invalid_folder_or_connection">Dossier ou connexion invalide</string>
+    <string name="download_cancelled_by_user">Téléchargement annulé par l’utilisateur</string>
+    <string name="download_failed_with_reason">Échec du téléchargement : %1$s</string>
+    <string name="failed_to_download_file_with_reason">Impossible de télécharger le fichier : %1$s</string>
+    <string name="upload_cancelled_by_user">Envoi annulé par l’utilisateur</string>
+    <string name="upload_failed_with_reason">Échec de l’envoi : %1$s</string>
+    <string name="failed_to_upload_file_with_reason">Impossible d’envoyer le fichier : %1$s</string>
+    <string name="error_checking_file_exists">Erreur lors de la vérification de l’existence du fichier : %1$s</string>
+    <string name="delete_failed_with_reason">Échec de la suppression : %1$s</string>
+    <string name="failed_to_delete_file_with_reason">Impossible de supprimer le fichier : %1$s</string>
+
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Préparation de l’envoi… mise en attente du fichier</string>
+    <string name="staging_failed_with_reason">Échec de la préparation : %1$s</string>
+    <string name="upload_interrupted_with_name">Envoi interrompu : %1$s</string>
+
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">plusieurs fichiers</string>
+    <string name="download_error_cannot_open_folder_picker">Impossible d’ouvrir le sélecteur de dossiers</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">Impossible de créer le fichier de destination</string>
+    <string name="cannot_create_temp_file">Impossible de créer le fichier temporaire</string>
+    <string name="interrupted_suffix">(interrompu)</string>
 </resources>

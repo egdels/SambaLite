@@ -19,6 +19,14 @@
 
     <!-- Menu Items -->
     <string name="menu_refresh">Odśwież</string>
+    <string name="action_multi_download">Pobierz</string>
+    <string name="action_multi_delete">Usuń</string>
+    <string name="action_select_all">Zaznacz wszystko</string>
+    <string name="action_clear_selection">Wyczyść zaznaczenie</string>
+    <string name="clear_selection">Wyczyść zaznaczenie</string>
+    <string name="download_selected">Pobierz zaznaczone</string>
+    <string name="delete_selected">Usuń zaznaczone</string>
+
 
     <!-- System Monitor -->
     <string name="system_monitor_title">Monitor systemu</string>
@@ -249,4 +257,61 @@
     <string name="security_options">Zabezpieczenia</string>
     <string name="require_encryption">Wymagaj szyfrowania (SMB3)</string>
     <string name="require_signing">Wymagaj podpisywania</string>
+
+    <!-- Multi-Select Delete -->
+    <string name="delete_multiple_title">Usuń pliki</string>
+    <string name="confirm_delete_multiple">Usunąć %1$d plików?</string>
+    <string name="multi_delete_summary_success">Usunięto %1$d z %2$d plików</string>
+
+    <!-- Multi-Select Common/i18n -->
+    <string name="multi_no_files_selected">Nie wybrano żadnych plików</string>
+    <string name="multi_only_files_delete">W trybie wielokrotnego wyboru można usuwać tylko pliki</string>
+    <string name="multi_only_files_download">W trybie wielokrotnego wyboru można pobierać tylko pliki</string>
+    <string name="preparing_ellipsis">Przygotowywanie…</string>
+    <string name="deleting_ellipsis">Usuwanie…</string>
+    <string name="download_error_invalid_destination">Nieprawidłowy folder docelowy</string>
+    <string name="multi_download_summary">Pobrano %1$d z %2$d plików</string>
+    <string name="cancelled_suffix">anulowano</string>
+    <string name="failed_count_suffix">%1$d nieudanych</string>
+    <string name="saf_persist_permission_failed">Nie można zapisać uprawnień do wybranego folderu. Następnym razem możesz zostać ponownie poproszony o dostęp.</string>
+
+    <!-- i18n for operation labels and messages -->
+    <string name="downloading_colon">Pobieranie: %1$s</string>
+    <string name="uploading_colon">Wysyłanie: %1$s</string>
+    <string name="deleting_colon">Usuwanie: %1$s</string>
+    <string name="renaming_colon">Zmiana nazwy: %1$s</string>
+    <string name="finalizing_operation">Kończenie %1$s %2$s…</string>
+    <string name="finalizing_done">Kończenie… gotowe</string>
+    <string name="finalizing_scanning_files">Kończenie… skanowanie plików</string>
+    <string name="download_cancelled_local_copy">Pobieranie anulowane przez użytkownika podczas lokalnego kopiowania</string>
+    <string name="error_copying_file_to_destination">Błąd podczas kopiowania pliku do miejsca docelowego: %1$s</string>
+    <string name="error_copying_folder_to_destination">Błąd podczas kopiowania folderu do miejsca docelowego: %1$s</string>
+    <string name="folder_download_success">Folder został pomyślnie pobrany</string>
+
+    <!-- i18n additions for ViewModel literals -->
+    <string name="invalid_file_or_connection">Nieprawidłowy plik lub połączenie</string>
+    <string name="invalid_folder_or_connection">Nieprawidłowy folder lub połączenie</string>
+    <string name="download_cancelled_by_user">Pobieranie anulowane przez użytkownika</string>
+    <string name="download_failed_with_reason">Pobieranie nie powiodło się: %1$s</string>
+    <string name="failed_to_download_file_with_reason">Nie udało się pobrać pliku: %1$s</string>
+    <string name="upload_cancelled_by_user">Wysyłanie anulowane przez użytkownika</string>
+    <string name="upload_failed_with_reason">Wysyłanie nie powiodło się: %1$s</string>
+    <string name="failed_to_upload_file_with_reason">Nie udało się wysłać pliku: %1$s</string>
+    <string name="error_checking_file_exists">Błąd podczas sprawdzania istnienia pliku: %1$s</string>
+    <string name="delete_failed_with_reason">Usuwanie nie powiodło się: %1$s</string>
+    <string name="failed_to_delete_file_with_reason">Nie udało się usunąć pliku: %1$s</string>
+
+    <!-- Upload/Download staging and interruption i18n -->
+    <string name="preparing_upload_staging_file">Przygotowywanie wysyłania… tymczasowe pliki</string>
+    <string name="staging_failed_with_reason">Etap przygotowania nie powiódł się: %1$s</string>
+    <string name="upload_interrupted_with_name">Wysyłanie przerwane: %1$s</string>
+
+    <!-- Common label for multi-file operations -->
+    <string name="multiple_files">wiele plików</string>
+    <string name="download_error_cannot_open_folder_picker">Nie można otworzyć selektora folderów</string>
+
+    <!-- i18n edge strings for batch operations -->
+    <string name="failed_to_create_target_file">Nie udało się utworzyć pliku docelowego</string>
+    <string name="cannot_create_temp_file">Nie można utworzyć pliku tymczasowego</string>
+    <string name="interrupted_suffix">(przerwano)</string>
 </resources>

@@ -4,14 +4,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.View;
+import android.view.*;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.IntentCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -191,6 +188,23 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
         // Load connection from intent
         loadConnectionFromIntent();
+
+        // Handle system back via OnBackPressedDispatcher (replaces deprecated onBackPressed())
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                LogUtils.d("FileBrowserActivity", "System back pressed (dispatcher)");
+                if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+                    searchViewModel.cancelSearch();
+                    return;
+                }
+                if (fileListController != null && fileListController.navigateUp()) {
+                    return;
+                }
+                // Already at top-level -> finish activity
+                finish();
+            }
+        });
     }
 
     /**
@@ -795,7 +809,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             LogUtils.d("FileBrowserActivity", "Activity opened from Share handoff for upload");
 
             String directoryPath = intent.getStringExtra(EXTRA_DIRECTORY_PATH);
-            java.util.ArrayList<android.net.Uri> uris = intent.getParcelableArrayListExtra(EXTRA_SHARE_URIS);
+            java.util.ArrayList<android.net.Uri> uris = IntentCompat.getParcelableArrayListExtra(intent, EXTRA_SHARE_URIS, android.net.Uri.class);
 
             if (directoryPath != null && !directoryPath.isEmpty()) {
                 fileListViewModel.navigateToPathWithHierarchy(directoryPath);
@@ -886,7 +900,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem multiDownload = menu.findItem(R.id.action_multi_download);
+        /*MenuItem multiDownload = menu.findItem(R.id.action_multi_download);
         MenuItem multiDelete = menu.findItem(R.id.action_multi_delete);
         MenuItem selectAll = menu.findItem(R.id.action_select_all);
         MenuItem clearSel = menu.findItem(R.id.action_clear_selection);
@@ -910,14 +924,15 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         if (clearSel != null) {
             clearSel.setVisible(inSelectionMode);
             clearSel.setEnabled(hasSelection && !opActive);
-        }
+        }*/
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Multi-select actions
-        int id = item.getItemId();
+        /*int id = item.getItemId();
+
         if (id == R.id.action_multi_download) {
             if (selectionCount > 0) {
                 // Delegate to controller
@@ -950,7 +965,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 invalidateOptionsMenu();
             }
             return true;
-        }
+        }*/
         // Handle toolbar navigation
         if (item.getItemId() == android.R.id.home) {
             LogUtils.d("FileBrowserActivity", "Toolbar back button clicked");
@@ -978,21 +993,6 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         return super.dispatchTouchEvent(event);
     }
 
-    @Override
-    public void onBackPressed() {
-        LogUtils.d("FileBrowserActivity", "System back pressed");
-        // If we are in search mode, exit search and return to the search start folder
-        if (searchViewModel != null && searchViewModel.isInSearchMode()) {
-            searchViewModel.cancelSearch();
-            return;
-        }
-        // Try to navigate up within the folder hierarchy first
-        if (fileListController != null && fileListController.navigateUp()) {
-            return; // consumed by navigating up
-        }
-        // Already at top-level -> default behavior (finishes the activity)
-        super.onBackPressed();
-    }
 
     @Override
     protected void onDestroy() {
@@ -1066,6 +1066,19 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     @Override
     public void onFileOperationStarted(String operationType, SmbFileItem file) {
         LogUtils.d("FileBrowserActivity", "File operation started: " + operationType + " on " + (file != null ? file.getName() : "null"));
+        // If a multi-select operation is starting, immediately reset selection UI for clearer UX
+        try {
+            if (fileListController != null && fileListController.isSelectionMode()) {
+                fileListController.clearSelection();
+                fileListController.enableSelectionMode(false);
+            }
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setSubtitle(null);
+            }
+            invalidateOptionsMenu();
+        } catch (Throwable t) {
+            LogUtils.w("FileBrowserActivity", "Failed to reset selection UI on operation start: " + t.getMessage());
+        }
     }
 
     @Override
@@ -1109,8 +1122,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private void setFabBottomMargin(View v, int bottomMarginPx) {
         if (v == null) return;
         android.view.ViewGroup.LayoutParams lp = v.getLayoutParams();
-        if (lp instanceof android.view.ViewGroup.MarginLayoutParams) {
-            android.view.ViewGroup.MarginLayoutParams mlp = (android.view.ViewGroup.MarginLayoutParams) lp;
+        if (lp instanceof android.view.ViewGroup.MarginLayoutParams mlp) {
             if (mlp.bottomMargin != bottomMarginPx) {
                 mlp.bottomMargin = bottomMarginPx;
                 v.setLayoutParams(mlp);

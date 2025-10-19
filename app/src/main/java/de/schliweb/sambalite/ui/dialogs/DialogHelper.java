@@ -75,7 +75,7 @@ public class DialogHelper {
      * @param listener The listener for the positive button click
      */
     public static void showConfirmationDialog(Context context, String title, String message, DialogInterface.OnClickListener listener) {
-        new MaterialAlertDialogBuilder(context).setTitle(title).setMessage(message).setPositiveButton(android.R.string.yes, listener).setNegativeButton(android.R.string.no, null).show();
+        new MaterialAlertDialogBuilder(context).setTitle(title).setMessage(message).setPositiveButton(android.R.string.ok, listener).setNegativeButton(android.R.string.cancel, null).show();
     }
 
     /**
@@ -246,9 +246,9 @@ public class DialogHelper {
     /**
      * Shows a dialog when no target folder is set for sharing.
      *
-     * @param context The context
+     * @param context        The context
      * @param onSelectFolder Callback when user wants to select a folder
-     * @param onCancel Callback when user cancels
+     * @param onCancel       Callback when user cancels
      */
     public static void showNeedsTargetFolderDialog(Context context, Runnable onSelectFolder, Runnable onCancel) {
         LogUtils.d("DialogHelper", "Showing needs target folder dialog");
@@ -264,19 +264,19 @@ public class DialogHelper {
     /**
      * Shows a dialog to confirm uploading shared files.
      *
-     * @param context The context
-     * @param fileCount Number of files to upload
+     * @param context      The context
+     * @param fileCount    Number of files to upload
      * @param targetFolder Target folder path
-     * @param onUpload Callback when user confirms upload
-     * @param onCancel Callback when user cancels
+     * @param onUpload     Callback when user confirms upload
+     * @param onCancel     Callback when user cancels
      */
     public static void showShareUploadConfirmationDialog(Context context, int fileCount, String targetFolder,
-                                                        Runnable onUpload, Runnable onCancel) {
+                                                         Runnable onUpload, Runnable onCancel) {
         LogUtils.d("DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.share_upload_title)
                 .setMessage(context.getString(R.string.share_upload_message) + " " + fileCount + " " +
-                           context.getString(R.string.items_to) + " " + targetFolder)
+                        context.getString(R.string.items_to) + " " + targetFolder)
                 .setPositiveButton(R.string.share_upload_select, (dialog, which) -> onUpload.run())
                 .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
                 .setCancelable(false)
@@ -286,15 +286,15 @@ public class DialogHelper {
     /**
      * Shows a dialog after successful uploads with option to view uploaded files.
      *
-     * @param context The context
+     * @param context       The context
      * @param uploadedCount Number of successfully uploaded files
-     * @param totalCount Total number of files attempted
-     * @param failedCount Number of failed uploads
-     * @param onViewFiles Callback when user wants to view uploaded files
-     * @param onClose Callback when user wants to close
+     * @param totalCount    Total number of files attempted
+     * @param failedCount   Number of failed uploads
+     * @param onViewFiles   Callback when user wants to view uploaded files
+     * @param onClose       Callback when user wants to close
      */
     public static void showUploadCompleteDialog(Context context, int uploadedCount, int totalCount, int failedCount,
-                                               Runnable onViewFiles, Runnable onClose) {
+                                                Runnable onViewFiles, Runnable onClose) {
         LogUtils.d("DialogHelper", "Showing upload complete dialog");
 
         String message = context.getString(R.string.upload_complete_message, uploadedCount, totalCount);
@@ -314,10 +314,10 @@ public class DialogHelper {
     /**
      * Shows a dialog when a file already exists during upload.
      *
-     * @param context The context
-     * @param fileName Name of the existing file
+     * @param context     The context
+     * @param fileName    Name of the existing file
      * @param onOverwrite Callback when user chooses to overwrite
-     * @param onCancel Callback when user cancels
+     * @param onCancel    Callback when user cancels
      */
     public static void showFileExistsDialog(Context context, String fileName, Runnable onOverwrite, Runnable onCancel) {
         LogUtils.d("DialogHelper", "Showing file exists dialog for: " + fileName);

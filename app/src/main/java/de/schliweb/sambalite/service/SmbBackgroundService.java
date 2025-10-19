@@ -14,6 +14,7 @@ import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
+import lombok.Getter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -90,6 +91,7 @@ public class SmbBackgroundService extends Service {
     private boolean isDownloadOperation = false;
 
     // Temp storage for safe transfers
+    @Getter
     private File tempDir;
 
     private static String initialContentForOp(ProgressFormat.Op op) {
@@ -161,7 +163,7 @@ public class SmbBackgroundService extends Service {
         }
 
         try {
-            stopForeground(true);
+            stopForeground(STOP_FOREGROUND_REMOVE);
         } catch (Throwable t) {
             LogUtils.w(TAG, "stopForeground failed (ignored): " + t.getMessage());
         }
@@ -465,10 +467,6 @@ public class SmbBackgroundService extends Service {
         return Thread.currentThread().isInterrupted();
     }
     // ===== Transfer helpers (temp file handling) =====
-
-    public File getTempDir() {
-        return tempDir;
-    }
 
     public File createTempFile(String originalFileName) throws IOException {
         String extension = "";

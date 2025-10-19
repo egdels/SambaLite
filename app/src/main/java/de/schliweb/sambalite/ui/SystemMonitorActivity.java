@@ -2,15 +2,12 @@ package de.schliweb.sambalite.ui;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.Window;
 import android.widget.TextView;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.WindowCompat;
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -101,8 +98,8 @@ public class SystemMonitorActivity extends AppCompatActivity {
         statusOverview.setTextSize(14);
         statusOverview.setTypeface(android.graphics.Typeface.MONOSPACE);
         // Use theme-aware colors instead of hardcoded ones
-        int textColor = getResources().getColor(android.R.color.primary_text_light, null);
-        int backgroundColor = getResources().getColor(android.R.color.white, null);
+        int textColor = android.graphics.Color.BLACK;
+        int backgroundColor = android.graphics.Color.WHITE;
 
         try {
             // Try to get theme-aware colors
@@ -342,7 +339,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        onBackPressed();
+        getOnBackPressedDispatcher().onBackPressed();
         return true;
     }
 

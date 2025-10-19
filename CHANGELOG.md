@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-10-19
+
+### Added
+- Multi-select for files with batch Download and Delete actions.
+
+### Changed
+- Reused existing progress UI and Cancel flow; hardened dialog lifecycle (reliable open/close on success, error, or cancel).
+- Unified wording and internationalization: replaced hardcoded strings in controllers/viewmodels with resources; consistent labels and summaries.
+- Cleanup of temporary files/folders across success, error, and cancel paths.
+- Selection UX: long-press to enter selection mode, tap toggles items, toolbar shows selected count; contextual FAB icons in multi-select mode (Download, Delete).
+
+### Developer Notes
+- Controller-driven iteration without repository API changes; improved cancel propagation and progress reporting.
+- Key components: FileOperationsController, FileOperationsViewModel, ProgressController, and string resources.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.3.0] - 2025-10-08
 
 ### Added
