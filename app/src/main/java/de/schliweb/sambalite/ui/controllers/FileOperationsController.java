@@ -852,6 +852,10 @@ public class FileOperationsController {
 
                             try {
                                 done.await();
+                                // If user cancelled during this file, stop processing further files.
+                                if (cancelFinalize.get() || operationsViewModel.isDownloadCancelled()) {
+                                    break;
+                                }
                                 if (ok[0]) {
                                     success++;
                                 } else {

@@ -127,6 +127,13 @@ public class FileOperationsViewModel extends ViewModel {
         smbRepository.cancelDownload();
     }
 
+    /**
+     * Returns true if a download has been cancelled in the current session/batch.
+     */
+    public boolean isDownloadCancelled() {
+        return state.isDownloadCancelled();
+    }
+
     public void cancelUpload() {
         LogUtils.d("FileOperationsViewModel", "Upload cancellation requested from UI");
         state.setUploadCancelled(true);
@@ -168,6 +175,13 @@ public class FileOperationsViewModel extends ViewModel {
 
                     final ProgressThrottler throttle = new ProgressThrottler(PROGRESS_THROTTLE_MS);
                     final int[] lastPctBox = {0};
+
+                    // Seed initial progress so the UI can show the file name immediately
+                    String initialStatus = context.getString(de.schliweb.sambalite.R.string.downloading_colon, file.getName());
+                    emitProgress(initialStatus, 0, file.getName());
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onProgress(initialStatus, 0));
+                    }
 
                     smbRepository.downloadFileWithProgress(
                             state.getConnection(),
