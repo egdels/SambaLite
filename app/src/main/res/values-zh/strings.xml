@@ -24,9 +24,8 @@
     <string name="action_select_all">全选</string>
     <string name="action_clear_selection">清除选择</string>
     <string name="clear_selection">清除选择</string>
-    <string name="download_selected">下载所选项</string>
-    <string name="delete_selected">删除所选项</string>
-
+    <string name="download_selected">下载所选</string>
+    <string name="delete_selected">删除所选</string>
 
     <!-- System Monitor -->
     <string name="system_monitor_title">系统监控器</string>
@@ -255,64 +254,63 @@
     <string name="preparing_transfer">请等待</string>
 
     <!-- Security options -->
-    <string name="security_options">安全</string>
-    <string name="require_encryption">要求加密（SMB3）</string>
-    <string name="require_signing">要求签名</string>
+   <string name="security_options">安全</string>
+   <string name="require_encryption">要求加密（SMB3）</string>
+   <string name="require_signing">要求签名</string>
+   <!-- Multi-Select Delete -->
+   <string name="delete_multiple_title">删除文件</string>
+   <string name="confirm_delete_multiple">要删除 %1$d 个文件吗？</string>
+   <string name="multi_delete_summary_success">删除了 %1$d 个文件，共 %2$d 个文件</string>
 
-    <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">删除文件</string>
-    <string name="confirm_delete_multiple">删除 %1$d 个文件？</string>
-    <string name="multi_delete_summary_success">已删除 %2$d 个文件中的 %1$d 个</string>
+  <!-- Multi-Select Common/i18n -->
+  <string name="multi_no_files_selected">未选中文件</string>
+  <string name="multi_only_files_delete">多选下只能删除文件</string>
+  <string name="multi_only_files_download">多选下只能下载文件</string>
+  <string name="preparing_ellipsis">准备中…</string>
+  <string name="deleting_ellipsis">删除中…</string>
+  <string name="download_error_invalid_destination">无效的目标文件夹</string>
+  <string name="multi_download_summary">下载了 %1$d 个文件，共 %2$d 个</string>
+  <string name="cancelled_suffix">已取消</string>
+  <string name="failed_count_suffix">%1$d 个失败</string>
+  <string name="saf_persist_permission_failed">无法保持对所选文件夹的权限。下次可能会再让你授予权限。</string>
 
-    <!-- Multi-Select Common/i18n -->
-    <string name="multi_no_files_selected">未选择任何文件</string>
-    <string name="multi_only_files_delete">多选模式下只能删除文件</string>
-    <string name="multi_only_files_download">多选模式下只能下载文件</string>
-    <string name="preparing_ellipsis">正在准备…</string>
-    <string name="deleting_ellipsis">正在删除…</string>
-    <string name="download_error_invalid_destination">目标文件夹无效</string>
-    <string name="multi_download_summary">已下载 %2$d 个文件中的 %1$d 个</string>
-    <string name="cancelled_suffix">已取消</string>
-    <string name="failed_count_suffix">%1$d 个失败</string>
-    <string name="saf_persist_permission_failed">无法保留所选文件夹的权限。下次可能会再次要求授权。</string>
+<!-- i18n for operation labels and messages-->
+<string name="downloading_colon">正在下载： %1$s</string>
+<string name="uploading_colon">正在上传： %1$s</string>
+<string name="deleting_colon">正在删除：%1$s</string>
+<string name="renaming_colon">正在重命名： %1$s</string>
+<string name="finalizing_operation">正在完成 %1$s %2$s…</string>
+<string name="finalizing_done">正在完成… 完毕</string>
+<string name="finalizing_scanning_files">正在完成… 扫描文件中</string>
+<string name="download_cancelled_local_copy">用户在本地复制期间取消了下载</string>
+<string name="error_copying_file_to_destination">复制文件到目标出错： %1$s</string>
+<string name="error_copying_folder_to_destination">复制文件夹到目标出错：%1$s</string>
+<string name="folder_download_success">成功下载了文件夹</string>
 
-    <!-- i18n for operation labels and messages -->
-    <string name="downloading_colon">正在下载：%1$s</string>
-    <string name="uploading_colon">正在上传：%1$s</string>
-    <string name="deleting_colon">正在删除：%1$s</string>
-    <string name="renaming_colon">正在重命名：%1$s</string>
-    <string name="finalizing_operation">正在完成 %1$s %2$s…</string>
-    <string name="finalizing_done">正在完成… 完成</string>
-    <string name="finalizing_scanning_files">正在完成… 扫描文件</string>
-    <string name="download_cancelled_local_copy">在本地复制过程中用户取消了下载</string>
-    <string name="error_copying_file_to_destination">复制文件到目标位置时出错：%1$s</string>
-    <string name="error_copying_folder_to_destination">复制文件夹到目标位置时出错：%1$s</string>
-    <string name="folder_download_success">文件夹下载成功</string>
+<!-- i18n additions for ViewModel literals -->
+<string name="invalid_file_or_connection">无效的文件或连接</string>
+<string name="invalid_folder_or_connection">无效的文件夹或连接</string>
+<string name="download_cancelled_by_user">用户取消了下载</string>
+<string name="download_failed_with_reason">下载失败：%1$s</string>
+<string name="failed_to_download_file_with_reason">文件下载失败：%1$s</string>
+<string name="upload_cancelled_by_user">用户取消了上传</string>
+<string name="upload_failed_with_reason">上传失败：%1$s</string>
+<string name="failed_to_upload_file_with_reason">文件上传失败：%1$s</string>
+<string name="error_checking_file_exists">检查文件是否存在出错：%1$s</string>
+<string name="delete_failed_with_reason">删除失败：%1$s</string>
+<string name="failed_to_delete_file_with_reason">文件删除失败： %1$s</string>
 
-    <!-- i18n additions for ViewModel literals -->
-    <string name="invalid_file_or_connection">文件或连接无效</string>
-    <string name="invalid_folder_or_connection">文件夹或连接无效</string>
-    <string name="download_cancelled_by_user">下载被用户取消</string>
-    <string name="download_failed_with_reason">下载失败：%1$s</string>
-    <string name="failed_to_download_file_with_reason">文件下载失败：%1$s</string>
-    <string name="upload_cancelled_by_user">上传被用户取消</string>
-    <string name="upload_failed_with_reason">上传失败：%1$s</string>
-    <string name="failed_to_upload_file_with_reason">文件上传失败：%1$s</string>
-    <string name="error_checking_file_exists">检查文件是否存在时出错：%1$s</string>
-    <string name="delete_failed_with_reason">删除失败：%1$s</string>
-    <string name="failed_to_delete_file_with_reason">文件删除失败：%1$s</string>
+<!-- Upload/Download staging and interruption i18n -->
+<string name="preparing_upload_staging_file">正在准备上传… 准备文件中</string>
+<string name="staging_failed_with_reason">准备失败： %1$s</string>
+<string name="upload_interrupted_with_name">上传中断： %1$s</string>
 
-    <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">准备上传… 正在暂存文件</string>
-    <string name="staging_failed_with_reason">暂存失败：%1$s</string>
-    <string name="upload_interrupted_with_name">上传中断：%1$s</string>
+<!-- Common label for multi-file operations -->
+<string name="multiple_files">多文件</string>
+<string name="download_error_cannot_open_folder_picker">无法打开文件选择器</string>
 
-    <!-- Common label for multi-file operations -->
-    <string name="multiple_files">多个文件</string>
-    <string name="download_error_cannot_open_folder_picker">无法打开文件夹选择器</string>
-
-    <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">无法创建目标文件</string>
-    <string name="cannot_create_temp_file">无法创建临时文件</string>
-    <string name="interrupted_suffix">（已中断）</string>
+<!-- i18n edge strings for batch operations -->
+<string name="failed_to_create_target_file">创建目标文件失败</string>
+<string name="cannot_create_temp_file">无法创建临时文件</string>
+<string name="interrupted_suffix">（被中断）</string>
 </resources>
