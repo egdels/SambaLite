@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-01-14
+
+### Changed
+- Improved button visibility in Scan and Connection dialogs for large font settings: buttons now use full-width vertical layout.
+- Increased minimum height of Scan and Connection dialogs (400dp) for better usability on various display configurations.
+- Streamlined welcome screen by removing redundant "Add Connection" button (FAB remains available).
+
+### Fixed
+- Buttons in Network Scan dialog were not visible with certain display and font settings.
+- Buttons in Add/Edit Connection dialog were not visible with large font configurations.
+
+### Developer Notes
+- `dialog_network_scan.xml`: Wrapped in `NestedScrollView` with `fillViewport="true"` and `minHeight="400dp"`; button bar changed to vertical orientation with full-width buttons.
+- `dialog_add_connection.xml`: Added `minHeight="400dp"` and `fillViewport="true"`; added custom vertical button bar with Save/Cancel buttons.
+- `MainActivity.java`: Updated Add and Edit connection dialogs to use custom buttons instead of AlertDialog default buttons.
+- `activity_main.xml`: Removed `welcome_add_button` from welcome card.
+
 ## [1.3.1] - 2025-10-19
 
 ### Added

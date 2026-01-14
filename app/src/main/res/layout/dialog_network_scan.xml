@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="400dp"
+    android:fillViewport="true">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -115,39 +122,39 @@
 
     </LinearLayout>
 
-    <!-- Custom button bar for horizontal layout -->
+    <!-- Custom button bar for vertical layout to support large fonts -->
     <LinearLayout
         android:id="@+id/custom_button_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_marginTop="16dp"
-        android:gravity="end"
         android:visibility="gone">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_cancel"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
+            android:id="@+id/btn_use_server"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:text="@string/cancel" />
+            android:layout_marginBottom="8dp"
+            android:text="@string/ok"
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_scan"
             style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
             android:text="@string/scan_network" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_use_server"
-            android:layout_width="wrap_content"
+            android:id="@+id/btn_cancel"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/ok"
-            android:visibility="gone" />
+            android:text="@string/cancel" />
 
     </LinearLayout>
 
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>

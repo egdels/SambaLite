@@ -199,12 +199,6 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
             LogUtils.w("MainActivity", "FAB not found in layout");
         }
 
-        // Set up welcome card button
-        com.google.android.material.button.MaterialButton welcomeAddButton = findViewById(R.id.welcome_add_button);
-        if (welcomeAddButton != null) {
-            welcomeAddButton.setOnClickListener(v -> showAddConnectionDialog());
-        }
-
         // Get UI elements for empty state management
         View welcomeCard = findViewById(R.id.welcome_card);
         View connectionsHeader = findViewById(R.id.connections_header);
@@ -392,12 +386,12 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
             }
         });
 
-        // Create the dialog
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.add_new_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
-                .setNegativeButton(R.string.cancel, (dialogInterface, which) -> {
-                    LogUtils.d("MainActivity", "Add connection dialog cancelled");
-                    dialogInterface.dismiss();
-                }).create();
+        // Get references to custom buttons
+        Button btnSave = dialogView.findViewById(R.id.btn_save);
+        Button btnCancel = dialogView.findViewById(R.id.btn_cancel);
+
+        // Create the dialog without default buttons (using custom buttons instead)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.add_new_connection).setView(dialogView).create();
 
         // Show the dialog
         dialog.show();
@@ -407,8 +401,14 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
             KeyboardUtils.hideKeyboard(MainActivity.this);
         });
 
-        // Set up the positive button click listener (after dialog is shown to prevent auto-dismiss)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        // Set up the cancel button click listener
+        btnCancel.setOnClickListener(v -> {
+            LogUtils.d("MainActivity", "Add connection dialog cancelled");
+            dialog.dismiss();
+        });
+
+        // Set up the save button click listener
+        btnSave.setOnClickListener(v -> {
             // Validate input
             LogUtils.d("MainActivity", "Validating connection input");
             boolean isValid = true;
@@ -646,12 +646,12 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         if (encryptSwitchEdit != null) encryptSwitchEdit.setChecked(connection.isEncryptData());
         if (signingSwitchEdit != null) signingSwitchEdit.setChecked(connection.isSigningRequired());
 
-        // Create the dialog
-        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.edit_connection).setView(dialogView).setPositiveButton(R.string.save, null) // Set to null initially to prevent auto-dismiss
-                .setNegativeButton(R.string.cancel, (dialogInterface, which) -> {
-                    LogUtils.d("MainActivity", "Edit connection dialog cancelled");
-                    dialogInterface.dismiss();
-                }).create();
+        // Get references to custom buttons
+        Button btnSave = dialogView.findViewById(R.id.btn_save);
+        Button btnCancel = dialogView.findViewById(R.id.btn_cancel);
+
+        // Create the dialog without default buttons (using custom buttons instead)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.edit_connection).setView(dialogView).create();
 
         // Show the dialog
         dialog.show();
@@ -661,8 +661,14 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
             KeyboardUtils.hideKeyboard(MainActivity.this);
         });
 
-        // Set up the positive button click listener (after dialog is shown to prevent auto-dismiss)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        // Set up the cancel button click listener
+        btnCancel.setOnClickListener(v -> {
+            LogUtils.d("MainActivity", "Edit connection dialog cancelled");
+            dialog.dismiss();
+        });
+
+        // Set up the save button click listener
+        btnSave.setOnClickListener(v -> {
             // Validate input
             LogUtils.d("MainActivity", "Validating edited connection input");
             boolean isValid = true;

@@ -1,0 +1,4 @@
+1.3.2
+- UX: Improved button visibility in dialogs for large font settings.
+- UX: Increased dialog height for better usability on various displays.
+- Polish: Streamlined welcome screen layout.
