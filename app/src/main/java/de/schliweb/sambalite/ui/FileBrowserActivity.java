@@ -982,8 +982,32 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             // Already at top-level -> finish to return to connections
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_quit) {
+            handleQuit();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void handleQuit() {
+        if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
+            int count = backgroundSmbManager.getActiveOperationCount();
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.quit_app_confirm_title)
+                    .setMessage(getString(R.string.quit_app_confirm_message, count))
+                    .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        } else {
+            performQuit();
+        }
+    }
+
+    private void performQuit() {
+        if (backgroundSmbManager != null) {
+            backgroundSmbManager.requestStopService();
+        }
+        finishAffinity();
     }
 
     @Override
