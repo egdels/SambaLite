@@ -9,4 +9,10 @@
         app:showAsAction="ifRoom"
         android:contentDescription="@string/content_desc_refresh_system_info" />
 
+    <item
+        android:id="@+id/action_quit"
+        android:title="@string/quit_app"
+        android:icon="@android:drawable/ic_lock_power_off"
+        app:showAsAction="ifRoom" />
+
 </menu>
