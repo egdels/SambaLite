@@ -6,7 +6,7 @@
 
     <!-- Welcome Screen -->
     <string name="welcome_title">Welkom bij SambaLite</string>
-    <string name="welcome_subtitle">Verbind eenvoudig en veilig met je SMB/CIFS-shares. Tik op de + knop om je eerste verbinding toe te voegen.</string>
+    <string name="welcome_subtitle">Verbind eenvoudig en veilig met je SMB/CIFS-shares.</string>
     <string name="your_connections">Jouw verbindingen</string>
 
     <!-- Content Descriptions for Accessibility -->
@@ -313,4 +313,10 @@
     <string name="failed_to_create_target_file">Kan doelbestand niet maken</string>
     <string name="cannot_create_temp_file">Kan tijdelijk bestand niet maken</string>
     <string name="interrupted_suffix">(onderbroken)</string>
+
+    <!-- Quit App -->
+    <string name="quit_app">Afsluiten</string>
+    <string name="quit_app_confirm_title">Actieve bewerkingen</string>
+    <string name="quit_app_confirm_message">Er lopen nog %1$d bewerkingen. Bij het afsluiten worden deze geannuleerd. Toch afsluiten?</string>
+    <string name="quit_app_confirm_positive">Toch afsluiten</string>
 </resources>

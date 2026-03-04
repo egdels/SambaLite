@@ -6,7 +6,7 @@
 
     <!-- Welcome Screen -->
     <string name="welcome_title">Bienvenue dans SambaLite</string>
-    <string name="welcome_subtitle">Connectez-vous facilement et en toute sécurité à vos partages SMB/CIFS. Appuyez sur le bouton + pour ajouter votre première connexion.</string>
+    <string name="welcome_subtitle">Connectez-vous facilement et en toute sécurité à vos partages SMB/CIFS.</string>
     <string name="your_connections">Vos connexions</string>
 
     <!-- Content Descriptions for Accessibility -->
@@ -314,4 +314,10 @@
     <string name="failed_to_create_target_file">Impossible de créer le fichier de destination</string>
     <string name="cannot_create_temp_file">Impossible de créer le fichier temporaire</string>
     <string name="interrupted_suffix">(interrompu)</string>
+
+    <!-- Quit App -->
+    <string name="quit_app">Quitter</string>
+    <string name="quit_app_confirm_title">Opérations actives</string>
+    <string name="quit_app_confirm_message">Il y a encore %1$d opérations en cours. Quitter les annulera. Voulez-vous quitter quand même ?</string>
+    <string name="quit_app_confirm_positive">Quitter quand même</string>
 </resources>
