@@ -12,6 +12,7 @@ import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -19,6 +20,7 @@ import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import de.schliweb.sambalite.util.SmartErrorHandler;
 
+import javax.inject.Inject;
 import java.util.Locale;
 
 /**
@@ -33,12 +35,18 @@ public class SystemMonitorActivity extends AppCompatActivity {
     private LoadingIndicator loadingIndicator;
     private SmartErrorHandler errorHandler;
 
+    @Inject
+    BackgroundSmbManager backgroundSmbManager;
+
     public static Intent createIntent(Context context) {
         return new Intent(context, SystemMonitorActivity.class);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Inject dependencies
+        ((SambaLiteApp) getApplication()).getAppComponent().inject(this);
+
         super.onCreate(savedInstanceState);
 
         // Initialize loading indicator
@@ -366,8 +374,32 @@ public class SystemMonitorActivity extends AppCompatActivity {
             LogUtils.d(TAG, "Refresh menu item clicked");
             refreshSystemStatus();
             return true;
+        } else if (id == R.id.action_quit) {
+            handleQuit();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void handleQuit() {
+        if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
+            int count = backgroundSmbManager.getActiveOperationCount();
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.quit_app_confirm_title)
+                    .setMessage(getString(R.string.quit_app_confirm_message, count))
+                    .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        } else {
+            performQuit();
+        }
+    }
+
+    private void performQuit() {
+        if (backgroundSmbManager != null) {
+            backgroundSmbManager.requestStopService();
+        }
+        finishAffinity();
     }
 }
