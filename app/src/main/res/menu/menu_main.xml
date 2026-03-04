@@ -44,4 +44,11 @@
         android:icon="@android:drawable/ic_dialog_info"
         app:showAsAction="ifRoom"
         android:orderInCategory="10" />
+
+    <item
+        android:id="@+id/action_quit"
+        android:title="@string/quit_app"
+        android:icon="@android:drawable/ic_lock_power_off"
+        app:showAsAction="ifRoom"
+        android:orderInCategory="100" />
 </menu>
