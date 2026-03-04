@@ -266,6 +266,31 @@ public class BackgroundSmbManager {
         return serviceConnected.get();
     }
 
+    public boolean hasActiveOperations() {
+        SmbBackgroundService svc = service;
+        return svc != null && svc.hasActiveOperations();
+    }
+
+    public int getActiveOperationCount() {
+        SmbBackgroundService svc = service;
+        return svc != null ? svc.getActiveOperationCount() : 0;
+    }
+
+    public void requestStopService() {
+        try {
+            Intent stop = new Intent(appContext, SmbBackgroundService.class)
+                    .setAction(SmbBackgroundService.ACTION_STOP);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                appContext.startForegroundService(stop);
+            } else {
+                appContext.startService(stop);
+            }
+            LogUtils.i(TAG, "Stop request sent to service");
+        } catch (Throwable t) {
+            LogUtils.e(TAG, "Failed to send stop request: " + t.getMessage());
+        }
+    }
+
     public void startOperation(String name) {
         if (serviceConnected.get() && service != null) {
             service.startOperation(name);

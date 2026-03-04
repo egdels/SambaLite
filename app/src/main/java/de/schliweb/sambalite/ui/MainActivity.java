@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.ui.adapters.DiscoveredServerAdapter;
@@ -44,6 +45,9 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
     @Inject
     ViewModelProvider.Factory viewModelFactory;
+
+    @Inject
+    BackgroundSmbManager backgroundSmbManager;
 
     private MainViewModel viewModel;
     private ConnectionAdapter adapter;
@@ -793,7 +797,33 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
             startActivity(intent);
             return true;
         }
+        if (item.getItemId() == R.id.action_quit) {
+            LogUtils.d("MainActivity", "Quit menu item selected");
+            handleQuit();
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void handleQuit() {
+        if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
+            int count = backgroundSmbManager.getActiveOperationCount();
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.quit_app_confirm_title)
+                    .setMessage(getString(R.string.quit_app_confirm_message, count))
+                    .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        } else {
+            performQuit();
+        }
+    }
+
+    private void performQuit() {
+        if (backgroundSmbManager != null) {
+            backgroundSmbManager.requestStopService();
+        }
+        finishAffinity();
     }
 
     /**
@@ -907,6 +937,10 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
                 customUseServerButton.setText(R.string.ok);
             }
         });
+
+        // Prevent accidental dismissal by touching outside the dialog
+        scanDialog.setCanceledOnTouchOutside(false);
+        scanDialog.setCancelable(false);
 
         // Show the dialog
         scanDialog.show();

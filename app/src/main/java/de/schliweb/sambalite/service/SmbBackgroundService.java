@@ -39,6 +39,7 @@ public class SmbBackgroundService extends Service {
 
     // Actions
     public static final String ACTION_CANCEL = "de.schliweb.sambalite.action.CANCEL";
+    public static final String ACTION_STOP = "de.schliweb.sambalite.action.STOP";
 
     // Track running tasks for hard cancel
     private final java.util.concurrent.ConcurrentLinkedQueue<Future<?>> runningFutures = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -522,6 +523,13 @@ public class SmbBackgroundService extends Service {
                 cancelAllOperations("Canceled by user");
                 return START_NOT_STICKY;
             }
+            if (ACTION_STOP.equals(action)) {
+                LogUtils.i(TAG, "Stop requested by user");
+                cancelAllOperations("Stopped by user");
+                stopForeground(STOP_FOREGROUND_REMOVE);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
         }
 
         if (hasActiveOperations()) startWatchdog();
@@ -640,6 +648,14 @@ public class SmbBackgroundService extends Service {
             PendingIntent cancelPI = PendingIntent.getService(
                     this, 1, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             builder.addAction(R.drawable.ic_notification, getString(R.string.cancel), cancelPI);
+        }
+
+        // Show Stop action when idle (no active operations)
+        if (!hasActiveOperations()) {
+            Intent stopIntent = new Intent(this, SmbBackgroundService.class).setAction(ACTION_STOP);
+            PendingIntent stopPI = PendingIntent.getService(
+                    this, 2, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            builder.addAction(R.drawable.ic_notification, getString(R.string.quit_app), stopPI);
         }
         return builder.build();
     }
