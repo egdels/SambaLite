@@ -1,0 +1,6 @@
+1.4.0
+- New: Quit button in toolbar and notification to stop the service and close the app.
+- New: Confirmation dialog when quitting with active transfers.
+- Changed: Streamlined welcome screen text (removed redundant "tap +" hint).
+- Fixed: Network scan dialog no longer dismisses when touching outside.
+

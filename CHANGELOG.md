@@ -5,6 +5,28 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-04
+
+### Added
+- Quit button: Users can now stop the background service and close the app via a power icon in the toolbar or a "Stop" action in the foreground notification.
+- Confirmation dialog when quitting with active operations: Shows the number of running transfers and lets the user choose to cancel them or continue.
+
+### Changed
+- Streamlined welcome screen text: Removed redundant "tap the + button" hint from the welcome subtitle in all 7 languages (EN, DE, ES, FR, NL, PL, ZH). The FAB is self-explanatory.
+
+### Fixed
+- Network scan dialog no longer dismisses when touching outside the dialog, preventing accidental scan resets during scanning or when viewing results.
+- Users must now explicitly use the Cancel button to dismiss the scan dialog, matching expected behavior.
+
+### Developer Notes
+- `SmbBackgroundService`: Added `ACTION_STOP` handling (cancels operations, stops foreground, stops self). Stop action shown in notification when idle.
+- `BackgroundSmbManager`: Exposed `hasActiveOperations()`, `getActiveOperationCount()`, and `requestStopService()`.
+- `MainActivity`: Added `handleQuit()` with `MaterialAlertDialog` for active operations, `performQuit()` with `requestStopService()` + `finishAffinity()`. Quit icon (`ic_lock_power_off`) shown directly in toolbar.
+- `menu_main.xml`: New `action_quit` menu item with `showAsAction="ifRoom"`.
+- `MainActivity.java`: Added `setCanceledOnTouchOutside(false)` and `setCancelable(false)` to the network scan dialog.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.3.2] - 2026-01-14
 
 ### Changed
