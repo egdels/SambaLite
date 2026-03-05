@@ -5,7 +5,7 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] - 2026-03-04
+## [1.4.1] - 2026-03-05
 
 ### Added
 - Quit button: Users can now stop the background service and close the app via a power icon in the toolbar or a "Stop" action in the foreground notification.
@@ -16,14 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Network scan dialog no longer dismisses when touching outside the dialog, preventing accidental scan resets during scanning or when viewing results.
-- Users must now explicitly use the Cancel button to dismiss the scan dialog, matching expected behavior.
+- Add/Edit connection dialogs no longer dismiss when touching outside the dialog, preventing accidental data loss.
+- Users must now explicitly use the Cancel button to dismiss dialogs, matching expected behavior.
+- Quit/Stop button in the foreground notification now works correctly. Previously, the background service was automatically restarted after being stopped.
 
 ### Developer Notes
-- `SmbBackgroundService`: Added `ACTION_STOP` handling (cancels operations, stops foreground, stops self). Stop action shown in notification when idle.
-- `BackgroundSmbManager`: Exposed `hasActiveOperations()`, `getActiveOperationCount()`, and `requestStopService()`.
+- `SmbBackgroundService`: Added `ACTION_STOP` handling (cancels operations, stops foreground, stops self). Stop action shown in notification when idle. Added `stopRequested` flag to prevent service restart after explicit stop.
+- `BackgroundSmbManager`: Exposed `hasActiveOperations()`, `getActiveOperationCount()`, and `requestStopService()`. Added `stopRequested` flag; `onServiceDisconnected` no longer auto-restarts the service when a stop was requested.
 - `MainActivity`: Added `handleQuit()` with `MaterialAlertDialog` for active operations, `performQuit()` with `requestStopService()` + `finishAffinity()`. Quit icon (`ic_lock_power_off`) shown directly in toolbar.
 - `menu_main.xml`: New `action_quit` menu item with `showAsAction="ifRoom"`.
-- `MainActivity.java`: Added `setCanceledOnTouchOutside(false)` and `setCancelable(false)` to the network scan dialog.
+- `MainActivity.java`: Added `setCanceledOnTouchOutside(false)` and `setCancelable(false)` to the network scan, add connection, and edit connection dialogs.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 

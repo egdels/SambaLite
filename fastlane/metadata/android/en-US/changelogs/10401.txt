@@ -1,0 +1,6 @@
+1.4.1
+- New: Quit button to stop the background service via toolbar or notification.
+- Fixed: Network scan dialog no longer dismisses when touching outside.
+- Fixed: Add/Edit connection dialogs no longer dismiss when touching outside.
+- Fixed: Quit/Stop button in notification now works correctly.
+- UX: Users must explicitly use Cancel to dismiss dialogs.
