@@ -397,6 +397,10 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         // Create the dialog without default buttons (using custom buttons instead)
         AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.add_new_connection).setView(dialogView).create();
 
+        // Prevent accidental dismissal by touching outside the dialog
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(false);
+
         // Show the dialog
         dialog.show();
 
@@ -656,6 +660,10 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
 
         // Create the dialog without default buttons (using custom buttons instead)
         AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.edit_connection).setView(dialogView).create();
+
+        // Prevent accidental dismissal by touching outside the dialog
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(false);
 
         // Show the dialog
         dialog.show();
