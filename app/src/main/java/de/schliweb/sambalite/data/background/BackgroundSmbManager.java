@@ -33,6 +33,7 @@ public class BackgroundSmbManager {
 
     private final AtomicBoolean serviceConnected = new AtomicBoolean(false);
     private final AtomicBoolean bindingInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
     private final Queue<Runnable> pendingOps = new ArrayDeque<>();
     private volatile SmbBackgroundService service;
 
@@ -48,6 +49,10 @@ public class BackgroundSmbManager {
             LogUtils.i(TAG, "Service connected");
             SmbBackgroundService.LocalBinder b = (SmbBackgroundService.LocalBinder) binder;
             service = b.getService();
+            // If the service was stopped via notification button, mirror the flag
+            if (service.isStopRequested()) {
+                stopRequested.set(true);
+            }
             serviceConnected.set(true);
             bindingInProgress.set(false);
             drainPendingQueue();
@@ -58,7 +63,12 @@ public class BackgroundSmbManager {
             LogUtils.w(TAG, "Service disconnected");
             serviceConnected.set(false);
             service = null;
-            ensureServiceStartedAndBound();
+            if (!stopRequested.get()) {
+                ensureServiceStartedAndBound();
+            } else {
+                LogUtils.i(TAG, "Service disconnected after stop request — not restarting");
+                bindingInProgress.set(false);
+            }
         }
     };
 
@@ -277,6 +287,7 @@ public class BackgroundSmbManager {
     }
 
     public void requestStopService() {
+        stopRequested.set(true);
         try {
             Intent stop = new Intent(appContext, SmbBackgroundService.class)
                     .setAction(SmbBackgroundService.ACTION_STOP);

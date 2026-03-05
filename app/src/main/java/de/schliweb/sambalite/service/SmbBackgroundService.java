@@ -76,6 +76,8 @@ public class SmbBackgroundService extends Service {
     // State for notification texts/intents
     private volatile String currentOperation = "";
     private volatile boolean isRunning = false;
+    @Getter
+    private volatile boolean stopRequested = false;
     private volatile long lastNotificationUpdate = 0;
     private volatile Runnable pendingNotificationUpdate = null;
 
@@ -525,6 +527,7 @@ public class SmbBackgroundService extends Service {
             }
             if (ACTION_STOP.equals(action)) {
                 LogUtils.i(TAG, "Stop requested by user");
+                stopRequested = true;
                 cancelAllOperations("Stopped by user");
                 stopForeground(STOP_FOREGROUND_REMOVE);
                 stopSelf();
