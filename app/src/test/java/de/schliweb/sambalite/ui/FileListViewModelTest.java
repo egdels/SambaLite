@@ -3,6 +3,7 @@ package de.schliweb.sambalite.ui;
 import android.content.Context;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
@@ -45,6 +46,9 @@ public class FileListViewModelTest {
     @Mock
     private IntelligentCacheManager cacheManager;
 
+    @Mock
+    private BackgroundSmbManager backgroundSmbManager;
+
     private FileListViewModel viewModel;
     private SmbConnection testConnection;
     private List<SmbFileItem> testFiles;
@@ -64,7 +68,7 @@ public class FileListViewModelTest {
         when(state.getCurrentPathString()).thenReturn("");
 
         // Initialize the view model
-        viewModel = new FileListViewModel(smbRepository, context, state);
+        viewModel = new FileListViewModel(smbRepository, context, state, backgroundSmbManager);
 
         // Replace the executor with a direct executor that runs tasks immediately on the same thread
         // This ensures that our mocking of IntelligentCacheManager works correctly

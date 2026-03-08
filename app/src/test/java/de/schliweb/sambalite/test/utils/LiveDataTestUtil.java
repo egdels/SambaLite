@@ -23,6 +23,7 @@ public class LiveDataTestUtil {
      * @throws InterruptedException If the waiting is interrupted.
      * @throws TimeoutException     If the LiveData doesn't emit a value within the timeout period.
      */
+    @SuppressWarnings("unchecked")
     public static <T> T getValue(final LiveData<T> liveData) throws InterruptedException, TimeoutException {
         final Object[] data = new Object[1];
         final CountDownLatch latch = new CountDownLatch(1);

@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import java.util.concurrent.CompletableFuture;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.*;
@@ -34,7 +35,7 @@ import static org.junit.Assert.*;
  * - Memory pressure scenarios
  * - Complex file structures
  */
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class SmbRepositoryAdvancedIntegrityTest {
 
     private final SecureRandom random = new SecureRandom();
@@ -45,6 +46,11 @@ public class SmbRepositoryAdvancedIntegrityTest {
     @Before
     public void setUp() throws IOException {
         BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+        CompletableFuture<Object> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new UnsupportedOperationException("No background service in test"));
+        Mockito.when(mockBackgroundManager.executeBackgroundOperation(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any())
+        ).thenReturn(failedFuture);
         smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
 
         // Test connection setup

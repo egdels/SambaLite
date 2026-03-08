@@ -53,11 +53,20 @@ public class PathProcessingTest {
         // The method should NOT remove "Test" from the path
         assertEquals("The folder name should not be removed from the path", path, result);
 
-        // Test with a known share name
+        // Test with a known share name — set currentShareName via reflection so the method can strip it
+        java.lang.reflect.Field shareField = SmbRepositoryImpl.class.getDeclaredField("currentShareName");
+        shareField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        ThreadLocal<String> currentShareName = (ThreadLocal<String>) shareField.get(smbRepository);
+        currentShareName.set("christian");
+
         String pathWithShare = "christian/Test/ebook shacket gloria komplett 2020.pdf.zip";
         String resultWithShare = (String) getPathWithoutShareMethod.invoke(smbRepository, pathWithShare);
 
         // The method should remove "christian" from the path
         assertEquals("The share name should be removed from the path", "Test/ebook shacket gloria komplett 2020.pdf.zip", resultWithShare);
+
+        // Clean up
+        currentShareName.remove();
     }
 }

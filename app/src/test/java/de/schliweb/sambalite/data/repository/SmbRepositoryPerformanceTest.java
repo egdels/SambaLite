@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import java.util.concurrent.CompletableFuture;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.*;
@@ -22,7 +23,7 @@ import static org.junit.Assert.*;
  * It includes tests for various scenarios such as bulk operations, memory usage,
  * concurrency, and large file handling.
  */
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class SmbRepositoryPerformanceTest {
 
     private final Random random = new Random(42); // Fixed seed for reproducible tests
@@ -33,6 +34,11 @@ public class SmbRepositoryPerformanceTest {
     @Before
     public void setUp() throws IOException {
         BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+        CompletableFuture<Object> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new UnsupportedOperationException("No background service in test"));
+        Mockito.when(mockBackgroundManager.executeBackgroundOperation(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any())
+        ).thenReturn(failedFuture);
         smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
 
         // Test connection setup

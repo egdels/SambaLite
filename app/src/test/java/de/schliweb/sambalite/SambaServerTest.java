@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.util.concurrent.CompletableFuture;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,6 +56,12 @@ public class SambaServerTest {
 
         // Create the repository with mock BackgroundSmbManager
         BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+        // Configure mock to return a failed future (simulates no real service available)
+        CompletableFuture<Object> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new UnsupportedOperationException("No background service in test"));
+        Mockito.when(mockBackgroundManager.executeBackgroundOperation(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any())
+        ).thenReturn(failedFuture);
         smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
     }
 
