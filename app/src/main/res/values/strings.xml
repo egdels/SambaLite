@@ -13,6 +13,7 @@
     <string name="content_desc_connection_status">Connection Status</string>
     <string name="content_desc_more_options">More options</string>
     <string name="content_desc_file_type_icon">File type icon</string>
+    <string name="content_desc_sync_indicator">Sync indicator</string>
     <string name="content_desc_selected">Selected</string>
     <string name="content_desc_share">Share</string>
     <string name="content_desc_refresh_system_info">Refresh system information</string>
@@ -246,6 +247,8 @@
     <string name="share_upload_title">Share items</string>
     <string name="share_upload_message">Share</string>
     <string name="share_upload_select">Select</string>
+    <string name="share_change_folder">Change folder</string>
+    <string name="select_this_folder">Select this folder</string>
     <string name="items_to">items to</string>
     <string name="permission_title_notifications">Enable notifications</string>
     <string name="permission_explain_notifications">SambaLite keeps you informed about file transfer progress even when the app is running in the background. Enable notifications to stay up to date with uploads and downloads.</string>
@@ -313,6 +316,43 @@
     <string name="failed_to_create_target_file">Failed to create target file</string>
     <string name="cannot_create_temp_file">Cannot create temp file</string>
     <string name="interrupted_suffix">(interrupted)</string>
+
+    <!-- Folder Sync -->
+    <string name="sync_folder">Sync Folder</string>
+    <string name="sync_setup_title">Set Up Folder Sync</string>
+    <string name="sync_direction">Sync Direction</string>
+    <string name="sync_direction_local_to_remote">Local → Remote</string>
+    <string name="sync_direction_remote_to_local">Remote → Local</string>
+    <string name="sync_direction_bidirectional">Bidirectional</string>
+    <string name="sync_interval">Sync Interval</string>
+    <string name="sync_interval_15min">Every 15 minutes</string>
+    <string name="sync_interval_30min">Every 30 minutes</string>
+    <string name="sync_interval_1h">Every hour</string>
+    <string name="sync_interval_6h">Every 6 hours</string>
+    <string name="sync_interval_12h">Every 12 hours</string>
+    <string name="sync_interval_24h">Every 24 hours</string>
+    <string name="sync_remote_path">Remote Path</string>
+    <string name="sync_select_local_folder">Select Local Folder</string>
+    <string name="sync_config_saved">Sync configuration saved</string>
+    <string name="sync_config_deleted">Sync configuration deleted</string>
+    <string name="sync_manage_title">Manage Sync Configurations</string>
+    <string name="sync_no_configs">No sync configurations</string>
+    <string name="sync_last_sync">Last sync: %1$s</string>
+    <string name="sync_enabled">Enabled</string>
+    <string name="sync_disabled">Disabled</string>
+    <string name="sync_now">Sync Now</string>
+    <string name="sync_local_folder">Local Folder</string>
+    <string name="sync_no_folder_selected">No folder selected</string>
+    <string name="sync_select_folder_first">Please select a local folder first</string>
+    <string name="sync_never">Never</string>
+    <string name="sync_folder_option">Set Up Sync</string>
+    <string name="sync_folder_already_synced">This folder is already being synced</string>
+    <string name="sync_parent_folder_synced">A parent folder is already being synced. Sub-folders of synced folders cannot be synced separately.</string>
+    <string name="sync_child_folder_synced">A sub-folder of this folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>
+    <string name="sync_edit_option">Edit Sync</string>
+    <string name="sync_remove_option">Remove Sync</string>
+    <string name="sync_config_removed">Sync configuration removed</string>
+    <string name="sync_max_configs_reached">Maximum number of sync configurations (%1$d) reached. Please remove an existing configuration first.</string>
 
     <!-- Quit App -->
     <string name="quit_app">Quit</string>
