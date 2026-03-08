@@ -272,15 +272,33 @@ public class DialogHelper {
      */
     public static void showShareUploadConfirmationDialog(Context context, int fileCount, String targetFolder,
                                                          Runnable onUpload, Runnable onCancel) {
+        showShareUploadConfirmationDialog(context, fileCount, targetFolder, onUpload, null, onCancel);
+    }
+
+    /**
+     * Shows a dialog to confirm uploading shared files with an optional folder change button.
+     *
+     * @param context        The context
+     * @param fileCount      Number of files to upload
+     * @param targetFolder   Target folder path
+     * @param onUpload       Callback when user confirms upload
+     * @param onChangeFolder Callback when user wants to change the target folder (may be null)
+     * @param onCancel       Callback when user cancels
+     */
+    public static void showShareUploadConfirmationDialog(Context context, int fileCount, String targetFolder,
+                                                         Runnable onUpload, Runnable onChangeFolder, Runnable onCancel) {
         LogUtils.d("DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
-        new MaterialAlertDialogBuilder(context)
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.share_upload_title)
                 .setMessage(context.getString(R.string.share_upload_message) + " " + fileCount + " " +
                         context.getString(R.string.items_to) + " " + targetFolder)
                 .setPositiveButton(R.string.share_upload_select, (dialog, which) -> onUpload.run())
                 .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
-                .setCancelable(false)
-                .show();
+                .setCancelable(false);
+        if (onChangeFolder != null) {
+            builder.setNeutralButton(R.string.share_change_folder, (dialog, which) -> onChangeFolder.run());
+        }
+        builder.show();
     }
 
     /**

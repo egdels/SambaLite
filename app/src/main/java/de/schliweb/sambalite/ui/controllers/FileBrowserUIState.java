@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.ui.controllers;
 
 import android.net.Uri;
+import android.widget.TextView;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.MutableLiveData;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -45,6 +46,15 @@ public class FileBrowserUIState {
     private SmbBackgroundService backgroundService;
     @Setter
     private boolean isServiceBound;
+    // Sync state
+    @Setter
+    private TextView syncFolderDisplay;
+    @Setter
+    private Uri syncFolderUri;
+    @Setter
+    private String syncFolderDisplayName;
+    @Setter
+    private String editingSyncConfigId;
     // Dialog state
     @Setter
     private boolean isProgressDialogShowing;
@@ -86,6 +96,10 @@ public class FileBrowserUIState {
         isProgressDialogShowing = false;
         isSearchDialogShowing = false;
         currentOperation = null;
+        syncFolderDisplay = null;
+        syncFolderUri = null;
+        syncFolderDisplayName = null;
+        editingSyncConfigId = null;
         resetProgress();
     }
 }

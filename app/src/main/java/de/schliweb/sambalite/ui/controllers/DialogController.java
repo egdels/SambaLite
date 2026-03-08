@@ -5,11 +5,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
+import android.widget.TextView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.sync.SyncConfig;
+import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.ui.*;
 import de.schliweb.sambalite.ui.controllers.FileOperationsController.FileOperationRequester;
 import de.schliweb.sambalite.ui.dialogs.DialogHelper;
@@ -42,6 +48,12 @@ public class DialogController {
 
     @Setter
     private UploadCallback uploadCallback;
+
+    @Setter
+    private SyncSetupCallback syncSetupCallback;
+
+    @Setter
+    private FolderSyncCallback folderSyncCallback;
 
     /**
      * User feedback provider for showing success, error, and info messages.
@@ -93,7 +105,13 @@ public class DialogController {
 
         String[] options;
         if (file.isDirectory()) {
-            options = new String[]{context.getString(R.string.download), context.getString(R.string.rename), context.getString(R.string.delete)};
+            // Check if this folder already has a sync config
+            boolean hasSyncConfig = folderSyncCallback != null && folderSyncCallback.hasSyncConfig(file);
+            if (hasSyncConfig) {
+                options = new String[]{context.getString(R.string.download), context.getString(R.string.rename), context.getString(R.string.delete), context.getString(R.string.sync_now), context.getString(R.string.sync_edit_option), context.getString(R.string.sync_remove_option)};
+            } else {
+                options = new String[]{context.getString(R.string.download), context.getString(R.string.rename), context.getString(R.string.delete), context.getString(R.string.sync_folder_option)};
+            }
         } else {
             options = new String[]{context.getString(R.string.download), context.getString(R.string.rename), context.getString(R.string.delete)};
         }
@@ -118,6 +136,26 @@ public class DialogController {
                     // The requester will show the confirmation dialog
                     if (fileOperationRequester != null) {
                         fileOperationRequester.requestFileDeletion(file);
+                    }
+                    break;
+                case 3: // Sync now or setup (only for directories)
+                    if (folderSyncCallback != null) {
+                        boolean hasSync = folderSyncCallback.hasSyncConfig(file);
+                        if (hasSync) {
+                            folderSyncCallback.onSyncNowRequested(file);
+                        } else {
+                            folderSyncCallback.onSetupSyncRequested(file);
+                        }
+                    }
+                    break;
+                case 4: // Sync edit (only for directories with sync)
+                    if (folderSyncCallback != null) {
+                        folderSyncCallback.onEditSyncRequested(file);
+                    }
+                    break;
+                case 5: // Sync remove (only for directories with sync)
+                    if (folderSyncCallback != null) {
+                        folderSyncCallback.onRemoveSyncRequested(file);
                     }
                     break;
             }
@@ -355,8 +393,21 @@ public class DialogController {
      * @param onCancel Callback when user cancels upload
      */
     public void showShareUploadConfirmationDialog(int fileCount, String targetFolder, Runnable onUpload, Runnable onCancel) {
+        showShareUploadConfirmationDialog(fileCount, targetFolder, onUpload, null, onCancel);
+    }
+
+    /**
+     * Shows a confirmation dialog before uploading shared files with an optional folder change button.
+     *
+     * @param fileCount      Number of files to upload
+     * @param targetFolder   Target folder for upload
+     * @param onUpload       Callback when user confirms upload
+     * @param onChangeFolder Callback when user wants to change the target folder (may be null)
+     * @param onCancel       Callback when user cancels upload
+     */
+    public void showShareUploadConfirmationDialog(int fileCount, String targetFolder, Runnable onUpload, Runnable onChangeFolder, Runnable onCancel) {
         LogUtils.d("DialogController", "Showing share upload confirmation dialog with custom cancel");
-        DialogHelper.showShareUploadConfirmationDialog(context, fileCount, targetFolder, onUpload, onCancel);
+        DialogHelper.showShareUploadConfirmationDialog(context, fileCount, targetFolder, onUpload, onChangeFolder, onCancel);
     }
 
     /**
@@ -430,5 +481,329 @@ public class DialogController {
          */
         void onFolderContentsUploadRequested();
 
+    }
+
+    /**
+     * Callback interface for folder-level sync operations from the context menu.
+     */
+    public interface FolderSyncCallback {
+        /**
+         * Called when the user wants to set up sync for a folder.
+         */
+        void onSetupSyncRequested(SmbFileItem folder);
+
+        /**
+         * Called when the user wants to sync a folder immediately.
+         */
+        void onSyncNowRequested(SmbFileItem folder);
+
+        /**
+         * Called when the user wants to edit sync for a folder.
+         */
+        void onEditSyncRequested(SmbFileItem folder);
+
+        /**
+         * Called when the user wants to remove sync from a folder.
+         */
+        void onRemoveSyncRequested(SmbFileItem folder);
+
+        /**
+         * Checks if the given folder already has a sync configuration.
+         */
+        boolean hasSyncConfig(SmbFileItem folder);
+    }
+
+    public interface SyncSetupCallback {
+        /**
+         * Called when sync setup is confirmed with the selected parameters.
+         *
+         * @param direction       the sync direction
+         * @param intervalMinutes the sync interval in minutes
+         * @param remotePath      the remote path
+         */
+        void onSyncSetupRequested(SyncDirection direction, int intervalMinutes, String remotePath);
+
+        /**
+         * Called when the user wants to select a local folder for sync.
+         */
+        void onSyncFolderPickRequested();
+    }
+
+    /**
+     * Shows the sync setup dialog.
+     *
+     * @param currentRemotePath the current remote path to pre-fill
+     */
+    public void showSyncSetupDialog(String currentRemotePath) {
+        LogUtils.d("DialogController", "Showing sync setup dialog");
+
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
+
+        RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
+        Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
+        TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
+        TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
+        View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
+
+        // Pre-fill remote path and make it non-editable
+        if (currentRemotePath != null && !currentRemotePath.isEmpty()) {
+            remotePathField.setText(currentRemotePath);
+        }
+        remotePathField.setEnabled(false);
+
+        // Setup interval spinner
+        String[] intervalLabels = {
+                context.getString(R.string.sync_interval_15min),
+                context.getString(R.string.sync_interval_30min),
+                context.getString(R.string.sync_interval_1h),
+                context.getString(R.string.sync_interval_6h),
+                context.getString(R.string.sync_interval_12h),
+                context.getString(R.string.sync_interval_24h)
+        };
+        int[] intervalValues = {15, 30, 60, 360, 720, 1440};
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(context,
+                android.R.layout.simple_spinner_item, intervalLabels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        intervalSpinner.setAdapter(adapter);
+        intervalSpinner.setSelection(2); // Default: Every hour
+
+        // Folder picker button
+        selectFolderButton.setOnClickListener(v -> {
+            if (syncSetupCallback != null) {
+                syncSetupCallback.onSyncFolderPickRequested();
+            }
+        });
+
+        // Store reference to folder display for updating from outside
+        uiState.setSyncFolderDisplay(folderDisplay);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.sync_setup_title)
+                .setView(dialogView)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    // Get direction
+                    SyncDirection direction = SyncDirection.BIDIRECTIONAL;
+                    int checkedId = directionGroup.getCheckedRadioButtonId();
+                    if (checkedId == R.id.radio_local_to_remote) {
+                        direction = SyncDirection.LOCAL_TO_REMOTE;
+                    } else if (checkedId == R.id.radio_remote_to_local) {
+                        direction = SyncDirection.REMOTE_TO_LOCAL;
+                    }
+
+                    // Get interval
+                    int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
+
+                    // Get remote path
+                    String remotePath = remotePathField.getText().toString().trim();
+
+                    if (syncSetupCallback != null) {
+                        syncSetupCallback.onSyncSetupRequested(direction, intervalMinutes, remotePath);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Shows the sync edit dialog with pre-filled values from an existing config.
+     *
+     * @param config the existing sync configuration to edit
+     */
+    public void showSyncEditDialog(SyncConfig config) {
+        LogUtils.d("DialogController", "Showing sync edit dialog for config: " + config.getId());
+
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
+
+        RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
+        Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
+        TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
+        TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
+        View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
+
+        // Pre-fill remote path and make it non-editable in edit mode
+        if (config.getRemotePath() != null && !config.getRemotePath().isEmpty()) {
+            remotePathField.setText(config.getRemotePath());
+        }
+        remotePathField.setEnabled(false);
+
+        // Pre-fill direction
+        switch (config.getDirection()) {
+            case LOCAL_TO_REMOTE:
+                directionGroup.check(R.id.radio_local_to_remote);
+                break;
+            case REMOTE_TO_LOCAL:
+                directionGroup.check(R.id.radio_remote_to_local);
+                break;
+            case BIDIRECTIONAL:
+            default:
+                directionGroup.check(R.id.radio_bidirectional);
+                break;
+        }
+
+        // Setup interval spinner
+        String[] intervalLabels = {
+                context.getString(R.string.sync_interval_15min),
+                context.getString(R.string.sync_interval_30min),
+                context.getString(R.string.sync_interval_1h),
+                context.getString(R.string.sync_interval_6h),
+                context.getString(R.string.sync_interval_12h),
+                context.getString(R.string.sync_interval_24h)
+        };
+        int[] intervalValues = {15, 30, 60, 360, 720, 1440};
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(context,
+                android.R.layout.simple_spinner_item, intervalLabels);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        intervalSpinner.setAdapter(adapter);
+
+        // Pre-select interval
+        int currentInterval = config.getIntervalMinutes();
+        int selectedIndex = 2; // default: 1h
+        for (int i = 0; i < intervalValues.length; i++) {
+            if (intervalValues[i] == currentInterval) {
+                selectedIndex = i;
+                break;
+            }
+        }
+        intervalSpinner.setSelection(selectedIndex);
+
+        // Pre-fill local folder display
+        if (config.getLocalFolderDisplayName() != null && !config.getLocalFolderDisplayName().isEmpty()) {
+            folderDisplay.setText(config.getLocalFolderDisplayName());
+        }
+        if (config.getLocalFolderUri() != null) {
+            uiState.setSyncFolderUri(android.net.Uri.parse(config.getLocalFolderUri()));
+            uiState.setSyncFolderDisplayName(config.getLocalFolderDisplayName());
+        }
+
+        // Folder picker button
+        selectFolderButton.setOnClickListener(v -> {
+            if (syncSetupCallback != null) {
+                syncSetupCallback.onSyncFolderPickRequested();
+            }
+        });
+
+        // Store reference to folder display for updating from outside
+        uiState.setSyncFolderDisplay(folderDisplay);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.sync_edit_option)
+                .setView(dialogView)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    // Get direction
+                    SyncDirection direction = SyncDirection.BIDIRECTIONAL;
+                    int checkedId = directionGroup.getCheckedRadioButtonId();
+                    if (checkedId == R.id.radio_local_to_remote) {
+                        direction = SyncDirection.LOCAL_TO_REMOTE;
+                    } else if (checkedId == R.id.radio_remote_to_local) {
+                        direction = SyncDirection.REMOTE_TO_LOCAL;
+                    }
+
+                    // Get interval
+                    int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
+
+                    // Get remote path
+                    String remotePath = remotePathField.getText().toString().trim();
+
+                    if (syncSetupCallback != null) {
+                        syncSetupCallback.onSyncSetupRequested(direction, intervalMinutes, remotePath);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, (dialog, which) -> {
+                    // Clear editing state so the config is not removed on cancel
+                    uiState.setEditingSyncConfigId(null);
+                    uiState.setSyncFolderUri(null);
+                    uiState.setSyncFolderDisplayName(null);
+                    uiState.setSyncFolderDisplay(null);
+                })
+                .setOnCancelListener(dialog -> {
+                    // Also handle back button / outside tap dismissal
+                    uiState.setEditingSyncConfigId(null);
+                    uiState.setSyncFolderUri(null);
+                    uiState.setSyncFolderDisplayName(null);
+                    uiState.setSyncFolderDisplay(null);
+                })
+                .show();
+    }
+
+    /**
+     * Shows a dialog to manage existing sync configurations.
+     *
+     * @param configs  the list of sync configurations
+     * @param onDelete callback when a config should be deleted
+     * @param onToggle callback when a config should be enabled/disabled
+     * @param onSyncNow callback when immediate sync is requested
+     */
+    public void showManageSyncConfigsDialog(java.util.List<SyncConfig> configs,
+                                            java.util.function.Consumer<String> onDelete,
+                                            java.util.function.BiConsumer<String, Boolean> onToggle,
+                                            Runnable onSyncNow) {
+        LogUtils.d("DialogController", "Showing manage sync configs dialog");
+
+        if (configs.isEmpty()) {
+            new MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.sync_manage_title)
+                    .setMessage(R.string.sync_no_configs)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return;
+        }
+
+        String[] items = new String[configs.size()];
+        for (int i = 0; i < configs.size(); i++) {
+            SyncConfig config = configs.get(i);
+            String status = config.isEnabled()
+                    ? context.getString(R.string.sync_enabled)
+                    : context.getString(R.string.sync_disabled);
+            String lastSync = config.getLastSyncTimestamp() > 0
+                    ? android.text.format.DateFormat.format("yyyy-MM-dd HH:mm", config.getLastSyncTimestamp()).toString()
+                    : context.getString(R.string.sync_never);
+            items[i] = config.getLocalFolderDisplayName() + " → " + config.getRemotePath()
+                    + "\n" + status + " | " + context.getString(R.string.sync_last_sync, lastSync);
+        }
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.sync_manage_title)
+                .setItems(items, (dialog, which) -> {
+                    SyncConfig selected = configs.get(which);
+                    showSyncConfigOptionsDialog(selected, onDelete, onToggle);
+                })
+                .setNeutralButton(R.string.sync_now, (dialog, which) -> {
+                    if (onSyncNow != null) onSyncNow.run();
+                })
+                .setNegativeButton(R.string.close, null)
+                .show();
+    }
+
+    /**
+     * Shows options for a single sync configuration.
+     */
+    private void showSyncConfigOptionsDialog(SyncConfig config,
+                                             java.util.function.Consumer<String> onDelete,
+                                             java.util.function.BiConsumer<String, Boolean> onToggle) {
+        String toggleLabel = config.isEnabled()
+                ? context.getString(R.string.sync_disabled)
+                : context.getString(R.string.sync_enabled);
+        String[] options = {toggleLabel, context.getString(R.string.delete)};
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(config.getLocalFolderDisplayName())
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Toggle
+                            if (onToggle != null) {
+                                onToggle.accept(config.getId(), !config.isEnabled());
+                            }
+                            break;
+                        case 1: // Delete
+                            if (onDelete != null) {
+                                onDelete.accept(config.getId());
+                            }
+                            break;
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 }

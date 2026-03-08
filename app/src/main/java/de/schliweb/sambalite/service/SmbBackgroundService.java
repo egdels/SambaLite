@@ -494,6 +494,7 @@ public class SmbBackgroundService extends Service {
     @Override
     public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
         if (!isRunning) {
+            stopRequested = false;
             try {
                 startForeground(NOTIFICATION_ID, createNotification("SMB Service ready", "Ready for background operations"));
                 isRunning = true;
@@ -528,8 +529,14 @@ public class SmbBackgroundService extends Service {
             if (ACTION_STOP.equals(action)) {
                 LogUtils.i(TAG, "Stop requested by user");
                 stopRequested = true;
-                cancelAllOperations("Stopped by user");
+                isRunning = false;
+                for (Future<?> f : runningFutures) {
+                    try { f.cancel(true); } catch (Throwable ignored) { }
+                }
+                runningFutures.clear();
+                stopWatchdog();
                 stopForeground(STOP_FOREGROUND_REMOVE);
+                notificationManager.cancel(NOTIFICATION_ID);
                 stopSelf();
                 return START_NOT_STICKY;
             }

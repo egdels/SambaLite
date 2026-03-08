@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.SmbRepository;
+import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
 
@@ -22,6 +23,7 @@ public class MainViewModel extends ViewModel {
 
     private final ConnectionRepository connectionRepository;
     private final SmbRepository smbRepository;
+    private final SyncManager syncManager;
     private final Executor executor;
     private final SmartErrorHandler errorHandler;
 
@@ -30,9 +32,10 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
     @Inject
-    public MainViewModel(ConnectionRepository connectionRepository, SmbRepository smbRepository) {
+    public MainViewModel(ConnectionRepository connectionRepository, SmbRepository smbRepository, SyncManager syncManager) {
         this.connectionRepository = connectionRepository;
         this.smbRepository = smbRepository;
+        this.syncManager = syncManager;
         this.executor = Executors.newSingleThreadExecutor();
         this.errorHandler = SmartErrorHandler.getInstance();
 
@@ -120,6 +123,7 @@ public class MainViewModel extends ViewModel {
         executor.execute(() -> {
             try {
                 connectionRepository.deleteConnection(connectionId);
+                syncManager.removeConfigsForConnection(connectionId);
                 LogUtils.i("MainViewModel", "Connection deleted successfully: " + connectionId);
                 loadConnections(); // Reload the list
             } catch (Exception e) {

@@ -28,6 +28,7 @@ public class ActivityResultController {
     private ActivityResultLauncher<Intent> pickFileLauncher;
     private ActivityResultLauncher<Intent> createFolderLauncher;
     private ActivityResultLauncher<Intent> pickFolderLauncher;
+    private ActivityResultLauncher<Intent> syncFolderLauncher;
 
     @Setter
     private FileOperationCallback fileOperationCallback;
@@ -66,6 +67,8 @@ public class ActivityResultController {
 
         pickFolderLauncher = activity.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> handleDocumentResult(result, "pick_folder"));
 
+        syncFolderLauncher = activity.registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> handleDocumentResult(result, "sync_folder"));
+
         LogUtils.d("ActivityResultController", "Activity result launchers initialized");
     }
 
@@ -93,6 +96,9 @@ public class ActivityResultController {
                         break;
                     case "pick_folder":
                         handlePickFolderResult(uri);
+                        break;
+                    case "sync_folder":
+                        handleSyncFolderResult(uri);
                         break;
                 }
             }
@@ -160,6 +166,30 @@ public class ActivityResultController {
         if (fileOperationCallback != null) {
             fileOperationCallback.onFolderUploadResult(uri);
         }
+    }
+
+    /**
+     * Handles the result of picking a folder for sync.
+     *
+     * @param uri The URI of the picked folder
+     */
+    private void handleSyncFolderResult(Uri uri) {
+        inputController.hideKeyboardAndClearFocus();
+
+        if (fileOperationCallback != null) {
+            fileOperationCallback.onSyncFolderSelected(uri);
+        }
+    }
+
+    /**
+     * Initiates folder selection for sync.
+     */
+    public void selectFolderForSync() {
+        LogUtils.d("ActivityResultController", "Selecting folder for sync");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        syncFolderLauncher.launch(intent);
     }
 
     /**
@@ -259,5 +289,12 @@ public class ActivityResultController {
          * @param uri The URI of the folder to upload contents from
          */
         void onFolderUploadResult(Uri uri);
+
+        /**
+         * Called when a folder is selected for sync.
+         *
+         * @param uri The URI of the folder to sync
+         */
+        void onSyncFolderSelected(Uri uri);
     }
 }

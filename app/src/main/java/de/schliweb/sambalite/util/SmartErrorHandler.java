@@ -126,14 +126,14 @@ public class SmartErrorHandler {
      * Sets up default uncaught exception handler.
      */
     public void setupGlobalErrorHandler() {
+        final Thread.UncaughtExceptionHandler previousHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
             recordError(exception, "UncaughtException", ErrorSeverity.CRITICAL);
             LogUtils.e(TAG, "Uncaught exception in thread " + thread.getName() + ": " + exception.getMessage());
 
-            // Call original handler
-            Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
-            if (defaultHandler != null) {
-                defaultHandler.uncaughtException(thread, exception);
+            // Call previous handler
+            if (previousHandler != null) {
+                previousHandler.uncaughtException(thread, exception);
             }
         });
 

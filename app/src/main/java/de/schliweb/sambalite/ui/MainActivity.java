@@ -157,6 +157,11 @@ public class MainActivity extends AppCompatActivity implements ConnectionAdapter
         appComponent.inject(this);
         LogUtils.d("MainActivity", "Dependencies injected");
 
+        // Ensure background service is running (restores foreground notification after quit+reopen)
+        if (backgroundSmbManager != null) {
+            backgroundSmbManager.ensureServiceRunning();
+        }
+
         super.onCreate(savedInstanceState);
 
         // Configure edge-to-edge display with backward-compatible helper

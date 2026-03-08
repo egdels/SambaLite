@@ -471,6 +471,14 @@ public class FileOperationsController {
      * Batch upload multiple URIs within one service operation. Files are processed sequentially.
      */
     public void handleMultipleFileUploads(java.util.List<Uri> uris) {
+        handleMultipleFileUploads(uris, null);
+    }
+
+    /**
+     * Batch upload multiple URIs to a specific target directory.
+     * If {@code targetDirectoryPath} is non-null it overrides the ViewModel's current path.
+     */
+    public void handleMultipleFileUploads(java.util.List<Uri> uris, String targetDirectoryPath) {
         if (uris == null || uris.isEmpty()) return;
         final int total = uris.size();
         final String opTitle = titleFor(OPERATION_UPLOAD, "multiple files");
@@ -499,6 +507,8 @@ public class FileOperationsController {
                                 uiState.setTempFile(tempFile);
                                 cb.updateProgress("Preparing upload… staging file");
                                 FileOperations.copyUriToFile(uri, tempFile, context);
+                                // Clean up source file if it was a temporary shared-text cache file
+                                cleanupSharedTextSourceFile(uri);
                             } catch (Exception ex) {
                                 if (tempFile != null) tempFile.delete();
                                 uiState.setTempFile(null);
@@ -507,7 +517,9 @@ public class FileOperationsController {
                                 continue; // skip to next file
                             }
 
-                            String remotePath = buildRemotePath(fileName);
+                            String remotePath = targetDirectoryPath != null && !targetDirectoryPath.isEmpty()
+                                    ? targetDirectoryPath + "/" + fileName
+                                    : buildRemotePath(fileName);
                             final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
 
                             FileOperationCallbacks.UploadCallback inner = createUploadCallbackWithNotification(null, fileName);
@@ -553,6 +565,26 @@ public class FileOperationsController {
                     return Boolean.TRUE;
                 }
         );
+    }
+
+    /**
+     * Deletes the source file if it resides in the shared_text cache directory
+     * (i.e. it was created by ShareReceiverActivity for a text share).
+     */
+    private void cleanupSharedTextSourceFile(Uri uri) {
+        if (uri == null || !"file".equals(uri.getScheme())) return;
+        try {
+            File sourceFile = new File(uri.getPath());
+            File sharedTextDir = new File(context.getCacheDir(), "shared_text");
+            if (sourceFile.exists() && sourceFile.getParentFile() != null
+                    && sourceFile.getParentFile().equals(sharedTextDir)) {
+                if (sourceFile.delete()) {
+                    LogUtils.d("FileOperationsController", "Deleted shared text cache file: " + sourceFile.getName());
+                }
+            }
+        } catch (Exception e) {
+            LogUtils.w("FileOperationsController", "Failed to clean up shared text source file: " + e.getMessage());
+        }
     }
 
     // --- Multi-select: Batch Delete implementation ---

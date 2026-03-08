@@ -31,6 +31,7 @@ public class FileOperationsViewModel extends ViewModel {
     private final android.content.Context context;
     private final FileBrowserState state;
     private final FileListViewModel fileListViewModel;
+    private final BackgroundSmbManager backgroundSmbManager;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -106,11 +107,13 @@ public class FileOperationsViewModel extends ViewModel {
     public FileOperationsViewModel(SmbRepository smbRepository,
                                    android.content.Context context,
                                    FileBrowserState state,
-                                   FileListViewModel fileListViewModel) {
+                                   FileListViewModel fileListViewModel,
+                                   BackgroundSmbManager backgroundSmbManager) {
         this.smbRepository = smbRepository;
         this.context = context;
         this.state = state;
         this.fileListViewModel = fileListViewModel;
+        this.backgroundSmbManager = backgroundSmbManager;
         this.executor = Executors.newSingleThreadExecutor();
         LogUtils.d("FileOperationsViewModel", "FileOperationsViewModel initialized");
 
@@ -159,6 +162,9 @@ public class FileOperationsViewModel extends ViewModel {
 
         LogUtils.d("FileOperationsViewModel", "Downloading file: " + file.getName() + " to " + localFile.getAbsolutePath());
 
+        backgroundSmbManager.ensureServiceRunning();
+        String dlOpName = "Downloading: " + file.getName();
+        backgroundSmbManager.startOperation(dlOpName);
         incDownload();
         executor.execute(() -> {
             try {
@@ -226,12 +232,14 @@ public class FileOperationsViewModel extends ViewModel {
                 }
 
                 LogUtils.i("FileOperationsViewModel", "File downloaded successfully: " + file.getName());
+                backgroundSmbManager.finishOperation(dlOpName, true);
                 if (callback != null) {
                     String ok = context.getString(de.schliweb.sambalite.R.string.download_success);
                     mainHandler.post(() -> callback.onResult(true, ok));
                 }
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Download failed: " + e.getMessage());
+                backgroundSmbManager.finishOperation(dlOpName, false);
 
                 if (state.isDownloadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Download was cancelled by user");
@@ -265,6 +273,9 @@ public class FileOperationsViewModel extends ViewModel {
 
         LogUtils.d("FileOperationsViewModel", "Downloading folder: " + folder.getName() + " to " + localFolder.getAbsolutePath());
 
+        backgroundSmbManager.ensureServiceRunning();
+        String folderDlOpName = "Downloading folder: " + folder.getName();
+        backgroundSmbManager.startOperation(folderDlOpName);
         incDownload();
         executor.execute(() -> {
             try {
@@ -360,12 +371,14 @@ public class FileOperationsViewModel extends ViewModel {
                 }
 
                 LogUtils.i("FileOperationsViewModel", "Folder downloaded successfully: " + folder.getName());
+                backgroundSmbManager.finishOperation(folderDlOpName, true);
                 if (callback != null) {
                     String ok = context.getString(de.schliweb.sambalite.R.string.folder_download_success);
                     mainHandler.post(() -> callback.onResult(true, ok));
                 }
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Folder download failed: " + e.getMessage());
+                backgroundSmbManager.finishOperation(folderDlOpName, false);
 
                 if (state.isDownloadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Folder download was cancelled by user");
@@ -399,6 +412,7 @@ public class FileOperationsViewModel extends ViewModel {
         }
 
         LogUtils.d("FileOperationsViewModel", "Checking if file exists before uploading: " + remotePath);
+        backgroundSmbManager.ensureServiceRunning();
         state.setLoading(true);
 
         executor.execute(() -> {
@@ -446,6 +460,8 @@ public class FileOperationsViewModel extends ViewModel {
                                String remotePath,
                                FileOperationCallbacks.UploadCallback callback) {
         LogUtils.d("FileOperationsViewModel", "Uploading file: " + localFile.getName() + " to " + remotePath);
+        String uploadOpName = "Uploading: " + localFile.getName();
+        backgroundSmbManager.startOperation(uploadOpName);
         state.setLoading(true);
 
         incUpload();
@@ -481,6 +497,7 @@ public class FileOperationsViewModel extends ViewModel {
 
                 LogUtils.i("FileOperationsViewModel", "File uploaded successfully: " + localFile.getName());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(uploadOpName, true);
                 if (callback != null) {
                     String ok = context.getString(de.schliweb.sambalite.R.string.upload_success);
                     mainHandler.post(() -> callback.onResult(true, ok));
@@ -490,6 +507,7 @@ public class FileOperationsViewModel extends ViewModel {
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Upload failed: " + e.getMessage());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(uploadOpName, false);
 
                 if (state.isUploadCancelled() || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
                     LogUtils.i("FileOperationsViewModel", "Upload was cancelled by user");
@@ -519,6 +537,9 @@ public class FileOperationsViewModel extends ViewModel {
         }
 
         LogUtils.d("FileOperationsViewModel", "Creating folder: " + folderName + " in path: " + state.getCurrentPathString());
+        backgroundSmbManager.ensureServiceRunning();
+        String createOpName = "Creating folder: " + folderName;
+        backgroundSmbManager.startOperation(createOpName);
         state.setLoading(true);
 
         executor.execute(() -> {
@@ -526,6 +547,7 @@ public class FileOperationsViewModel extends ViewModel {
                 smbRepository.createDirectory(state.getConnection(), state.getCurrentPathString(), folderName);
                 LogUtils.i("FileOperationsViewModel", "Folder created successfully: " + folderName);
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(createOpName, true);
                 if (callback != null) mainHandler.post(() -> callback.onResult(true, "Folder created successfully"));
 
                 IntelligentCacheManager.getInstance().invalidateSearchCache(state.getConnection(), state.getCurrentPathString());
@@ -535,6 +557,7 @@ public class FileOperationsViewModel extends ViewModel {
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "Folder creation failed: " + e.getMessage());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(createOpName, false);
                 if (callback != null)
                     mainHandler.post(() -> callback.onResult(false, "Folder creation failed: " + e.getMessage()));
                 state.setErrorMessage("Failed to create folder: " + e.getMessage());
@@ -553,6 +576,9 @@ public class FileOperationsViewModel extends ViewModel {
         }
 
         LogUtils.d("FileOperationsViewModel", "Deleting file: " + file.getName() + " at path: " + file.getPath());
+        backgroundSmbManager.ensureServiceRunning();
+        String deleteOpName = "Deleting: " + file.getName();
+        backgroundSmbManager.startOperation(deleteOpName);
         state.setLoading(true);
 
         executor.execute(() -> {
@@ -560,6 +586,7 @@ public class FileOperationsViewModel extends ViewModel {
                 smbRepository.deleteFile(state.getConnection(), file.getPath());
                 LogUtils.i("FileOperationsViewModel", "File deleted successfully: " + file.getName());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(deleteOpName, true);
                 if (callback != null) {
                     String ok = context.getString(de.schliweb.sambalite.R.string.delete_success);
                     mainHandler.post(() -> callback.onResult(true, ok));
@@ -572,6 +599,7 @@ public class FileOperationsViewModel extends ViewModel {
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "File deletion failed: " + e.getMessage());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(deleteOpName, false);
                 if (callback != null) {
                     String msg = context.getString(de.schliweb.sambalite.R.string.delete_failed_with_reason, e.getMessage());
                     mainHandler.post(() -> callback.onResult(false, msg));
@@ -589,6 +617,9 @@ public class FileOperationsViewModel extends ViewModel {
         }
 
         LogUtils.d("FileOperationsViewModel", "Renaming file: " + file.getName() + " to " + newName);
+        backgroundSmbManager.ensureServiceRunning();
+        String renameOpName = "Renaming: " + file.getName();
+        backgroundSmbManager.startOperation(renameOpName);
         state.setLoading(true);
 
         executor.execute(() -> {
@@ -596,6 +627,7 @@ public class FileOperationsViewModel extends ViewModel {
                 smbRepository.renameFile(state.getConnection(), file.getPath(), newName);
                 LogUtils.i("FileOperationsViewModel", "File renamed successfully: " + file.getName() + " to " + newName);
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(renameOpName, true);
                 if (callback != null) mainHandler.post(() -> callback.onResult(true, "File renamed successfully"));
 
                 String cachePattern = "conn_" + state.getConnection().getId() + "_path_" + state.getCurrentPathString().hashCode();
@@ -613,6 +645,7 @@ public class FileOperationsViewModel extends ViewModel {
             } catch (Exception e) {
                 LogUtils.e("FileOperationsViewModel", "File rename failed: " + e.getMessage());
                 state.setLoading(false);
+                backgroundSmbManager.finishOperation(renameOpName, false);
                 if (callback != null)
                     mainHandler.post(() -> callback.onResult(false, "File rename failed: " + e.getMessage()));
                 state.setErrorMessage("Failed to rename file: " + e.getMessage());
@@ -626,6 +659,9 @@ public class FileOperationsViewModel extends ViewModel {
                                             BackgroundSmbManager.MultiFileProgressCallback serviceProgress) {
         LogUtils.d("FileOperationsViewModel", "Starting folder contents upload from URI (with service bridge): " + localFolderUri);
 
+        backgroundSmbManager.ensureServiceRunning();
+        String folderUploadOpName = "Uploading folder";
+        backgroundSmbManager.startOperation(folderUploadOpName);
         incUpload();
         executor.execute(() -> {
             List<FileUploadTask> uploadTasks = new ArrayList<>();
@@ -723,6 +759,7 @@ public class FileOperationsViewModel extends ViewModel {
                         if (callback != null) callback.onResult(false, finalText);
                     });
                     if (serviceProgress != null) serviceProgress.updateProgress("Upload incomplete");
+                    backgroundSmbManager.finishOperation(folderUploadOpName, false);
                 } else {
                     LogUtils.i("FileOperationsViewModel", "All " + finalTotalFiles + " files uploaded successfully");
 
@@ -744,6 +781,7 @@ public class FileOperationsViewModel extends ViewModel {
                         fileListViewModel.refreshCurrentDirectory();
                     });
                     if (serviceProgress != null) serviceProgress.updateProgress(uiMsg);
+                    backgroundSmbManager.finishOperation(folderUploadOpName, true);
                 }
 
             } catch (Exception e) {
@@ -766,6 +804,7 @@ public class FileOperationsViewModel extends ViewModel {
                     }
                 });
                 if (serviceProgress != null) serviceProgress.updateProgress("Upload failed");
+                backgroundSmbManager.finishOperation(folderUploadOpName, false);
             } finally {
                 decUpload();
             }

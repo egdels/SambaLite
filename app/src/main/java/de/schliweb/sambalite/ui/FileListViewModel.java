@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.util.LogUtils;
 
@@ -25,12 +26,14 @@ public class FileListViewModel extends ViewModel {
     private final Executor executor;
     private final android.content.Context context;
     private final FileBrowserState state;
+    private final BackgroundSmbManager backgroundSmbManager;
 
     @Inject
-    public FileListViewModel(SmbRepository smbRepository, android.content.Context context, FileBrowserState state) {
+    public FileListViewModel(SmbRepository smbRepository, android.content.Context context, FileBrowserState state, BackgroundSmbManager backgroundSmbManager) {
         this.smbRepository = smbRepository;
         this.context = context;
         this.state = state;
+        this.backgroundSmbManager = backgroundSmbManager;
         this.executor = Executors.newSingleThreadExecutor();
         LogUtils.d("FileListViewModel", "FileListViewModel initialized");
     }
@@ -72,10 +75,19 @@ public class FileListViewModel extends ViewModel {
     }
 
     /**
-     * Gets the current path as LiveData.
+     * Gets the current path as LiveData (display path including share name).
      */
     public LiveData<String> getCurrentPath() {
         return state.getCurrentPath();
+    }
+
+    /**
+     * Gets the current internal path (relative to the share root, without share name).
+     *
+     * @return the current path relative to the share root
+     */
+    public String getCurrentPathInternal() {
+        return state.getCurrentPathString();
     }
 
     /**
@@ -285,6 +297,7 @@ public class FileListViewModel extends ViewModel {
             return;
         }
 
+        backgroundSmbManager.ensureServiceRunning();
         String path = state.getCurrentPathString().isEmpty() ? "root" : state.getCurrentPathString();
         LogUtils.d("FileListViewModel", "Loading files from: " + path + ", showLoadingIndicator: " + showLoadingIndicator);
         

@@ -19,6 +19,9 @@ import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.di.AppComponent;
+import de.schliweb.sambalite.sync.SyncConfig;
+import de.schliweb.sambalite.sync.SyncDirection;
+import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
@@ -43,6 +46,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private static final String EXTRA_FROM_DOWNLOAD_NOTIFICATION = "extra_from_download_notification";
     private static final String EXTRA_FROM_SHARE_UPLOAD = "extra_from_share_upload";
     private static final String EXTRA_SHARE_URIS = "extra_share_uris";
+    private static final String EXTRA_FOLDER_PICKER_MODE = "extra_folder_picker_mode";
 
     @Inject
     ViewModelProvider.Factory viewModelFactory;
@@ -52,6 +56,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
 
     @Inject
     BackgroundSmbManager backgroundSmbManager;
+
+    @Inject
+    SyncManager syncManager;
 
     // ViewModels
     private FileListViewModel fileListViewModel;
@@ -83,6 +90,8 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     private com.google.android.material.floatingactionbutton.FloatingActionButton fabDownloadSelected;
     private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fabClearSelection;
     private SmartErrorHandler errorHandler;
+    private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fabSelectFolder;
+    private boolean folderPickerMode = false;
 
     /**
      * Creates an intent to start this activity.
@@ -94,6 +103,21 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     public static Intent createIntent(Context context, String connectionId) {
         Intent intent = new Intent(context, FileBrowserActivity.class);
         intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
+        return intent;
+    }
+
+    /**
+     * Creates an intent to start this activity in folder picker mode.
+     * In this mode, a "Select this folder" button is shown and regular FABs are hidden.
+     *
+     * @param context      The context to use
+     * @param connectionId The ID of the connection to browse
+     * @return The intent to start this activity in folder picker mode
+     */
+    public static Intent createFolderPickerIntent(Context context, String connectionId) {
+        Intent intent = new Intent(context, FileBrowserActivity.class);
+        intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
+        intent.putExtra(EXTRA_FOLDER_PICKER_MODE, true);
         return intent;
     }
 
@@ -189,6 +213,12 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         // Load connection from intent
         loadConnectionFromIntent();
 
+        // Check for folder picker mode
+        folderPickerMode = getIntent().getBooleanExtra(EXTRA_FOLDER_PICKER_MODE, false);
+        if (folderPickerMode) {
+            setupFolderPickerMode();
+        }
+
         // Handle system back via OnBackPressedDispatcher (replaces deprecated onBackPressed())
         getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
             @Override
@@ -241,6 +271,7 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         fabDeleteSelected = findViewById(R.id.fab_delete_selected);
         fabDownloadSelected = findViewById(R.id.fab_download_selected);
         fabClearSelection = findViewById(R.id.fab_clear_selection);
+        fabSelectFolder = findViewById(R.id.fab_select_folder);
         LogUtils.d("FileBrowserActivity", "UI components initialized");
     }
 
@@ -321,7 +352,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         fileListViewModel.getFiles().observe(this, files -> {
             // Respect multi-select: do not show regular FABs while selection is active
             boolean selectionActive = fileListController != null && fileListController.isSelectionMode() && selectionCount > 0;
-            if (selectionActive) {
+            if (folderPickerMode) {
+                // In folder picker mode, keep regular FABs hidden
+                fab.setVisibility(View.GONE);
+                fabCreateFolder.setVisibility(View.GONE);
+            } else if (selectionActive) {
                 // Keep regular FABs fully gone so they don't take space
                 fab.setVisibility(View.GONE);
                 fabCreateFolder.setVisibility(View.GONE);
@@ -518,6 +553,11 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             public void onFolderUploadResult(Uri uri) {
                 fileOperationsController.handleFolderContentsUpload(uri);
             }
+
+            @Override
+            public void onSyncFolderSelected(Uri uri) {
+                handleSyncFolderSelected(uri);
+            }
         });
 
         // Listen for selection changes to update toolbar actions
@@ -553,6 +593,47 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             }
             // Update menu item visibility/enabled state
             invalidateOptionsMenu();
+        });
+
+        // Set up sync callbacks
+        dialogController.setSyncSetupCallback(new DialogController.SyncSetupCallback() {
+            @Override
+            public void onSyncSetupRequested(SyncDirection direction, int intervalMinutes, String remotePath) {
+                handleSyncSetupConfirmed(direction, intervalMinutes, remotePath);
+            }
+
+            @Override
+            public void onSyncFolderPickRequested() {
+                activityResultController.selectFolderForSync();
+            }
+        });
+
+        // Set up folder sync callback for context menu
+        dialogController.setFolderSyncCallback(new DialogController.FolderSyncCallback() {
+            @Override
+            public void onSetupSyncRequested(SmbFileItem folder) {
+                handleFolderSyncSetup(folder);
+            }
+
+            @Override
+            public void onSyncNowRequested(SmbFileItem folder) {
+                handleSyncNow(folder);
+            }
+
+            @Override
+            public void onEditSyncRequested(SmbFileItem folder) {
+                handleFolderSyncEdit(folder);
+            }
+
+            @Override
+            public void onRemoveSyncRequested(SmbFileItem folder) {
+                handleFolderSyncRemove(folder);
+            }
+
+            @Override
+            public boolean hasSyncConfig(SmbFileItem folder) {
+                return findSyncConfigForFolder(folder) != null;
+            }
         });
 
         LogUtils.d("FileBrowserActivity", "Controller callbacks set up");
@@ -713,6 +794,22 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
      *
      * @param newRemotePath The new remote path
      */
+    /**
+     * Configures the activity for folder picker mode.
+     * Hides regular FABs and shows the "Select this folder" button.
+     */
+    private void setupFolderPickerMode() {
+        LogUtils.d("FileBrowserActivity", "Setting up folder picker mode");
+        fab.setVisibility(View.GONE);
+        fabCreateFolder.setVisibility(View.GONE);
+        fabSelectFolder.setVisibility(View.VISIBLE);
+        fabSelectFolder.setOnClickListener(v -> {
+            // The current folder is already saved in preferences by onRemoteFolderChanged
+            LogUtils.d("FileBrowserActivity", "Folder selected in picker mode, finishing activity");
+            finish();
+        });
+    }
+
     private void onRemoteFolderChanged(String newRemotePath) {
         LogUtils.d("FileBrowserActivity", "Remote folder changed to: " + newRemotePath);
         // Persist both the connection ID and the path to make uploads robust across renames
@@ -723,6 +820,79 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             // Fallback for safety
             PreferenceUtils.setCurrentSmbFolder(this, newRemotePath);
         }
+        // Update sync direction markers for the current folder (use internal path without share name)
+        updateSyncDirections(fileListViewModel.getCurrentPathInternal());
+    }
+
+    /**
+     * Updates the sync direction markers for folders in the current directory.
+     * Checks all SyncConfigs for the current connection and marks folders whose
+     * remotePath starts with or equals the current path.
+     *
+     * @param currentPath The current remote path being browsed
+     */
+    private void updateSyncDirections(String currentPath) {
+        SmbConnection conn = fileListViewModel.getConnection();
+        if (conn == null || fileListController == null) {
+            LogUtils.d("FileBrowserActivity", "updateSyncDirections: conn=" + conn + ", fileListController=" + fileListController + " -> ABORT");
+            return;
+        }
+
+        LogUtils.d("FileBrowserActivity", "updateSyncDirections: currentPath='" + currentPath + "', connectionId='" + conn.getId() + "'");
+
+        java.util.Map<String, SyncDirection> syncDirections = new java.util.HashMap<>();
+        java.util.List<SyncConfig> allConfigs = syncManager.getAllSyncConfigs();
+
+        LogUtils.d("FileBrowserActivity", "updateSyncDirections: total SyncConfigs=" + allConfigs.size());
+
+        for (SyncConfig config : allConfigs) {
+            LogUtils.d("FileBrowserActivity", "updateSyncDirections: checking config: connectionId='" + config.getConnectionId() + "', remotePath='" + config.getRemotePath() + "', enabled=" + config.isEnabled() + ", direction=" + config.getDirection());
+            if (!conn.getId().equals(config.getConnectionId()) || !config.isEnabled()) {
+                LogUtils.d("FileBrowserActivity", "updateSyncDirections: SKIPPED (wrong connection or disabled)");
+                continue;
+            }
+            String remotePath = config.getRemotePath();
+            if (remotePath == null) {
+                continue;
+            }
+            // Normalize remotePath: replace backslashes, strip share name prefix (legacy configs)
+            String normalizedRemotePath = remotePath.replace('\\', '/').trim();
+            if (normalizedRemotePath.endsWith("/")) normalizedRemotePath = normalizedRemotePath.substring(0, normalizedRemotePath.length() - 1);
+            String shareName = conn.getShare();
+            if (shareName != null && !shareName.isEmpty() && normalizedRemotePath.startsWith(shareName + "/")) {
+                normalizedRemotePath = normalizedRemotePath.substring(shareName.length() + 1);
+            }
+            // Normalize: for root path (empty), use empty string so startsWith works correctly
+            String normalizedCurrent = currentPath.isEmpty() ? "" : (currentPath.endsWith("/") ? currentPath : currentPath + "/");
+            LogUtils.d("FileBrowserActivity", "updateSyncDirections: normalizedCurrent='" + normalizedCurrent + "', remotePath='" + normalizedRemotePath + "', startsWith=" + normalizedRemotePath.startsWith(normalizedCurrent));
+            // Check if the sync config's remotePath is a direct child of the current path
+            if (normalizedRemotePath.startsWith(normalizedCurrent)) {
+                // The sync folder is at or below the current directory
+                // Extract the immediate child folder name
+                String remainder = normalizedRemotePath.substring(normalizedCurrent.length());
+                if (remainder.endsWith("/")) {
+                    remainder = remainder.substring(0, remainder.length() - 1);
+                }
+                if (!remainder.isEmpty()) {
+                    // Could be a direct child or deeper nested
+                    String childName = remainder.contains("/") ? remainder.substring(0, remainder.indexOf("/")) : remainder;
+                    // Use just the child name as key, since FileAdapter only sees file names
+                    // Only add if not already present (first config wins)
+                    if (!syncDirections.containsKey(childName)) {
+                        syncDirections.put(childName, config.getDirection());
+                    }
+                }
+                // If remainder is empty, the sync folder IS the current directory (don't mark it)
+            }
+            // Also check exact match (the current folder itself is a sync target)
+            if (normalizedRemotePath.equals(currentPath) || normalizedRemotePath.equals(normalizedCurrent)) {
+                // Mark all items? No — the folder itself is synced, not individual children
+                // We could show a general indicator, but for now we skip this case
+            }
+        }
+
+        LogUtils.d("FileBrowserActivity", "Sync directions updated: " + syncDirections.size() + " marked folders");
+        fileListController.setSyncDirections(syncDirections);
     }
 
     /**
@@ -837,9 +1007,19 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                     }
                 }
 
-                LogUtils.i("FileBrowserActivity", "Starting Share uploads for " + uris.size() + " items to " + directoryPath);
+                // Build the full remote path (share/subdir) for the upload target
+                String uploadTargetPath = null;
+                if (directoryPath != null && !directoryPath.isEmpty() && !"/".equals(directoryPath)) {
+                    SmbConnection conn = fileListViewModel.getConnection();
+                    if (conn != null && conn.getShare() != null && !conn.getShare().isEmpty()) {
+                        uploadTargetPath = conn.getShare() + "/" + directoryPath;
+                    } else {
+                        uploadTargetPath = directoryPath;
+                    }
+                }
+                LogUtils.i("FileBrowserActivity", "Starting Share uploads for " + uris.size() + " items to " + uploadTargetPath);
                 // Batch uploads via controller to ensure sequential processing and consistent progress
-                fileOperationsController.handleMultipleFileUploads(uris);
+                fileOperationsController.handleMultipleFileUploads(uris, uploadTargetPath);
                 // Clear the flag to avoid duplicate starts if onNewIntent/setIntent happens again
                 intent.removeExtra(EXTRA_FROM_SHARE_UPLOAD);
                 setIntent(intent);
@@ -982,11 +1162,222 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             // Already at top-level -> finish to return to connections
             finish();
             return true;
+        } else if (item.getItemId() == R.id.action_system_monitor) {
+            LogUtils.d("FileBrowserActivity", "System Monitor menu item selected");
+            Intent intent = SystemMonitorActivity.createIntent(this);
+            startActivity(intent);
+            return true;
         } else if (item.getItemId() == R.id.action_quit) {
             handleQuit();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Builds the full remote path for a folder item in the current directory.
+     */
+    private String buildFullRemotePath(SmbFileItem folder) {
+        String currentPath = fileListViewModel.getCurrentPathInternal();
+        if (currentPath == null || currentPath.isEmpty()) {
+            return folder.getName();
+        }
+        String normalized = currentPath.endsWith("/") ? currentPath : currentPath + "/";
+        return normalized + folder.getName();
+    }
+
+    /**
+     * Finds the SyncConfig that exactly matches the given folder, or null.
+     */
+    private SyncConfig findSyncConfigForFolder(SmbFileItem folder) {
+        SmbConnection conn = fileListViewModel.getConnection();
+        if (conn == null) return null;
+        String fullPath = buildFullRemotePath(folder);
+        String shareName = conn.getShare();
+        for (SyncConfig config : syncManager.getAllSyncConfigs()) {
+            if (!conn.getId().equals(config.getConnectionId())) continue;
+            String remotePath = config.getRemotePath();
+            if (remotePath == null) continue;
+            // Normalize: remove trailing slash and replace backslashes
+            String normalizedRemote = remotePath.replace('\\', '/').trim();
+            if (normalizedRemote.endsWith("/")) normalizedRemote = normalizedRemote.substring(0, normalizedRemote.length() - 1);
+            // Strip share name prefix if present (legacy configs may include it)
+            if (shareName != null && !shareName.isEmpty() && normalizedRemote.startsWith(shareName + "/")) {
+                normalizedRemote = normalizedRemote.substring(shareName.length() + 1);
+            }
+            if (normalizedRemote.equals(fullPath)) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Handles setting up sync for a folder from the context menu.
+     * Checks for collisions (parent or child already synced) before showing the setup dialog.
+     */
+    private void handleFolderSyncSetup(SmbFileItem folder) {
+        SmbConnection conn = fileListViewModel.getConnection();
+        if (conn == null) return;
+
+        String fullPath = buildFullRemotePath(folder);
+        String fullPathWithSlash = fullPath + "/";
+
+        String shareName = conn.getShare();
+        for (SyncConfig config : syncManager.getAllSyncConfigs()) {
+            if (!conn.getId().equals(config.getConnectionId()) || !config.isEnabled()) continue;
+            String remotePath = config.getRemotePath();
+            if (remotePath == null) continue;
+            // Normalize: replace backslashes, strip share name prefix (legacy configs)
+            String normalizedRemote = remotePath.replace('\\', '/').trim();
+            if (normalizedRemote.endsWith("/")) normalizedRemote = normalizedRemote.substring(0, normalizedRemote.length() - 1);
+            if (shareName != null && !shareName.isEmpty() && normalizedRemote.startsWith(shareName + "/")) {
+                normalizedRemote = normalizedRemote.substring(shareName.length() + 1);
+            }
+            normalizedRemote = normalizedRemote + "/";
+            String normalizedFull = fullPathWithSlash;
+
+            // Check exact match
+            if (normalizedRemote.equals(normalizedFull)) {
+                progressController.showError(getString(R.string.sync_folder_already_synced), null);
+                return;
+            }
+            // Check if a parent folder is already synced (remotePath is prefix of fullPath)
+            if (normalizedFull.startsWith(normalizedRemote)) {
+                progressController.showError(getString(R.string.sync_parent_folder_synced), null);
+                return;
+            }
+            // Check if a child folder is already synced (fullPath is prefix of remotePath)
+            if (normalizedRemote.startsWith(normalizedFull)) {
+                progressController.showError(getString(R.string.sync_child_folder_synced), null);
+                return;
+            }
+        }
+
+        // No collision — show the sync setup dialog with the folder's full path
+        dialogController.showSyncSetupDialog(fullPath);
+    }
+
+    /**
+     * Handles editing sync for a folder via the context menu.
+     * Finds the existing config, removes it, and opens the setup dialog pre-filled with old values.
+     */
+    private void handleFolderSyncEdit(SmbFileItem folder) {
+        SyncConfig config = findSyncConfigForFolder(folder);
+        if (config == null) return;
+
+        // Store the config ID so we can remove it only when the user confirms
+        uiState.setEditingSyncConfigId(config.getId());
+
+        // Show edit dialog with pre-filled values
+        dialogController.showSyncEditDialog(config);
+    }
+
+    /**
+     * Handles triggering an immediate sync for a folder via the context menu.
+     */
+    private void handleSyncNow(SmbFileItem folder) {
+        LogUtils.d("FileBrowserActivity", "Sync now requested for folder: " + folder.getName());
+        SyncConfig config = findSyncConfigForFolder(folder);
+        if (config != null) {
+            syncManager.triggerImmediateSync(config.getId());
+            progressController.showSuccess(getString(R.string.sync_now));
+        } else {
+            LogUtils.w("FileBrowserActivity", "No sync config found for folder: " + folder.getName());
+            progressController.showError(getString(R.string.sync_config_removed), null);
+        }
+    }
+
+    /**
+     * Handles removing sync from a folder via the context menu.
+     */
+    private void handleFolderSyncRemove(SmbFileItem folder) {
+        SyncConfig config = findSyncConfigForFolder(folder);
+        if (config != null) {
+            syncManager.removeSyncConfig(config.getId());
+            progressController.showSuccess(getString(R.string.sync_config_removed));
+            String currentPath = fileListViewModel.getCurrentPathInternal();
+            if (currentPath != null) {
+                updateSyncDirections(currentPath);
+            }
+        }
+    }
+
+    /**
+     * Handles the sync setup confirmation from the dialog.
+     */
+    private static final int MAX_SYNC_CONFIGS = 5;
+
+    private void handleSyncSetupConfirmed(SyncDirection direction, int intervalMinutes, String remotePath) {
+        Uri folderUri = uiState.getSyncFolderUri();
+        if (folderUri == null) {
+            progressController.showError(getString(R.string.sync_select_folder_first), null);
+            return;
+        }
+
+        // Check max sync configs limit (only for new configs, not edits)
+        if (uiState.getEditingSyncConfigId() == null
+                && syncManager.getAllSyncConfigs().size() >= MAX_SYNC_CONFIGS) {
+            progressController.showError(getString(R.string.sync_max_configs_reached, MAX_SYNC_CONFIGS), null);
+            return;
+        }
+
+        SmbConnection connection = fileListViewModel.getConnection();
+        if (connection == null) {
+            LogUtils.e("FileBrowserActivity", "No connection available for sync setup");
+            return;
+        }
+
+        String displayName = uiState.getSyncFolderDisplayName() != null
+                ? uiState.getSyncFolderDisplayName() : folderUri.getLastPathSegment();
+
+        // If editing an existing config, remove the old one before saving the new one
+        String editingConfigId = uiState.getEditingSyncConfigId();
+        if (editingConfigId != null) {
+            syncManager.removeSyncConfig(editingConfigId);
+            uiState.setEditingSyncConfigId(null);
+        }
+
+        syncManager.addSyncConfig(
+                connection.getId(),
+                folderUri,
+                remotePath,
+                displayName,
+                direction,
+                intervalMinutes
+        );
+
+        progressController.showSuccess(getString(R.string.sync_config_saved));
+
+        // Clear sync state
+        uiState.setSyncFolderUri(null);
+        uiState.setSyncFolderDisplayName(null);
+
+        // Refresh sync direction markers
+        String currentPath = fileListViewModel.getCurrentPathInternal();
+        if (currentPath != null) {
+            updateSyncDirections(currentPath);
+        }
+    }
+
+    /**
+     * Handles the folder selection result for sync.
+     */
+    private void handleSyncFolderSelected(Uri uri) {
+        LogUtils.d("FileBrowserActivity", "Sync folder selected: " + uri);
+        uiState.setSyncFolderUri(uri);
+
+        // Get display name from DocumentFile
+        androidx.documentfile.provider.DocumentFile docFile =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(this, uri);
+        String displayName = docFile != null ? docFile.getName() : uri.getLastPathSegment();
+        uiState.setSyncFolderDisplayName(displayName);
+
+        // Update the folder display in the dialog if it's still showing
+        android.widget.TextView folderDisplay = uiState.getSyncFolderDisplay();
+        if (folderDisplay != null) {
+            folderDisplay.setText(displayName);
+        }
     }
 
     private void handleQuit() {

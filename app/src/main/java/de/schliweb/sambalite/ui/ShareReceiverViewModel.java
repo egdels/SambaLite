@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.ui;
 
 import android.content.Context;
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
@@ -12,8 +13,8 @@ public class ShareReceiverViewModel extends FileOperationsViewModel {
     private final FileBrowserState state;
 
     @Inject
-    public ShareReceiverViewModel(SmbRepository smbRepository, Context context, FileBrowserState state, FileListViewModel fileListViewModel) {
-        super(smbRepository, context, state, fileListViewModel);
+    public ShareReceiverViewModel(SmbRepository smbRepository, Context context, FileBrowserState state, FileListViewModel fileListViewModel, BackgroundSmbManager backgroundSmbManager) {
+        super(smbRepository, context, state, fileListViewModel, backgroundSmbManager);
         this.state = state;
     }
 

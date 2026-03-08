@@ -14,6 +14,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
+
+import de.schliweb.sambalite.sync.SyncDirection;
 
 /**
  * Controller for managing the file list display in the FileBrowserActivity.
@@ -269,6 +272,16 @@ public class FileListController implements FileAdapter.OnFileClickListener, File
     public void setDirectoriesFirst(boolean directoriesFirst) {
         LogUtils.d("FileListController", "Setting directories first: " + directoriesFirst);
         viewModel.setDirectoriesFirst(directoriesFirst);
+    }
+
+    /**
+     * Sets the sync direction markers for folders displayed in the file list.
+     *
+     * @param syncDirections Map of folder paths to their SyncDirection
+     */
+    public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
+        LogUtils.d("FileListController", "Setting sync directions: " + (syncDirections != null ? syncDirections.size() : 0) + " entries");
+        adapter.setSyncDirections(syncDirections);
     }
 
     /**

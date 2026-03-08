@@ -73,21 +73,59 @@ public class BackgroundSmbManager {
     };
 
     private void ensureServiceStartedAndBound() {
+        if (stopRequested.get()) {
+            LogUtils.d(TAG, "Resetting stopRequested flag for new service start");
+            stopRequested.set(false);
+        }
         if (!bindingInProgress.compareAndSet(false, true)) return;
 
+        Intent i = new Intent(appContext, SmbBackgroundService.class);
         try {
-            Intent i = new Intent(appContext, SmbBackgroundService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 appContext.startForegroundService(i);
             } else {
                 appContext.startService(i);
             }
+        } catch (Throwable t) {
+            LogUtils.e(TAG, "startForegroundService failed, falling back to bind: " + t.getMessage());
+        }
+        try {
             boolean bound = appContext.bindService(i, conn, Context.BIND_AUTO_CREATE);
             LogUtils.d(TAG, "bindService -> " + bound);
         } catch (Throwable t) {
-            LogUtils.e(TAG, "ensureServiceStartedAndBound failed: " + t.getMessage());
+            LogUtils.e(TAG, "bindService failed: " + t.getMessage());
             bindingInProgress.set(false);
         }
+    }
+
+    /**
+     * Ensures the background service is running and bound.
+     * Call this when the app is (re)opened to restore the foreground notification.
+     * If the service is already bound but was stopped (e.g. via notification stop button),
+     * only a startForegroundService intent is sent to restore the notification without re-binding.
+     */
+    public void ensureServiceRunning() {
+        if (serviceConnected.get() && service != null) {
+            // Service is still bound but may have been stopped via notification.
+            // Send a start intent to restore the foreground notification without re-binding.
+            if (stopRequested.get()) {
+                LogUtils.d(TAG, "Resetting stopRequested flag for service restart (already bound)");
+                stopRequested.set(false);
+            }
+            try {
+                Intent i = new Intent(appContext, SmbBackgroundService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    appContext.startForegroundService(i);
+                } else {
+                    appContext.startService(i);
+                }
+                LogUtils.d(TAG, "Sent start intent to already-bound service to restore notification");
+            } catch (Throwable t) {
+                LogUtils.e(TAG, "Failed to restart already-bound service: " + t.getMessage());
+            }
+            return;
+        }
+        ensureServiceStartedAndBound();
     }
 
     public void shutdown() {
@@ -164,9 +202,9 @@ public class BackgroundSmbManager {
     }
 
     public void requestCancelAllOperations() {
+        Intent cancel = new Intent(appContext, SmbBackgroundService.class)
+                .setAction(SmbBackgroundService.ACTION_CANCEL);
         try {
-            Intent cancel = new Intent(appContext, SmbBackgroundService.class)
-                    .setAction(SmbBackgroundService.ACTION_CANCEL);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 appContext.startForegroundService(cancel);
             } else {
@@ -174,7 +212,12 @@ public class BackgroundSmbManager {
             }
             LogUtils.i(TAG, "Cancel request sent to service");
         } catch (Throwable t) {
-            LogUtils.e(TAG, "Failed to send cancel request: " + t.getMessage());
+            LogUtils.e(TAG, "startForegroundService for cancel failed, falling back to bind: " + t.getMessage());
+            try {
+                appContext.bindService(cancel, conn, Context.BIND_AUTO_CREATE);
+            } catch (Throwable t2) {
+                LogUtils.e(TAG, "bindService for cancel also failed: " + t2.getMessage());
+            }
         }
     }
 
@@ -288,6 +331,18 @@ public class BackgroundSmbManager {
 
     public void requestStopService() {
         stopRequested.set(true);
+        // Unbind first so stopSelf() in the service can actually stop it
+        try {
+            if (serviceConnected.getAndSet(false)) {
+                appContext.unbindService(conn);
+            }
+        } catch (Throwable t) {
+            LogUtils.w(TAG, "unbindService failed (ignored): " + t.getMessage());
+        }
+        service = null;
+        // Reset bindingInProgress so the next ensureServiceStartedAndBound() can proceed.
+        // unbindService() does NOT trigger onServiceDisconnected, so we must reset here.
+        bindingInProgress.set(false);
         try {
             Intent stop = new Intent(appContext, SmbBackgroundService.class)
                     .setAction(SmbBackgroundService.ACTION_STOP);

@@ -9,9 +9,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import javax.inject.Inject;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+
 
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
@@ -42,6 +50,8 @@ public class ShareReceiverActivity extends AppCompatActivity {
     private String targetSmbFolder;
 
     private DialogController dialogController;
+
+    private boolean folderChangeInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +92,17 @@ public class ShareReceiverActivity extends AppCompatActivity {
                 if (uris != null) shareUris.addAll(uris);
             }
 
+            // If no stream URI, check for shared text (e.g. from Notes, Chrome)
+            if (shareUris.isEmpty() && Intent.ACTION_SEND.equals(intent.getAction())) {
+                String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+                if (sharedText != null && !sharedText.isEmpty()) {
+                    Uri textUri = createTempTextFile(sharedText, intent.getStringExtra(Intent.EXTRA_SUBJECT));
+                    if (textUri != null) {
+                        shareUris.add(textUri);
+                    }
+                }
+            }
+
             if (shareUris.isEmpty()) {
                 finish();
                 return;
@@ -103,6 +124,21 @@ public class ShareReceiverActivity extends AppCompatActivity {
         dialogController.showNeedsTargetFolderDialog();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (folderChangeInProgress) {
+            folderChangeInProgress = false;
+            String newFolder = PreferenceUtils.getCurrentSmbFolder(this);
+            LogUtils.d(TAG, "Returned from folder selection, new folder: " + newFolder);
+            if (newFolder != null && !newFolder.isEmpty() && !shareUris.isEmpty()) {
+                showShareDialog(newFolder);
+            } else {
+                showNeedsTargetFolderDialog();
+            }
+        }
+    }
+
     private void showShareDialog(String currentFolder) {
         LogUtils.d(TAG, "Confirming share upload for folder: " + currentFolder);
         dialogController.showShareUploadConfirmationDialog(shareUris.size(), currentFolder, () -> {
@@ -113,7 +149,40 @@ public class ShareReceiverActivity extends AppCompatActivity {
                 DialogHelper.showErrorDialog(this, getString(R.string.upload_failed), e.getMessage());
                 finish();
             }
+        }, () -> {
+            // Show connection selection dialog, then open FileBrowserActivity for folder browsing
+            showConnectionSelectionForFolderChange();
         }, this::finish);
+    }
+
+    private void showConnectionSelectionForFolderChange() {
+        List<SmbConnection> connections = connectionRepository.getAllConnections();
+        if (connections == null || connections.isEmpty()) {
+            DialogHelper.showErrorDialog(this, getString(R.string.share_needs_target_folder_title), "No connections available");
+            return;
+        }
+        if (connections.size() == 1) {
+            // Only one connection, go directly to file browser
+            openFileBrowserForFolderChange(connections.get(0));
+            return;
+        }
+        // Show connection picker
+        String[] names = new String[connections.size()];
+        for (int i = 0; i < connections.size(); i++) {
+            names[i] = connections.get(i).getName();
+        }
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.share_change_folder)
+                .setItems(names, (dialog, which) -> openFileBrowserForFolderChange(connections.get(which)))
+                .setNegativeButton(R.string.cancel, (dialog, which) -> showShareDialog(PreferenceUtils.getCurrentSmbFolder(this)))
+                .setCancelable(false)
+                .show();
+    }
+
+    private void openFileBrowserForFolderChange(SmbConnection connection) {
+        folderChangeInProgress = true;
+        Intent intent = FileBrowserActivity.createFolderPickerIntent(this, connection.getId());
+        startActivity(intent);
     }
 
     private SmbConnection getConnectionFromTargetPath(String smbTargetFolder) {
@@ -194,6 +263,34 @@ public class ShareReceiverActivity extends AppCompatActivity {
             return path.isEmpty() ? "/" : path;
         }
         return "/";
+    }
+
+    private Uri createTempTextFile(String text, String subject) {
+        try {
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+            String baseName = (subject != null && !subject.isEmpty())
+                    ? subject.replaceAll("[^a-zA-Z0-9._-]", "_")
+                    : "shared_text";
+            String fileName = baseName + "_" + timestamp + ".txt";
+
+            File cacheDir = new File(getCacheDir(), "shared_text");
+            if (!cacheDir.exists() && !cacheDir.mkdirs()) {
+                LogUtils.e(TAG, "Failed to create cache directory for shared text");
+                return null;
+            }
+
+            File textFile = new File(cacheDir, fileName);
+            try (OutputStreamWriter writer = new OutputStreamWriter(
+                    new FileOutputStream(textFile), StandardCharsets.UTF_8)) {
+                writer.write(text);
+            }
+
+            LogUtils.d(TAG, "Created temp text file: " + textFile.getAbsolutePath());
+            return Uri.fromFile(textFile);
+        } catch (IOException e) {
+            LogUtils.e(TAG, "Failed to create temp text file: " + e.getMessage());
+            return null;
+        }
     }
 
     private Uri getParcelableExtraCompat(Intent intent, String key) {

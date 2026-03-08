@@ -19,8 +19,12 @@ import de.schliweb.sambalite.util.LogUtils;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import de.schliweb.sambalite.sync.SyncDirection;
 
 /**
  * Adapter for displaying SMB files and directories in a RecyclerView.
@@ -37,6 +41,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     // Selection support (minimal UI highlight via itemView.setActivated)
     private boolean selectionMode = false;
     private java.util.Set<String> selectedPaths = new java.util.HashSet<>();
+
+    // Sync direction markers: maps folder path to its SyncDirection
+    private Map<String, SyncDirection> syncDirections = new HashMap<>();
 
 
     /**
@@ -105,6 +112,16 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
      */
     public void setSelectedPaths(java.util.Set<String> selectedPaths) {
         this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Sets the sync direction markers for folders.
+     *
+     * @param syncDirections Map of folder paths to their SyncDirection
+     */
+    public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
+        this.syncDirections = syncDirections != null ? syncDirections : new HashMap<>();
         notifyDataSetChanged();
     }
 
@@ -242,6 +259,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         private final ImageButton moreOptionsButton;
         private final View selectionIndicator;
         private final MaterialCardView rootCard;
+        private final View syncIndicator;
+        private final ImageView syncIndicatorIcon;
 
         FileViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -252,6 +271,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             moreOptionsButton = itemView.findViewById(R.id.more_options);
             selectionIndicator = itemView.findViewById(R.id.selection_indicator);
             rootCard = (itemView instanceof MaterialCardView) ? (MaterialCardView) itemView : null;
+            syncIndicator = itemView.findViewById(R.id.sync_indicator);
+            syncIndicatorIcon = itemView.findViewById(R.id.sync_indicator_icon);
 
             itemView.setOnClickListener(v -> {
                 int position = getBindingAdapterPosition();
@@ -318,6 +339,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 nameView.setText(R.string.parent_directory);
                 dateView.setText("");
                 sizeView.setText("");
+                if (syncIndicator != null) {
+                    syncIndicator.setVisibility(View.GONE);
+                }
                 return;
             }
 
@@ -353,6 +377,34 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             } else {
                 LogUtils.d("FileAdapter", "No size for directory: " + file.getName());
                 sizeView.setText("");
+            }
+
+            // Show sync direction indicator
+            if (syncIndicator != null && syncIndicatorIcon != null) {
+                String filePath = file.getPath();
+                LogUtils.d("FileAdapter", "Sync check for '" + file.getName() + "': filePath='" + filePath + "', syncDirections.size=" + syncDirections.size() + ", keys=" + syncDirections.keySet());
+                SyncDirection direction = syncDirections.get(filePath);
+                if (direction == null && filePath != null && !filePath.endsWith("/")) {
+                    direction = syncDirections.get(filePath + "/");
+                    LogUtils.d("FileAdapter", "Retry with trailing slash: '" + filePath + "/' -> " + direction);
+                }
+                if (direction != null) {
+                    LogUtils.d("FileAdapter", "MATCH FOUND for '" + filePath + "': direction=" + direction);
+                    syncIndicator.setVisibility(View.VISIBLE);
+                    switch (direction) {
+                        case LOCAL_TO_REMOTE:
+                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_upload);
+                            break;
+                        case REMOTE_TO_LOCAL:
+                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_download);
+                            break;
+                        case BIDIRECTIONAL:
+                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_bidirectional);
+                            break;
+                    }
+                } else {
+                    syncIndicator.setVisibility(View.GONE);
+                }
             }
 
             // Enhanced visual selection highlight for multi-select

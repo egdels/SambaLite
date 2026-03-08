@@ -9,6 +9,8 @@ import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
+import de.schliweb.sambalite.sync.SyncManager;
+import de.schliweb.sambalite.sync.SyncRepository;
 import de.schliweb.sambalite.ui.FileBrowserState;
 import de.schliweb.sambalite.ui.controllers.FileBrowserUIState;
 import de.schliweb.sambalite.util.LogUtils;
@@ -90,5 +92,25 @@ public class AppModule {
     FileBrowserUIState provideFileBrowserUIState() {
         LogUtils.d("AppModule", "Providing FileBrowserUIState");
         return new FileBrowserUIState();
+    }
+
+    /**
+     * Provides the SyncRepository for persisting sync configurations.
+     */
+    @Provides
+    @Singleton
+    SyncRepository provideSyncRepository(Context context) {
+        LogUtils.d("AppModule", "Providing SyncRepository");
+        return new SyncRepository(context);
+    }
+
+    /**
+     * Provides the SyncManager for managing folder synchronization.
+     */
+    @Provides
+    @Singleton
+    SyncManager provideSyncManager(Context context, SyncRepository syncRepository) {
+        LogUtils.d("AppModule", "Providing SyncManager");
+        return new SyncManager(context, syncRepository);
     }
 }
