@@ -2,16 +2,16 @@
 
 plugins {
     // Android
-    id 'com.android.application' version '8.10.1' apply false
-    id 'com.android.library' version '8.10.1' apply false
-    id 'org.jetbrains.kotlin.android' version '2.1.0' apply false
+    id 'com.android.application' version '8.12.0' apply false
+    id 'com.android.library' version '8.12.0' apply false
+    id 'org.jetbrains.kotlin.android' version '2.3.10' apply false
 }
 
 allprojects {
     // Defines the group ID used for all projects
     group = 'de.schliweb.sambalite'
     // F-Droid expects this exact pattern: version = 'x.x.x'
-    version = '1.4.1'
+    version = '1.5.0'
 
     repositories {
         google()
