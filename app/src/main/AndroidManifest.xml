@@ -40,14 +40,13 @@
             android:theme="@style/Theme.SambaLite.NoActionBar"
             android:windowSoftInputMode="adjustResize|stateHidden"
             android:parentActivityName=".ui.MainActivity"
-            android:launchMode="singleTask">
+            android:launchMode="singleTop">
         </activity>
 
         <activity
             android:name=".ui.ShareReceiverActivity"
             android:exported="true"
             android:theme="@style/Theme.SambaLite.Dialog"
-            android:noHistory="true"
             android:excludeFromRecents="true"
             android:windowSoftInputMode="adjustResize|stateHidden">
             <intent-filter>

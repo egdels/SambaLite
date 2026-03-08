@@ -371,6 +371,22 @@
         app:backgroundTint="?attr/colorErrorContainer"
         app:tint="?attr/colorOnErrorContainer" />
 
+    <!-- Folder Picker FAB: only visible in folder picker mode -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_select_folder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="32dp"
+        android:text="@string/select_this_folder"
+        android:contentDescription="@string/select_this_folder"
+        android:visibility="gone"
+        app:icon="@android:drawable/ic_menu_agenda"
+        app:backgroundTint="#3DB7DC"
+        app:iconTint="#FFFFFF"
+        android:textColor="#FFFFFF"
+        app:rippleColor="#693DB7DC" />
+
     <!-- Search FAB - in TopBar integriert über Toolbar Menu -->
     <!-- Sort FAB - in TopBar integriert über Toolbar Menu -->
     <!-- ZIP Transfer - in Haupt-FAB Menü integriert -->

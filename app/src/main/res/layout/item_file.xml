@@ -99,6 +99,28 @@
 
         </LinearLayout>
 
+        <!-- Sync direction indicator (initially hidden) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/sync_indicator"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorTertiary"
+            app:layout_constraintEnd_toEndOf="@id/icon_container"
+            app:layout_constraintBottom_toBottomOf="@id/icon_container"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/sync_indicator_icon"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/content_desc_sync_indicator"
+                app:tint="?attr/colorOnTertiary" />
+
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- More options button -->
         <ImageButton
             android:id="@+id/more_options"
