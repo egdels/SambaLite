@@ -5,25 +5,64 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.1] - 2026-03-05
+## [1.5.0] - 2026-03-07
 
 ### Added
+- Continuous folder synchronization: Automatically sync a local folder with a remote SMB folder in the background using WorkManager.
+- Sync directions: Local → Remote, Remote → Local, or Bidirectional with configurable intervals (15 min to 24 hours).
+- Sync setup dialog accessible from the file browser menu, with folder picker, direction, interval, and remote path configuration.
+- Manage sync configurations dialog: view, enable/disable, and delete sync configs.
+- "Sync Now" button for triggering immediate one-time sync.
+- "Newer Wins" conflict resolution strategy for bidirectional sync.
+- Automatic cleanup of sync configurations when a connection is deleted.
+- Translations for all sync strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+- Share text from other apps: When sharing text (ACTION_SEND with EXTRA_TEXT) from apps like Notes or Chrome, SambaLite now creates a temporary `.txt` file and uploads it to the last opened SMB folder. The filename is derived from EXTRA_SUBJECT (if available) with a timestamp suffix.
+- Automatic cleanup of temporary shared-text files after successful upload staging.
 - Quit button: Users can now stop the background service and close the app via a power icon in the toolbar or a "Stop" action in the foreground notification.
 - Confirmation dialog when quitting with active operations: Shows the number of running transfers and lets the user choose to cancel them or continue.
 
 ### Changed
+- Upgraded to JDK 21 (source/target compatibility, GitHub CI workflows).
+- Updated Android Gradle Plugin from 8.10.1 to 8.12.0 and Gradle from 8.12 to 8.13.
+- Updated dependencies: Kotlin 2.1.0 → 2.3.10, Activity 1.9.2 → 1.12.4, Core-KTX 1.16.0 → 1.17.0, Lifecycle 2.9.4 → 2.10.0, SwipeRefreshLayout 1.1.0 → 1.2.0, Dagger 2.57.2 → 2.59.2, BouncyCastle 1.79 → 1.83, Timber 4.7.1 → 5.0.1, Robolectric 4.16 → 4.16.1, Mockito 5.20.0 → 5.22.0.
+- Raised compileSdk and targetSdk from 35 to 36.
 - Streamlined welcome screen text: Removed redundant "tap the + button" hint from the welcome subtitle in all 7 languages (EN, DE, ES, FR, NL, PL, ZH). The FAB is self-explanatory.
 
 ### Fixed
+- Fixed System Monitor button not working when inside a folder (FileBrowserActivity). The menu handler was missing; tapping the button had no effect outside the main screen.
+- Fixed `BackgroundSmbManager.ensureServiceStartedAndBound()`: `bindService` now executes even when `startForegroundService` fails (fallback behavior).
+- Fixed `BackgroundSmbManager.requestCancelAllOperations()`: Falls back to `bindService` with `ACTION_CANCEL` when `startForegroundService` fails.
+- Fixed `SmartErrorHandler.setupGlobalErrorHandler()`: Resolved recursion bug where the previous `UncaughtExceptionHandler` was queried at runtime instead of being captured before replacement, causing a StackOverflow.
+- Eliminated Mockito dynamic agent loading warning by attaching `byte-buddy-agent` as a `-javaagent` JVM argument.
+- Resolved SLF4J "No providers found" warning by adding `slf4j-simple` test dependency.
+- Suppressed Robolectric SDK 36 warning by pinning tests to SDK 34.
+- Removed deprecated `Notification.priority` usage in tests; replaced with `NotificationChannel.getImportance()`.
+- Suppressed unchecked cast warning in `LiveDataTestUtil`.
 - Network scan dialog no longer dismisses when touching outside the dialog, preventing accidental scan resets during scanning or when viewing results.
 - Add/Edit connection dialogs no longer dismiss when touching outside the dialog, preventing accidental data loss.
 - Users must now explicitly use the Cancel button to dismiss dialogs, matching expected behavior.
 - Quit/Stop button in the foreground notification now works correctly. Previously, the background service was automatically restarted after being stopped.
+- Downloads and uploads after quit and reopen now work correctly. Previously, operations would queue indefinitely because the service binding was not properly restored.
+- Foreground notification ("SMB Service Ready") is now consistently restored whenever any SMB operation is performed (download, upload, rename, delete, create folder, browse files). Previously, the notification would not reappear after being stopped until the app was fully restarted.
+- Foreground notification now shows the current operation status (e.g. "Renaming: folder", "Downloading: file.txt", "Uploading: photo.jpg") during all file operations. Previously, the notification text remained static ("SMB Service Ready") while operations were running.
 
 ### Developer Notes
-- `SmbBackgroundService`: Added `ACTION_STOP` handling (cancels operations, stops foreground, stops self). Stop action shown in notification when idle. Added `stopRequested` flag to prevent service restart after explicit stop.
-- `BackgroundSmbManager`: Exposed `hasActiveOperations()`, `getActiveOperationCount()`, and `requestStopService()`. Added `stopRequested` flag; `onServiceDisconnected` no longer auto-restarts the service when a stop was requested.
-- `MainActivity`: Added `handleQuit()` with `MaterialAlertDialog` for active operations, `performQuit()` with `requestStopService()` + `finishAffinity()`. Quit icon (`ic_lock_power_off`) shown directly in toolbar.
+- New package `sync`: `SyncConfig`, `SyncDirection`, `SyncRepository` (SharedPreferences/JSON), `SyncManager` (WorkManager scheduling), `FolderSyncWorker` (recursive sync logic).
+- DI: `AppModule` provides `SyncRepository` and `SyncManager`; `SyncManager` injected into `FileBrowserActivity` and `MainViewModel`.
+- `MainViewModel.deleteConnection()` now calls `syncManager.removeConfigsForConnection()`.
+- UI: `dialog_sync_setup.xml`, new menu entry `action_sync`, `DialogController` with `SyncSetupCallback`, `ActivityResultController` with sync folder picker.
+- WorkManager: unique periodic work `sambalite_folder_sync`, `NetworkType.CONNECTED` constraint, exponential backoff.
+- Tests: `SyncRepositoryTest` (16 tests), `SyncManagerTest` (14 tests).
+- `ShareReceiverActivity`: Added `createTempTextFile()` for EXTRA_TEXT handling; files stored in `<cache>/shared_text/` with sanitized filenames.
+- `FileOperationsController`: Added `cleanupSharedTextSourceFile()` to delete temp files after staging.
+- Tests: `ShareReceiverActivityTest` (16 tests), `FileOperationsControllerCleanupTest` (4 tests).
+- `robolectric.properties` created with `sdk=34` to avoid SDK 36/Java 21 mismatch warnings.
+- Mockito agent is now attached statically via `doFirst` block in `unitTests.all` (Gradle).
+- `SmbBackgroundService`: Added `ACTION_STOP` handling (cancels operations, stops foreground, stops self). Stop action shown in notification when idle. Added `stopRequested` flag to prevent service restart after explicit stop. `ACTION_STOP` now explicitly cancels all running futures, stops the watchdog, and calls `notificationManager.cancel()` to ensure the notification is removed.
+- `BackgroundSmbManager`: Exposed `hasActiveOperations()`, `getActiveOperationCount()`, and `requestStopService()`. Added `stopRequested` flag; `onServiceDisconnected` no longer auto-restarts the service when a stop was requested. `requestStopService()` now unbinds the service before sending `ACTION_STOP`, so `stopSelf()` can take effect. Added `ensureServiceRunning()` to allow restoring the service after quit and reopen. The `stopRequested` flag is reset when the service is intentionally restarted via `ensureServiceStartedAndBound()`. On reconnect, the manager mirrors the service's `stopRequested` state. `requestStopService()` now also resets `bindingInProgress` to prevent the next `ensureServiceStartedAndBound()` from being blocked (since `unbindService()` does not trigger `onServiceDisconnected`). `ensureServiceRunning()` now handles the case where the service is still bound but was stopped via the notification: it sends a `startForegroundService` intent without re-binding, avoiding `bindingInProgress` deadlock.
+- `FileListViewModel` and `FileOperationsViewModel`: Now receive `BackgroundSmbManager` via dependency injection. All SMB operations (loadFiles, downloadFile, downloadFolder, uploadFile, uploadFolderContents, createFolder, deleteFile, renameFile) call `ensureServiceRunning()` before execution, ensuring the foreground service and notification are always active during operations. All file operations in `FileOperationsViewModel` now call `startOperation()`/`finishOperation()` to update the foreground notification with the current operation status (e.g. "Renaming: folder", "Downloading: file.txt").
+- `ShareReceiverViewModel`: Updated constructor to pass `BackgroundSmbManager` through to parent `FileOperationsViewModel`.
+- `MainActivity`: Added `handleQuit()` with `MaterialAlertDialog` for active operations, `performQuit()` with `requestStopService()` + `finishAffinity()`. Quit icon (`ic_lock_power_off`) shown directly in toolbar. Calls `ensureServiceRunning()` in `onCreate()` to restore the foreground notification after quit and reopen.
 - `menu_main.xml`: New `action_quit` menu item with `showAsAction="ifRoom"`.
 - `MainActivity.java`: Added `setCanceledOnTouchOutside(false)` and `setCancelable(false)` to the network scan, add connection, and edit connection dialogs.
 

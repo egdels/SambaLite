@@ -1,0 +1,5 @@
+1.5.0
+• Folder Sync: Auto-sync local ↔ remote SMB folders (Local→Remote, Remote→Local, Bidirectional). Configurable intervals, "Newer Wins" conflict resolution.
+• Share Text: Share text from other apps directly to your SMB server as .txt files.
+• Quit Button: Cleanly stop the background service.
+• Bug fixes & dependency updates.
