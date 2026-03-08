@@ -5,6 +5,28 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-03-08
+
+### Added
+- Hide hidden files/folders: New "Show hidden files/folders" toggle in the sort dialog. Files and folders starting with a dot (e.g. `.config`, `.cache`) are now hidden by default, reducing clutter when browsing Linux home directories or other locations with many dotfiles.
+- The setting is persisted across app restarts and applies to both normal browsing and search results.
+- Translations for the new option in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Fixed
+- Sync icon was incorrectly shown on parent folders (e.g. "Podcasts") when only a deeper subfolder (e.g. "Podcasts/BundB") was configured for sync. Now only the actual sync-configured folder displays the sync icon.
+- Local folder collision check for sync configurations: Prevents setting up sync on a local folder that is already synced, or is a parent/child of an already-synced folder. Supports Android Content-URIs with encoded path separators (`%2F`). Translations in all 7 languages.
+- Memory leak: `FileBrowserUIState` (Dagger singleton) retained a reference to a destroyed `FileBrowserActivity` via `syncFolderDisplay` (TextView), causing a ~2 MB leak on every activity recreation (e.g. rotation).
+- Navigation state lost on device rotation: Browsing a subfolder and rotating the device would reset the file browser to the root directory, because `FileBrowserState.setConnection()` cleared the current path on every activity restart.
+
+### Developer Notes
+- `PreferencesManager`: New `saveShowHiddenFiles()`/`getShowHiddenFiles()` methods with `show_hidden_files` SharedPreferences key (default: `false`).
+- `FileBrowserState`: New `showHiddenFiles` field and `showHiddenFilesLiveData`, loaded from preferences on initialization.
+- `FileListViewModel`: New `filterHiddenFiles()` method applied after sorting in all `loadFiles` paths (cache, server, force-refresh) and in search results. New `setShowHiddenFiles()` triggers cache invalidation and reload.
+- `DialogController.showSortDialog()`: Wired `show_hidden_files_checkbox` to `FileListViewModel`.
+- `dialog_sort.xml` (portrait + landscape): Added CheckBox for the new option.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.5.0] - 2026-03-07
 
 ### Added

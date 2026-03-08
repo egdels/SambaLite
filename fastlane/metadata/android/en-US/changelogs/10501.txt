@@ -1,0 +1,6 @@
+1.5.1
+• Hide hidden files: Dotfiles now hidden by default. Toggle in sort dialog.
+• Fixed: Sync icon only shown on actual sync folder, not parent folders.
+• Fixed: Local folder collision check prevents overlapping sync configs.
+• Fixed: Memory leak on activity rotation.
+• Fixed: Navigation keeps current folder on device rotation.

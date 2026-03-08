@@ -28,6 +28,7 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 | Modern UI              | ✅     | Material Design with Dark Mode support          |
 | Multiple Connections   | ✅     | Manage multiple shares with custom names        |
 | Security/Privacy       | ✅     | Encrypted credential storage, no telemetry      |
+| Folder Sync            | ✅     | Automatic background sync between device and share ([User Guide](docs/sync_user_guide.md)) |
 
 ## Project Goals
 
