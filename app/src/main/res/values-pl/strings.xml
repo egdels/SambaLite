@@ -124,6 +124,7 @@
     <string name="sort_by_date">Data</string>
     <string name="sort_by_size">Rozmiar</string>
     <string name="directories_first">Katalogi na początku</string>
+    <string name="show_hidden_files">Pokaż ukryte pliki/foldery</string>
 
     <!-- Rename -->
     <string name="rename">Zmień nazwę</string>
@@ -358,4 +359,7 @@
     <string name="sync_remove_option">Usuń synchronizację</string>
     <string name="sync_config_removed">Konfiguracja synchronizacji usunięta</string>
     <string name="sync_max_configs_reached">Osiągnięto maksymalną liczbę konfiguracji synchronizacji (%1$d). Najpierw usuń istniejącą konfigurację.</string>
+    <string name="sync_local_parent_folder_synced">Folder nadrzędny wybranego folderu lokalnego jest już synchronizowany. Podfoldery synchronizowanych folderów nie mogą być synchronizowane osobno.</string>
+    <string name="sync_local_child_folder_synced">Podfolder wybranego folderu lokalnego jest już synchronizowany. Foldery nadrzędne synchronizowanych folderów nie mogą być synchronizowane osobno.</string>
+    <string name="sync_local_folder_already_synced">Wybrany folder lokalny jest już synchronizowany.</string>
 </resources>

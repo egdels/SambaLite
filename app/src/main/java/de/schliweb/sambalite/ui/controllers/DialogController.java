@@ -234,10 +234,12 @@ public class DialogController {
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sort, null);
         RadioGroup sortGroup = dialogView.findViewById(R.id.sort_type_radio_group);
         CheckBox directoriesFirstCheckbox = dialogView.findViewById(R.id.directories_first_checkbox);
+        CheckBox showHiddenFilesCheckbox = dialogView.findViewById(R.id.show_hidden_files_checkbox);
 
         // Set initial values
         FileSortOption currentSortOption = fileListViewModel.getSortOption().getValue();
         boolean directoriesFirst = fileListViewModel.getDirectoriesFirst().getValue();
+        boolean showHiddenFiles = Boolean.TRUE.equals(fileListViewModel.getShowHiddenFiles().getValue());
 
         if (currentSortOption == FileSortOption.NAME) {
             sortGroup.check(R.id.radio_name);
@@ -248,6 +250,7 @@ public class DialogController {
         }
 
         directoriesFirstCheckbox.setChecked(directoriesFirst);
+        showHiddenFilesCheckbox.setChecked(showHiddenFiles);
 
         new MaterialAlertDialogBuilder(context).setTitle(R.string.sort_by).setView(dialogView).setPositiveButton(R.string.ok, (dialog, which) -> {
             // Get selected sort option
@@ -264,6 +267,7 @@ public class DialogController {
             // Apply sort settings
             fileListViewModel.setSortOption(sortOption);
             fileListViewModel.setDirectoriesFirst(directoriesFirstCheckbox.isChecked());
+            fileListViewModel.setShowHiddenFiles(showHiddenFilesCheckbox.isChecked());
         }).setNegativeButton(R.string.cancel, null).show();
     }
 

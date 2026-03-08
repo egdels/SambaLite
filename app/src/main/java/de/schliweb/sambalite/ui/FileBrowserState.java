@@ -32,6 +32,7 @@ public class FileBrowserState {
     // Sorting state
     private final MutableLiveData<FileSortOption> sortOption;
     private final MutableLiveData<Boolean> directoriesFirstLiveData;
+    private final MutableLiveData<Boolean> showHiddenFilesLiveData;
     // Search state
     private final MutableLiveData<List<SmbFileItem>> searchResults = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
@@ -41,6 +42,7 @@ public class FileBrowserState {
     private String currentPath = "";
     private FileSortOption currentSortOption;
     private boolean directoriesFirst;
+    private boolean showHiddenFiles;
     private boolean isSearchMode = false;
     private String currentSearchQuery = "";
     private String searchStartPath = "";
@@ -58,10 +60,12 @@ public class FileBrowserState {
         // Load sorting preferences from PreferencesManager
         this.currentSortOption = preferencesManager.getSortOption();
         this.directoriesFirst = preferencesManager.getDirectoriesFirst();
+        this.showHiddenFiles = preferencesManager.getShowHiddenFiles();
 
         // Initialize LiveData with loaded preferences
         this.sortOption = new MutableLiveData<>(currentSortOption);
         this.directoriesFirstLiveData = new MutableLiveData<>(directoriesFirst);
+        this.showHiddenFilesLiveData = new MutableLiveData<>(showHiddenFiles);
 
         LogUtils.d("FileBrowserState", "Initialized with sort option: " + currentSortOption + ", directoriesFirst: " + directoriesFirst);
     }
@@ -72,6 +76,12 @@ public class FileBrowserState {
      * @param connection The connection to use
      */
     public void setConnection(SmbConnection connection) {
+        // Only reset path when the connection actually changes to preserve navigation state on rotation
+        if (this.connection != null && this.connection.getId().equals(connection.getId())) {
+            LogUtils.d("FileBrowserState", "setConnection: same connection, keeping current path: " + currentPath);
+            this.connection = connection;
+            return;
+        }
         this.connection = connection;
         pathStack.clear();
         currentPath = "";
@@ -229,6 +239,32 @@ public class FileBrowserState {
         // Save to preferences
         preferencesManager.saveDirectoriesFirst(directoriesFirst);
         LogUtils.d("FileBrowserState", "Directories first saved to preferences: " + directoriesFirst);
+    }
+
+    /**
+     * Gets the current "show hidden files" flag as LiveData.
+     */
+    public LiveData<Boolean> getShowHiddenFiles() {
+        return showHiddenFilesLiveData;
+    }
+
+    /**
+     * Gets the current "show hidden files" flag.
+     */
+    public boolean isShowHiddenFiles() {
+        return showHiddenFiles;
+    }
+
+    /**
+     * Sets the "show hidden files" flag and persists it to preferences.
+     */
+    public void setShowHiddenFiles(boolean showHiddenFiles) {
+        this.showHiddenFiles = showHiddenFiles;
+        this.showHiddenFilesLiveData.setValue(showHiddenFiles);
+
+        // Save to preferences
+        preferencesManager.saveShowHiddenFiles(showHiddenFiles);
+        LogUtils.d("FileBrowserState", "Show hidden files saved to preferences: " + showHiddenFiles);
     }
 
     /**

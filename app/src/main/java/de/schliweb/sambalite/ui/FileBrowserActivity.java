@@ -873,13 +873,12 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
                 if (remainder.endsWith("/")) {
                     remainder = remainder.substring(0, remainder.length() - 1);
                 }
-                if (!remainder.isEmpty()) {
-                    // Could be a direct child or deeper nested
-                    String childName = remainder.contains("/") ? remainder.substring(0, remainder.indexOf("/")) : remainder;
-                    // Use just the child name as key, since FileAdapter only sees file names
+                if (!remainder.isEmpty() && !remainder.contains("/")) {
+                    // Only mark direct children that ARE the sync folder (not intermediate parents)
+                    String fullChildPath = normalizedCurrent + remainder;
                     // Only add if not already present (first config wins)
-                    if (!syncDirections.containsKey(childName)) {
-                        syncDirections.put(childName, config.getDirection());
+                    if (!syncDirections.containsKey(fullChildPath)) {
+                        syncDirections.put(fullChildPath, config.getDirection());
                     }
                 }
                 // If remainder is empty, the sync folder IS the current directory (don't mark it)
@@ -1304,6 +1303,61 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
     }
 
     /**
+     * Types of local folder collisions that can occur when setting up sync.
+     */
+    enum LocalFolderCollisionType {
+        EXACT_MATCH,
+        PARENT_SYNCED,
+        CHILD_SYNCED
+    }
+
+    /**
+     * Checks whether the given local folder URI collides with any existing sync config.
+     *
+     * @param folderUriStr     the URI string of the folder to check
+     * @param existingConfigs  the list of existing sync configurations
+     * @param editingConfigId  the ID of the config being edited (to exclude from check), or null
+     * @return the type of collision found, or null if no collision
+     */
+    static LocalFolderCollisionType checkLocalFolderCollision(
+            String folderUriStr, java.util.List<SyncConfig> existingConfigs, String editingConfigId) {
+        for (SyncConfig config : existingConfigs) {
+            if (!config.isEnabled()) continue;
+            if (editingConfigId != null && editingConfigId.equals(config.getId())) continue;
+            String existingUri = config.getLocalFolderUri();
+            if (existingUri == null) continue;
+
+            if (folderUriStr.equals(existingUri)) {
+                return LocalFolderCollisionType.EXACT_MATCH;
+            }
+            if (isPathPrefixOf(existingUri, folderUriStr)) {
+                return LocalFolderCollisionType.PARENT_SYNCED;
+            }
+            if (isPathPrefixOf(folderUriStr, existingUri)) {
+                return LocalFolderCollisionType.CHILD_SYNCED;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if candidateUri starts with prefixUri as a proper path prefix,
+     * handling both "/" and "%2F" (encoded) path separators in Android content URIs.
+     */
+    static boolean isPathPrefixOf(String prefixUri, String candidateUri) {
+        // Direct check with "/"
+        String prefixWithSlash = prefixUri.endsWith("/") ? prefixUri : prefixUri + "/";
+        if (candidateUri.startsWith(prefixWithSlash)) {
+            return true;
+        }
+        // Check with encoded separator "%2F"
+        String prefixWithEncoded = prefixUri.endsWith("%2F") || prefixUri.endsWith("%2f")
+                ? prefixUri : prefixUri + "%2F";
+        return candidateUri.startsWith(prefixWithEncoded)
+                || candidateUri.toLowerCase().startsWith(prefixWithEncoded.toLowerCase());
+    }
+
+    /**
      * Handles the sync setup confirmation from the dialog.
      */
     private static final int MAX_SYNC_CONFIGS = 5;
@@ -1328,11 +1382,28 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
             return;
         }
 
+        // Check for local folder collisions (parent/child already synced)
+        String editingConfigId = uiState.getEditingSyncConfigId();
+        LocalFolderCollisionType collision = checkLocalFolderCollision(
+                folderUri.toString(), syncManager.getAllSyncConfigs(), editingConfigId);
+        if (collision != null) {
+            switch (collision) {
+                case EXACT_MATCH:
+                    progressController.showError(getString(R.string.sync_local_folder_already_synced), null);
+                    return;
+                case PARENT_SYNCED:
+                    progressController.showError(getString(R.string.sync_local_parent_folder_synced), null);
+                    return;
+                case CHILD_SYNCED:
+                    progressController.showError(getString(R.string.sync_local_child_folder_synced), null);
+                    return;
+            }
+        }
+
         String displayName = uiState.getSyncFolderDisplayName() != null
                 ? uiState.getSyncFolderDisplayName() : folderUri.getLastPathSegment();
 
         // If editing an existing config, remove the old one before saving the new one
-        String editingConfigId = uiState.getEditingSyncConfigId();
         if (editingConfigId != null) {
             syncManager.removeSyncConfig(editingConfigId);
             uiState.setEditingSyncConfigId(null);
@@ -1415,6 +1486,9 @@ public class FileBrowserActivity extends AppCompatActivity implements FileListCo
         LogUtils.d("FileBrowserActivity", "onDestroy called");
 
         fileOperationsController.removeListener(this);
+
+        // Clear View references in singleton UIState to prevent memory leaks
+        uiState.setSyncFolderDisplay(null);
 
         // Immer schließen, sonst WindowLeaked bei Rotation
         progressController.closeAllDialogs();

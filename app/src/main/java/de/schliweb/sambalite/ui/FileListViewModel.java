@@ -159,6 +159,58 @@ public class FileListViewModel extends ViewModel {
     }
 
     /**
+     * Gets the current "show hidden files" flag as LiveData.
+     */
+    public LiveData<Boolean> getShowHiddenFiles() {
+        return state.getShowHiddenFiles();
+    }
+
+    /**
+     * Sets the "show hidden files" flag.
+     *
+     * @param showHiddenFiles Whether to show hidden files
+     */
+    public void setShowHiddenFiles(boolean showHiddenFiles) {
+        state.setShowHiddenFiles(showHiddenFiles);
+
+        // Invalidate cache when visibility changes to ensure fresh loading
+        if (state.getConnection() != null) {
+            IntelligentCacheManager.getInstance().invalidateConnection(state.getConnection());
+        }
+
+        // Reload files with new setting
+        if (state.isInSearchMode()) {
+            List<SmbFileItem> results = state.getSearchResults().getValue();
+            if (results != null) {
+                List<SmbFileItem> filtered = filterHiddenFiles(results);
+                sortFiles(filtered);
+                state.setSearchResults(filtered);
+            }
+        } else {
+            loadFiles();
+        }
+    }
+
+    /**
+     * Filters hidden files (files starting with a dot) from the list if the setting is enabled.
+     *
+     * @param fileList The list of files to filter
+     * @return The filtered list
+     */
+    private List<SmbFileItem> filterHiddenFiles(List<SmbFileItem> fileList) {
+        if (state.isShowHiddenFiles()) {
+            return fileList;
+        }
+        List<SmbFileItem> filtered = new ArrayList<>();
+        for (SmbFileItem file : fileList) {
+            if (!file.getName().startsWith(".")) {
+                filtered.add(file);
+            }
+        }
+        return filtered;
+    }
+
+    /**
      * Sorts a list of files according to the current sorting options.
      *
      * @param fileList The list of files to sort
@@ -264,8 +316,9 @@ public class FileListViewModel extends ViewModel {
                         state.getConnection(), state.getCurrentPathString());
                 LogUtils.d("FileListViewModel", "Loaded " + fileList.size() + " files from server: " + path);
 
-                // Sort files according to the current sorting options
+                // Sort and filter files according to the current options
                 sortFiles(fileList);
+                fileList = filterHiddenFiles(fileList);
 
                 // Update the cache with the fresh data
                 IntelligentCacheManager.getInstance().cacheFileList(
@@ -314,8 +367,9 @@ public class FileListViewModel extends ViewModel {
                 if (cachedFiles != null) {
                     LogUtils.d("FileListViewModel", "Loaded " + cachedFiles.size() + 
                             " files from cache: " + state.getCurrentPathString());
-                    // Sort cached files according to current sorting options
+                    // Sort and filter cached files according to current options
                     sortFiles(cachedFiles);
+                    cachedFiles = filterHiddenFiles(cachedFiles);
                     state.setFiles(cachedFiles);
                     if (showLoadingIndicator) {
                         state.setLoading(false);
@@ -327,8 +381,9 @@ public class FileListViewModel extends ViewModel {
                         state.getConnection(), state.getCurrentPathString());
                 LogUtils.d("FileListViewModel", "Loaded " + fileList.size() + " files from: " + path);
 
-                // Sort files according to the current sorting options
+                // Sort and filter files according to the current options
                 sortFiles(fileList);
+                fileList = filterHiddenFiles(fileList);
 
                 // Cache the loaded file list
                 IntelligentCacheManager.getInstance().cacheFileList(

@@ -13,6 +13,7 @@ public class PreferencesManager {
     private static final String PREFS_NAME = "de.schliweb.sambalite.preferences";
     private static final String KEY_SORT_OPTION = "sort_option";
     private static final String KEY_DIRECTORIES_FIRST = "directories_first";
+    private static final String KEY_SHOW_HIDDEN_FILES = "show_hidden_files";
 
     private final SharedPreferences preferences;
 
@@ -72,5 +73,26 @@ public class PreferencesManager {
         boolean directoriesFirst = preferences.getBoolean(KEY_DIRECTORIES_FIRST, true);
         LogUtils.d("PreferencesManager", "Retrieved directories first: " + directoriesFirst);
         return directoriesFirst;
+    }
+
+    /**
+     * Saves the show-hidden-files flag.
+     *
+     * @param showHiddenFiles Whether to show hidden files
+     */
+    public void saveShowHiddenFiles(boolean showHiddenFiles) {
+        LogUtils.d("PreferencesManager", "Saving show hidden files: " + showHiddenFiles);
+        preferences.edit().putBoolean(KEY_SHOW_HIDDEN_FILES, showHiddenFiles).apply();
+    }
+
+    /**
+     * Gets the saved show-hidden-files flag.
+     *
+     * @return The saved show-hidden-files flag, or false if none is saved
+     */
+    public boolean getShowHiddenFiles() {
+        boolean showHiddenFiles = preferences.getBoolean(KEY_SHOW_HIDDEN_FILES, false);
+        LogUtils.d("PreferencesManager", "Retrieved show hidden files: " + showHiddenFiles);
+        return showHiddenFiles;
     }
 }

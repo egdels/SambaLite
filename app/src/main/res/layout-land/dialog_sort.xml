@@ -62,5 +62,12 @@
             android:layout_height="wrap_content"
             android:text="@string/directories_first"
             android:checked="true" />
+
+        <CheckBox
+            android:id="@+id/show_hidden_files_checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/show_hidden_files"
+            android:checked="false" />
     </LinearLayout>
 </LinearLayout>

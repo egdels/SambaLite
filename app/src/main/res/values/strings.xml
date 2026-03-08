@@ -123,6 +123,7 @@
     <string name="sort_by_date">Date</string>
     <string name="sort_by_size">Size</string>
     <string name="directories_first">Directories first</string>
+    <string name="show_hidden_files">Show hidden files/folders</string>
 
     <!-- Rename -->
     <string name="rename">Rename</string>
@@ -353,6 +354,9 @@
     <string name="sync_remove_option">Remove Sync</string>
     <string name="sync_config_removed">Sync configuration removed</string>
     <string name="sync_max_configs_reached">Maximum number of sync configurations (%1$d) reached. Please remove an existing configuration first.</string>
+    <string name="sync_local_parent_folder_synced">A parent of the selected local folder is already being synced. Sub-folders of synced folders cannot be synced separately.</string>
+    <string name="sync_local_child_folder_synced">A sub-folder of the selected local folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>
+    <string name="sync_local_folder_already_synced">The selected local folder is already being synced.</string>
 
     <!-- Quit App -->
     <string name="quit_app">Quit</string>

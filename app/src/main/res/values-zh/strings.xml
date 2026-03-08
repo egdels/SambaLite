@@ -124,6 +124,7 @@
     <string name="sort_by_date">日期</string>
     <string name="sort_by_size">大小</string>
     <string name="directories_first">目录优先</string>
+    <string name="show_hidden_files">显示隐藏文件/文件夹</string>
 
     <!-- Rename -->
     <string name="rename">重命名</string>
@@ -359,4 +360,7 @@
     <string name="sync_remove_option">移除同步</string>
     <string name="sync_config_removed">同步配置已移除</string>
     <string name="sync_max_configs_reached">已达到同步配置的最大数量（%1$d）。请先删除现有配置。</string>
+    <string name="sync_local_parent_folder_synced">所选本地文件夹的父文件夹已在同步中。已同步文件夹的子文件夹不能单独同步。</string>
+    <string name="sync_local_child_folder_synced">所选本地文件夹的子文件夹已在同步中。已同步文件夹的父文件夹不能单独同步。</string>
+    <string name="sync_local_folder_already_synced">所选本地文件夹已在同步中。</string>
 </resources>

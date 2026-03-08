@@ -124,6 +124,7 @@
     <string name="sort_by_date">Fecha</string>
     <string name="sort_by_size">Tamaño</string>
     <string name="directories_first">Directorios primero</string>
+    <string name="show_hidden_files">Mostrar archivos/carpetas ocultos</string>
 
     <!-- Rename -->
     <string name="rename">Renombrar</string>
@@ -358,4 +359,7 @@
     <string name="sync_remove_option">Eliminar sincronización</string>
     <string name="sync_config_removed">Configuración de sincronización eliminada</string>
     <string name="sync_max_configs_reached">Se alcanzó el número máximo de configuraciones de sincronización (%1$d). Elimine primero una configuración existente.</string>
+    <string name="sync_local_parent_folder_synced">Una carpeta principal de la carpeta local seleccionada ya se está sincronizando. Las subcarpetas de carpetas sincronizadas no se pueden sincronizar por separado.</string>
+    <string name="sync_local_child_folder_synced">Una subcarpeta de la carpeta local seleccionada ya se está sincronizando. Las carpetas principales de carpetas sincronizadas no se pueden sincronizar por separado.</string>
+    <string name="sync_local_folder_already_synced">La carpeta local seleccionada ya se está sincronizando.</string>
 </resources>

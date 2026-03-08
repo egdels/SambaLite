@@ -123,6 +123,7 @@
     <string name="sort_by_date">Datum</string>
     <string name="sort_by_size">Grootte</string>
     <string name="directories_first">Mappen eerst</string>
+    <string name="show_hidden_files">Verborgen bestanden/mappen tonen</string>
 
     <!-- Rename -->
     <string name="rename">Hernoemen</string>
@@ -357,4 +358,7 @@
     <string name="sync_remove_option">Synchronisatie verwijderen</string>
     <string name="sync_config_removed">Synchronisatieconfiguratie verwijderd</string>
     <string name="sync_max_configs_reached">Maximaal aantal synchronisatieconfiguraties (%1$d) bereikt. Verwijder eerst een bestaande configuratie.</string>
+    <string name="sync_local_parent_folder_synced">Een bovenliggende map van de geselecteerde lokale map wordt al gesynchroniseerd. Submappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
+    <string name="sync_local_child_folder_synced">Een submap van de geselecteerde lokale map wordt al gesynchroniseerd. Bovenliggende mappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
+    <string name="sync_local_folder_already_synced">De geselecteerde lokale map wordt al gesynchroniseerd.</string>
 </resources>

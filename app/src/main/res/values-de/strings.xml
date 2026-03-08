@@ -123,6 +123,7 @@
     <string name="sort_by_date">Datum</string>
     <string name="sort_by_size">Größe</string>
     <string name="directories_first">Verzeichnisse zuerst</string>
+    <string name="show_hidden_files">Versteckte Dateien/Ordner anzeigen</string>
 
     <!-- Rename -->
     <string name="rename">Umbenennen</string>
@@ -357,4 +358,7 @@
     <string name="sync_remove_option">Sync entfernen</string>
     <string name="sync_config_removed">Sync-Konfiguration entfernt</string>
     <string name="sync_max_configs_reached">Maximale Anzahl an Sync-Konfigurationen (%1$d) erreicht. Bitte entfernen Sie zuerst eine bestehende Konfiguration.</string>
+    <string name="sync_local_parent_folder_synced">Ein übergeordneter Ordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Unterordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>
+    <string name="sync_local_child_folder_synced">Ein Unterordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Übergeordnete Ordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>
+    <string name="sync_local_folder_already_synced">Der ausgewählte lokale Ordner wird bereits synchronisiert.</string>
 </resources>
