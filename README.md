@@ -30,6 +30,24 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 | Security/Privacy       | ✅     | Encrypted credential storage, no telemetry      |
 | Folder Sync            | ✅     | Automatic background sync between device and share ([User Guide](docs/sync_user_guide.md)) |
 
+## Mobile Document Pipeline
+
+SambaLite can be combined with
+[MakeACopy](https://github.com/egdels/makeacopy) to create a fully
+automated document workflow:
+
+    Paper document
+        ↓
+    Scan with MakeACopy
+        ↓
+    Inbox folder
+        ↓
+    SambaLite folder sync
+        ↓
+    NAS / archive (e.g. paperless-ngx)
+
+This effectively turns your smartphone into a **privacy-friendly mobile network scanner**.
+
 ## Project Goals
 
 - **Minimalism:** Only essential features, no unnecessary configurations
@@ -105,6 +123,28 @@ Where not permitted by applicable law (e.g. in cases of gross negligence or inte
 ## Privacy Policy
 
 Our privacy policy is available on our [GitHub Pages site](https://egdels.github.io/SambaLite/privacy_policy.html).
+
+## Related Projects
+
+### MakeACopy
+
+[MakeACopy](https://github.com/egdels/makeacopy) is a privacy-friendly
+open-source document scanner for Android with offline OCR.
+
+Together with SambaLite it enables a fully automated document workflow:
+
+    Paper
+       ↓
+    Scan with MakeACopy
+       ↓
+    Inbox folder
+       ↓
+    SambaLite sync
+       ↓
+    NAS / archive
+
+This setup effectively turns your smartphone into a **mobile network
+scanner** for self-hosted document archives such as **paperless-ngx**.
 
 ## Contributing
 
