@@ -5,6 +5,29 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-03-09
+
+### Added
+- Sync Activity Log: All sync actions (uploads, downloads, skips, errors, directory creations) are now recorded with timestamps and displayed in the System Monitor. Shows the 25 most recent entries (newest first) with a summary of total actions.
+
+### Changed
+- Improved MIME type detection for folder sync: Replaced hardcoded MIME type mapping (only 7 file types) with Android's `MimeTypeMap`, supporting all file types known to the platform. This prevents file extension corruption when downloading files with uncommon extensions (e.g. `.docx`, `.xlsx`, `.webp`, `.flac`) via the Storage Access Framework.
+
+### Fixed
+- System Monitor: Bottom content was partially obscured by the navigation bar. Added dynamic WindowInsets handling to ensure full scrollability.
+
+### Developer Notes
+- `FolderSyncWorker.getMimeType()`: Replaced manual if-chain with `MimeTypeMap.getSingleton().getMimeTypeFromExtension()`. Unknown extensions still fall back to `application/octet-stream`.
+- New test class `FolderSyncWorkerGetMimeTypeTest` with 22 unit tests covering null, no extension, known types, uppercase, multiple dots, and unknown extensions (`.tqd`).
+- Updated `docs/sync_user_guide.md` with new "Supported File Types" section and limitation note for uncommon file extensions.
+- New class `SyncActionLog`: Persistent sync action log using SharedPreferences (FIFO, max 100 entries). Supports UPLOADED, DOWNLOADED, SKIPPED, CREATED_DIR, and ERROR actions with timestamps.
+- `FolderSyncWorker`: Integrated `SyncActionLog` calls at all upload, download, skip, error, and directory creation points.
+- `SystemMonitorActivity`: New `getSyncActivityLog()` section displaying the 25 most recent sync actions with summary counts. Added `ViewCompat.setOnApplyWindowInsetsListener` for dynamic bottom padding based on navigation bar height.
+- `activity_system_monitor.xml`: Added `id` and `clipToPadding="false"` to `NestedScrollView` for proper WindowInsets handling.
+- New test class `SyncActionLogTest` with 15 unit tests covering all action types, ordering, formatting, clear, and timestamp format.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.5.1] - 2026-03-08
 
 ### Added

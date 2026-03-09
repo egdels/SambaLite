@@ -1,0 +1,4 @@
+1.5.2
+• Sync Activity Log: All sync actions are now recorded and visible in the System Monitor.
+• Improved MIME type detection: All file types now correctly handled during sync, preventing file extension corruption.
+• Fixed: System Monitor content no longer obscured by navigation bar.
