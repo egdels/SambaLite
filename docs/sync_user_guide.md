@@ -1,6 +1,6 @@
 # User Guide: Folder Synchronization in SambaLite
 
-Last updated: 2026-03-07
+Last updated: 2026-03-09
 
 This guide explains how to set up and manage automatic folder synchronization between your Android device and an SMB network share.
 
@@ -109,12 +109,44 @@ SambaLite uses a **"Newer Wins"** (last-writer-wins) strategy:
 
 When you delete an SMB connection from the main screen, **all sync configurations associated with that connection are automatically removed** and the background sync is cancelled if no other configurations remain.
 
+## Supported File Types
+
+The sync processes **all file types** — there is no whitelist or blacklist. However, when downloading files from the SMB share to your device (Remote → Local), SambaLite needs to determine the correct MIME type for each file. This is done using Android's built-in `MimeTypeMap`, which recognizes most common file types:
+
+| Category | Examples |
+|----------|----------|
+| **Images** | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp` |
+| **Documents** | `.pdf`, `.txt`, `.docx`, `.xlsx`, `.pptx`, `.odt` |
+| **Video** | `.mp4`, `.mkv`, `.avi`, `.mov`, `.webm` |
+| **Audio** | `.mp3`, `.flac`, `.wav`, `.ogg`, `.aac` |
+| **Archives** | `.zip`, `.gz`, `.tar`, `.7z` |
+| **Web/Data** | `.html`, `.json`, `.xml`, `.csv` |
+
+For file extensions **not recognized** by Android (e.g. `.tqd` or other proprietary formats), the generic MIME type `application/octet-stream` is used. This can cause Android's Storage Access Framework to **alter or remove the file extension** when creating the local file. As a result, the file may not be found on the next sync cycle and could be downloaded again, potentially leading to duplicates.
+
+> **Tip:** If you sync folders containing files with uncommon extensions, verify that the downloaded files retain their correct names and extensions.
+
+## Sync Activity Log
+
+SambaLite records all sync actions with timestamps. You can view the log in the **System Monitor** (accessible from the toolbar menu → System Monitor). The log shows:
+
+- **↑ Uploaded**: Files sent from your device to the SMB share.
+- **↓ Downloaded**: Files received from the SMB share to your device.
+- **⊘ Skipped**: Files that were unchanged (same size) and not transferred.
+- **📁 Created dir**: New directories created during sync.
+- **✗ Error**: Files that failed to sync, with an error description.
+
+The log displays the 25 most recent entries (newest first) along with a summary of total actions. Up to 100 entries are stored persistently across app restarts.
+
+> **Tip:** Use the Sync Activity Log to verify that your sync is working as expected, especially when setting up a new sync configuration. Start with a small folder to confirm correct behavior before syncing larger datasets.
+
 ## Limitations
 
 - **Clock differences** between your device and the SMB server may lead to incorrect sync decisions. Ensure both devices have accurate time settings (NTP recommended).
 - **Large files** may take longer than the WorkManager execution window. Very large files might not complete in a single sync cycle.
 - **Deleted files reappear**: Since the sync does not track deletions, a file deleted on one side will be restored from the other side on the next sync.
 - **No file merging**: Simultaneous edits to the same file on both sides will result in the newer version overwriting the older one.
+- **Uncommon file extensions**: Files with extensions not recognized by Android may have their file names altered during download (see *Supported File Types* above).
 
 ## Troubleshooting
 
