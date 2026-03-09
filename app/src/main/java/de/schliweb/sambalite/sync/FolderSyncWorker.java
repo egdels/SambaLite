@@ -43,9 +43,11 @@ public class FolderSyncWorker extends Worker {
     private static final String TAG = "FolderSyncWorker";
     private static final int BUFFER_SIZE = 65536;
     public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
+    private SyncActionLog actionLog;
 
     public FolderSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
+        this.actionLog = new SyncActionLog(context);
     }
 
     @NonNull
@@ -192,6 +194,7 @@ public class FolderSyncWorker extends Worker {
 
                     if (!remoteExists) {
                         uploadFile(share, localFile, remoteFilePath);
+                        actionLog.log(SyncActionLog.Action.UPLOADED, name);
                     } else {
                         long remoteModified = getRemoteFileLastModified(share, remoteFilePath);
                         if (localModified > remoteModified) {
@@ -201,13 +204,16 @@ public class FolderSyncWorker extends Worker {
                             long localSize = localFile.length();
                             if (localSize != remoteSize) {
                                 uploadFile(share, localFile, remoteFilePath);
+                                actionLog.log(SyncActionLog.Action.UPLOADED, name);
                             } else {
                                 LogUtils.d(TAG, "Skipping upload (same size): " + name);
+                                actionLog.log(SyncActionLog.Action.SKIPPED, name, "same size");
                             }
                         }
                     }
                 } catch (Exception e) {
                     LogUtils.e(TAG, "Error syncing local file " + name + ": " + e.getMessage());
+                    actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
                 }
             }
         }
@@ -236,6 +242,7 @@ public class FolderSyncWorker extends Worker {
                     DocumentFile localSubDir = localFolder.findFile(name);
                     if (localSubDir == null) {
                         localSubDir = localFolder.createDirectory(name);
+                        actionLog.log(SyncActionLog.Action.CREATED_DIR, name);
                     }
                     if (localSubDir != null) {
                         syncRemoteToLocal(share, localSubDir, remoteFilePath);
@@ -250,6 +257,7 @@ public class FolderSyncWorker extends Worker {
                             DocumentFile newFile = localFolder.createFile(mimeType, name);
                             if (newFile != null) {
                                 downloadFile(share, remoteFilePath, newFile);
+                                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                             }
                         } else {
                             long localModified = localFile.lastModified();
@@ -260,13 +268,16 @@ public class FolderSyncWorker extends Worker {
                                 long localSize = localFile.length();
                                 if (localSize != remoteSize) {
                                     downloadFile(share, remoteFilePath, localFile);
+                                    actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                                 } else {
                                     LogUtils.d(TAG, "Skipping download (same size): " + name);
+                                    actionLog.log(SyncActionLog.Action.SKIPPED, name, "same size");
                                 }
                             }
                         }
                     } catch (Exception e) {
                         LogUtils.e(TAG, "Error syncing remote file " + name + ": " + e.getMessage());
+                        actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
                     }
                 }
             }
@@ -468,16 +479,14 @@ public class FolderSyncWorker extends Worker {
     /**
      * Returns a MIME type for a file based on its extension.
      */
-    private String getMimeType(String fileName) {
+    String getMimeType(String fileName) {
         if (fileName == null) return "application/octet-stream";
-        String lower = fileName.toLowerCase();
-        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        if (lower.endsWith(".png")) return "image/png";
-        if (lower.endsWith(".gif")) return "image/gif";
-        if (lower.endsWith(".pdf")) return "application/pdf";
-        if (lower.endsWith(".txt")) return "text/plain";
-        if (lower.endsWith(".mp4")) return "video/mp4";
-        if (lower.endsWith(".mp3")) return "audio/mpeg";
-        return "application/octet-stream";
+        String extension = fileName.contains(".")
+                ? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
+                : "";
+        if (extension.isEmpty()) return "application/octet-stream";
+        String mimeType = android.webkit.MimeTypeMap.getSingleton()
+                .getMimeTypeFromExtension(extension);
+        return mimeType != null ? mimeType : "application/octet-stream";
     }
 }

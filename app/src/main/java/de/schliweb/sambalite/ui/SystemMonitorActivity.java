@@ -8,6 +8,9 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -19,6 +22,7 @@ import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import de.schliweb.sambalite.sync.SyncActionLog;
 
 import javax.inject.Inject;
 import java.util.Locale;
@@ -72,6 +76,16 @@ public class SystemMonitorActivity extends AppCompatActivity {
                 getSupportActionBar().setDisplayHomeAsUpEnabled(true);
                 getSupportActionBar().setTitle(getString(R.string.system_monitor_title));
             }
+        }
+
+        // Apply window insets for navigation bar
+        androidx.core.widget.NestedScrollView scrollView = findViewById(R.id.scroll_view);
+        if (scrollView != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(scrollView, (v, windowInsets) -> {
+                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom + 16);
+                return windowInsets;
+            });
         }
 
         // Get the TextView from layout
@@ -178,7 +192,10 @@ public class SystemMonitorActivity extends AppCompatActivity {
                     getNetworkStatus(app) + "\n\n" +
 
                     // Update error summary
-                    getErrorSummary(app);
+                    getErrorSummary(app) + "\n\n" +
+
+                    // Update sync activity log
+                    getSyncActivityLog();
 
             statusOverview.setText(fullStatus);
 
@@ -339,6 +356,11 @@ public class SystemMonitorActivity extends AppCompatActivity {
         }
 
         return summary.toString();
+    }
+
+    private String getSyncActivityLog() {
+        SyncActionLog actionLog = new SyncActionLog(this);
+        return actionLog.getFormattedLog(25);
     }
 
     private String getCurrentTimeString() {
