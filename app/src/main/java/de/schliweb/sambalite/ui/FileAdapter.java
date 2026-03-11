@@ -14,415 +14,442 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import lombok.Getter;
 
-import de.schliweb.sambalite.sync.SyncDirection;
-
-/**
- * Adapter for displaying SMB files and directories in a RecyclerView.
- */
+/** Adapter for displaying SMB files and directories in a RecyclerView. */
 public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder> {
 
-    @Getter
-    private List<SmbFileItem> files = new ArrayList<>();
-    private OnFileClickListener listener;
-    private OnFileOptionsClickListener optionsClickListener;
-    private OnFileLongClickListener longClickListener;
-    private boolean showParentDirectory = false;
+  @Getter private List<SmbFileItem> files = new ArrayList<>();
+  private OnFileClickListener listener;
+  private OnFileOptionsClickListener optionsClickListener;
+  private OnFileLongClickListener longClickListener;
+  private boolean showParentDirectory = false;
 
-    // Selection support (minimal UI highlight via itemView.setActivated)
-    private boolean selectionMode = false;
-    private java.util.Set<String> selectedPaths = new java.util.HashSet<>();
+  // Selection support (minimal UI highlight via itemView.setActivated)
+  private boolean selectionMode = false;
+  private java.util.Set<String> selectedPaths = new java.util.HashSet<>();
 
-    // Sync direction markers: maps folder path to its SyncDirection
-    private Map<String, SyncDirection> syncDirections = new HashMap<>();
+  // Sync direction markers: maps folder path to its SyncDirection
+  private Map<String, SyncDirection> syncDirections = new HashMap<>();
 
+  /**
+   * Updates the list of files.
+   *
+   * @param files The new list of files
+   */
+  public void setFiles(List<SmbFileItem> files) {
+    int size = files != null ? files.size() : 0;
+    LogUtils.d("FileAdapter", "Setting files: " + size + " items");
+    this.files = files != null ? files : new ArrayList<>();
+    notifyDataSetChanged();
+  }
 
-    /**
-     * Updates the list of files.
-     *
-     * @param files The new list of files
-     */
-    public void setFiles(List<SmbFileItem> files) {
-        int size = files != null ? files.size() : 0;
-        LogUtils.d("FileAdapter", "Setting files: " + size + " items");
-        this.files = files != null ? files : new ArrayList<>();
-        notifyDataSetChanged();
+  /**
+   * Sets whether to show a parent directory item at the top of the list.
+   *
+   * @param showParentDirectory True to show parent directory, false otherwise
+   */
+  public void setShowParentDirectory(boolean showParentDirectory) {
+    LogUtils.d("FileAdapter", "Setting showParentDirectory: " + showParentDirectory);
+    this.showParentDirectory = showParentDirectory;
+    notifyDataSetChanged();
+  }
+
+  /**
+   * Sets the click listener for files.
+   *
+   * @param listener The listener to set
+   */
+  public void setOnFileClickListener(OnFileClickListener listener) {
+    LogUtils.d("FileAdapter", "Setting file click listener");
+    this.listener = listener;
+  }
+
+  /**
+   * Sets the options click listener for files.
+   *
+   * @param listener The listener to set
+   */
+  public void setOnFileOptionsClickListener(OnFileOptionsClickListener listener) {
+    LogUtils.d("FileAdapter", "Setting file options click listener");
+    this.optionsClickListener = listener;
+  }
+
+  /**
+   * Sets the long-click listener for files.
+   *
+   * @param listener The long-click listener to set
+   */
+  public void setOnFileLongClickListener(OnFileLongClickListener listener) {
+    LogUtils.d("FileAdapter", "Setting file long click listener");
+    this.longClickListener = listener;
+  }
+
+  /** Enables or disables selection mode (affects highlighting only). */
+  public void setSelectionMode(boolean enabled) {
+    this.selectionMode = enabled;
+    notifyDataSetChanged();
+  }
+
+  /** Updates the selected paths used for highlighting. */
+  public void setSelectedPaths(java.util.Set<String> selectedPaths) {
+    this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
+    notifyDataSetChanged();
+  }
+
+  /**
+   * Sets the sync direction markers for folders.
+   *
+   * @param syncDirections Map of folder paths to their SyncDirection
+   */
+  public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
+    this.syncDirections = syncDirections != null ? syncDirections : new HashMap<>();
+    notifyDataSetChanged();
+  }
+
+  @NonNull
+  @Override
+  public FileViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    LogUtils.d("FileAdapter", "Creating new file view holder");
+    View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file, parent, false);
+    return new FileViewHolder(view);
+  }
+
+  @Override
+  public void onBindViewHolder(@NonNull FileViewHolder holder, int position) {
+    LogUtils.d("FileAdapter", "Binding file at position: " + position);
+    if (showParentDirectory && position == 0) {
+      // Parent directory item
+      LogUtils.d("FileAdapter", "Binding parent directory item");
+      holder.bind(null);
+    } else {
+      // Regular file or directory
+      int filePosition = showParentDirectory ? position - 1 : position;
+      SmbFileItem file = files.get(filePosition);
+      LogUtils.d(
+          "FileAdapter",
+          "Binding file at adjusted position "
+              + filePosition
+              + ": "
+              + file.getName()
+              + ", isDirectory: "
+              + file.isDirectory());
+      holder.bind(file);
+    }
+  }
+
+  @Override
+  public int getItemCount() {
+    int count = files.size() + (showParentDirectory ? 1 : 0);
+    LogUtils.d(
+        "FileAdapter",
+        "Getting item count: "
+            + count
+            + " (files: "
+            + files.size()
+            + ", showParentDirectory: "
+            + showParentDirectory
+            + ")");
+    return count;
+  }
+
+  /**
+   * Returns the appropriate icon resource ID for a file based on its extension.
+   *
+   * @param filename The name of the file
+   * @return Resource ID for the appropriate icon
+   */
+  private int getFileIcon(String filename) {
+    if (filename == null) {
+      return android.R.drawable.ic_menu_save;
     }
 
-    /**
-     * Sets whether to show a parent directory item at the top of the list.
-     *
-     * @param showParentDirectory True to show parent directory, false otherwise
-     */
-    public void setShowParentDirectory(boolean showParentDirectory) {
-        LogUtils.d("FileAdapter", "Setting showParentDirectory: " + showParentDirectory);
-        this.showParentDirectory = showParentDirectory;
-        notifyDataSetChanged();
+    String extension = EnhancedFileUtils.getFileExtension(filename).toLowerCase(Locale.ROOT);
+
+    switch (extension) {
+      case "pdf":
+        return android.R.drawable.ic_menu_report_image;
+      case "txt":
+      case "md":
+      case "log":
+        return android.R.drawable.ic_menu_edit;
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+      case "bmp":
+      case "webp":
+        return android.R.drawable.ic_menu_gallery;
+      case "mp4":
+      case "avi":
+      case "mkv":
+      case "mov":
+      case "wmv":
+        return android.R.drawable.ic_menu_slideshow;
+      case "mp3":
+      case "wav":
+      case "flac":
+      case "ogg":
+      case "m4a":
+        return android.R.drawable.ic_media_play;
+      case "zip":
+      case "rar":
+      case "7z":
+      case "tar":
+      case "gz":
+        return android.R.drawable.ic_menu_compass;
+      case "doc":
+      case "docx":
+      case "odt":
+        return android.R.drawable.ic_menu_edit;
+      case "xls":
+      case "xlsx":
+      case "ods":
+        return android.R.drawable.ic_menu_view;
+      case "ppt":
+      case "pptx":
+      case "odp":
+        return android.R.drawable.ic_menu_slideshow;
+      case "exe":
+      case "msi":
+      case "deb":
+      case "rpm":
+      case "apk":
+        return android.R.drawable.ic_menu_preferences;
+      default:
+        return android.R.drawable.ic_menu_save;
+    }
+  }
+
+  /** Interface for file click events. */
+  public interface OnFileClickListener {
+    void onFileClick(SmbFileItem file);
+
+    void onParentDirectoryClick();
+  }
+
+  /** Interface for file options button click events. */
+  public interface OnFileOptionsClickListener {
+    void onFileOptionsClick(SmbFileItem file);
+  }
+
+  /** Interface for long-click events on files. */
+  public interface OnFileLongClickListener {
+    void onFileLongClick(SmbFileItem file);
+  }
+
+  /** ViewHolder for a file item. */
+  class FileViewHolder extends RecyclerView.ViewHolder {
+
+    private final ImageView iconView;
+    private final TextView nameView;
+    private final TextView dateView;
+    private final TextView sizeView;
+    private final ImageButton moreOptionsButton;
+    private final View selectionIndicator;
+    private final MaterialCardView rootCard;
+    private final View syncIndicator;
+    private final ImageView syncIndicatorIcon;
+
+    FileViewHolder(@NonNull View itemView) {
+      super(itemView);
+      iconView = itemView.findViewById(R.id.file_icon);
+      nameView = itemView.findViewById(R.id.file_name);
+      dateView = itemView.findViewById(R.id.file_date);
+      sizeView = itemView.findViewById(R.id.file_size);
+      moreOptionsButton = itemView.findViewById(R.id.more_options);
+      selectionIndicator = itemView.findViewById(R.id.selection_indicator);
+      rootCard = (itemView instanceof MaterialCardView) ? (MaterialCardView) itemView : null;
+      syncIndicator = itemView.findViewById(R.id.sync_indicator);
+      syncIndicatorIcon = itemView.findViewById(R.id.sync_indicator_icon);
+
+      itemView.setOnClickListener(
+          v -> {
+            int position = getBindingAdapterPosition();
+            LogUtils.d("FileAdapter", "File item clicked at position: " + position);
+            if (position != RecyclerView.NO_POSITION && listener != null) {
+              if (showParentDirectory && position == 0) {
+                // Parent directory clicked
+                LogUtils.d("FileAdapter", "Parent directory clicked, notifying listener");
+                listener.onParentDirectoryClick();
+              } else {
+                // Regular file or directory clicked
+                int filePosition = showParentDirectory ? position - 1 : position;
+                SmbFileItem file = files.get(filePosition);
+                LogUtils.d(
+                    "FileAdapter",
+                    "File clicked at adjusted position "
+                        + filePosition
+                        + ": "
+                        + file.getName()
+                        + ", isDirectory: "
+                        + file.isDirectory());
+                listener.onFileClick(file);
+              }
+            } else {
+              LogUtils.d("FileAdapter", "Click ignored: position invalid or no listener");
+            }
+          });
+
+      itemView.setOnLongClickListener(
+          v -> {
+            int position = getBindingAdapterPosition();
+            LogUtils.d("FileAdapter", "File item long-clicked at position: " + position);
+            if (position != RecyclerView.NO_POSITION && longClickListener != null) {
+              if (showParentDirectory && position == 0) {
+                // Ignore long press on parent directory
+                return true;
+              } else {
+                int filePosition = showParentDirectory ? position - 1 : position;
+                SmbFileItem file = files.get(filePosition);
+                longClickListener.onFileLongClick(file);
+                return true;
+              }
+            }
+            return false;
+          });
+
+      moreOptionsButton.setOnClickListener(
+          v -> {
+            int position = getBindingAdapterPosition();
+            LogUtils.d("FileAdapter", "More options clicked at position: " + position);
+            if (position != RecyclerView.NO_POSITION && optionsClickListener != null) {
+              if (showParentDirectory && position == 0) {
+                // Parent directory - no options menu
+                LogUtils.d("FileAdapter", "More options ignored for parent directory");
+              } else {
+                // Regular file or directory
+                int filePosition = showParentDirectory ? position - 1 : position;
+                SmbFileItem file = files.get(filePosition);
+                LogUtils.d(
+                    "FileAdapter",
+                    "File options clicked at adjusted position "
+                        + filePosition
+                        + ": "
+                        + file.getName());
+                optionsClickListener.onFileOptionsClick(file);
+              }
+            } else {
+              LogUtils.d("FileAdapter", "Options click ignored: position invalid or no listener");
+            }
+          });
     }
 
-    /**
-     * Sets the click listener for files.
-     *
-     * @param listener The listener to set
-     */
-    public void setOnFileClickListener(OnFileClickListener listener) {
-        LogUtils.d("FileAdapter", "Setting file click listener");
-        this.listener = listener;
-    }
+    void bind(SmbFileItem file) {
+      if (file == null) {
+        // Parent directory
+        LogUtils.d("FileAdapter", "Binding parent directory item");
+        iconView.setImageResource(android.R.drawable.ic_menu_revert);
+        nameView.setText(R.string.parent_directory);
+        dateView.setText("");
+        sizeView.setText("");
+        if (syncIndicator != null) {
+          syncIndicator.setVisibility(View.GONE);
+        }
+        return;
+      }
 
-    /**
-     * Sets the options click listener for files.
-     *
-     * @param listener The listener to set
-     */
-    public void setOnFileOptionsClickListener(OnFileOptionsClickListener listener) {
-        LogUtils.d("FileAdapter", "Setting file options click listener");
-        this.optionsClickListener = listener;
-    }
+      LogUtils.d(
+          "FileAdapter",
+          "Binding file: " + file.getName() + ", isDirectory: " + file.isDirectory());
 
-    /**
-     * Sets the long-click listener for files.
-     *
-     * @param listener The long-click listener to set
-     */
-    public void setOnFileLongClickListener(OnFileLongClickListener listener) {
-        LogUtils.d("FileAdapter", "Setting file long click listener");
-        this.longClickListener = listener;
-    }
+      // Set icon based on file type
+      if (file.isDirectory()) {
+        LogUtils.d("FileAdapter", "Setting directory icon for: " + file.getName());
+        iconView.setImageResource(android.R.drawable.ic_menu_more);
+      } else {
+        LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
+        iconView.setImageResource(getFileIcon(file.getName()));
+      }
 
-    /**
-     * Enables or disables selection mode (affects highlighting only).
-     */
-    public void setSelectionMode(boolean enabled) {
-        this.selectionMode = enabled;
-        notifyDataSetChanged();
-    }
+      // Set file name
+      nameView.setText(file.getName());
 
-    /**
-     * Updates the selected paths used for highlighting.
-     */
-    public void setSelectedPaths(java.util.Set<String> selectedPaths) {
-        this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
-        notifyDataSetChanged();
-    }
+      // Set file date
+      if (file.getLastModified() != null) {
+        String formattedDate = DateFormat.format("MMM dd, yyyy", file.getLastModified()).toString();
+        LogUtils.d("FileAdapter", "Setting date for " + file.getName() + ": " + formattedDate);
+        dateView.setText(formattedDate);
+      } else {
+        LogUtils.d("FileAdapter", "No date available for: " + file.getName());
+        dateView.setText("");
+      }
 
-    /**
-     * Sets the sync direction markers for folders.
-     *
-     * @param syncDirections Map of folder paths to their SyncDirection
-     */
-    public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
-        this.syncDirections = syncDirections != null ? syncDirections : new HashMap<>();
-        notifyDataSetChanged();
-    }
+      // Set file size (only for files, not directories)
+      if (file.isFile()) {
+        String formattedSize = Formatter.formatFileSize(itemView.getContext(), file.getSize());
+        LogUtils.d("FileAdapter", "Setting size for " + file.getName() + ": " + formattedSize);
+        sizeView.setText(formattedSize);
+      } else {
+        LogUtils.d("FileAdapter", "No size for directory: " + file.getName());
+        sizeView.setText("");
+      }
 
-    @NonNull
-    @Override
-    public FileViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LogUtils.d("FileAdapter", "Creating new file view holder");
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file, parent, false);
-        return new FileViewHolder(view);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull FileViewHolder holder, int position) {
-        LogUtils.d("FileAdapter", "Binding file at position: " + position);
-        if (showParentDirectory && position == 0) {
-            // Parent directory item
-            LogUtils.d("FileAdapter", "Binding parent directory item");
-            holder.bind(null);
+      // Show sync direction indicator
+      if (syncIndicator != null && syncIndicatorIcon != null) {
+        String filePath = file.getPath();
+        LogUtils.d(
+            "FileAdapter",
+            "Sync check for '"
+                + file.getName()
+                + "': filePath='"
+                + filePath
+                + "', syncDirections.size="
+                + syncDirections.size()
+                + ", keys="
+                + syncDirections.keySet());
+        SyncDirection direction = syncDirections.get(filePath);
+        if (direction == null && filePath != null && !filePath.endsWith("/")) {
+          direction = syncDirections.get(filePath + "/");
+          LogUtils.d(
+              "FileAdapter", "Retry with trailing slash: '" + filePath + "/' -> " + direction);
+        }
+        if (direction != null) {
+          LogUtils.d("FileAdapter", "MATCH FOUND for '" + filePath + "': direction=" + direction);
+          syncIndicator.setVisibility(View.VISIBLE);
+          switch (direction) {
+            case LOCAL_TO_REMOTE:
+              syncIndicatorIcon.setImageResource(R.drawable.ic_sync_upload);
+              break;
+            case REMOTE_TO_LOCAL:
+              syncIndicatorIcon.setImageResource(R.drawable.ic_sync_download);
+              break;
+            case BIDIRECTIONAL:
+              syncIndicatorIcon.setImageResource(R.drawable.ic_sync_bidirectional);
+              break;
+          }
         } else {
-            // Regular file or directory
-            int filePosition = showParentDirectory ? position - 1 : position;
-            SmbFileItem file = files.get(filePosition);
-            LogUtils.d("FileAdapter", "Binding file at adjusted position " + filePosition + ": " + file.getName() + ", isDirectory: " + file.isDirectory());
-            holder.bind(file);
+          syncIndicator.setVisibility(View.GONE);
         }
+      }
+
+      // Enhanced visual selection highlight for multi-select
+      boolean selected = selectionMode && selectedPaths.contains(file.getPath());
+      itemView.setActivated(selected);
+
+      // Show selection indicator
+      /*if (selectionIndicator != null) {
+          selectionIndicator.setVisibility(selected ? View.VISIBLE : View.GONE);
+      }*/
+
+      // Change card background color to make selection more prominent
+      if (rootCard != null) {
+        int bgColor =
+            MaterialColors.getColor(
+                itemView,
+                selected
+                    ? com.google.android.material.R.attr.colorSecondaryContainer
+                    : com.google.android.material.R.attr.colorSurface);
+        rootCard.setCardBackgroundColor(bgColor);
+      }
     }
-
-    @Override
-    public int getItemCount() {
-        int count = files.size() + (showParentDirectory ? 1 : 0);
-        LogUtils.d("FileAdapter", "Getting item count: " + count + " (files: " + files.size() + ", showParentDirectory: " + showParentDirectory + ")");
-        return count;
-    }
-
-    /**
-     * Returns the appropriate icon resource ID for a file based on its extension.
-     *
-     * @param filename The name of the file
-     * @return Resource ID for the appropriate icon
-     */
-    private int getFileIcon(String filename) {
-        if (filename == null) {
-            return android.R.drawable.ic_menu_save;
-        }
-
-        String extension = EnhancedFileUtils.getFileExtension(filename).toLowerCase(Locale.ROOT);
-
-        switch (extension) {
-            case "pdf":
-                return android.R.drawable.ic_menu_report_image;
-            case "txt":
-            case "md":
-            case "log":
-                return android.R.drawable.ic_menu_edit;
-            case "jpg":
-            case "jpeg":
-            case "png":
-            case "gif":
-            case "bmp":
-            case "webp":
-                return android.R.drawable.ic_menu_gallery;
-            case "mp4":
-            case "avi":
-            case "mkv":
-            case "mov":
-            case "wmv":
-                return android.R.drawable.ic_menu_slideshow;
-            case "mp3":
-            case "wav":
-            case "flac":
-            case "ogg":
-            case "m4a":
-                return android.R.drawable.ic_media_play;
-            case "zip":
-            case "rar":
-            case "7z":
-            case "tar":
-            case "gz":
-                return android.R.drawable.ic_menu_compass;
-            case "doc":
-            case "docx":
-            case "odt":
-                return android.R.drawable.ic_menu_edit;
-            case "xls":
-            case "xlsx":
-            case "ods":
-                return android.R.drawable.ic_menu_view;
-            case "ppt":
-            case "pptx":
-            case "odp":
-                return android.R.drawable.ic_menu_slideshow;
-            case "exe":
-            case "msi":
-            case "deb":
-            case "rpm":
-            case "apk":
-                return android.R.drawable.ic_menu_preferences;
-            default:
-                return android.R.drawable.ic_menu_save;
-        }
-    }
-
-    /**
-     * Interface for file click events.
-     */
-    public interface OnFileClickListener {
-        void onFileClick(SmbFileItem file);
-
-        void onParentDirectoryClick();
-    }
-
-    /**
-     * Interface for file options button click events.
-     */
-    public interface OnFileOptionsClickListener {
-        void onFileOptionsClick(SmbFileItem file);
-    }
-
-    /**
-     * Interface for long-click events on files.
-     */
-    public interface OnFileLongClickListener {
-        void onFileLongClick(SmbFileItem file);
-    }
-
-    /**
-     * ViewHolder for a file item.
-     */
-    class FileViewHolder extends RecyclerView.ViewHolder {
-
-        private final ImageView iconView;
-        private final TextView nameView;
-        private final TextView dateView;
-        private final TextView sizeView;
-        private final ImageButton moreOptionsButton;
-        private final View selectionIndicator;
-        private final MaterialCardView rootCard;
-        private final View syncIndicator;
-        private final ImageView syncIndicatorIcon;
-
-        FileViewHolder(@NonNull View itemView) {
-            super(itemView);
-            iconView = itemView.findViewById(R.id.file_icon);
-            nameView = itemView.findViewById(R.id.file_name);
-            dateView = itemView.findViewById(R.id.file_date);
-            sizeView = itemView.findViewById(R.id.file_size);
-            moreOptionsButton = itemView.findViewById(R.id.more_options);
-            selectionIndicator = itemView.findViewById(R.id.selection_indicator);
-            rootCard = (itemView instanceof MaterialCardView) ? (MaterialCardView) itemView : null;
-            syncIndicator = itemView.findViewById(R.id.sync_indicator);
-            syncIndicatorIcon = itemView.findViewById(R.id.sync_indicator_icon);
-
-            itemView.setOnClickListener(v -> {
-                int position = getBindingAdapterPosition();
-                LogUtils.d("FileAdapter", "File item clicked at position: " + position);
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    if (showParentDirectory && position == 0) {
-                        // Parent directory clicked
-                        LogUtils.d("FileAdapter", "Parent directory clicked, notifying listener");
-                        listener.onParentDirectoryClick();
-                    } else {
-                        // Regular file or directory clicked
-                        int filePosition = showParentDirectory ? position - 1 : position;
-                        SmbFileItem file = files.get(filePosition);
-                        LogUtils.d("FileAdapter", "File clicked at adjusted position " + filePosition + ": " + file.getName() + ", isDirectory: " + file.isDirectory());
-                        listener.onFileClick(file);
-                    }
-                } else {
-                    LogUtils.d("FileAdapter", "Click ignored: position invalid or no listener");
-                }
-            });
-
-            itemView.setOnLongClickListener(v -> {
-                int position = getBindingAdapterPosition();
-                LogUtils.d("FileAdapter", "File item long-clicked at position: " + position);
-                if (position != RecyclerView.NO_POSITION && longClickListener != null) {
-                    if (showParentDirectory && position == 0) {
-                        // Ignore long press on parent directory
-                        return true;
-                    } else {
-                        int filePosition = showParentDirectory ? position - 1 : position;
-                        SmbFileItem file = files.get(filePosition);
-                        longClickListener.onFileLongClick(file);
-                        return true;
-                    }
-                }
-                return false;
-            });
-
-            moreOptionsButton.setOnClickListener(v -> {
-                int position = getBindingAdapterPosition();
-                LogUtils.d("FileAdapter", "More options clicked at position: " + position);
-                if (position != RecyclerView.NO_POSITION && optionsClickListener != null) {
-                    if (showParentDirectory && position == 0) {
-                        // Parent directory - no options menu
-                        LogUtils.d("FileAdapter", "More options ignored for parent directory");
-                    } else {
-                        // Regular file or directory
-                        int filePosition = showParentDirectory ? position - 1 : position;
-                        SmbFileItem file = files.get(filePosition);
-                        LogUtils.d("FileAdapter", "File options clicked at adjusted position " + filePosition + ": " + file.getName());
-                        optionsClickListener.onFileOptionsClick(file);
-                    }
-                } else {
-                    LogUtils.d("FileAdapter", "Options click ignored: position invalid or no listener");
-                }
-            });
-        }
-
-        void bind(SmbFileItem file) {
-            if (file == null) {
-                // Parent directory
-                LogUtils.d("FileAdapter", "Binding parent directory item");
-                iconView.setImageResource(android.R.drawable.ic_menu_revert);
-                nameView.setText(R.string.parent_directory);
-                dateView.setText("");
-                sizeView.setText("");
-                if (syncIndicator != null) {
-                    syncIndicator.setVisibility(View.GONE);
-                }
-                return;
-            }
-
-            LogUtils.d("FileAdapter", "Binding file: " + file.getName() + ", isDirectory: " + file.isDirectory());
-
-            // Set icon based on file type
-            if (file.isDirectory()) {
-                LogUtils.d("FileAdapter", "Setting directory icon for: " + file.getName());
-                iconView.setImageResource(android.R.drawable.ic_menu_more);
-            } else {
-                LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
-                iconView.setImageResource(getFileIcon(file.getName()));
-            }
-
-            // Set file name
-            nameView.setText(file.getName());
-
-            // Set file date
-            if (file.getLastModified() != null) {
-                String formattedDate = DateFormat.format("MMM dd, yyyy", file.getLastModified()).toString();
-                LogUtils.d("FileAdapter", "Setting date for " + file.getName() + ": " + formattedDate);
-                dateView.setText(formattedDate);
-            } else {
-                LogUtils.d("FileAdapter", "No date available for: " + file.getName());
-                dateView.setText("");
-            }
-
-            // Set file size (only for files, not directories)
-            if (file.isFile()) {
-                String formattedSize = Formatter.formatFileSize(itemView.getContext(), file.getSize());
-                LogUtils.d("FileAdapter", "Setting size for " + file.getName() + ": " + formattedSize);
-                sizeView.setText(formattedSize);
-            } else {
-                LogUtils.d("FileAdapter", "No size for directory: " + file.getName());
-                sizeView.setText("");
-            }
-
-            // Show sync direction indicator
-            if (syncIndicator != null && syncIndicatorIcon != null) {
-                String filePath = file.getPath();
-                LogUtils.d("FileAdapter", "Sync check for '" + file.getName() + "': filePath='" + filePath + "', syncDirections.size=" + syncDirections.size() + ", keys=" + syncDirections.keySet());
-                SyncDirection direction = syncDirections.get(filePath);
-                if (direction == null && filePath != null && !filePath.endsWith("/")) {
-                    direction = syncDirections.get(filePath + "/");
-                    LogUtils.d("FileAdapter", "Retry with trailing slash: '" + filePath + "/' -> " + direction);
-                }
-                if (direction != null) {
-                    LogUtils.d("FileAdapter", "MATCH FOUND for '" + filePath + "': direction=" + direction);
-                    syncIndicator.setVisibility(View.VISIBLE);
-                    switch (direction) {
-                        case LOCAL_TO_REMOTE:
-                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_upload);
-                            break;
-                        case REMOTE_TO_LOCAL:
-                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_download);
-                            break;
-                        case BIDIRECTIONAL:
-                            syncIndicatorIcon.setImageResource(R.drawable.ic_sync_bidirectional);
-                            break;
-                    }
-                } else {
-                    syncIndicator.setVisibility(View.GONE);
-                }
-            }
-
-            // Enhanced visual selection highlight for multi-select
-            boolean selected = selectionMode && selectedPaths.contains(file.getPath());
-            itemView.setActivated(selected);
-
-            // Show selection indicator
-            /*if (selectionIndicator != null) {
-                selectionIndicator.setVisibility(selected ? View.VISIBLE : View.GONE);
-            }*/
-
-            // Change card background color to make selection more prominent
-            if (rootCard != null) {
-                int bgColor = MaterialColors.getColor(itemView, selected
-                        ? com.google.android.material.R.attr.colorSecondaryContainer
-                        : com.google.android.material.R.attr.colorSurface);
-                rootCard.setCardBackgroundColor(bgColor);
-            }
-        }
-    }
+  }
 }

@@ -1,5 +1,8 @@
 plugins {
     id 'com.android.application'
+    id 'com.diffplug.spotless'
+    id 'net.ltgt.errorprone'
+    id 'jacoco'
 }
 
 android {
@@ -239,4 +242,13 @@ tasks.whenTaskAdded { task ->
 tasks.withType(AbstractArchiveTask) {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
+}
+spotless {
+    java {
+        target("src/*/java/**/*.java")
+        googleJavaFormat("1.25.2")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

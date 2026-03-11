@@ -11,55 +11,41 @@ import de.schliweb.sambalite.ui.SearchViewModel;
 import de.schliweb.sambalite.ui.ShareReceiverViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 
-/**
- * Dagger module for providing ViewModels.
- */
+/** Dagger module for providing ViewModels. */
 @Module
 public abstract class ViewModelModule {
 
-    /**
-     * Binds the MainViewModel to the ViewModelFactory.
-     */
-    @Binds
-    @IntoMap
-    @ViewModelKey(MainViewModel.class)
-    abstract ViewModel bindMainViewModel(MainViewModel viewModel);
+  /** Binds the MainViewModel to the ViewModelFactory. */
+  @Binds
+  @IntoMap
+  @ViewModelKey(MainViewModel.class)
+  abstract ViewModel bindMainViewModel(MainViewModel viewModel);
 
-    /**
-     * Binds the FileListViewModel to the ViewModelFactory.
-     */
-    @Binds
-    @IntoMap
-    @ViewModelKey(FileListViewModel.class)
-    abstract ViewModel bindFileListViewModel(FileListViewModel viewModel);
+  /** Binds the FileListViewModel to the ViewModelFactory. */
+  @Binds
+  @IntoMap
+  @ViewModelKey(FileListViewModel.class)
+  abstract ViewModel bindFileListViewModel(FileListViewModel viewModel);
 
-    /**
-     * Binds the FileOperationsViewModel to the ViewModelFactory.
-     */
-    @Binds
-    @IntoMap
-    @ViewModelKey(FileOperationsViewModel.class)
-    abstract ViewModel bindFileOperationsViewModel(FileOperationsViewModel viewModel);
+  /** Binds the FileOperationsViewModel to the ViewModelFactory. */
+  @Binds
+  @IntoMap
+  @ViewModelKey(FileOperationsViewModel.class)
+  abstract ViewModel bindFileOperationsViewModel(FileOperationsViewModel viewModel);
 
-    /**
-     * Binds the SearchViewModel to the ViewModelFactory.
-     */
-    @Binds
-    @IntoMap
-    @ViewModelKey(SearchViewModel.class)
-    abstract ViewModel bindSearchViewModel(SearchViewModel viewModel);
+  /** Binds the SearchViewModel to the ViewModelFactory. */
+  @Binds
+  @IntoMap
+  @ViewModelKey(SearchViewModel.class)
+  abstract ViewModel bindSearchViewModel(SearchViewModel viewModel);
 
-    /**
-     * Binds the ShareReceiverViewModel to the ViewModelFactory.
-     */
-    @Binds
-    @IntoMap
-    @ViewModelKey(ShareReceiverViewModel.class)
-    abstract ViewModel bindShareReceiverViewModel(ShareReceiverViewModel viewModel);
+  /** Binds the ShareReceiverViewModel to the ViewModelFactory. */
+  @Binds
+  @IntoMap
+  @ViewModelKey(ShareReceiverViewModel.class)
+  abstract ViewModel bindShareReceiverViewModel(ShareReceiverViewModel viewModel);
 
-    /**
-     * Binds the ViewModelFactory.
-     */
-    @Binds
-    abstract ViewModelProvider.Factory bindViewModelFactory(ViewModelFactory factory);
+  /** Binds the ViewModelFactory. */
+  @Binds
+  abstract ViewModelProvider.Factory bindViewModelFactory(ViewModelFactory factory);
 }

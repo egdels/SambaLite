@@ -8,50 +8,37 @@ import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.MainActivity;
 import de.schliweb.sambalite.ui.ShareReceiverActivity;
 import de.schliweb.sambalite.ui.SystemMonitorActivity;
-
 import javax.inject.Singleton;
 
 /**
- * Main Dagger component for the application.
- * Defines the scope and modules for dependency injection.
+ * Main Dagger component for the application. Defines the scope and modules for dependency
+ * injection.
  */
 @Singleton
 @Component(modules = {AppModule.class, ViewModelModule.class})
 public interface AppComponent {
 
-    /**
-     * Injects dependencies into the SambaLiteApp.
-     */
-    void inject(SambaLiteApp app);
+  /** Injects dependencies into the SambaLiteApp. */
+  void inject(SambaLiteApp app);
 
-    /**
-     * Injects dependencies into the MainActivity.
-     */
-    void inject(MainActivity activity);
+  /** Injects dependencies into the MainActivity. */
+  void inject(MainActivity activity);
 
-    /**
-     * Injects dependencies into the FileBrowserActivity.
-     */
-    void inject(FileBrowserActivity activity);
+  /** Injects dependencies into the FileBrowserActivity. */
+  void inject(FileBrowserActivity activity);
 
-    /**
-     * Injects dependencies into the ShareReceiverActivity.
-     */
-    void inject(ShareReceiverActivity activity);
+  /** Injects dependencies into the ShareReceiverActivity. */
+  void inject(ShareReceiverActivity activity);
 
-    /**
-     * Injects dependencies into the SystemMonitorActivity.
-     */
-    void inject(SystemMonitorActivity activity);
+  /** Injects dependencies into the SystemMonitorActivity. */
+  void inject(SystemMonitorActivity activity);
 
-    /**
-     * Builder for the AppComponent.
-     */
-    @Component.Builder
-    interface Builder {
-        @BindsInstance
-        Builder application(Application application);
+  /** Builder for the AppComponent. */
+  @Component.Builder
+  interface Builder {
+    @BindsInstance
+    Builder application(Application application);
 
-        AppComponent build();
-    }
+    AppComponent build();
+  }
 }

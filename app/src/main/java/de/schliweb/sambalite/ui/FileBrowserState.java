@@ -6,362 +6,295 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.PreferencesManager;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import lombok.Getter;
 
 /**
- * Shared state object for the file browser ViewModels.
- * This class holds the state that needs to be shared between the specialized ViewModels:
- * - FileListViewModel
- * - FileOperationsViewModel
- * - SearchViewModel
+ * Shared state object for the file browser ViewModels. This class holds the state that needs to be
+ * shared between the specialized ViewModels: - FileListViewModel - FileOperationsViewModel -
+ * SearchViewModel
  */
 public class FileBrowserState {
-    // Preferences manager for persisting UI preferences
-    private final PreferencesManager preferencesManager;
-    // Navigation state
-    private final Stack<String> pathStack = new Stack<>();
-    private final MutableLiveData<String> currentPathLiveData = new MutableLiveData<>("");
-    // File list state
-    private final MutableLiveData<List<SmbFileItem>> files = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
-    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    // Sorting state
-    private final MutableLiveData<FileSortOption> sortOption;
-    private final MutableLiveData<Boolean> directoriesFirstLiveData;
-    private final MutableLiveData<Boolean> showHiddenFilesLiveData;
-    // Search state
-    private final MutableLiveData<List<SmbFileItem>> searchResults = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
-    // Connection state
-    @Getter
-    private SmbConnection connection;
-    private String currentPath = "";
-    private FileSortOption currentSortOption;
-    private boolean directoriesFirst;
-    private boolean showHiddenFiles;
-    private boolean isSearchMode = false;
-    private String currentSearchQuery = "";
-    private String searchStartPath = "";
-    // Operation state
-    private volatile boolean uploadCancelled = false;
-    private volatile boolean downloadCancelled = false;
-    /**
-     * Creates a new FileBrowserState with the given PreferencesManager.
-     *
-     * @param preferencesManager The PreferencesManager to use for storing preferences
-     */
-    public FileBrowserState(PreferencesManager preferencesManager) {
-        this.preferencesManager = preferencesManager;
+  // Preferences manager for persisting UI preferences
+  private final PreferencesManager preferencesManager;
+  // Navigation state
+  private final Stack<String> pathStack = new Stack<>();
+  private final MutableLiveData<String> currentPathLiveData = new MutableLiveData<>("");
+  // File list state
+  private final MutableLiveData<List<SmbFileItem>> files = new MutableLiveData<>(new ArrayList<>());
+  private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+  private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+  // Sorting state
+  private final MutableLiveData<FileSortOption> sortOption;
+  private final MutableLiveData<Boolean> directoriesFirstLiveData;
+  private final MutableLiveData<Boolean> showHiddenFilesLiveData;
+  // Search state
+  private final MutableLiveData<List<SmbFileItem>> searchResults =
+      new MutableLiveData<>(new ArrayList<>());
+  private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
+  // Connection state
+  @Getter private SmbConnection connection;
+  private String currentPath = "";
+  private FileSortOption currentSortOption;
+  private boolean directoriesFirst;
+  private boolean showHiddenFiles;
+  private boolean isSearchMode = false;
+  private String currentSearchQuery = "";
+  private String searchStartPath = "";
+  // Operation state
+  private volatile boolean uploadCancelled = false;
+  private volatile boolean downloadCancelled = false;
 
-        // Load sorting preferences from PreferencesManager
-        this.currentSortOption = preferencesManager.getSortOption();
-        this.directoriesFirst = preferencesManager.getDirectoriesFirst();
-        this.showHiddenFiles = preferencesManager.getShowHiddenFiles();
+  /**
+   * Creates a new FileBrowserState with the given PreferencesManager.
+   *
+   * @param preferencesManager The PreferencesManager to use for storing preferences
+   */
+  public FileBrowserState(PreferencesManager preferencesManager) {
+    this.preferencesManager = preferencesManager;
 
-        // Initialize LiveData with loaded preferences
-        this.sortOption = new MutableLiveData<>(currentSortOption);
-        this.directoriesFirstLiveData = new MutableLiveData<>(directoriesFirst);
-        this.showHiddenFilesLiveData = new MutableLiveData<>(showHiddenFiles);
+    // Load sorting preferences from PreferencesManager
+    this.currentSortOption = preferencesManager.getSortOption();
+    this.directoriesFirst = preferencesManager.getDirectoriesFirst();
+    this.showHiddenFiles = preferencesManager.getShowHiddenFiles();
 
-        LogUtils.d("FileBrowserState", "Initialized with sort option: " + currentSortOption + ", directoriesFirst: " + directoriesFirst);
+    // Initialize LiveData with loaded preferences
+    this.sortOption = new MutableLiveData<>(currentSortOption);
+    this.directoriesFirstLiveData = new MutableLiveData<>(directoriesFirst);
+    this.showHiddenFilesLiveData = new MutableLiveData<>(showHiddenFiles);
+
+    LogUtils.d(
+        "FileBrowserState",
+        "Initialized with sort option: "
+            + currentSortOption
+            + ", directoriesFirst: "
+            + directoriesFirst);
+  }
+
+  /**
+   * Sets the connection to use for browsing files.
+   *
+   * @param connection The connection to use
+   */
+  public void setConnection(SmbConnection connection) {
+    // Only reset path when the connection actually changes to preserve navigation state on rotation
+    if (this.connection != null && this.connection.getId().equals(connection.getId())) {
+      LogUtils.d(
+          "FileBrowserState",
+          "setConnection: same connection, keeping current path: " + currentPath);
+      this.connection = connection;
+      return;
     }
+    this.connection = connection;
+    pathStack.clear();
+    currentPath = "";
+    currentPathLiveData.setValue(connection.getShare());
+  }
 
-    /**
-     * Sets the connection to use for browsing files.
-     *
-     * @param connection The connection to use
-     */
-    public void setConnection(SmbConnection connection) {
-        // Only reset path when the connection actually changes to preserve navigation state on rotation
-        if (this.connection != null && this.connection.getId().equals(connection.getId())) {
-            LogUtils.d("FileBrowserState", "setConnection: same connection, keeping current path: " + currentPath);
-            this.connection = connection;
-            return;
-        }
-        this.connection = connection;
-        pathStack.clear();
-        currentPath = "";
-        currentPathLiveData.setValue(connection.getShare());
+  /** Gets the current path. */
+  public String getCurrentPathString() {
+    return currentPath;
+  }
+
+  /** Updates the current path display. */
+  private void updateCurrentPathDisplay() {
+    if (connection == null) return;
+
+    String displayPath = connection.getShare();
+    if (currentPath != null && !currentPath.isEmpty()) {
+      displayPath += "/" + currentPath;
     }
+    currentPathLiveData.postValue(displayPath);
+  }
 
-    /**
-     * Gets the current path.
-     */
-    public String getCurrentPathString() {
-        return currentPath;
+  /** Pushes the current path onto the path stack. */
+  public void pushPath(String path) {
+    pathStack.push(path);
+  }
+
+  /** Pops the path stack and returns the previous path. */
+  public String popPath() {
+    if (pathStack.isEmpty()) {
+      return "";
     }
+    return pathStack.pop();
+  }
 
-    /**
-     * Updates the current path display.
-     */
-    private void updateCurrentPathDisplay() {
-        if (connection == null) return;
+  /** Checks if there is a parent directory to navigate to. */
+  public boolean hasParentDirectory() {
+    return !pathStack.isEmpty();
+  }
 
-        String displayPath = connection.getShare();
-        if (currentPath != null && !currentPath.isEmpty()) {
-            displayPath += "/" + currentPath;
-        }
-        currentPathLiveData.postValue(displayPath);
-    }
+  /** Gets the list of files as LiveData. */
+  public LiveData<List<SmbFileItem>> getFiles() {
+    return files;
+  }
 
-    /**
-     * Pushes the current path onto the path stack.
-     */
-    public void pushPath(String path) {
-        pathStack.push(path);
-    }
+  /** Sets the list of files. */
+  public void setFiles(List<SmbFileItem> fileList) {
+    files.postValue(fileList);
+  }
 
-    /**
-     * Pops the path stack and returns the previous path.
-     */
-    public String popPath() {
-        if (pathStack.isEmpty()) {
-            return "";
-        }
-        return pathStack.pop();
-    }
+  /** Gets the loading state as LiveData. */
+  public LiveData<Boolean> isLoading() {
+    return isLoading;
+  }
 
-    /**
-     * Checks if there is a parent directory to navigate to.
-     */
-    public boolean hasParentDirectory() {
-        return !pathStack.isEmpty();
-    }
+  /** Sets the loading state. */
+  public void setLoading(boolean loading) {
+    isLoading.postValue(loading);
+  }
 
-    /**
-     * Gets the list of files as LiveData.
-     */
-    public LiveData<List<SmbFileItem>> getFiles() {
-        return files;
-    }
+  /** Gets the error message as LiveData. */
+  public LiveData<String> getErrorMessage() {
+    return errorMessage;
+  }
 
-    /**
-     * Sets the list of files.
-     */
-    public void setFiles(List<SmbFileItem> fileList) {
-        files.postValue(fileList);
-    }
+  /** Sets the error message. */
+  public void setErrorMessage(String message) {
+    errorMessage.postValue(message);
+  }
 
-    /**
-     * Gets the loading state as LiveData.
-     */
-    public LiveData<Boolean> isLoading() {
-        return isLoading;
-    }
+  /** Gets the current path as LiveData. */
+  public LiveData<String> getCurrentPath() {
+    return currentPathLiveData;
+  }
 
-    /**
-     * Sets the loading state.
-     */
-    public void setLoading(boolean loading) {
-        isLoading.postValue(loading);
-    }
+  /** Sets the current path. */
+  public void setCurrentPath(String path) {
+    this.currentPath = path;
+    updateCurrentPathDisplay();
+  }
 
-    /**
-     * Gets the error message as LiveData.
-     */
-    public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
+  /** Gets the current sort option as LiveData. */
+  public LiveData<FileSortOption> getSortOption() {
+    return sortOption;
+  }
 
-    /**
-     * Sets the error message.
-     */
-    public void setErrorMessage(String message) {
-        errorMessage.postValue(message);
-    }
+  /** Sets the sort option and persists it to preferences. */
+  public void setSortOption(FileSortOption option) {
+    this.currentSortOption = option;
+    this.sortOption.setValue(option);
 
-    /**
-     * Gets the current path as LiveData.
-     */
-    public LiveData<String> getCurrentPath() {
-        return currentPathLiveData;
-    }
+    // Save to preferences
+    preferencesManager.saveSortOption(option);
+    LogUtils.d("FileBrowserState", "Sort option saved to preferences: " + option);
+  }
 
-    /**
-     * Sets the current path.
-     */
-    public void setCurrentPath(String path) {
-        this.currentPath = path;
-        updateCurrentPathDisplay();
-    }
+  /** Gets the current sort option. */
+  public FileSortOption getCurrentSortOption() {
+    return currentSortOption;
+  }
 
-    /**
-     * Gets the current sort option as LiveData.
-     */
-    public LiveData<FileSortOption> getSortOption() {
-        return sortOption;
-    }
+  /** Gets the current "directories first" flag as LiveData. */
+  public LiveData<Boolean> getDirectoriesFirst() {
+    return directoriesFirstLiveData;
+  }
 
-    /**
-     * Sets the sort option and persists it to preferences.
-     */
-    public void setSortOption(FileSortOption option) {
-        this.currentSortOption = option;
-        this.sortOption.setValue(option);
+  /** Gets the current "directories first" flag. */
+  public boolean isDirectoriesFirst() {
+    return directoriesFirst;
+  }
 
-        // Save to preferences
-        preferencesManager.saveSortOption(option);
-        LogUtils.d("FileBrowserState", "Sort option saved to preferences: " + option);
-    }
+  /** Sets the "directories first" flag and persists it to preferences. */
+  public void setDirectoriesFirst(boolean directoriesFirst) {
+    this.directoriesFirst = directoriesFirst;
+    this.directoriesFirstLiveData.setValue(directoriesFirst);
 
-    /**
-     * Gets the current sort option.
-     */
-    public FileSortOption getCurrentSortOption() {
-        return currentSortOption;
-    }
+    // Save to preferences
+    preferencesManager.saveDirectoriesFirst(directoriesFirst);
+    LogUtils.d("FileBrowserState", "Directories first saved to preferences: " + directoriesFirst);
+  }
 
-    /**
-     * Gets the current "directories first" flag as LiveData.
-     */
-    public LiveData<Boolean> getDirectoriesFirst() {
-        return directoriesFirstLiveData;
-    }
+  /** Gets the current "show hidden files" flag as LiveData. */
+  public LiveData<Boolean> getShowHiddenFiles() {
+    return showHiddenFilesLiveData;
+  }
 
-    /**
-     * Gets the current "directories first" flag.
-     */
-    public boolean isDirectoriesFirst() {
-        return directoriesFirst;
-    }
+  /** Gets the current "show hidden files" flag. */
+  public boolean isShowHiddenFiles() {
+    return showHiddenFiles;
+  }
 
-    /**
-     * Sets the "directories first" flag and persists it to preferences.
-     */
-    public void setDirectoriesFirst(boolean directoriesFirst) {
-        this.directoriesFirst = directoriesFirst;
-        this.directoriesFirstLiveData.setValue(directoriesFirst);
+  /** Sets the "show hidden files" flag and persists it to preferences. */
+  public void setShowHiddenFiles(boolean showHiddenFiles) {
+    this.showHiddenFiles = showHiddenFiles;
+    this.showHiddenFilesLiveData.setValue(showHiddenFiles);
 
-        // Save to preferences
-        preferencesManager.saveDirectoriesFirst(directoriesFirst);
-        LogUtils.d("FileBrowserState", "Directories first saved to preferences: " + directoriesFirst);
-    }
+    // Save to preferences
+    preferencesManager.saveShowHiddenFiles(showHiddenFiles);
+    LogUtils.d("FileBrowserState", "Show hidden files saved to preferences: " + showHiddenFiles);
+  }
 
-    /**
-     * Gets the current "show hidden files" flag as LiveData.
-     */
-    public LiveData<Boolean> getShowHiddenFiles() {
-        return showHiddenFilesLiveData;
-    }
+  /** Gets the search results as LiveData. */
+  public LiveData<List<SmbFileItem>> getSearchResults() {
+    return searchResults;
+  }
 
-    /**
-     * Gets the current "show hidden files" flag.
-     */
-    public boolean isShowHiddenFiles() {
-        return showHiddenFiles;
-    }
+  /** Sets the search results. */
+  public void setSearchResults(List<SmbFileItem> results) {
+    searchResults.postValue(results);
+  }
 
-    /**
-     * Sets the "show hidden files" flag and persists it to preferences.
-     */
-    public void setShowHiddenFiles(boolean showHiddenFiles) {
-        this.showHiddenFiles = showHiddenFiles;
-        this.showHiddenFilesLiveData.setValue(showHiddenFiles);
+  /** Gets the searching state as LiveData. */
+  public LiveData<Boolean> isSearching() {
+    return isSearching;
+  }
 
-        // Save to preferences
-        preferencesManager.saveShowHiddenFiles(showHiddenFiles);
-        LogUtils.d("FileBrowserState", "Show hidden files saved to preferences: " + showHiddenFiles);
-    }
+  /** Sets the searching state. */
+  public void setSearching(boolean searching) {
+    isSearching.postValue(searching);
+  }
 
-    /**
-     * Gets the search results as LiveData.
-     */
-    public LiveData<List<SmbFileItem>> getSearchResults() {
-        return searchResults;
-    }
+  /** Checks if the view model is in search mode. */
+  public boolean isInSearchMode() {
+    return isSearchMode;
+  }
 
-    /**
-     * Sets the search results.
-     */
-    public void setSearchResults(List<SmbFileItem> results) {
-        searchResults.postValue(results);
-    }
+  /** Sets the search mode. */
+  public void setSearchMode(boolean searchMode) {
+    this.isSearchMode = searchMode;
+  }
 
-    /**
-     * Gets the searching state as LiveData.
-     */
-    public LiveData<Boolean> isSearching() {
-        return isSearching;
-    }
+  /** Gets the current search query. */
+  public String getCurrentSearchQuery() {
+    return currentSearchQuery;
+  }
 
-    /**
-     * Sets the searching state.
-     */
-    public void setSearching(boolean searching) {
-        isSearching.postValue(searching);
-    }
+  /** Sets the current search query. */
+  public void setCurrentSearchQuery(String query) {
+    this.currentSearchQuery = query;
+  }
 
-    /**
-     * Checks if the view model is in search mode.
-     */
-    public boolean isInSearchMode() {
-        return isSearchMode;
-    }
+  /** Gets the path where the current search was started. */
+  public String getSearchStartPath() {
+    return searchStartPath;
+  }
 
-    /**
-     * Sets the search mode.
-     */
-    public void setSearchMode(boolean searchMode) {
-        this.isSearchMode = searchMode;
-    }
+  /** Sets the path where the current search is started. */
+  public void setSearchStartPath(String path) {
+    this.searchStartPath = path != null ? path : "";
+  }
 
-    /**
-     * Gets the current search query.
-     */
-    public String getCurrentSearchQuery() {
-        return currentSearchQuery;
-    }
+  /** Checks if upload is cancelled. */
+  public boolean isUploadCancelled() {
+    return uploadCancelled;
+  }
 
-    /**
-     * Sets the current search query.
-     */
-    public void setCurrentSearchQuery(String query) {
-        this.currentSearchQuery = query;
-    }
+  /** Sets the upload cancelled flag. */
+  public void setUploadCancelled(boolean cancelled) {
+    this.uploadCancelled = cancelled;
+  }
 
-    /**
-     * Gets the path where the current search was started.
-     */
-    public String getSearchStartPath() {
-        return searchStartPath;
-    }
+  /** Checks if download is cancelled. */
+  public boolean isDownloadCancelled() {
+    return downloadCancelled;
+  }
 
-    /**
-     * Sets the path where the current search is started.
-     */
-    public void setSearchStartPath(String path) {
-        this.searchStartPath = path != null ? path : "";
-    }
-
-    /**
-     * Checks if upload is cancelled.
-     */
-    public boolean isUploadCancelled() {
-        return uploadCancelled;
-    }
-
-    /**
-     * Sets the upload cancelled flag.
-     */
-    public void setUploadCancelled(boolean cancelled) {
-        this.uploadCancelled = cancelled;
-    }
-
-    /**
-     * Checks if download is cancelled.
-     */
-    public boolean isDownloadCancelled() {
-        return downloadCancelled;
-    }
-
-    /**
-     * Sets the download cancelled flag.
-     */
-    public void setDownloadCancelled(boolean cancelled) {
-        this.downloadCancelled = cancelled;
-    }
+  /** Sets the download cancelled flag. */
+  public void setDownloadCancelled(boolean cancelled) {
+    this.downloadCancelled = cancelled;
+  }
 }

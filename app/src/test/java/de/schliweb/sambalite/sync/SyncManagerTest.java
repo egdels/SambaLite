@@ -1,223 +1,220 @@
 package de.schliweb.sambalite.sync;
 
+import static org.junit.Assert.*;
+
 import android.content.Context;
 import android.net.Uri;
-
 import androidx.test.core.app.ApplicationProvider;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
-
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import java.util.List;
-
-import static org.junit.Assert.*;
-
 /**
- * Tests for SyncManager coordination logic.
- * Uses a real SyncRepository with Robolectric SharedPreferences.
- * WorkManager calls are tested indirectly (no exceptions thrown).
+ * Tests for SyncManager coordination logic. Uses a real SyncRepository with Robolectric
+ * SharedPreferences. WorkManager calls are tested indirectly (no exceptions thrown).
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
 public class SyncManagerTest {
 
-    private SyncRepository syncRepository;
-    private SyncManager syncManager;
+  private SyncRepository syncRepository;
+  private SyncManager syncManager;
 
-    @Before
-    public void setUp() {
-        Context context = ApplicationProvider.getApplicationContext();
+  @Before
+  public void setUp() {
+    Context context = ApplicationProvider.getApplicationContext();
 
-        // Initialize WorkManager for testing
-        try {
-            Configuration config = new Configuration.Builder()
-                    .setMinimumLoggingLevel(android.util.Log.DEBUG)
-                    .build();
-            WorkManager.initialize(context, config);
-        } catch (IllegalStateException e) {
-            // Already initialized
-        }
-
-        syncRepository = new SyncRepository(context);
-        syncManager = new SyncManager(context, syncRepository);
+    // Initialize WorkManager for testing
+    try {
+      Configuration config =
+          new Configuration.Builder().setMinimumLoggingLevel(android.util.Log.DEBUG).build();
+      WorkManager.initialize(context, config);
+    } catch (IllegalStateException e) {
+      // Already initialized
     }
 
-    @Test
-    public void addSyncConfig_createsConfigWithCorrectValues() {
-        Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3APhotos");
+    syncRepository = new SyncRepository(context);
+    syncManager = new SyncManager(context, syncRepository);
+  }
 
-        SyncConfig result = syncManager.addSyncConfig(
-                "conn-1", uri, "/Photos/Backup", "Photos",
-                SyncDirection.LOCAL_TO_REMOTE, 30);
+  @Test
+  public void addSyncConfig_createsConfigWithCorrectValues() {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3APhotos");
 
-        assertNotNull(result);
-        assertNotNull(result.getId());
-        assertEquals("conn-1", result.getConnectionId());
-        assertEquals(uri.toString(), result.getLocalFolderUri());
-        assertEquals("/Photos/Backup", result.getRemotePath());
-        assertEquals("Photos", result.getLocalFolderDisplayName());
-        assertEquals(SyncDirection.LOCAL_TO_REMOTE, result.getDirection());
-        assertEquals(30, result.getIntervalMinutes());
-        assertTrue(result.isEnabled());
-    }
+    SyncConfig result =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/Photos/Backup", "Photos", SyncDirection.LOCAL_TO_REMOTE, 30);
 
-    @Test
-    public void addSyncConfig_enforcesMinimumInterval() {
-        Uri uri = Uri.parse("content://test/tree/folder");
+    assertNotNull(result);
+    assertNotNull(result.getId());
+    assertEquals("conn-1", result.getConnectionId());
+    assertEquals(uri.toString(), result.getLocalFolderUri());
+    assertEquals("/Photos/Backup", result.getRemotePath());
+    assertEquals("Photos", result.getLocalFolderDisplayName());
+    assertEquals(SyncDirection.LOCAL_TO_REMOTE, result.getDirection());
+    assertEquals(30, result.getIntervalMinutes());
+    assertTrue(result.isEnabled());
+  }
 
-        SyncConfig result = syncManager.addSyncConfig(
-                "conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 5);
+  @Test
+  public void addSyncConfig_enforcesMinimumInterval() {
+    Uri uri = Uri.parse("content://test/tree/folder");
 
-        assertEquals(15, result.getIntervalMinutes());
-    }
+    SyncConfig result =
+        syncManager.addSyncConfig("conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 5);
 
-    @Test
-    public void addSyncConfig_persistsConfig() {
-        Uri uri = Uri.parse("content://test/tree/folder");
+    assertEquals(15, result.getIntervalMinutes());
+  }
 
-        syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
+  @Test
+  public void addSyncConfig_persistsConfig() {
+    Uri uri = Uri.parse("content://test/tree/folder");
 
-        List<SyncConfig> all = syncManager.getAllSyncConfigs();
-        assertEquals(1, all.size());
-        assertEquals("conn-1", all.get(0).getConnectionId());
-    }
+    syncManager.addSyncConfig("conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
 
-    @Test
-    public void removeSyncConfig_removesExistingConfig() {
-        Uri uri = Uri.parse("content://test/tree/folder");
-        SyncConfig config = syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
+    List<SyncConfig> all = syncManager.getAllSyncConfigs();
+    assertEquals(1, all.size());
+    assertEquals("conn-1", all.get(0).getConnectionId());
+  }
 
-        boolean removed = syncManager.removeSyncConfig(config.getId());
+  @Test
+  public void removeSyncConfig_removesExistingConfig() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+    SyncConfig config =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
 
-        assertTrue(removed);
-        assertTrue(syncManager.getAllSyncConfigs().isEmpty());
-    }
+    boolean removed = syncManager.removeSyncConfig(config.getId());
 
-    @Test
-    public void removeSyncConfig_returnsFalseForNonExistent() {
-        boolean removed = syncManager.removeSyncConfig("non-existent-id");
-        assertFalse(removed);
-    }
+    assertTrue(removed);
+    assertTrue(syncManager.getAllSyncConfigs().isEmpty());
+  }
 
-    @Test
-    public void setConfigEnabled_disablesConfig() {
-        Uri uri = Uri.parse("content://test/tree/folder");
-        SyncConfig config = syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
+  @Test
+  public void removeSyncConfig_returnsFalseForNonExistent() {
+    boolean removed = syncManager.removeSyncConfig("non-existent-id");
+    assertFalse(removed);
+  }
 
-        syncManager.setConfigEnabled(config.getId(), false);
+  @Test
+  public void setConfigEnabled_disablesConfig() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+    SyncConfig config =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
 
-        List<SyncConfig> all = syncManager.getAllSyncConfigs();
-        assertEquals(1, all.size());
-        assertFalse(all.get(0).isEnabled());
-    }
+    syncManager.setConfigEnabled(config.getId(), false);
 
-    @Test
-    public void setConfigEnabled_enablesConfig() {
-        Uri uri = Uri.parse("content://test/tree/folder");
-        SyncConfig config = syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
-        syncManager.setConfigEnabled(config.getId(), false);
+    List<SyncConfig> all = syncManager.getAllSyncConfigs();
+    assertEquals(1, all.size());
+    assertFalse(all.get(0).isEnabled());
+  }
 
-        syncManager.setConfigEnabled(config.getId(), true);
+  @Test
+  public void setConfigEnabled_enablesConfig() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+    SyncConfig config =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
+    syncManager.setConfigEnabled(config.getId(), false);
 
-        List<SyncConfig> all = syncManager.getAllSyncConfigs();
-        assertTrue(all.get(0).isEnabled());
-    }
+    syncManager.setConfigEnabled(config.getId(), true);
 
-    @Test
-    public void getAllSyncConfigs_returnsEmptyListInitially() {
-        List<SyncConfig> configs = syncManager.getAllSyncConfigs();
-        assertNotNull(configs);
-        assertTrue(configs.isEmpty());
-    }
+    List<SyncConfig> all = syncManager.getAllSyncConfigs();
+    assertTrue(all.get(0).isEnabled());
+  }
 
-    @Test
-    public void getAllSyncConfigs_returnsMultipleConfigs() {
-        Uri uri1 = Uri.parse("content://test/tree/folder1");
-        Uri uri2 = Uri.parse("content://test/tree/folder2");
+  @Test
+  public void getAllSyncConfigs_returnsEmptyListInitially() {
+    List<SyncConfig> configs = syncManager.getAllSyncConfigs();
+    assertNotNull(configs);
+    assertTrue(configs.isEmpty());
+  }
 
-        syncManager.addSyncConfig("conn-1", uri1, "/path1", "Folder1",
-                SyncDirection.LOCAL_TO_REMOTE, 30);
-        syncManager.addSyncConfig("conn-1", uri2, "/path2", "Folder2",
-                SyncDirection.REMOTE_TO_LOCAL, 60);
+  @Test
+  public void getAllSyncConfigs_returnsMultipleConfigs() {
+    Uri uri1 = Uri.parse("content://test/tree/folder1");
+    Uri uri2 = Uri.parse("content://test/tree/folder2");
 
-        List<SyncConfig> configs = syncManager.getAllSyncConfigs();
-        assertEquals(2, configs.size());
-    }
+    syncManager.addSyncConfig(
+        "conn-1", uri1, "/path1", "Folder1", SyncDirection.LOCAL_TO_REMOTE, 30);
+    syncManager.addSyncConfig(
+        "conn-1", uri2, "/path2", "Folder2", SyncDirection.REMOTE_TO_LOCAL, 60);
 
-    @Test
-    public void removeConfigsForConnection_removesAllConfigsForConnection() {
-        Uri uri1 = Uri.parse("content://test/tree/folder1");
-        Uri uri2 = Uri.parse("content://test/tree/folder2");
-        Uri uri3 = Uri.parse("content://test/tree/folder3");
+    List<SyncConfig> configs = syncManager.getAllSyncConfigs();
+    assertEquals(2, configs.size());
+  }
 
-        syncManager.addSyncConfig("conn-1", uri1, "/path1", "Folder1",
-                SyncDirection.LOCAL_TO_REMOTE, 30);
-        syncManager.addSyncConfig("conn-1", uri2, "/path2", "Folder2",
-                SyncDirection.REMOTE_TO_LOCAL, 60);
-        syncManager.addSyncConfig("conn-2", uri3, "/path3", "Folder3",
-                SyncDirection.BIDIRECTIONAL, 15);
+  @Test
+  public void removeConfigsForConnection_removesAllConfigsForConnection() {
+    Uri uri1 = Uri.parse("content://test/tree/folder1");
+    Uri uri2 = Uri.parse("content://test/tree/folder2");
+    Uri uri3 = Uri.parse("content://test/tree/folder3");
 
-        int removed = syncManager.removeConfigsForConnection("conn-1");
+    syncManager.addSyncConfig(
+        "conn-1", uri1, "/path1", "Folder1", SyncDirection.LOCAL_TO_REMOTE, 30);
+    syncManager.addSyncConfig(
+        "conn-1", uri2, "/path2", "Folder2", SyncDirection.REMOTE_TO_LOCAL, 60);
+    syncManager.addSyncConfig("conn-2", uri3, "/path3", "Folder3", SyncDirection.BIDIRECTIONAL, 15);
 
-        assertEquals(2, removed);
-        List<SyncConfig> remaining = syncManager.getAllSyncConfigs();
-        assertEquals(1, remaining.size());
-        assertEquals("conn-2", remaining.get(0).getConnectionId());
-    }
+    int removed = syncManager.removeConfigsForConnection("conn-1");
 
-    @Test
-    public void removeConfigsForConnection_returnsZeroForUnknownConnection() {
-        int removed = syncManager.removeConfigsForConnection("unknown");
-        assertEquals(0, removed);
-    }
+    assertEquals(2, removed);
+    List<SyncConfig> remaining = syncManager.getAllSyncConfigs();
+    assertEquals(1, remaining.size());
+    assertEquals("conn-2", remaining.get(0).getConnectionId());
+  }
 
-    @Test
-    public void addSyncConfig_multipleConfigsDifferentConnections() {
-        Uri uri1 = Uri.parse("content://test/tree/folder1");
-        Uri uri2 = Uri.parse("content://test/tree/folder2");
+  @Test
+  public void removeConfigsForConnection_returnsZeroForUnknownConnection() {
+    int removed = syncManager.removeConfigsForConnection("unknown");
+    assertEquals(0, removed);
+  }
 
-        syncManager.addSyncConfig("conn-1", uri1, "/path1", "Folder1",
-                SyncDirection.LOCAL_TO_REMOTE, 30);
-        syncManager.addSyncConfig("conn-2", uri2, "/path2", "Folder2",
-                SyncDirection.REMOTE_TO_LOCAL, 60);
+  @Test
+  public void addSyncConfig_multipleConfigsDifferentConnections() {
+    Uri uri1 = Uri.parse("content://test/tree/folder1");
+    Uri uri2 = Uri.parse("content://test/tree/folder2");
 
-        assertEquals(2, syncManager.getAllSyncConfigs().size());
-        assertEquals(1, syncManager.removeConfigsForConnection("conn-1"));
-        assertEquals(1, syncManager.getAllSyncConfigs().size());
-    }
+    syncManager.addSyncConfig(
+        "conn-1", uri1, "/path1", "Folder1", SyncDirection.LOCAL_TO_REMOTE, 30);
+    syncManager.addSyncConfig(
+        "conn-2", uri2, "/path2", "Folder2", SyncDirection.REMOTE_TO_LOCAL, 60);
 
-    @Test
-    public void addSyncConfig_defaultEnabledTrue() {
-        Uri uri = Uri.parse("content://test/tree/folder");
-        SyncConfig config = syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
+    assertEquals(2, syncManager.getAllSyncConfigs().size());
+    assertEquals(1, syncManager.removeConfigsForConnection("conn-1"));
+    assertEquals(1, syncManager.getAllSyncConfigs().size());
+  }
 
-        assertTrue(config.isEnabled());
-    }
+  @Test
+  public void addSyncConfig_defaultEnabledTrue() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+    SyncConfig config =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
 
-    @Test
-    public void setConfigEnabled_toggleMultipleTimes() {
-        Uri uri = Uri.parse("content://test/tree/folder");
-        SyncConfig config = syncManager.addSyncConfig("conn-1", uri, "/path", "Folder",
-                SyncDirection.BIDIRECTIONAL, 60);
+    assertTrue(config.isEnabled());
+  }
 
-        syncManager.setConfigEnabled(config.getId(), false);
-        assertFalse(syncManager.getAllSyncConfigs().get(0).isEnabled());
+  @Test
+  public void setConfigEnabled_toggleMultipleTimes() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+    SyncConfig config =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 60);
 
-        syncManager.setConfigEnabled(config.getId(), true);
-        assertTrue(syncManager.getAllSyncConfigs().get(0).isEnabled());
+    syncManager.setConfigEnabled(config.getId(), false);
+    assertFalse(syncManager.getAllSyncConfigs().get(0).isEnabled());
 
-        syncManager.setConfigEnabled(config.getId(), false);
-        assertFalse(syncManager.getAllSyncConfigs().get(0).isEnabled());
-    }
+    syncManager.setConfigEnabled(config.getId(), true);
+    assertTrue(syncManager.getAllSyncConfigs().get(0).isEnabled());
+
+    syncManager.setConfigEnabled(config.getId(), false);
+    assertFalse(syncManager.getAllSyncConfigs().get(0).isEnabled());
+  }
 }
