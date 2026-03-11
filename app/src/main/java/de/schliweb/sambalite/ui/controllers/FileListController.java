@@ -2,6 +2,7 @@ package de.schliweb.sambalite.ui.controllers;
 
 import android.view.View;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -58,12 +59,12 @@ public class FileListController
    * @param uiState The shared UI state
    */
   public FileListController(
-      RecyclerView recyclerView,
-      SwipeRefreshLayout swipeRefreshLayout,
-      View emptyView,
-      TextView currentPathView,
-      FileListViewModel viewModel,
-      FileBrowserUIState uiState) {
+      @NonNull RecyclerView recyclerView,
+      @NonNull SwipeRefreshLayout swipeRefreshLayout,
+      @NonNull View emptyView,
+      @NonNull TextView currentPathView,
+      @NonNull FileListViewModel viewModel,
+      @NonNull FileBrowserUIState uiState) {
     this.recyclerView = recyclerView;
     this.swipeRefreshLayout = swipeRefreshLayout;
     this.emptyView = emptyView;
@@ -181,7 +182,7 @@ public class FileListController
    * @param file The file that was clicked
    */
   @Override
-  public void onFileClick(SmbFileItem file) {
+  public void onFileClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileListController", "File clicked: " + file.getName());
 
     // Selection mode: toggle selection for files, ignore directories.
@@ -212,7 +213,7 @@ public class FileListController
    * @param file The file for which options were requested
    */
   @Override
-  public void onFileOptionsClick(SmbFileItem file) {
+  public void onFileOptionsClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileListController", "File options clicked: " + file.getName());
 
     // Store the selected file in the UI state
@@ -246,7 +247,7 @@ public class FileListController
    *
    * @param option The sort option to set
    */
-  public void setSortOption(FileSortOption option) {
+  public void setSortOption(@NonNull FileSortOption option) {
     LogUtils.d("FileListController", "Setting sort option: " + option);
     viewModel.setSortOption(option);
   }
@@ -256,7 +257,7 @@ public class FileListController
    *
    * @return The current sort option
    */
-  public FileSortOption getCurrentSortOption() {
+  public @NonNull FileSortOption getSortOption() {
     return viewModel.getSortOption().getValue();
   }
 
@@ -284,7 +285,7 @@ public class FileListController
    *
    * @param syncDirections Map of folder paths to their SyncDirection
    */
-  public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
+  public void setSyncDirections(@NonNull Map<String, SyncDirection> syncDirections) {
     LogUtils.d(
         "FileListController",
         "Setting sync directions: "
@@ -299,7 +300,7 @@ public class FileListController
    *
    * @param files The list of files to display
    */
-  public void updateAdapter(List<SmbFileItem> files) {
+  public void updateAdapter(@NonNull List<SmbFileItem> files) {
     LogUtils.d("FileListController", "Updating adapter with " + files.size() + " files");
     adapter.setFiles(files);
     updateEmptyView(files);
@@ -317,7 +318,7 @@ public class FileListController
     notifySelectionChanged();
   }
 
-  public void toggleSelection(SmbFileItem file) {
+  public void toggleSelection(@NonNull SmbFileItem file) {
     if (file == null || !file.isFile()) return;
     String path = file.getPath();
     if (path == null) return;
@@ -357,11 +358,11 @@ public class FileListController
     notifySelectionChanged();
   }
 
-  public java.util.Set<String> getSelectedPaths() {
+  public @NonNull java.util.Set<String> getSelectedPaths() {
     return new java.util.LinkedHashSet<>(selectedPaths);
   }
 
-  public java.util.List<SmbFileItem> getSelectedItems() {
+  public @NonNull java.util.List<SmbFileItem> getSelectedItems() {
     java.util.ArrayList<SmbFileItem> items = new java.util.ArrayList<>();
     List<SmbFileItem> files = adapter.getFiles();
     java.util.HashSet<String> lookup = new java.util.HashSet<>(selectedPaths);
@@ -380,7 +381,7 @@ public class FileListController
   }
 
   @Override
-  public void onFileLongClick(SmbFileItem file) {
+  public void onFileLongClick(@NonNull SmbFileItem file) {
     LogUtils.d(
         "FileListController", "File long-clicked: " + (file != null ? file.getName() : "null"));
     if (file != null && file.isFile()) {
@@ -398,7 +399,7 @@ public class FileListController
      *
      * @param file The file that was clicked
      */
-    void onFileClick(SmbFileItem file);
+    void onFileClick(@NonNull SmbFileItem file);
   }
 
   /** Callback for file options clicks. */
@@ -408,7 +409,7 @@ public class FileListController
      *
      * @param file The file for which options were requested
      */
-    void onFileOptionsClick(SmbFileItem file);
+    void onFileOptionsClick(@NonNull SmbFileItem file);
   }
 
   /** Callback for file statistics updates. */
@@ -418,7 +419,7 @@ public class FileListController
      *
      * @param files The list of files
      */
-    void onFileStatisticsUpdated(List<SmbFileItem> files);
+    void onFileStatisticsUpdated(@NonNull List<SmbFileItem> files);
   }
 
   /**
@@ -426,11 +427,11 @@ public class FileListController
    * example, to update the UI or perform actions based on the new path.
    */
   public interface FolderChangeCallback {
-    void onFolderChanged(String newRemotePath);
+    void onFolderChanged(@NonNull String newRemotePath);
   }
 
   /** Callback when the multi-selection changes. */
   public interface SelectionChangedCallback {
-    void onSelectionChanged(int count, java.util.List<SmbFileItem> selectedItems);
+    void onSelectionChanged(int count, @NonNull java.util.List<SmbFileItem> selectedItems);
   }
 }

@@ -2,6 +2,7 @@ package de.schliweb.sambalite.ui.controllers;
 
 import android.net.Uri;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.lifecycle.MutableLiveData;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -53,7 +54,7 @@ public class FileBrowserUIState {
    * @param message The progress message
    * @param details The progress details
    */
-  public void updateProgress(int percentage, String message, String details) {
+  public void updateProgress(int percentage, @NonNull String message, @NonNull String details) {
     progressPercentage.postValue(percentage);
     progressMessage.postValue(message);
     progressDetails.postValue(details);
