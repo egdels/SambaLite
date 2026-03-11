@@ -9,6 +9,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbConnection;
@@ -20,9 +21,9 @@ import java.util.List;
 public class ConnectionAdapter
     extends RecyclerView.Adapter<ConnectionAdapter.ConnectionViewHolder> {
 
-  private List<SmbConnection> connections = new ArrayList<>();
-  private OnConnectionClickListener listener;
-  private Context context;
+  List<SmbConnection> connections = new ArrayList<>();
+  OnConnectionClickListener listener;
+  Context context;
 
   /**
    * Updates the list of connections.
@@ -30,7 +31,7 @@ public class ConnectionAdapter
    * @param connections The new list of connections
    */
   @SuppressLint("NotifyDataSetChanged") // Acceptable for Eva's app - simple connection list updates
-  public void setConnections(List<SmbConnection> connections) {
+  public void setConnections(@NonNull List<SmbConnection> connections) {
     int size = connections != null ? connections.size() : 0;
     LogUtils.d("ConnectionAdapter", "Setting connections: " + size + " items");
 
@@ -52,7 +53,7 @@ public class ConnectionAdapter
    *
    * @param listener The listener to set
    */
-  public void setOnConnectionClickListener(OnConnectionClickListener listener) {
+  public void setOnConnectionClickListener(@Nullable OnConnectionClickListener listener) {
     LogUtils.d("ConnectionAdapter", "Setting connection click listener");
     this.listener = listener;
   }
@@ -85,9 +86,9 @@ public class ConnectionAdapter
 
   /** Interface for connection click events. */
   public interface OnConnectionClickListener {
-    void onConnectionClick(SmbConnection connection);
+    void onConnectionClick(@NonNull SmbConnection connection);
 
-    void onConnectionOptionsClick(SmbConnection connection);
+    void onConnectionOptionsClick(@NonNull SmbConnection connection);
   }
 
   /** ViewHolder for a connection item. */
