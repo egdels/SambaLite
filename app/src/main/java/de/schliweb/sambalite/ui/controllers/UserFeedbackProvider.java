@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.ui.controllers;
 
+import androidx.annotation.NonNull;
+
 /**
  * Interface for providing user feedback across the application. This interface standardizes how
  * controllers show success and error messages, ensuring a consistent user experience throughout the
@@ -33,7 +35,7 @@ public interface UserFeedbackProvider {
    *
    * @param message The success message to show to the user
    */
-  void showSuccess(String message);
+  void showSuccess(@NonNull String message);
 
   /**
    * Shows an error message to the user.
@@ -48,7 +50,7 @@ public interface UserFeedbackProvider {
    * @param title The title of the error, which should be concise and descriptive
    * @param message The detailed error message, which can include technical details
    */
-  void showError(String title, String message);
+  void showError(@NonNull String title, @NonNull String message);
 
   /**
    * Shows an informational message to the user.
@@ -61,7 +63,7 @@ public interface UserFeedbackProvider {
    *
    * @param message The informational message to show to the user
    */
-  void showInfo(String message);
+  void showInfo(@NonNull String message);
 
   /**
    * Shows a confirmation dialog to the user.
@@ -78,7 +80,11 @@ public interface UserFeedbackProvider {
    * @param onConfirm The action to take when the user confirms the action
    * @param onCancel The action to take when the user cancels the action
    */
-  void showConfirmation(String title, String message, Runnable onConfirm, Runnable onCancel);
+  void showConfirmation(
+      @NonNull String title,
+      @NonNull String message,
+      @NonNull Runnable onConfirm,
+      @NonNull Runnable onCancel);
 
   /**
    * Shows a file exists dialog to the user.
@@ -94,5 +100,6 @@ public interface UserFeedbackProvider {
    * @param confirmAction The action to take if the user confirms overwriting the file
    * @param cancelAction The action to take if the user cancels the operation
    */
-  void showFileExistsDialog(String fileName, Runnable confirmAction, Runnable cancelAction);
+  void showFileExistsDialog(
+      @NonNull String fileName, @NonNull Runnable confirmAction, @NonNull Runnable cancelAction);
 }
