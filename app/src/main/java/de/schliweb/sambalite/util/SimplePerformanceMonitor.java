@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import android.os.Build;
 import android.os.SystemClock;
+import androidx.annotation.NonNull;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,7 +31,7 @@ public class SimplePerformanceMonitor {
   private static long lastGcTime = 0;
 
   /** Starts monitoring an operation (simple mode for UI operations). */
-  public static void startOperation(String operationName) {
+  public static void startOperation(@NonNull String operationName) {
     if (!isEnabled) return;
 
     // Simple monitoring for UI operations
@@ -44,7 +45,7 @@ public class SimplePerformanceMonitor {
   }
 
   /** Ends monitoring an operation (simple mode for UI operations). */
-  public static void endOperation(String operationName) {
+  public static void endOperation(@NonNull String operationName) {
     if (!isEnabled) return;
 
     // Simple monitoring for UI operations
@@ -136,7 +137,7 @@ public class SimplePerformanceMonitor {
   }
 
   /** Gets current memory usage information. */
-  public static String getMemoryInfo() {
+  public static @NonNull String getMemoryInfo() {
     Runtime runtime = Runtime.getRuntime();
     long totalMemory = runtime.totalMemory();
     long freeMemory = runtime.freeMemory();
@@ -152,7 +153,7 @@ public class SimplePerformanceMonitor {
   }
 
   /** Gets device information. */
-  public static String getDeviceInfo() {
+  public static @NonNull String getDeviceInfo() {
     return String.format(
         Locale.US,
         "Device: %s %s (Android %s, API %d)",
@@ -163,7 +164,7 @@ public class SimplePerformanceMonitor {
   }
 
   /** Gets performance statistics. */
-  public static String getPerformanceStats() {
+  public static @NonNull String getPerformanceStats() {
     long count = operationCount.get();
     long total = totalTime.get();
     double average = count > 0 ? (double) total / count : 0;
