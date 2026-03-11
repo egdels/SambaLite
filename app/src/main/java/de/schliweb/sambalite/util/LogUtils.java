@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.util;
 
 import android.util.Log;
+import androidx.annotation.NonNull;
 import timber.log.Timber;
 import timber.log.Timber.DebugTree;
 
@@ -37,7 +38,7 @@ public class LogUtils {
    *
    * @param message the message to log
    */
-  public static void v(String message) {
+  public static void v(@NonNull String message) {
     Timber.v(message);
   }
 
@@ -47,7 +48,7 @@ public class LogUtils {
    * @param tag the tag to use
    * @param message the message to log
    */
-  public static void v(String tag, String message) {
+  public static void v(@NonNull String tag, @NonNull String message) {
     Timber.tag(tag).v(message);
   }
 
@@ -56,7 +57,7 @@ public class LogUtils {
    *
    * @param message the message to log
    */
-  public static void d(String message) {
+  public static void d(@NonNull String message) {
     Timber.d(message);
   }
 
@@ -66,7 +67,7 @@ public class LogUtils {
    * @param tag the tag to use
    * @param message the message to log
    */
-  public static void d(String tag, String message) {
+  public static void d(@NonNull String tag, @NonNull String message) {
     Timber.tag(tag).d(message);
   }
 
@@ -75,7 +76,7 @@ public class LogUtils {
    *
    * @param message the message to log
    */
-  public static void i(String message) {
+  public static void i(@NonNull String message) {
     Timber.i(message);
   }
 
@@ -85,7 +86,7 @@ public class LogUtils {
    * @param tag the tag to use
    * @param message the message to log
    */
-  public static void i(String tag, String message) {
+  public static void i(@NonNull String tag, @NonNull String message) {
     Timber.tag(tag).i(message);
   }
 
@@ -94,7 +95,7 @@ public class LogUtils {
    *
    * @param message the message to log
    */
-  public static void w(String message) {
+  public static void w(@NonNull String message) {
     Timber.w(message);
   }
 
@@ -104,7 +105,7 @@ public class LogUtils {
    * @param tag the tag to use
    * @param message the message to log
    */
-  public static void w(String tag, String message) {
+  public static void w(@NonNull String tag, @NonNull String message) {
     Timber.tag(tag).w(message);
   }
 
@@ -114,7 +115,7 @@ public class LogUtils {
    * @param t the throwable to log
    * @param message the message to log
    */
-  public static void w(Throwable t, String message) {
+  public static void w(@NonNull Throwable t, @NonNull String message) {
     Timber.w(t, message);
   }
 
@@ -123,7 +124,7 @@ public class LogUtils {
    *
    * @param message the message to log
    */
-  public static void e(String message) {
+  public static void e(@NonNull String message) {
     Timber.e(message);
   }
 
@@ -133,7 +134,7 @@ public class LogUtils {
    * @param tag the tag to use
    * @param message the message to log
    */
-  public static void e(String tag, String message) {
+  public static void e(@NonNull String tag, @NonNull String message) {
     Timber.tag(tag).e(message);
   }
 
@@ -143,11 +144,12 @@ public class LogUtils {
    * @param t the throwable to log
    * @param message the message to log
    */
-  public static void e(Throwable t, String message) {
+  public static void e(@NonNull Throwable t, @NonNull String message) {
     Timber.e(t, message);
   }
 
-  public static void e(String tag, String errorFinalizingTransfer, Exception e) {
+  public static void e(
+      @NonNull String tag, @NonNull String errorFinalizingTransfer, @NonNull Exception e) {
     Timber.tag(tag).e(errorFinalizingTransfer, e);
   }
 
@@ -155,7 +157,7 @@ public class LogUtils {
    * A custom Timber tree for release builds. Filters out logs below a certain priority and logs to
    * Crashlytics.
    */
-  private static class ReleaseTree extends Timber.Tree {
+  static class ReleaseTree extends Timber.Tree {
     @Override
     protected void log(int priority, String tag, String message, Throwable t) {
       // Only log warnings and errors in release builds
