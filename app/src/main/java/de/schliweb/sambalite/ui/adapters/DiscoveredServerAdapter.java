@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.util.LogUtils;
@@ -21,22 +22,22 @@ public class DiscoveredServerAdapter
 
   private static final String TAG = "DiscoveredServerAdapter";
 
-  private List<DiscoveredServer> servers = new ArrayList<>();
-  @Getter private DiscoveredServer selectedServer = null;
-  private OnServerSelectedListener listener;
+  List<DiscoveredServer> servers = new ArrayList<>();
+  @Getter DiscoveredServer selectedServer = null;
+  OnServerSelectedListener listener;
 
-  public void setOnServerSelectedListener(OnServerSelectedListener listener) {
+  public void setOnServerSelectedListener(@Nullable OnServerSelectedListener listener) {
     this.listener = listener;
   }
 
   @SuppressLint("NotifyDataSetChanged") // Acceptable for Eva's app - server discovery updates
-  public void setServers(List<DiscoveredServer> servers) {
+  public void setServers(@NonNull List<DiscoveredServer> servers) {
     this.servers = new ArrayList<>(servers);
     notifyDataSetChanged();
     LogUtils.d(TAG, "Updated server list with " + servers.size() + " servers");
   }
 
-  public void addServer(DiscoveredServer server) {
+  public void addServer(@NonNull DiscoveredServer server) {
     servers.add(server);
     int position = servers.size() - 1;
     notifyItemInserted(position);
@@ -78,7 +79,7 @@ public class DiscoveredServerAdapter
   }
 
   public interface OnServerSelectedListener {
-    void onServerSelected(DiscoveredServer server);
+    void onServerSelected(@NonNull DiscoveredServer server);
   }
 
   class ServerViewHolder extends RecyclerView.ViewHolder {
@@ -138,7 +139,7 @@ public class DiscoveredServerAdapter
       itemView.setSelected(isSelected);
     }
 
-    private void selectServer(DiscoveredServer server) {
+    void selectServer(DiscoveredServer server) {
       DiscoveredServer previousSelection = selectedServer;
       selectedServer = server;
 
