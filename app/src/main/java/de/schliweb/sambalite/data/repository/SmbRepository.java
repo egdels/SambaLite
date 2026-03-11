@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.data.repository;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -20,10 +22,11 @@ public interface SmbRepository {
    * @return A list of SmbFileItem objects that match the query
    * @throws Exception if an error occurs during the search
    */
+  @NonNull
   List<SmbFileItem> searchFiles(
-      SmbConnection connection,
-      String path,
-      String query,
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders)
       throws Exception;
@@ -53,7 +56,7 @@ public interface SmbRepository {
    * @return true if the connection is successful, false otherwise
    * @throws Exception if an error occurs during the connection test
    */
-  boolean testConnection(SmbConnection connection) throws Exception;
+  boolean testConnection(@NonNull SmbConnection connection) throws Exception;
 
   /**
    * Lists files and directories in the specified path.
@@ -63,7 +66,9 @@ public interface SmbRepository {
    * @return A list of SmbFileItem objects representing files and directories
    * @throws Exception if an error occurs during the listing
    */
-  List<SmbFileItem> listFiles(SmbConnection connection, String path) throws Exception;
+  @NonNull
+  List<SmbFileItem> listFiles(@NonNull SmbConnection connection, @NonNull String path)
+      throws Exception;
 
   /**
    * Downloads a file from the SMB server.
@@ -73,7 +78,9 @@ public interface SmbRepository {
    * @param localFile The local file to save the downloaded file to
    * @throws Exception if an error occurs during the download
    */
-  void downloadFile(SmbConnection connection, String remotePath, File localFile) throws Exception;
+  void downloadFile(
+      @NonNull SmbConnection connection, @NonNull String remotePath, @NonNull File localFile)
+      throws Exception;
 
   /**
    * Uploads a file to the SMB server.
@@ -83,7 +90,9 @@ public interface SmbRepository {
    * @param remotePath The path on the SMB server to upload the file to
    * @throws Exception if an error occurs during the upload
    */
-  void uploadFile(SmbConnection connection, File localFile, String remotePath) throws Exception;
+  void uploadFile(
+      @NonNull SmbConnection connection, @NonNull File localFile, @NonNull String remotePath)
+      throws Exception;
 
   /**
    * Uploads a file to the SMB server with progress tracking.
@@ -95,10 +104,10 @@ public interface SmbRepository {
    * @throws Exception if an error occurs during the upload
    */
   void uploadFileWithProgress(
-      SmbConnection connection,
-      File localFile,
-      String remotePath,
-      BackgroundSmbManager.ProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull File localFile,
+      @NonNull String remotePath,
+      @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception;
 
   /**
@@ -109,7 +118,8 @@ public interface SmbRepository {
    * @param localFilePath The path to the local file to save the downloaded file to
    * @throws Exception if an error occurs during the download
    */
-  void downloadFile(SmbConnection connection, String remotePath, String localFilePath)
+  void downloadFile(
+      @NonNull SmbConnection connection, @NonNull String remotePath, @NonNull String localFilePath)
       throws Exception;
 
   /**
@@ -119,7 +129,7 @@ public interface SmbRepository {
    * @param path The path to the file or directory to delete
    * @throws Exception if an error occurs during the deletion
    */
-  void deleteFile(SmbConnection connection, String path) throws Exception;
+  void deleteFile(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
    * Renames a file or directory on the SMB server.
@@ -129,7 +139,9 @@ public interface SmbRepository {
    * @param newName The new name for the file or directory
    * @throws Exception if an error occurs during the rename
    */
-  void renameFile(SmbConnection connection, String oldPath, String newName) throws Exception;
+  void renameFile(
+      @NonNull SmbConnection connection, @NonNull String oldPath, @NonNull String newName)
+      throws Exception;
 
   /**
    * Creates a new directory on the SMB server.
@@ -139,7 +151,9 @@ public interface SmbRepository {
    * @param name The name of the new directory
    * @throws Exception if an error occurs during directory creation
    */
-  void createDirectory(SmbConnection connection, String path, String name) throws Exception;
+  void createDirectory(
+      @NonNull SmbConnection connection, @NonNull String path, @NonNull String name)
+      throws Exception;
 
   /**
    * Checks if a file exists on the SMB server.
@@ -149,7 +163,7 @@ public interface SmbRepository {
    * @return true if the file exists, false otherwise
    * @throws Exception if an error occurs during the check
    */
-  boolean fileExists(SmbConnection connection, String path) throws Exception;
+  boolean fileExists(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
    * Lists available shares on the SMB server.
@@ -159,7 +173,8 @@ public interface SmbRepository {
    * @return A list of share names available on the server
    * @throws Exception if an error occurs during the share listing
    */
-  List<String> listShares(SmbConnection connection) throws Exception;
+  @NonNull
+  List<String> listShares(@NonNull SmbConnection connection) throws Exception;
 
   /**
    * Downloads a folder from the SMB server.
@@ -169,7 +184,10 @@ public interface SmbRepository {
    * @param localFolder The local folder to save the downloaded folder to
    * @throws Exception if an error occurs during the download
    */
-  void downloadFolder(SmbConnection connection, String remotePath, java.io.File localFolder)
+  void downloadFolder(
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFolder)
       throws Exception;
 
   /**
@@ -182,10 +200,10 @@ public interface SmbRepository {
    * @throws Exception if an error occurs during the download
    */
   void downloadFolderWithProgress(
-      SmbConnection connection,
-      String remotePath,
-      java.io.File localFolder,
-      BackgroundSmbManager.MultiFileProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFolder,
+      @Nullable BackgroundSmbManager.MultiFileProgressCallback progressCallback)
       throws Exception;
 
   /**
@@ -198,9 +216,9 @@ public interface SmbRepository {
    * @throws Exception if an error occurs during the download
    */
   void downloadFileWithProgress(
-      SmbConnection connection,
-      String remotePath,
-      java.io.File localFile,
-      BackgroundSmbManager.ProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFile,
+      @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception;
 }

@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.data.repository;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
@@ -60,7 +62,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     try {
       encrypt = connection.isEncryptData();
       sign = connection.isSigningRequired();
-    } catch (Throwable ignore) {
+    } catch (Throwable ignored) {
     }
 
     if (!encrypt && !sign) {
@@ -102,7 +104,7 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Inject
-  public SmbRepositoryImpl(BackgroundSmbManager backgroundManager) {
+  public SmbRepositoryImpl(@NonNull BackgroundSmbManager backgroundManager) {
     this.smbClient = new SMBClient();
     this.backgroundManager = backgroundManager;
     this.errorHandler = SmartErrorHandler.getInstance();
@@ -127,10 +129,10 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public List<SmbFileItem> searchFiles(
-      SmbConnection connection,
-      String path,
-      String query,
+  public @NonNull List<SmbFileItem> searchFiles(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders)
       throws Exception {
@@ -654,7 +656,8 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public List<SmbFileItem> listFiles(SmbConnection connection, String path) throws Exception {
+  public @NonNull List<SmbFileItem> listFiles(
+      @NonNull SmbConnection connection, @NonNull String path) throws Exception {
     String folderPath = path == null || path.isEmpty() ? "" : path;
     LogUtils.d(
         "SmbRepositoryImpl",
@@ -682,7 +685,7 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public boolean testConnection(SmbConnection connection) throws Exception {
+  public boolean testConnection(@NonNull SmbConnection connection) throws Exception {
     LogUtils.d(
         "SmbRepositoryImpl",
         "Testing connection to server: "
@@ -699,7 +702,7 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public void deleteFile(SmbConnection connection, String path) throws Exception {
+  public void deleteFile(@NonNull SmbConnection connection, @NonNull String path) throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Deleting file/directory: " + path);
     withShare(
         connection,
@@ -720,7 +723,8 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public void renameFile(SmbConnection connection, String oldPath, String newName)
+  public void renameFile(
+      @NonNull SmbConnection connection, @NonNull String oldPath, @NonNull String newName)
       throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Renaming file/directory: " + oldPath + " to " + newName);
     withShare(
@@ -784,7 +788,9 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public void createDirectory(SmbConnection connection, String path, String name) throws Exception {
+  public void createDirectory(
+      @NonNull SmbConnection connection, @NonNull String path, @NonNull String name)
+      throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Creating directory: " + name + " in path: " + path);
     withShare(
         connection,
@@ -798,7 +804,8 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public boolean fileExists(SmbConnection connection, String path) throws Exception {
+  public boolean fileExists(@NonNull SmbConnection connection, @NonNull String path)
+      throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Checking if file exists: " + path);
     return withShare(
         connection,
@@ -813,7 +820,10 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public void downloadFile(SmbConnection connection, String remotePath, java.io.File localFile)
+  public void downloadFile(
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFile)
       throws Exception {
     LogUtils.d(
         "SmbRepositoryImpl",
@@ -961,13 +971,17 @@ public class SmbRepositoryImpl implements SmbRepository {
    * @param localFilePath The path to the local file to save the downloaded file to
    * @throws Exception if an error occurs during the download
    */
-  public void downloadFile(SmbConnection connection, String remotePath, String localFilePath)
+  public void downloadFile(
+      @NonNull SmbConnection connection, @NonNull String remotePath, @NonNull String localFilePath)
       throws Exception {
     downloadFile(connection, remotePath, new java.io.File(localFilePath));
   }
 
   @Override
-  public void uploadFile(SmbConnection connection, java.io.File localFile, String remotePath)
+  public void uploadFile(
+      @NonNull SmbConnection connection,
+      @NonNull java.io.File localFile,
+      @NonNull String remotePath)
       throws Exception {
     LogUtils.d(
         "SmbRepositoryImpl",
@@ -983,10 +997,10 @@ public class SmbRepositoryImpl implements SmbRepository {
 
   @Override
   public void uploadFileWithProgress(
-      SmbConnection connection,
-      java.io.File localFile,
-      String remotePath,
-      BackgroundSmbManager.ProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull java.io.File localFile,
+      @NonNull String remotePath,
+      @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception {
     LogUtils.d(
         "SmbRepositoryImpl",
@@ -1126,7 +1140,10 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public void downloadFolder(SmbConnection connection, String remotePath, java.io.File localFolder)
+  public void downloadFolder(
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFolder)
       throws Exception {
     LogUtils.d(
         "SmbRepositoryImpl",
@@ -1224,10 +1241,10 @@ public class SmbRepositoryImpl implements SmbRepository {
    */
   @Override
   public void downloadFolderWithProgress(
-      SmbConnection connection,
-      String remotePath,
-      java.io.File localFolder,
-      BackgroundSmbManager.MultiFileProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFolder,
+      @Nullable BackgroundSmbManager.MultiFileProgressCallback progressCallback)
       throws Exception {
     // Neue Operation ⇒ Cancel-Flag zurücksetzen
     downloadCancelled = false;
@@ -1273,7 +1290,7 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public List<String> listShares(SmbConnection connection) throws Exception {
+  public @NonNull List<String> listShares(@NonNull SmbConnection connection) throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Listing shares on server: " + connection.getServer());
     operationLock.lock();
     try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
@@ -1619,10 +1636,10 @@ public class SmbRepositoryImpl implements SmbRepository {
    */
   @Override
   public void downloadFileWithProgress(
-      SmbConnection connection,
-      String remotePath,
-      java.io.File localFile,
-      BackgroundSmbManager.ProgressCallback progressCallback)
+      @NonNull SmbConnection connection,
+      @NonNull String remotePath,
+      @NonNull java.io.File localFile,
+      @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Starting file download with progress tracking: " + remotePath);
     downloadFileDirectly(connection, remotePath, localFile, progressCallback);
@@ -1642,8 +1659,8 @@ public class SmbRepositoryImpl implements SmbRepository {
 
   /** Assesses the severity of an exception based on its type and message. */
   private SmartErrorHandler.ErrorSeverity assessErrorSeverity(Exception e) {
-    String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-    String className = e.getClass().getSimpleName().toLowerCase();
+    String message = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+    String className = e.getClass().getSimpleName().toLowerCase(Locale.ROOT);
 
     // Critical errors that prevent core functionality
     if (className.contains("outofmemory") || message.contains("out of memory")) {

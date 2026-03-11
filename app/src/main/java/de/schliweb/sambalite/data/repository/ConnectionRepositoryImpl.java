@@ -2,6 +2,8 @@ package de.schliweb.sambalite.data.repository;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 import de.schliweb.sambalite.data.model.SmbConnection;
@@ -31,7 +33,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
 
   @Inject
   @SuppressWarnings("deprecation")
-  public ConnectionRepositoryImpl(Context context) {
+  public ConnectionRepositoryImpl(@NonNull Context context) {
     LogUtils.d("ConnectionRepositoryImpl", "Initializing ConnectionRepositoryImpl");
     // Initialize EncryptedSharedPreferences
     SharedPreferences prefs;
@@ -61,7 +63,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
   }
 
   @Override
-  public SmbConnection saveConnection(SmbConnection connection) {
+  public @Nullable SmbConnection saveConnection(@NonNull SmbConnection connection) {
     LogUtils.d("ConnectionRepositoryImpl", "Saving connection: " + connection.getName());
     List<SmbConnection> connections = getAllConnections();
 
@@ -90,7 +92,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
   }
 
   @Override
-  public List<SmbConnection> getAllConnections() {
+  public @NonNull List<SmbConnection> getAllConnections() {
     LogUtils.d("ConnectionRepositoryImpl", "Getting all connections");
     String connectionsJson = encryptedPrefs.getString(KEY_CONNECTIONS, "[]");
 
@@ -114,7 +116,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
   }
 
   @Override
-  public boolean deleteConnection(String id) {
+  public boolean deleteConnection(@NonNull String id) {
     LogUtils.d("ConnectionRepositoryImpl", "Deleting connection with ID: " + id);
     List<SmbConnection> connections = getAllConnections();
     boolean removed = connections.removeIf(c -> c.getId().equals(id));
