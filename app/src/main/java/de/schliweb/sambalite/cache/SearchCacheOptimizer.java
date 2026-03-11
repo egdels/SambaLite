@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public class SearchCacheOptimizer {
     this.recentSearches = new ConcurrentHashMap<>();
   }
 
-  public static SearchCacheOptimizer getInstance() {
+  public static @NonNull SearchCacheOptimizer getInstance() {
     if (instance == null) {
       instance = new SearchCacheOptimizer();
     }
@@ -41,7 +42,8 @@ public class SearchCacheOptimizer {
   }
 
   /** Records a search query for learning purposes. */
-  public void recordSearch(SmbConnection connection, String query, int resultCount) {
+  public void recordSearch(
+      @NonNull SmbConnection connection, @NonNull String query, int resultCount) {
     String connectionKey = getConnectionKey(connection);
 
     // Track frequency
@@ -77,7 +79,7 @@ public class SearchCacheOptimizer {
   }
 
   /** Determines if a query should be cached based on its historical performance. */
-  public boolean shouldCacheQuery(SmbConnection connection, String query) {
+  public boolean shouldCacheQuery(@NonNull SmbConnection connection, @NonNull String query) {
     String connectionKey = getConnectionKey(connection);
     String queryKey = generateQueryKey(connectionKey, query);
 
@@ -99,7 +101,7 @@ public class SearchCacheOptimizer {
   }
 
   /** Gets the optimal cache TTL for a query based on its usage pattern. */
-  public long getOptimalCacheTTL(SmbConnection connection, String query) {
+  public long getOptimalCacheTTL(@NonNull SmbConnection connection, @NonNull String query) {
     String connectionKey = getConnectionKey(connection);
     ConcurrentHashMap<String, AtomicInteger> frequencies = searchFrequency.get(connectionKey);
 
@@ -125,7 +127,7 @@ public class SearchCacheOptimizer {
   }
 
   /** Gets cache statistics for monitoring purposes. */
-  public SearchCacheStatistics getStatistics() {
+  public @NonNull SearchCacheStatistics getStatistics() {
     SearchCacheStatistics stats = new SearchCacheStatistics();
 
     stats.totalConnections = searchFrequency.size();

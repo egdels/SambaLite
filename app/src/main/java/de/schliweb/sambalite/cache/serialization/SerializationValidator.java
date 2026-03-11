@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.cache.serialization;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
@@ -24,7 +26,7 @@ public class SerializationValidator {
    *
    * @param exceptionHandler The exception handler for reporting serialization errors
    */
-  public SerializationValidator(CacheExceptionHandler exceptionHandler) {
+  public SerializationValidator(@Nullable CacheExceptionHandler exceptionHandler) {
     this.exceptionHandler = exceptionHandler;
   }
 
@@ -36,7 +38,7 @@ public class SerializationValidator {
    * @param <T> The type of the object
    * @return true if the object is properly serializable, false otherwise
    */
-  public <T> boolean validateSerializable(T obj, String key) {
+  public <T> boolean validateSerializable(@NonNull T obj, @NonNull String key) {
     if (obj == null) {
       return true; // null is technically serializable
     }
@@ -193,7 +195,7 @@ public class SerializationValidator {
    * @param key The cache key associated with the object (for error reporting)
    * @return The serialized object, or null if validation or serialization failed
    */
-  public byte[] validateAndSerialize(Object obj, String key) {
+  public @NonNull byte[] validateAndSerialize(@NonNull Object obj, @NonNull String key) {
     if (!validateSerializable(obj, key)) {
       return null;
     }

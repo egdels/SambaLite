@@ -5,6 +5,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import java.util.ArrayList;
@@ -46,11 +47,11 @@ public class AdvancedNetworkOptimizer {
   private final ConnectivityManager connectivityManager;
   private final ScheduledExecutorService networkExecutor;
   private final ConcurrentHashMap<String, ConnectionPool> connectionPools;
-  private final AtomicBoolean isNetworkAvailable;
+  final AtomicBoolean isNetworkAvailable;
   private final AtomicLong currentBandwidth;
   private final BandwidthMonitor bandwidthMonitor;
-  private NetworkCapabilities currentNetworkCapabilities;
-  private NetworkQuality currentNetworkQuality;
+  NetworkCapabilities currentNetworkCapabilities;
+  NetworkQuality currentNetworkQuality;
 
   private AdvancedNetworkOptimizer(Context context) {
     this.connectivityManager =
@@ -68,7 +69,7 @@ public class AdvancedNetworkOptimizer {
   }
 
   /** Initializes the network optimizer. */
-  public static void initialize(Context context) {
+  public static void initialize(@NonNull Context context) {
     if (instance == null) {
       instance = new AdvancedNetworkOptimizer(context);
       LogUtils.i(TAG, "Advanced network optimizer initialized");
@@ -76,7 +77,7 @@ public class AdvancedNetworkOptimizer {
   }
 
   /** Gets optimal connection settings based on current network conditions. */
-  public OptimalSettings getOptimalSettings() {
+  public @NonNull OptimalSettings getOptimalSettings() {
     OptimalSettings settings = new OptimalSettings();
 
     // Adjust timeouts based on network quality
@@ -127,7 +128,7 @@ public class AdvancedNetworkOptimizer {
   }
 
   /** Monitors and reports current network status. */
-  public NetworkStatus getCurrentNetworkStatus() {
+  public @NonNull NetworkStatus getCurrentNetworkStatus() {
     NetworkStatus status = new NetworkStatus();
     status.isConnected = isNetworkAvailable.get();
     status.networkQuality = currentNetworkQuality;
@@ -197,12 +198,12 @@ public class AdvancedNetworkOptimizer {
     }
   }
 
-  private void updateNetworkCapabilities(Network network) {
+  void updateNetworkCapabilities(Network network) {
     // Since minSdkVersion is 28, we're always on Android M (API 23) or higher
     currentNetworkCapabilities = connectivityManager.getNetworkCapabilities(network);
   }
 
-  private void assessNetworkQuality() {
+  void assessNetworkQuality() {
     if (currentNetworkCapabilities == null) {
       currentNetworkQuality = NetworkQuality.UNKNOWN;
       return;
@@ -381,7 +382,7 @@ public class AdvancedNetworkOptimizer {
   public interface NetworkCallback<T> {
     void onSuccess(T result);
 
-    void onFailure(Exception error);
+    void onFailure(@NonNull Exception error);
   }
 
   public static class OptimalSettings {
@@ -395,18 +396,18 @@ public class AdvancedNetworkOptimizer {
 
   public static class NetworkStatus {
     public boolean isConnected;
-    public NetworkQuality networkQuality;
+    @NonNull public NetworkQuality networkQuality;
     public long estimatedBandwidth;
-    public String connectionType;
+    @NonNull public String connectionType;
     public boolean isMetered;
   }
 
   public static class NetworkException extends Exception {
-    public NetworkException(String message) {
+    public NetworkException(@NonNull String message) {
       super(message);
     }
 
-    public NetworkException(String message, Throwable cause) {
+    public NetworkException(@NonNull String message, @NonNull Throwable cause) {
       super(message, cause);
     }
   }
@@ -419,7 +420,7 @@ public class AdvancedNetworkOptimizer {
     }
   }
 
-  private static class BandwidthMonitor {
+  static class BandwidthMonitor {
     private final long lastByteCount = 0;
     private long lastMeasureTime = 0;
 
@@ -451,7 +452,7 @@ public class AdvancedNetworkOptimizer {
       this.busyConnections = Collections.synchronizedList(new ArrayList<>());
     }
 
-    public PooledConnection getConnection() {
+    public @NonNull PooledConnection getConnection() {
       synchronized (this) {
         if (!availableConnections.isEmpty()) {
           PooledConnection connection = availableConnections.remove(0);
@@ -469,7 +470,7 @@ public class AdvancedNetworkOptimizer {
       }
     }
 
-    public void returnConnection(PooledConnection connection) {
+    public void returnConnection(@NonNull PooledConnection connection) {
       synchronized (this) {
         busyConnections.remove(connection);
         if (connection.isValid()) {
@@ -518,7 +519,7 @@ public class AdvancedNetworkOptimizer {
       lastUsedTime = System.currentTimeMillis();
     }
 
-    public String getServerKey() {
+    public @NonNull String getServerKey() {
       return serverKey;
     }
   }

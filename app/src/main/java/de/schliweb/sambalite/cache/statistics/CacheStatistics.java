@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache.statistics;
 
+import androidx.annotation.NonNull;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
@@ -282,7 +283,7 @@ public class CacheStatistics {
    *
    * @return A new CacheStatistics object with the current values
    */
-  public CacheStatisticsSnapshot createSnapshot() {
+  public @NonNull CacheStatisticsSnapshot createSnapshot() {
     return new CacheStatisticsSnapshot(
         memoryEntries.get(),
         diskSizeBytes.get(),
@@ -318,7 +319,7 @@ public class CacheStatistics {
     private final int diskWriteErrors;
     private final int diskReadErrors;
 
-    private CacheStatisticsSnapshot(
+    CacheStatisticsSnapshot(
         int memoryEntries,
         long diskSizeBytes,
         int validEntries,
