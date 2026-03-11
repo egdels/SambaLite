@@ -5,6 +5,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -14,7 +16,6 @@ import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.ui.utils.UIHelper;
 import de.schliweb.sambalite.util.LogUtils;
-import java.util.regex.Pattern;
 import lombok.Setter;
 
 /**
@@ -49,14 +50,12 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
   private String lastFile = "";
   private long lastBytesUiTs = 0L;
 
-  private static final Pattern PCT = Pattern.compile("\\b(\\d{1,3})%");
-
   /**
    * Creates a new ProgressController.
    *
    * @param activity The activity
    */
-  public ProgressController(Activity activity) {
+  public ProgressController(@NonNull Activity activity) {
     this.activity = activity;
     this.loadingIndicator = new LoadingIndicator(activity);
     LogUtils.d("ProgressController", "ProgressController initialized");
@@ -70,7 +69,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param cancelAction The action to take when the loading indicator is cancelled
    */
   @Override
-  public void showLoadingIndicator(String message, boolean cancelable, Runnable cancelAction) {
+  public void showLoadingIndicator(
+      @NonNull String message, boolean cancelable, @NonNull Runnable cancelAction) {
     LogUtils.d("ProgressController", "Showing loading indicator: " + message);
     loadingIndicator.show(message, cancelable, cancelAction);
   }
@@ -81,7 +81,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The new message
    */
   @Override
-  public void updateLoadingMessage(String message) {
+  public void updateLoadingMessage(@NonNull String message) {
     LogUtils.d("ProgressController", "Updating loading message: " + message);
     loadingIndicator.updateMessage(message);
   }
@@ -111,7 +111,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The initial message
    */
   @Override
-  public void showDetailedProgressDialog(String title, String message) {
+  public void showDetailedProgressDialog(@NonNull String title, @NonNull String message) {
     LogUtils.d(
         "ProgressController", "Showing detailed progress dialog: " + title + " - " + message);
 
@@ -179,7 +179,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
               if (pendingCancelAction != null) {
                 setDetailedProgressDialogCancelAction(pendingCancelAction);
               }
-            } catch (Throwable ignore) {
+            } catch (Throwable ignored) {
             }
 
             LogUtils.d("ProgressController", "Detailed progress dialog shown");
@@ -206,7 +206,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param fileName The name of the file being processed
    */
   @Override
-  public void updateDetailedProgress(int percentage, String statusText, String fileName) {
+  public void updateDetailedProgress(
+      int percentage, @NonNull String statusText, @NonNull String fileName) {
     if (!isActivitySafe()) return;
 
     // Lazily open the dialog if not already showing and the activity is safely RESUMED
@@ -329,7 +330,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    *
    * @param cancelAction The action to take when the dialog is cancelled
    */
-  public void setDetailedProgressDialogCancelAction(Runnable cancelAction) {
+  public void setDetailedProgressDialogCancelAction(@NonNull Runnable cancelAction) {
     // Always remember the latest cancel action to apply even if the dialog is lazily opened later
     pendingCancelAction = cancelAction;
     if (!isActivitySafe() || progressDialog == null || !progressDialog.isShowing()) return;
@@ -354,7 +355,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                       // Close the dialog immediately on user cancel to avoid UI hanging
                       try {
                         hideDetailedProgressDialog();
-                      } catch (Throwable ignore) {
+                      } catch (Throwable ignored) {
                       }
                     }
                   });
@@ -375,7 +376,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param progressText The progress text
    */
   @Override
-  public void showProgressInUI(String operationName, String progressText) {
+  public void showProgressInUI(@NonNull String operationName, @NonNull String progressText) {
     // Ensure this runs on the UI thread
     final String finalProgressText = progressText;
 
@@ -397,7 +398,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param cancelAction The action to take if the user cancels
    */
   @Override
-  public void showFileExistsDialog(String fileName, Runnable confirmAction, Runnable cancelAction) {
+  public void showFileExistsDialog(
+      @NonNull String fileName, @NonNull Runnable confirmAction, @NonNull Runnable cancelAction) {
     if (!isActivitySafe()) {
       LogUtils.w(
           "ProgressController",
@@ -453,7 +455,6 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
   public void setZipButtonsEnabled(boolean enabled) {
     LogUtils.d("ProgressController", "ZIP buttons enabled state: " + enabled);
     // Ensure this runs on the UI thread
-    final boolean finalEnabled = enabled;
     activity.runOnUiThread(
         () -> {
           // This is a placeholder for now, as the actual implementation depends on the UI
@@ -477,7 +478,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The message to show
    */
   @Override
-  public void showSuccess(String message) {
+  public void showSuccess(@NonNull String message) {
     LogUtils.d("ProgressController", "Showing success: " + message);
     // Ensure this runs on the UI thread
     final String finalMessage = message;
@@ -494,7 +495,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The error message
    */
   @Override
-  public void showError(String title, String message) {
+  public void showError(@NonNull String title, @NonNull String message) {
     LogUtils.d("ProgressController", "Showing error: " + title + " - " + message);
     // Ensure this runs on the UI thread
     final String finalTitle = title;
@@ -511,7 +512,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The message to show
    */
   @Override
-  public void showInfo(String message) {
+  public void showInfo(@NonNull String message) {
     LogUtils.d("ProgressController", "Showing info: " + message);
     // Ensure this runs on the UI thread
     final String finalMessage = message;
@@ -531,7 +532,10 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    */
   @Override
   public void showConfirmation(
-      String title, String message, Runnable onConfirm, Runnable onCancel) {
+      @NonNull String title,
+      @NonNull String message,
+      @Nullable Runnable onConfirm,
+      @Nullable Runnable onCancel) {
     LogUtils.d("ProgressController", "Showing confirmation dialog: " + title + " - " + message);
 
     if (!isActivitySafe()) {
@@ -688,7 +692,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
         activity.getString(R.string.preparing_transfer));
   }
 
-  public void showTransferProgressDialog(String messageOrTitle) {
+  public void showTransferProgressDialog(@NonNull String messageOrTitle) {
     showDetailedProgressDialog(
         messageOrTitle != null && !messageOrTitle.isEmpty()
             ? messageOrTitle
