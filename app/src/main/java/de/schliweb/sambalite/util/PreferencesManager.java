@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.ui.FileSortOption;
 
 /**
@@ -21,7 +22,7 @@ public class PreferencesManager {
    *
    * @param context The application context
    */
-  public PreferencesManager(Context context) {
+  public PreferencesManager(@NonNull Context context) {
     this.preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     LogUtils.d("PreferencesManager", "PreferencesManager initialized");
   }
@@ -31,7 +32,7 @@ public class PreferencesManager {
    *
    * @param sortOption The sort option to save
    */
-  public void saveSortOption(FileSortOption sortOption) {
+  public void saveSortOption(@NonNull FileSortOption sortOption) {
     LogUtils.d("PreferencesManager", "Saving sort option: " + sortOption);
     preferences.edit().putString(KEY_SORT_OPTION, sortOption.name()).apply();
   }
@@ -41,7 +42,7 @@ public class PreferencesManager {
    *
    * @return The saved sort option, or NAME if none is saved
    */
-  public FileSortOption getSortOption() {
+  public @NonNull FileSortOption getSortOption() {
     String sortOptionName = preferences.getString(KEY_SORT_OPTION, FileSortOption.NAME.name());
     try {
       FileSortOption option = FileSortOption.valueOf(sortOptionName);

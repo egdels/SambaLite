@@ -6,6 +6,8 @@ import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
@@ -32,17 +34,17 @@ public class NetworkScanner {
   private volatile boolean isScanning = false;
   private ExecutorService currentExecutorService;
 
-  public NetworkScanner(Context context) {
+  public NetworkScanner(@NonNull Context context) {
     this.context = context;
   }
 
   /** Scans the local network for SMB servers. */
-  public void scanLocalNetwork(ScanProgressListener listener) {
+  public void scanLocalNetwork(@Nullable ScanProgressListener listener) {
     scanLocalNetwork(listener, DEFAULT_TIMEOUT_MS);
   }
 
   /** Scans the local network for SMB servers with custom timeout. */
-  public void scanLocalNetwork(ScanProgressListener listener, int timeoutMs) {
+  public void scanLocalNetwork(@Nullable ScanProgressListener listener, int timeoutMs) {
     if (isScanning) {
       LogUtils.w(TAG, "Scan already in progress, ignoring new scan request");
       return;
@@ -53,7 +55,6 @@ public class NetworkScanner {
 
     // Create a new executor service for each scan
     currentExecutorService = Executors.newFixedThreadPool(20);
-
     CompletableFuture.runAsync(
         () -> {
           try {
@@ -353,13 +354,13 @@ public class NetworkScanner {
 
   /** Interface for receiving scan progress updates. */
   public interface ScanProgressListener {
-    void onProgressUpdate(int scannedHosts, int totalHosts, String currentHost);
+    void onProgressUpdate(int scannedHosts, int totalHosts, @NonNull String currentHost);
 
-    void onServerFound(DiscoveredServer server);
+    void onServerFound(@NonNull DiscoveredServer server);
 
-    void onScanComplete(List<DiscoveredServer> servers);
+    void onScanComplete(@NonNull List<DiscoveredServer> servers);
 
-    void onScanError(String error);
+    void onScanError(@NonNull String error);
   }
 
   /** Represents a discovered server in the network. */
@@ -372,8 +373,8 @@ public class NetworkScanner {
     private final long responseTime;
 
     public DiscoveredServer(
-        String ipAddress,
-        String hostname,
+        @NonNull String ipAddress,
+        @NonNull String hostname,
         boolean smbPortOpen,
         boolean netbiosPortOpen,
         long responseTime) {
@@ -388,7 +389,7 @@ public class NetworkScanner {
       return smbPortOpen || netbiosPortOpen;
     }
 
-    public String getDisplayName() {
+    public @NonNull String getDisplayName() {
       if (hostname != null && !hostname.equals(ipAddress)) {
         return hostname + " (" + ipAddress + ")";
       }

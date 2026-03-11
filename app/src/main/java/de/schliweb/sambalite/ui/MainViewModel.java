@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.ui;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -29,9 +31,9 @@ public class MainViewModel extends ViewModel {
 
   @Inject
   public MainViewModel(
-      ConnectionRepository connectionRepository,
-      SmbRepository smbRepository,
-      SyncManager syncManager) {
+      @NonNull ConnectionRepository connectionRepository,
+      @NonNull SmbRepository smbRepository,
+      @NonNull SyncManager syncManager) {
     this.connectionRepository = connectionRepository;
     this.smbRepository = smbRepository;
     this.syncManager = syncManager;
@@ -48,17 +50,17 @@ public class MainViewModel extends ViewModel {
   }
 
   /** Gets the list of connections as LiveData. */
-  public LiveData<List<SmbConnection>> getConnections() {
+  public @NonNull LiveData<List<SmbConnection>> getConnections() {
     return connections;
   }
 
   /** Gets the loading state as LiveData. */
-  public LiveData<Boolean> isLoading() {
+  public @NonNull LiveData<Boolean> isLoading() {
     return isLoading;
   }
 
   /** Gets the error message as LiveData. */
-  public LiveData<String> getErrorMessage() {
+  public @NonNull LiveData<String> getErrorMessage() {
     return errorMessage;
   }
 
@@ -88,7 +90,7 @@ public class MainViewModel extends ViewModel {
    *
    * @param connection The connection to save
    */
-  public void saveConnection(SmbConnection connection) {
+  public void saveConnection(@NonNull SmbConnection connection) {
     LogUtils.d("MainViewModel", "Saving connection: " + connection.getName());
     executor.execute(
         () -> {
@@ -113,7 +115,7 @@ public class MainViewModel extends ViewModel {
    *
    * @param connectionId The ID of the connection to delete
    */
-  public void deleteConnection(String connectionId) {
+  public void deleteConnection(@NonNull String connectionId) {
     LogUtils.d("MainViewModel", "Deleting connection with ID: " + connectionId);
     executor.execute(
         () -> {
@@ -140,7 +142,8 @@ public class MainViewModel extends ViewModel {
    * @param connection The connection to test
    * @param callback Callback to be called with the result
    */
-  public void testConnection(SmbConnection connection, ConnectionTestCallback callback) {
+  public void testConnection(
+      @NonNull SmbConnection connection, @Nullable ConnectionTestCallback callback) {
     LogUtils.d(
         "MainViewModel",
         "Testing connection to: " + connection.getServer() + "/" + connection.getShare());
@@ -171,7 +174,7 @@ public class MainViewModel extends ViewModel {
   }
 
   /** Lists shares available on the specified server. */
-  public void listShares(SmbConnection connection, ShareListCallback callback) {
+  public void listShares(@NonNull SmbConnection connection, @Nullable ShareListCallback callback) {
     LogUtils.d("MainViewModel", "Listing shares for server: " + connection.getServer());
     executor.execute(
         () -> {
@@ -198,13 +201,13 @@ public class MainViewModel extends ViewModel {
 
   /** Callback interface for connection testing. */
   public interface ConnectionTestCallback {
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
   }
 
   /** Callback interface for share listing operations. */
   public interface ShareListCallback {
-    void onSuccess(List<String> shares);
+    void onSuccess(@NonNull List<String> shares);
 
-    void onError(String error);
+    void onError(@NonNull String error);
   }
 }
