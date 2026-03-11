@@ -1,6 +1,8 @@
 package de.schliweb.sambalite.ui;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.SmbRepository;
@@ -13,11 +15,11 @@ public class ShareReceiverViewModel extends FileOperationsViewModel {
 
   @Inject
   public ShareReceiverViewModel(
-      SmbRepository smbRepository,
-      Context context,
-      FileBrowserState state,
-      FileListViewModel fileListViewModel,
-      BackgroundSmbManager backgroundSmbManager) {
+      @NonNull SmbRepository smbRepository,
+      @NonNull Context context,
+      @NonNull FileBrowserState state,
+      @NonNull FileListViewModel fileListViewModel,
+      @NonNull BackgroundSmbManager backgroundSmbManager) {
     super(smbRepository, context, state, fileListViewModel, backgroundSmbManager);
     this.state = state;
   }
@@ -27,11 +29,11 @@ public class ShareReceiverViewModel extends FileOperationsViewModel {
    *
    * @return The current SmbConnection or null if none is set
    */
-  public SmbConnection getCurrentConnection() {
+  public @Nullable SmbConnection getConnection() {
     return state.getConnection();
   }
 
-  public void setConnection(SmbConnection connection) {
+  public void setConnection(@NonNull SmbConnection connection) {
     state.setConnection(connection);
   }
 }
