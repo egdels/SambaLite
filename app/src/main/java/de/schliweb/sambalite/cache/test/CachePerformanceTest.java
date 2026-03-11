@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.cache.test;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.cache.strategy.DiskCacheStrategy;
@@ -8,6 +9,7 @@ import de.schliweb.sambalite.cache.strategy.HybridCacheStrategy;
 import de.schliweb.sambalite.cache.strategy.MemoryCacheStrategy;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.Serializable;
+import java.util.Locale;
 
 /**
  * A simple test class to verify that the cache performance metrics are working correctly. This
@@ -22,7 +24,7 @@ public class CachePerformanceTest {
    *
    * @param context The application context
    */
-  public static void testCacheHitRate(Context context) {
+  public static void testCacheHitRate(@NonNull Context context) {
     LogUtils.d(TAG, "Starting cache hit rate test");
 
     // Create statistics object
@@ -59,21 +61,23 @@ public class CachePerformanceTest {
       LogUtils.d(TAG, "Cache requests: " + statistics.getCacheRequests());
       LogUtils.d(TAG, "Cache hits: " + statistics.getCacheHits());
       LogUtils.d(TAG, "Cache misses: " + statistics.getCacheMisses());
-      LogUtils.d(TAG, "Hit rate: " + String.format("%.2f%%", statistics.getHitRate() * 100));
+      LogUtils.d(
+          TAG, "Hit rate: " + String.format(Locale.US, "%.2f%%", statistics.getHitRate() * 100));
 
       // Verify that the hit rate is correct
       double expectedHitRate = 0.5; // 1 hit out of 2 requests = 50%
       double actualHitRate = statistics.getHitRate();
 
       if (Math.abs(actualHitRate - expectedHitRate) < 0.01) {
-        LogUtils.d(TAG, "Hit rate is correct: " + String.format("%.2f%%", actualHitRate * 100));
+        LogUtils.d(
+            TAG, "Hit rate is correct: " + String.format(Locale.US, "%.2f%%", actualHitRate * 100));
       } else {
         LogUtils.e(
             TAG,
             "Hit rate is incorrect: expected "
-                + String.format("%.2f%%", expectedHitRate * 100)
+                + String.format(Locale.US, "%.2f%%", expectedHitRate * 100)
                 + ", actual "
-                + String.format("%.2f%%", actualHitRate * 100));
+                + String.format(Locale.US, "%.2f%%", actualHitRate * 100));
       }
     } else {
       LogUtils.e(TAG, "Test entry not retrieved");

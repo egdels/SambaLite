@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.cache;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.cache.key.CacheKeyGenerator;
@@ -19,6 +20,7 @@ import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -103,7 +105,7 @@ public class IntelligentCacheManager {
    *
    * @param context The application context
    */
-  public static void initialize(Context context) {
+  public static void initialize(@NonNull Context context) {
     if (instance == null) {
       synchronized (IntelligentCacheManager.class) {
         if (instance == null) {
@@ -119,7 +121,7 @@ public class IntelligentCacheManager {
    * @return The singleton instance
    * @throws IllegalStateException if initialize() has not been called
    */
-  public static IntelligentCacheManager getInstance() {
+  public static @NonNull IntelligentCacheManager getInstance() {
     if (instance == null) {
       throw new IllegalStateException(
           "IntelligentCacheManager not initialized. Call initialize() first.");
@@ -134,7 +136,7 @@ public class IntelligentCacheManager {
    * @param data The data to cache
    * @param <T> The type of data
    */
-  public <T extends Serializable> void put(String key, T data) {
+  public <T extends Serializable> void put(@NonNull String key, @NonNull T data) {
     LogUtils.d(TAG, "Putting data in cache with key: " + key);
 
     // Validate data
@@ -159,7 +161,7 @@ public class IntelligentCacheManager {
    * @param ttlMs The time-to-live in milliseconds
    * @param <T> The type of data
    */
-  public <T extends Serializable> void put(String key, T data, long ttlMs) {
+  public <T extends Serializable> void put(@NonNull String key, @NonNull T data, long ttlMs) {
     LogUtils.d(TAG, "Putting data in cache with key: " + key + ", TTL: " + ttlMs + "ms");
 
     // Validate data
@@ -185,7 +187,7 @@ public class IntelligentCacheManager {
    * @return The cached data, or null if not found or expired
    */
   @SuppressWarnings("unchecked")
-  public <T extends Serializable> T get(String key, Class<T> type) {
+  public <T extends Serializable> @NonNull T get(@NonNull String key, @NonNull Class<T> type) {
     LogUtils.d(TAG, "Getting data from cache with key: " + key);
 
     // Get from cache
@@ -217,7 +219,7 @@ public class IntelligentCacheManager {
    *
    * @param key The cache key
    */
-  public void remove(String key) {
+  public void remove(@NonNull String key) {
     LogUtils.d(TAG, "Removing cache entry with key: " + key);
     cacheStrategy.remove(key);
   }
@@ -228,7 +230,7 @@ public class IntelligentCacheManager {
    * @param keyPattern The pattern to match keys against
    * @return The number of entries removed
    */
-  public int removePattern(String keyPattern) {
+  public int removePattern(@NonNull String keyPattern) {
     LogUtils.d(TAG, "Removing cache entries matching pattern: " + keyPattern);
     return cacheStrategy.removePattern(keyPattern);
   }
@@ -246,7 +248,8 @@ public class IntelligentCacheManager {
    * @param loader The loader to use
    * @param <T> The type of data
    */
-  public <T extends Serializable> void preload(String key, CacheLoader<T> loader) {
+  public <T extends Serializable> void preload(
+      @NonNull String key, @NonNull CacheLoader<T> loader) {
     LogUtils.d(TAG, "Preloading data for key: " + key);
 
     // Execute loader in background
@@ -267,7 +270,7 @@ public class IntelligentCacheManager {
    *
    * @return The cache statistics
    */
-  public CacheStatistics.CacheStatisticsSnapshot getStatistics() {
+  public @NonNull CacheStatistics.CacheStatisticsSnapshot getStatistics() {
     return statistics.createSnapshot();
   }
 
@@ -306,7 +309,8 @@ public class IntelligentCacheManager {
    * @param path The path to the directory
    * @param files The list of files to cache
    */
-  public void cacheFileList(SmbConnection connection, String path, List<SmbFileItem> files) {
+  public void cacheFileList(
+      @NonNull SmbConnection connection, @NonNull String path, @NonNull List<SmbFileItem> files) {
     fileListOperations.cacheFileList(connection, path, files);
   }
 
@@ -317,7 +321,8 @@ public class IntelligentCacheManager {
    * @param path The path to the directory
    * @return The cached file list, or null if not found or expired
    */
-  public List<SmbFileItem> getCachedFileList(SmbConnection connection, String path) {
+  public @NonNull List<SmbFileItem> getCachedFileList(
+      @NonNull SmbConnection connection, @NonNull String path) {
     return fileListOperations.getCachedFileList(connection, path);
   }
 
@@ -327,7 +332,7 @@ public class IntelligentCacheManager {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void invalidateFileList(SmbConnection connection, String path) {
+  public void invalidateFileList(@NonNull SmbConnection connection, @NonNull String path) {
     fileListOperations.invalidateFileList(connection, path);
   }
 
@@ -336,7 +341,7 @@ public class IntelligentCacheManager {
    *
    * @param connection The SMB connection
    */
-  public void invalidateConnection(SmbConnection connection) {
+  public void invalidateConnection(@NonNull SmbConnection connection) {
     fileListOperations.invalidateAllFileLists(connection);
     searchOperations.invalidateAllSearchCaches(connection);
   }
@@ -347,7 +352,7 @@ public class IntelligentCacheManager {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void preloadCommonFileLists(SmbConnection connection, String path) {
+  public void preloadCommonFileLists(@NonNull SmbConnection connection, @NonNull String path) {
     fileListOperations.preloadCommonFileLists(connection, path);
   }
 
@@ -364,12 +369,12 @@ public class IntelligentCacheManager {
    * @param results The search results to cache
    */
   public void cacheSearchResults(
-      SmbConnection connection,
-      String path,
-      String query,
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders,
-      List<SmbFileItem> results) {
+      @NonNull List<SmbFileItem> results) {
     searchOperations.cacheSearchResults(
         connection, path, query, searchType, includeSubfolders, results);
   }
@@ -384,10 +389,10 @@ public class IntelligentCacheManager {
    * @param includeSubfolders Whether to include subfolders in the search
    * @return The cached search results, or null if not found or expired
    */
-  public List<SmbFileItem> getCachedSearchResults(
-      SmbConnection connection,
-      String path,
-      String query,
+  public @NonNull List<SmbFileItem> getCachedSearchResults(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders) {
     return searchOperations.getCachedSearchResults(
@@ -400,7 +405,7 @@ public class IntelligentCacheManager {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void invalidateSearchCache(SmbConnection connection, String path) {
+  public void invalidateSearchCache(@NonNull SmbConnection connection, @NonNull String path) {
     searchOperations.invalidateSearchCache(connection, path);
   }
 
@@ -410,7 +415,7 @@ public class IntelligentCacheManager {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void preloadCommonSearches(SmbConnection connection, String path) {
+  public void preloadCommonSearches(@NonNull SmbConnection connection, @NonNull String path) {
     searchOperations.preloadCommonSearches(connection, path);
   }
 
@@ -424,10 +429,10 @@ public class IntelligentCacheManager {
    * @param includeSubfolders Whether to include subfolders in the search
    * @return The search cache key
    */
-  public String generateSearchCacheKey(
-      SmbConnection connection,
-      String path,
-      String query,
+  public @NonNull String generateSearchCacheKey(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders) {
     return keyGenerator.generateSearchKey(connection, path, query, searchType, includeSubfolders);
@@ -439,7 +444,7 @@ public class IntelligentCacheManager {
    *
    * @param keyPattern The pattern to match keys against
    */
-  public void invalidateSync(String keyPattern) {
+  public void invalidateSync(@NonNull String keyPattern) {
     LogUtils.d(TAG, "Synchronously invalidating cache entries matching pattern: " + keyPattern);
     cacheStrategy.removePattern(keyPattern);
   }
@@ -470,7 +475,7 @@ public class IntelligentCacheManager {
     LogUtils.d(TAG, "- Total Requests: " + stats.getCacheRequests());
     LogUtils.d(TAG, "- Cache Hits: " + stats.getCacheHits());
     LogUtils.d(TAG, "- Cache Misses: " + stats.getCacheMisses());
-    LogUtils.d(TAG, "- Hit Rate: " + String.format("%.2f%%", stats.getHitRate() * 100));
+    LogUtils.d(TAG, "- Hit Rate: " + String.format(Locale.US, "%.2f%%", stats.getHitRate() * 100));
 
     // Clean up the test entry
     remove(testKey);
