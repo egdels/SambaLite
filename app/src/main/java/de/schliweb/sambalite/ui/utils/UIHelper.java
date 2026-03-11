@@ -3,6 +3,8 @@ package de.schliweb.sambalite.ui.utils;
 import android.app.Activity;
 import android.content.Context;
 import androidx.annotation.ColorRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
@@ -22,37 +24,41 @@ public class UIHelper {
   private static final int INFO_COLOR = android.R.color.holo_blue_dark;
 
   /** Beautiful success feedback with elegant animation. */
-  public static void showSuccess(Activity activity, @StringRes int messageRes) {
+  public static void showSuccess(@NonNull Activity activity, @StringRes int messageRes) {
     createSnackbar(activity, activity.getString(messageRes), SUCCESS_COLOR)
         .setDuration(Snackbar.LENGTH_LONG)
         .show();
   }
 
   /** Beautiful error feedback with context and elegant styling. */
-  public static void showError(Activity activity, @StringRes int titleRes, String details) {
+  public static void showError(
+      @NonNull Activity activity, @StringRes int titleRes, @NonNull String details) {
     String message = buildErrorMessage(activity, titleRes, details);
     createSnackbar(activity, message, ERROR_COLOR).setDuration(Snackbar.LENGTH_LONG).show();
   }
 
-  public static void showInfo(Activity activity, String message) {
+  public static void showInfo(@NonNull Activity activity, @NonNull String message) {
     createSnackbar(activity, message, INFO_COLOR).setDuration(Snackbar.LENGTH_SHORT).show();
   }
 
   /** Beautiful confirmation dialogs with Material Design. */
   public static void showConfirmation(
-      Activity activity, @StringRes int titleRes, String message, Runnable onConfirm) {
+      @NonNull Activity activity,
+      @StringRes int titleRes,
+      @NonNull String message,
+      @Nullable Runnable onConfirm) {
     createConfirmationDialog(activity, activity.getString(titleRes), message, onConfirm).show();
   }
 
   /** Advanced confirmation with custom button texts. */
   public static void showConfirmation(
-      Activity activity,
-      String title,
-      String message,
-      String positiveText,
-      String negativeText,
-      Runnable onConfirm,
-      Runnable onCancel) {
+      @NonNull Activity activity,
+      @NonNull String title,
+      @NonNull String message,
+      @NonNull String positiveText,
+      @NonNull String negativeText,
+      @NonNull Runnable onConfirm,
+      @NonNull Runnable onCancel) {
     new MaterialAlertDialogBuilder(activity)
         .setTitle(title)
         .setMessage(message)
@@ -71,8 +77,7 @@ public class UIHelper {
   }
 
   /** Elegant utility methods for internal use. */
-  private static Snackbar createSnackbar(
-      Activity activity, String message, @ColorRes int colorRes) {
+  static Snackbar createSnackbar(Activity activity, String message, @ColorRes int colorRes) {
     return Snackbar.make(
             activity.findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT)
         .setBackgroundTint(ContextCompat.getColor(activity, colorRes))
@@ -101,7 +106,7 @@ public class UIHelper {
   }
 
   /** Creates a new fluent builder for complex UI feedback. */
-  public static Builder with(Activity activity) {
+  public static @NonNull Builder with(@NonNull Activity activity) {
     return new Builder(activity);
   }
 
@@ -114,44 +119,44 @@ public class UIHelper {
     private String actionText;
     private Runnable actionCallback;
 
-    public Builder(Activity activity) {
+    public Builder(@NonNull Activity activity) {
       this.activity = activity;
     }
 
-    public Builder message(String message) {
+    public @NonNull Builder message(@NonNull String message) {
       this.message = message;
       return this;
     }
 
-    public Builder message(@StringRes int messageRes) {
+    public @NonNull Builder message(@StringRes int messageRes) {
       this.message = activity.getString(messageRes);
       return this;
     }
 
-    public Builder success() {
+    public @NonNull Builder success() {
       this.colorRes = SUCCESS_COLOR;
       this.duration = Snackbar.LENGTH_LONG;
       return this;
     }
 
-    public Builder error() {
+    public @NonNull Builder error() {
       this.colorRes = ERROR_COLOR;
       this.duration = Snackbar.LENGTH_LONG;
       return this;
     }
 
-    public Builder duration(int duration) {
+    public @NonNull Builder duration(int duration) {
       this.duration = duration;
       return this;
     }
 
-    public Builder action(String text, Runnable callback) {
+    public @NonNull Builder action(@NonNull String text, @Nullable Runnable callback) {
       this.actionText = text;
       this.actionCallback = callback;
       return this;
     }
 
-    public Builder action(@StringRes int textRes, Runnable callback) {
+    public @NonNull Builder action(@StringRes int textRes, @Nullable Runnable callback) {
       this.actionText = activity.getString(textRes);
       this.actionCallback = callback;
       return this;
