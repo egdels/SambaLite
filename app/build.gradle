@@ -168,8 +168,8 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-livedata:2.10.0'
 
     // WorkManager for periodic background synchronization
-    implementation 'androidx.work:work-runtime:2.10.1'
-    testImplementation 'androidx.work:work-testing:2.10.1'
+    implementation 'androidx.work:work-runtime:2.11.1'
+    testImplementation 'androidx.work:work-testing:2.11.1'
 
     // Dagger 2 for dependency injection
     implementation 'com.google.dagger:dagger:2.59.2'
