@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.util;
 
+import androidx.annotation.NonNull;
 import java.util.Locale;
 
 /**
@@ -9,7 +10,7 @@ import java.util.Locale;
 public class EnhancedFileUtils {
 
   /** Formats file size in human-readable format. */
-  public static String formatFileSize(long bytes) {
+  public static @NonNull String formatFileSize(long bytes) {
     if (bytes < 0) return "Unknown";
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return String.format(Locale.US, "%.1f KB", bytes / 1024.0);
@@ -19,7 +20,7 @@ public class EnhancedFileUtils {
   }
 
   /** Gets file extension from filename. */
-  public static String getFileExtension(String fileName) {
+  public static @NonNull String getFileExtension(@NonNull String fileName) {
     if (fileName == null || fileName.isEmpty()) return "";
 
     int lastDot = fileName.lastIndexOf('.');
@@ -31,7 +32,7 @@ public class EnhancedFileUtils {
   }
 
   /** Determines file type category from extension. */
-  public static FileType getFileType(String fileName) {
+  public static @NonNull FileType getFileType(@NonNull String fileName) {
     String extension = getFileExtension(fileName);
 
     if (extension.isEmpty()) return FileType.UNKNOWN;

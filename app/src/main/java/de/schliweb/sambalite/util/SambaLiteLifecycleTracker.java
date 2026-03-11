@@ -3,6 +3,8 @@ package de.schliweb.sambalite.util;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -25,7 +27,7 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
     LogUtils.d(TAG, "Lifecycle tracker initialized");
   }
 
-  public static SambaLiteLifecycleTracker getInstance() {
+  public static @NonNull SambaLiteLifecycleTracker getInstance() {
     if (instance == null) {
       instance = new SambaLiteLifecycleTracker();
     }
@@ -33,12 +35,12 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
   }
 
   @Override
-  public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+  public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
     LogUtils.d(TAG, "Activity created: " + activity.getClass().getSimpleName());
   }
 
   @Override
-  public void onActivityStarted(Activity activity) {
+  public void onActivityStarted(@NonNull Activity activity) {
     LogUtils.d(TAG, "Activity started: " + activity.getClass().getSimpleName());
     activityCount++;
 
@@ -53,17 +55,17 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
   }
 
   @Override
-  public void onActivityResumed(Activity activity) {
+  public void onActivityResumed(@NonNull Activity activity) {
     LogUtils.d(TAG, "Activity resumed: " + activity.getClass().getSimpleName());
   }
 
   @Override
-  public void onActivityPaused(Activity activity) {
+  public void onActivityPaused(@NonNull Activity activity) {
     LogUtils.d(TAG, "Activity paused: " + activity.getClass().getSimpleName());
   }
 
   @Override
-  public void onActivityStopped(Activity activity) {
+  public void onActivityStopped(@NonNull Activity activity) {
     LogUtils.d(TAG, "Activity stopped: " + activity.getClass().getSimpleName());
     activityCount--;
 
@@ -84,12 +86,12 @@ public class SambaLiteLifecycleTracker implements Application.ActivityLifecycleC
   }
 
   @Override
-  public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+  public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
     LogUtils.d(TAG, "Activity save instance state: " + activity.getClass().getSimpleName());
   }
 
   @Override
-  public void onActivityDestroyed(Activity activity) {
+  public void onActivityDestroyed(@NonNull Activity activity) {
     LogUtils.d(TAG, "Activity destroyed: " + activity.getClass().getSimpleName());
   }
 

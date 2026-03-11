@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache.operations;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.cache.key.CacheKeyGenerator;
@@ -49,11 +50,11 @@ public class FileListCacheOperations {
    * @param statistics The statistics object for tracking cache performance
    */
   public FileListCacheOperations(
-      CacheStrategy<String, Serializable> cacheStrategy,
-      CacheKeyGenerator keyGenerator,
-      SerializationValidator serializationValidator,
-      CacheExceptionHandler exceptionHandler,
-      CacheStatistics statistics) {
+      @NonNull CacheStrategy<String, Serializable> cacheStrategy,
+      @NonNull CacheKeyGenerator keyGenerator,
+      @NonNull SerializationValidator serializationValidator,
+      @NonNull CacheExceptionHandler exceptionHandler,
+      @NonNull CacheStatistics statistics) {
     this.cacheStrategy = cacheStrategy;
     this.keyGenerator = keyGenerator;
     this.serializationValidator = serializationValidator;
@@ -70,7 +71,8 @@ public class FileListCacheOperations {
    * @param path The path to the directory
    * @param files The list of files to cache
    */
-  public void cacheFileList(SmbConnection connection, String path, List<SmbFileItem> files) {
+  public void cacheFileList(
+      @NonNull SmbConnection connection, @NonNull String path, @NonNull List<SmbFileItem> files) {
     LogUtils.d(
         TAG,
         "Caching file list for connection: "
@@ -120,7 +122,8 @@ public class FileListCacheOperations {
    * @return The cached file list, or null if not found or expired
    */
   @SuppressWarnings("unchecked")
-  public List<SmbFileItem> getCachedFileList(SmbConnection connection, String path) {
+  public @NonNull List<SmbFileItem> getCachedFileList(
+      @NonNull SmbConnection connection, @NonNull String path) {
     LogUtils.d(
         TAG,
         "Getting cached file list for connection: " + connection.getName() + ", path: " + path);
@@ -165,7 +168,7 @@ public class FileListCacheOperations {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void invalidateFileList(SmbConnection connection, String path) {
+  public void invalidateFileList(@NonNull SmbConnection connection, @NonNull String path) {
     LogUtils.d(
         TAG,
         "Invalidating file list cache for connection: " + connection.getName() + ", path: " + path);
@@ -184,7 +187,7 @@ public class FileListCacheOperations {
    *
    * @param connection The SMB connection
    */
-  public void invalidateAllFileLists(SmbConnection connection) {
+  public void invalidateAllFileLists(@NonNull SmbConnection connection) {
     LogUtils.d(TAG, "Invalidating all file list caches for connection: " + connection.getName());
 
     // Generate invalidation pattern
@@ -204,7 +207,7 @@ public class FileListCacheOperations {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void preloadCommonFileLists(SmbConnection connection, String path) {
+  public void preloadCommonFileLists(@NonNull SmbConnection connection, @NonNull String path) {
     // This is a placeholder for future implementation
     // In a real implementation, this would preload file lists for common subdirectories
     LogUtils.d(

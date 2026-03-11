@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache.strategy;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 
 /**
@@ -17,7 +18,7 @@ public interface CacheStrategy<K, V> {
    * @param key The key for the cache entry
    * @param entry The cache entry to store
    */
-  void put(K key, CacheEntry<V> entry);
+  void put(@NonNull K key, @NonNull CacheEntry<V> entry);
 
   /**
    * Gets a value from the cache.
@@ -25,7 +26,8 @@ public interface CacheStrategy<K, V> {
    * @param key The key for the cache entry
    * @return The cache entry, or null if not found
    */
-  CacheEntry<V> get(K key);
+  @NonNull
+  CacheEntry<V> get(@NonNull K key);
 
   /**
    * Removes a value from the cache.
@@ -33,7 +35,8 @@ public interface CacheStrategy<K, V> {
    * @param key The key for the cache entry to remove
    * @return The removed entry, or null if not found
    */
-  CacheEntry<V> remove(K key);
+  @NonNull
+  CacheEntry<V> remove(@NonNull K key);
 
   /**
    * Removes all entries matching a pattern.
@@ -41,7 +44,7 @@ public interface CacheStrategy<K, V> {
    * @param keyPattern The pattern to match keys against
    * @return The number of entries removed
    */
-  int removePattern(String keyPattern);
+  int removePattern(@NonNull String keyPattern);
 
   /** Clears all entries from the cache. */
   void clear();

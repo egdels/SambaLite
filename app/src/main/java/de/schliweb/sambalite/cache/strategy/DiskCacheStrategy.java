@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.cache.strategy;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.util.LogUtils;
@@ -49,7 +50,7 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
    * @param context The application context
    * @param statistics The statistics object for tracking cache performance
    */
-  public DiskCacheStrategy(Context context, CacheStatistics statistics) {
+  public DiskCacheStrategy(@NonNull Context context, @NonNull CacheStatistics statistics) {
     this(context, DEFAULT_MAX_SIZE_BYTES, statistics);
   }
 
@@ -60,7 +61,8 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
    * @param maxSizeBytes The maximum size of the disk cache in bytes
    * @param statistics The statistics object for tracking cache performance
    */
-  public DiskCacheStrategy(Context context, long maxSizeBytes, CacheStatistics statistics) {
+  public DiskCacheStrategy(
+      @NonNull Context context, long maxSizeBytes, @NonNull CacheStatistics statistics) {
     this.cacheDir = new File(context.getCacheDir(), "intelligent_cache");
     this.maxSizeBytes = maxSizeBytes;
     this.statistics = statistics;
@@ -84,7 +86,7 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public void put(K key, CacheEntry<V> entry) {
+  public void put(@NonNull K key, @NonNull CacheEntry<V> entry) {
     LogUtils.d(TAG, "Putting entry in disk cache with key: " + key);
     statistics.incrementPutOperations();
 
@@ -93,7 +95,7 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> get(K key) {
+  public @NonNull CacheEntry<V> get(@NonNull K key) {
     LogUtils.d(TAG, "Getting entry from disk cache with key: " + key);
     statistics.incrementGetOperations();
     statistics.incrementCacheRequests();
@@ -121,7 +123,7 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> remove(K key) {
+  public @NonNull CacheEntry<V> remove(@NonNull K key) {
     LogUtils.d(TAG, "Removing entry from disk cache with key: " + key);
     statistics.incrementRemoveOperations();
 
@@ -148,7 +150,7 @@ public class DiskCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public int removePattern(String keyPattern) {
+  public int removePattern(@NonNull String keyPattern) {
     LogUtils.d(TAG, "Removing entries matching pattern: " + keyPattern);
 
     File[] files =

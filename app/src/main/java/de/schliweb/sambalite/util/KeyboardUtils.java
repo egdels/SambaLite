@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import androidx.annotation.NonNull;
 
 /** Utility class for managing keyboard visibility. */
 public class KeyboardUtils {
@@ -15,7 +16,7 @@ public class KeyboardUtils {
    *
    * @param activity The activity where the keyboard is shown
    */
-  public static void hideKeyboard(Activity activity) {
+  public static void hideKeyboard(@NonNull Activity activity) {
     LogUtils.d("KeyboardUtils", "Attempting to hide keyboard");
     if (activity == null) {
       LogUtils.w("KeyboardUtils", "Cannot hide keyboard: activity is null");
@@ -41,7 +42,7 @@ public class KeyboardUtils {
    * @param context The context
    * @param view The view that will receive input
    */
-  public static void showKeyboard(Context context, View view) {
+  public static void showKeyboard(@NonNull Context context, @NonNull View view) {
     LogUtils.d("KeyboardUtils", "Attempting to show keyboard");
     if (context == null || view == null) {
       LogUtils.w("KeyboardUtils", "Cannot show keyboard: context or view is null");

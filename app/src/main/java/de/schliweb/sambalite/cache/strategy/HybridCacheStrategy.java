@@ -1,8 +1,10 @@
 package de.schliweb.sambalite.cache.strategy;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.util.LogUtils;
+import java.util.Locale;
 import lombok.Getter;
 
 /**
@@ -33,9 +35,9 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
    * @param statistics The statistics object for tracking cache performance
    */
   public HybridCacheStrategy(
-      MemoryCacheStrategy<K, V> memoryStrategy,
-      DiskCacheStrategy<K, V> diskStrategy,
-      CacheStatistics statistics) {
+      @NonNull MemoryCacheStrategy<K, V> memoryStrategy,
+      @NonNull DiskCacheStrategy<K, V> diskStrategy,
+      @NonNull CacheStatistics statistics) {
     this.memoryStrategy = memoryStrategy;
     this.diskStrategy = diskStrategy;
     this.statistics = statistics;
@@ -44,7 +46,7 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public void put(K key, CacheEntry<V> entry) {
+  public void put(@NonNull K key, @NonNull CacheEntry<V> entry) {
     LogUtils.d(TAG, "Putting entry in hybrid cache with key: " + key);
 
     // Store in both memory and disk
@@ -53,7 +55,7 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> get(K key) {
+  public @NonNull CacheEntry<V> get(@NonNull K key) {
     LogUtils.d(TAG, "Getting entry from hybrid cache with key: " + key);
     statistics.incrementCacheRequests();
 
@@ -97,7 +99,7 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> remove(K key) {
+  public @NonNull CacheEntry<V> remove(@NonNull K key) {
     LogUtils.d(TAG, "Removing entry from hybrid cache with key: " + key);
 
     // Remove from both memory and disk
@@ -109,7 +111,7 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public int removePattern(String keyPattern) {
+  public int removePattern(@NonNull String keyPattern) {
     LogUtils.d(TAG, "Removing entries matching pattern: " + keyPattern);
 
     // Remove from both memory and disk
@@ -195,14 +197,17 @@ public class HybridCacheStrategy<K, V> implements CacheStrategy<K, V> {
     stats.append("- Total Requests: ").append(requests).append("\n");
     stats.append("- Cache Hits: ").append(hits).append("\n");
     stats.append("- Cache Misses: ").append(misses).append("\n");
-    stats.append("- Hit Rate: ").append(String.format("%.2f%%", hitRate * 100)).append("\n");
+    stats
+        .append("- Hit Rate: ")
+        .append(String.format(Locale.US, "%.2f%%", hitRate * 100))
+        .append("\n");
     stats
         .append("- Hit Rate Calculation: ")
         .append(hits)
         .append("/")
         .append(requests)
         .append(" = ")
-        .append(String.format("%.2f", hitRate))
+        .append(String.format(Locale.US, "%.2f", hitRate))
         .append("\n");
 
     // Operation statistics
