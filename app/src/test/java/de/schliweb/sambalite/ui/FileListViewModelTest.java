@@ -63,7 +63,7 @@ public class FileListViewModelTest {
     when(state.getCurrentPathString()).thenReturn("");
 
     // Initialize the view model
-    viewModel = new FileListViewModel(smbRepository, context, state, backgroundSmbManager);
+    viewModel = new FileListViewModel(smbRepository, state, backgroundSmbManager);
 
     // Replace the executor with a direct executor that runs tasks immediately on the same thread
     // This ensures that our mocking of IntelligentCacheManager works correctly

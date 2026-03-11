@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.ui;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -23,18 +25,15 @@ public class FileListViewModel extends ViewModel {
 
   private final SmbRepository smbRepository;
   private final Executor executor;
-  private final android.content.Context context;
   private final FileBrowserState state;
   private final BackgroundSmbManager backgroundSmbManager;
 
   @Inject
   public FileListViewModel(
-      SmbRepository smbRepository,
-      android.content.Context context,
-      FileBrowserState state,
-      BackgroundSmbManager backgroundSmbManager) {
+      @NonNull SmbRepository smbRepository,
+      @NonNull FileBrowserState state,
+      @NonNull BackgroundSmbManager backgroundSmbManager) {
     this.smbRepository = smbRepository;
-    this.context = context;
     this.state = state;
     this.backgroundSmbManager = backgroundSmbManager;
     this.executor = Executors.newSingleThreadExecutor();
@@ -46,33 +45,33 @@ public class FileListViewModel extends ViewModel {
    *
    * @param connection The connection to use
    */
-  public void setConnection(SmbConnection connection) {
+  public void setConnection(@NonNull SmbConnection connection) {
     LogUtils.d("FileListViewModel", "Setting connection: " + connection.getName());
     state.setConnection(connection);
     loadFiles();
   }
 
-  public SmbConnection getConnection() {
+  public @Nullable SmbConnection getConnection() {
     return state.getConnection();
   }
 
   /** Gets the list of files as LiveData. */
-  public LiveData<List<SmbFileItem>> getFiles() {
+  public @NonNull LiveData<List<SmbFileItem>> getFiles() {
     return state.getFiles();
   }
 
   /** Gets the loading state as LiveData. */
-  public LiveData<Boolean> isLoading() {
+  public @NonNull LiveData<Boolean> isLoading() {
     return state.isLoading();
   }
 
   /** Gets the error message as LiveData. */
-  public LiveData<String> getErrorMessage() {
+  public @NonNull LiveData<String> getErrorMessage() {
     return state.getErrorMessage();
   }
 
   /** Gets the current path as LiveData (display path including share name). */
-  public LiveData<String> getCurrentPath() {
+  public @NonNull LiveData<String> getCurrentPath() {
     return state.getCurrentPath();
   }
 
@@ -81,12 +80,12 @@ public class FileListViewModel extends ViewModel {
    *
    * @return the current path relative to the share root
    */
-  public String getCurrentPathInternal() {
+  public @NonNull String getCurrentPathInternal() {
     return state.getCurrentPathString();
   }
 
   /** Gets the current sort option as LiveData. */
-  public LiveData<FileSortOption> getSortOption() {
+  public @NonNull LiveData<FileSortOption> getSortOption() {
     return state.getSortOption();
   }
 
@@ -95,7 +94,7 @@ public class FileListViewModel extends ViewModel {
    *
    * @param option The sort option to set
    */
-  public void setSortOption(FileSortOption option) {
+  public void setSortOption(@NonNull FileSortOption option) {
     state.setSortOption(option);
 
     // Invalidate cache when sorting changes to ensure fresh loading with new sort order
@@ -104,7 +103,7 @@ public class FileListViewModel extends ViewModel {
     }
 
     // Reload files with new sorting
-    if (state.isInSearchMode()) {
+    if (state.getSearchMode()) {
       // Re-sort search results
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
@@ -118,7 +117,7 @@ public class FileListViewModel extends ViewModel {
   }
 
   /** Gets the current "directories first" flag as LiveData. */
-  public LiveData<Boolean> getDirectoriesFirst() {
+  public @NonNull LiveData<Boolean> getDirectoriesFirst() {
     return state.getDirectoriesFirst();
   }
 
@@ -136,7 +135,7 @@ public class FileListViewModel extends ViewModel {
     }
 
     // Reload files with new sorting
-    if (state.isInSearchMode()) {
+    if (state.getSearchMode()) {
       // Re-sort search results
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
@@ -150,7 +149,7 @@ public class FileListViewModel extends ViewModel {
   }
 
   /** Gets the current "show hidden files" flag as LiveData. */
-  public LiveData<Boolean> getShowHiddenFiles() {
+  public @NonNull LiveData<Boolean> getShowHiddenFiles() {
     return state.getShowHiddenFiles();
   }
 
@@ -168,7 +167,7 @@ public class FileListViewModel extends ViewModel {
     }
 
     // Reload files with new setting
-    if (state.isInSearchMode()) {
+    if (state.getSearchMode()) {
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
         List<SmbFileItem> filtered = filterHiddenFiles(results);
@@ -204,7 +203,7 @@ public class FileListViewModel extends ViewModel {
    *
    * @param fileList The list of files to sort
    */
-  public void sortFiles(List<SmbFileItem> fileList) {
+  public void sortFiles(@NonNull List<SmbFileItem> fileList) {
     LogUtils.d(
         "FileListViewModel",
         "Sorting files with option: "
@@ -421,7 +420,7 @@ public class FileListViewModel extends ViewModel {
    *
    * @param directory The directory to navigate to
    */
-  public void navigateToDirectory(SmbFileItem directory) {
+  public void navigateToDirectory(@NonNull SmbFileItem directory) {
     if (!directory.isDirectory()) {
       LogUtils.w("FileListViewModel", "Cannot navigate to non-directory: " + directory.getName());
       return;
@@ -455,7 +454,7 @@ public class FileListViewModel extends ViewModel {
    *
    * @param path The path to navigate to
    */
-  public void navigateToPath(String path) {
+  public void navigateToPath(@NonNull String path) {
     if (path == null || path.isEmpty()) {
       LogUtils.w("FileListViewModel", "Cannot navigate to empty path");
       return;
@@ -476,7 +475,7 @@ public class FileListViewModel extends ViewModel {
    *
    * @param path The path to navigate to
    */
-  public void navigateToPathWithHierarchy(String path) {
+  public void navigateToPathWithHierarchy(@NonNull String path) {
     if (path == null || path.isEmpty()) {
       LogUtils.w("FileListViewModel", "Cannot navigate to empty path");
       return;
@@ -490,7 +489,7 @@ public class FileListViewModel extends ViewModel {
     }
 
     // Handle root path
-    if (path.equals("/") || path.isEmpty()) {
+    if (path.equals("/")) {
       state.setCurrentPath("");
       loadFiles();
       return;
@@ -500,7 +499,7 @@ public class FileListViewModel extends ViewModel {
     String cleanPath = path.startsWith("/") ? path.substring(1) : path;
 
     // Split the path into parts
-    String[] pathParts = cleanPath.split("/");
+    String[] pathParts = cleanPath.split("/", -1);
 
     // Start from root (empty path) and build navigation stack step by step
     state.setCurrentPath("");
