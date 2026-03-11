@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Locale;
@@ -31,7 +32,7 @@ public class SmartErrorHandler {
   }
 
   /** Singleton instance retrieval. Ensures thread-safe lazy initialization. */
-  public static synchronized SmartErrorHandler getInstance() {
+  public static synchronized @NonNull SmartErrorHandler getInstance() {
     if (instance == null) {
       instance = new SmartErrorHandler();
     }
@@ -39,7 +40,8 @@ public class SmartErrorHandler {
   }
 
   /** Records an error with intelligent categorization. */
-  public void recordError(Throwable error, String context, ErrorSeverity severity) {
+  public void recordError(
+      @NonNull Throwable error, @NonNull String context, @NonNull ErrorSeverity severity) {
     if (error == null) return;
 
     try {
@@ -79,14 +81,17 @@ public class SmartErrorHandler {
 
       // Log the error
       String logMessage =
-          String.format(
-              Locale.ROOT,
-              "Error recorded: %s in %s - %s (%s, %s)",
-              record.errorType,
-              context,
-              error.getMessage(),
-              severity,
-              category);
+          "Error recorded: "
+              + record.errorType
+              + " in "
+              + context
+              + " - "
+              + error.getMessage()
+              + " ("
+              + severity
+              + ", "
+              + category
+              + ")";
 
       switch (severity) {
         case CRITICAL:
@@ -107,7 +112,7 @@ public class SmartErrorHandler {
   }
 
   /** Gets error statistics. */
-  public ErrorStats getErrorStats() {
+  public @NonNull ErrorStats getErrorStats() {
     return new ErrorStats(
         totalErrors.get(),
         criticalErrors.get(),
@@ -118,7 +123,7 @@ public class SmartErrorHandler {
   }
 
   /** Saves error statistics to preferences. */
-  public void saveErrorStats(Context context) {
+  public void saveErrorStats(@NonNull Context context) {
     if (context == null) return;
 
     try {
@@ -189,7 +194,6 @@ public class SmartErrorHandler {
     // File system errors
     if (className.contains("file")
         || className.contains("io")
-        || message.contains("permission")
         || message.contains("access denied")
         || message.contains("space")) {
       return ErrorCategory.FILE_SYSTEM;
@@ -198,7 +202,6 @@ public class SmartErrorHandler {
     // Security errors
     if (className.contains("security")
         || className.contains("permission")
-        || message.contains("permission")
         || message.contains("denied")) {
       return ErrorCategory.SECURITY;
     }
