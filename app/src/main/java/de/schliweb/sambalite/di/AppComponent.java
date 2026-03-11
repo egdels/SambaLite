@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.di;
 
 import android.app.Application;
+import androidx.annotation.NonNull;
 import dagger.BindsInstance;
 import dagger.Component;
 import de.schliweb.sambalite.SambaLiteApp;
@@ -19,26 +20,28 @@ import javax.inject.Singleton;
 public interface AppComponent {
 
   /** Injects dependencies into the SambaLiteApp. */
-  void inject(SambaLiteApp app);
+  void inject(@NonNull SambaLiteApp app);
 
   /** Injects dependencies into the MainActivity. */
-  void inject(MainActivity activity);
+  void inject(@NonNull MainActivity activity);
 
   /** Injects dependencies into the FileBrowserActivity. */
-  void inject(FileBrowserActivity activity);
+  void inject(@NonNull FileBrowserActivity activity);
 
   /** Injects dependencies into the ShareReceiverActivity. */
-  void inject(ShareReceiverActivity activity);
+  void inject(@NonNull ShareReceiverActivity activity);
 
   /** Injects dependencies into the SystemMonitorActivity. */
-  void inject(SystemMonitorActivity activity);
+  void inject(@NonNull SystemMonitorActivity activity);
 
   /** Builder for the AppComponent. */
   @Component.Builder
   interface Builder {
     @BindsInstance
-    Builder application(Application application);
+    @NonNull
+    Builder application(@NonNull Application application);
 
+    @NonNull
     AppComponent build();
   }
 }

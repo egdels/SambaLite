@@ -16,7 +16,7 @@ public class ViewModelFactory implements ViewModelProvider.Factory {
   private final Map<Class<? extends ViewModel>, Provider<ViewModel>> creators;
 
   @Inject
-  public ViewModelFactory(Map<Class<? extends ViewModel>, Provider<ViewModel>> creators) {
+  public ViewModelFactory(@NonNull Map<Class<? extends ViewModel>, Provider<ViewModel>> creators) {
     LogUtils.d(
         "ViewModelFactory",
         "Initializing ViewModelFactory with " + creators.size() + " ViewModel providers");
