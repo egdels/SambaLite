@@ -2,6 +2,7 @@ package de.schliweb.sambalite.ui.controllers;
 
 import android.view.MotionEvent;
 import android.view.View;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.util.KeyboardUtils;
 import de.schliweb.sambalite.util.LogUtils;
@@ -19,7 +20,7 @@ public class InputController {
    *
    * @param activity The activity
    */
-  public InputController(AppCompatActivity activity) {
+  public InputController(@NonNull AppCompatActivity activity) {
     this.activity = activity;
     LogUtils.d("InputController", "InputController initialized");
   }
@@ -40,7 +41,7 @@ public class InputController {
    * @param event The touch event
    * @return true if the event was handled, false otherwise
    */
-  public boolean handleTouchEvent(MotionEvent event) {
+  public boolean handleTouchEvent(@NonNull MotionEvent event) {
     if (event.getAction() == MotionEvent.ACTION_DOWN) {
       View v = activity.getCurrentFocus();
       if (v instanceof com.google.android.material.textfield.TextInputEditText) {
