@@ -6,6 +6,7 @@ import android.net.Uri;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
@@ -43,7 +44,9 @@ public class ActivityResultController {
    * @param inputController The input controller for handling keyboard and focus management
    */
   public ActivityResultController(
-      AppCompatActivity activity, FileBrowserUIState uiState, InputController inputController) {
+      @NonNull AppCompatActivity activity,
+      @NonNull FileBrowserUIState uiState,
+      @NonNull InputController inputController) {
     this.activity = activity;
     this.uiState = uiState;
     this.inputController = inputController;
@@ -209,7 +212,7 @@ public class ActivityResultController {
    *
    * @param file The file or folder to download
    */
-  public void initDownloadFileOrFolder(SmbFileItem file) {
+  public void initDownloadFileOrFolder(@NonNull SmbFileItem file) {
     LogUtils.d(
         "ActivityResultController",
         "Initiating download for: "
@@ -281,34 +284,34 @@ public class ActivityResultController {
      *
      * @param uri The URI of the file to upload
      */
-    void onFileUploadResult(Uri uri);
+    void onFileUploadResult(@NonNull Uri uri);
 
     /**
      * Called when a file download result is received.
      *
      * @param uri The URI to save the downloaded file to
      */
-    void onFileDownloadResult(Uri uri);
+    void onFileDownloadResult(@NonNull Uri uri);
 
     /**
      * Called when a folder download result is received.
      *
      * @param uri The URI to save the downloaded folder to
      */
-    void onFolderDownloadResult(Uri uri);
+    void onFolderDownloadResult(@NonNull Uri uri);
 
     /**
      * Called when a folder contents upload result is received.
      *
      * @param uri The URI of the folder to upload contents from
      */
-    void onFolderUploadResult(Uri uri);
+    void onFolderUploadResult(@NonNull Uri uri);
 
     /**
      * Called when a folder is selected for sync.
      *
      * @param uri The URI of the folder to sync
      */
-    void onSyncFolderSelected(Uri uri);
+    void onSyncFolderSelected(@NonNull Uri uri);
   }
 }
