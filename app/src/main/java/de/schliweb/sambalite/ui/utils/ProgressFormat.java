@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.ui.utils;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import java.util.Locale;
 import java.util.Optional;
@@ -25,11 +26,11 @@ public final class ProgressFormat {
       this.label = label;
     }
 
-    public String label() {
+    public @NonNull String label() {
       return label;
     }
 
-    public static Op fromString(String s) {
+    public static @NonNull Op fromString(@NonNull String s) {
       if (s == null) return UNKNOWN;
       String x = s.toLowerCase(Locale.US);
       if (x.startsWith("download")) return DOWNLOAD;
@@ -68,7 +69,7 @@ public final class ProgressFormat {
       this.rawFileName = rawFileName;
     }
 
-    public Op op() {
+    public @NonNull Op op() {
       return op;
     }
 
@@ -76,28 +77,29 @@ public final class ProgressFormat {
       return overallPct;
     }
 
-    public Optional<Integer> cur() {
+    public @NonNull Optional<Integer> cur() {
       return Optional.ofNullable(cur);
     }
 
-    public Optional<Integer> total() {
+    public @NonNull Optional<Integer> total() {
       return Optional.ofNullable(total);
     }
 
-    public Optional<Integer> filePct() {
+    public @NonNull Optional<Integer> filePct() {
       return Optional.ofNullable(filePct);
     }
 
-    public Optional<String> fileName() {
+    public @NonNull Optional<String> fileName() {
       return Optional.ofNullable(fileName);
     }
 
-    public Optional<String> rawFileName() {
+    public @NonNull Optional<String> rawFileName() {
       return Optional.ofNullable(rawFileName);
     }
   }
 
-  public static Result parse(String raw, int overallFallback, String fallbackName) {
+  public static @NonNull Result parse(
+      @NonNull String raw, int overallFallback, @NonNull String fallbackName) {
     String s = raw != null ? raw.trim() : "";
     int overall = clampPct(overallFallback);
 
@@ -116,15 +118,18 @@ public final class ProgressFormat {
     if (mb.find()) {
       try {
         overall = clampPct(Integer.parseInt(mb.group(1)));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
       try {
         cur = Integer.parseInt(mb.group(2));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
       try {
         total = Integer.parseInt(mb.group(3));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
       String tail = mb.group(4) != null ? mb.group(4).trim() : "";
       foundName = stripBullet(tail);
@@ -143,15 +148,18 @@ public final class ProgressFormat {
       if (mPctIdx.find()) {
         try {
           overall = clampPct(Integer.parseInt(mPctIdx.group(1)));
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
+          // Intentionally empty: expected is expected and safely ignored
         }
         try {
           cur = Integer.parseInt(mPctIdx.group(2));
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
+          // Intentionally empty: expected is expected and safely ignored
         }
         try {
           total = Integer.parseInt(mPctIdx.group(3));
-        } catch (Exception ignore) {
+        } catch (Exception ignored) {
+          // Intentionally empty: expected is expected and safely ignored
         }
         foundName = mPctIdx.group(4) != null ? stripBullet(mPctIdx.group(4).trim()) : null;
       } else {
@@ -159,11 +167,13 @@ public final class ProgressFormat {
         if (mIdx.find()) {
           try {
             cur = Integer.parseInt(mIdx.group(1));
-          } catch (Exception ignore) {
+          } catch (Exception ignored) {
+            // Intentionally empty: expected is expected and safely ignored
           }
           try {
             total = Integer.parseInt(mIdx.group(2));
-          } catch (Exception ignore) {
+          } catch (Exception ignored) {
+            // Intentionally empty: expected is expected and safely ignored
           }
           foundName = mIdx.group(3) != null ? stripBullet(mIdx.group(3).trim()) : null;
         } else {
@@ -171,7 +181,8 @@ public final class ProgressFormat {
           if (mPctName.find()) {
             try {
               overall = clampPct(Integer.parseInt(mPctName.group(1)));
-            } catch (Exception ignore) {
+            } catch (Exception ignored) {
+              // Intentionally empty: expected is expected and safely ignored
             }
             foundName = mPctName.group(2) != null ? stripBullet(mPctName.group(2).trim()) : null;
           } else {
@@ -197,12 +208,13 @@ public final class ProgressFormat {
     return new Result(op, overall, cur, total, filePct, finalName, foundName);
   }
 
-  public static String buildUnified(Op op, int currentFile, int totalFiles, String fileName) {
+  public static @NonNull String buildUnified(
+      @NonNull Op op, int currentFile, int totalFiles, @NonNull String fileName) {
     String safeName = fileName != null ? fileName : "";
     return op.label() + ": " + currentFile + "/" + totalFiles + " - " + safeName;
   }
 
-  public static String toHeadlineNoPercent(Result r) {
+  public static @NonNull String toHeadlineNoPercent(@NonNull Result r) {
     if (r == null) return "";
     if (r.op() == Op.FINALIZING) return r.op().label() + "…";
     if (r.cur().isPresent() && r.total().isPresent()) {
@@ -212,7 +224,7 @@ public final class ProgressFormat {
     return "";
   }
 
-  public static String toDetailsFilename(Result r, int maxLen) {
+  public static @NonNull String toDetailsFilename(@NonNull Result r, int maxLen) {
     if (r == null) return "";
     String name = r.fileName().orElse("");
     if (name.length() > Math.max(10, maxLen)) {
@@ -279,13 +291,15 @@ public final class ProgressFormat {
     if (m.find()) {
       try {
         return Integer.parseInt(m.group(1));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
     }
     return null;
   }
 
-  public static String formatIdx(String op, int cur, int total, String fileName) {
+  public static @NonNull String formatIdx(
+      @NonNull String op, int cur, int total, @NonNull String fileName) {
     String base = fileName == null ? "" : fileName;
     base = base.replace('\\', '/');
     int s = base.lastIndexOf('/');
@@ -293,7 +307,7 @@ public final class ProgressFormat {
     return op + ": " + cur + "/" + total + " - " + base;
   }
 
-  public static int parsePercent(String text) {
+  public static int parsePercent(@NonNull String text) {
     if (text == null) return 0;
     String s = text.trim();
     if (s.isEmpty()) return 0;
@@ -302,7 +316,8 @@ public final class ProgressFormat {
     if (mb.find()) {
       try {
         return clampPct(Integer.parseInt(mb.group(1)));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
     }
 
@@ -310,24 +325,26 @@ public final class ProgressFormat {
     if (m.find()) {
       try {
         return clampPct(Integer.parseInt(m.group(1)));
-      } catch (Exception ignore) {
+      } catch (Exception ignored) {
+        // Intentionally empty: expected is expected and safely ignored
       }
     }
 
     return 0;
   }
 
-  public static String formatBytesOnly(long currentBytes, long totalBytes) {
+  public static @NonNull String formatBytesOnly(long currentBytes, long totalBytes) {
     return EnhancedFileUtils.formatFileSize(currentBytes)
         + " / "
         + EnhancedFileUtils.formatFileSize(totalBytes);
   }
 
-  public static String formatBytes(String verb, long currentBytes, long totalBytes) {
+  public static @NonNull String formatBytes(
+      @NonNull String verb, long currentBytes, long totalBytes) {
     return verb + ": " + formatBytesOnly(currentBytes, totalBytes);
   }
 
-  public static String normalizePercentInStatus(String status, int pct) {
+  public static @NonNull String normalizePercentInStatus(@NonNull String status, int pct) {
     if (status == null) return "";
     return status.replaceAll("\\b(\\d{1,3})%\\b", Math.max(0, Math.min(100, pct)) + "%");
   }
