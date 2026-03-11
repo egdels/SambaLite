@@ -3,6 +3,7 @@ package de.schliweb.sambalite.sync;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import androidx.annotation.NonNull;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -31,7 +32,7 @@ public class SyncManager {
   private final SyncRepository syncRepository;
 
   @Inject
-  public SyncManager(Context context, SyncRepository syncRepository) {
+  public SyncManager(@NonNull Context context, @NonNull SyncRepository syncRepository) {
     this.context = context.getApplicationContext();
     this.syncRepository = syncRepository;
     LogUtils.d(TAG, "SyncManager initialized");
@@ -48,12 +49,12 @@ public class SyncManager {
    * @param intervalMinutes the sync interval in minutes (minimum 15)
    * @return the saved SyncConfig
    */
-  public SyncConfig addSyncConfig(
-      String connectionId,
-      Uri localFolderUri,
-      String remotePath,
-      String localFolderDisplayName,
-      SyncDirection direction,
+  public @NonNull SyncConfig addSyncConfig(
+      @NonNull String connectionId,
+      @NonNull Uri localFolderUri,
+      @NonNull String remotePath,
+      @NonNull String localFolderDisplayName,
+      @NonNull SyncDirection direction,
       int intervalMinutes) {
     LogUtils.d(TAG, "Adding sync config for connection: " + connectionId);
 
@@ -90,7 +91,7 @@ public class SyncManager {
    * @param configId the ID of the configuration to remove
    * @return true if the configuration was found and removed
    */
-  public boolean removeSyncConfig(String configId) {
+  public boolean removeSyncConfig(@NonNull String configId) {
     LogUtils.d(TAG, "Removing sync config: " + configId);
     boolean removed = syncRepository.deleteSyncConfig(configId);
 
@@ -112,7 +113,7 @@ public class SyncManager {
    * @param configId the ID of the configuration
    * @param enabled whether the configuration should be enabled
    */
-  public void setConfigEnabled(String configId, boolean enabled) {
+  public void setConfigEnabled(@NonNull String configId, boolean enabled) {
     LogUtils.d(TAG, "Setting config " + configId + " enabled: " + enabled);
     List<SyncConfig> configs = syncRepository.getAllSyncConfigs();
 
@@ -137,7 +138,7 @@ public class SyncManager {
    *
    * @return list of all sync configurations
    */
-  public List<SyncConfig> getAllSyncConfigs() {
+  public @NonNull List<SyncConfig> getAllSyncConfigs() {
     return syncRepository.getAllSyncConfigs();
   }
 
@@ -159,7 +160,7 @@ public class SyncManager {
    *
    * @param configId the ID of the sync configuration to sync
    */
-  public void triggerImmediateSync(String configId) {
+  public void triggerImmediateSync(@NonNull String configId) {
     LogUtils.i(TAG, "Triggering immediate sync for config: " + configId);
 
     Constraints constraints =
@@ -220,7 +221,7 @@ public class SyncManager {
    * @param connectionId the connection ID whose configs should be removed
    * @return the number of removed configurations
    */
-  public int removeConfigsForConnection(String connectionId) {
+  public int removeConfigsForConnection(@NonNull String connectionId) {
     LogUtils.d(TAG, "Removing sync configs for connection: " + connectionId);
     int removed = syncRepository.deleteConfigsForConnection(connectionId);
 

@@ -2,6 +2,7 @@ package de.schliweb.sambalite.sync;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,7 +34,7 @@ public class SyncActionLog {
       this.symbol = symbol;
     }
 
-    public String getSymbol() {
+    public @NonNull String getSymbol() {
       return symbol;
     }
   }
@@ -41,18 +42,18 @@ public class SyncActionLog {
   private final SharedPreferences prefs;
   private final SimpleDateFormat dateFormat;
 
-  public SyncActionLog(Context context) {
+  public SyncActionLog(@NonNull Context context) {
     this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     this.dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
   }
 
   /** Logs a sync action. */
-  public void log(Action action, String fileName) {
+  public void log(@NonNull Action action, @NonNull String fileName) {
     log(action, fileName, null);
   }
 
   /** Logs a sync action with an optional detail message (e.g. error reason). */
-  public void log(Action action, String fileName, String detail) {
+  public void log(@NonNull Action action, @NonNull String fileName, @NonNull String detail) {
     String timestamp = dateFormat.format(new Date());
     StringBuilder entry = new StringBuilder();
     entry.append("[").append(timestamp).append("] ");
@@ -78,7 +79,7 @@ public class SyncActionLog {
   }
 
   /** Returns all log entries, oldest first. */
-  public List<String> getEntries() {
+  public @NonNull List<String> getEntries() {
     String joined = prefs.getString(KEY_ENTRIES, "");
     List<String> entries = new ArrayList<>();
     if (!joined.isEmpty()) {
@@ -93,7 +94,7 @@ public class SyncActionLog {
   }
 
   /** Returns the most recent N log entries, newest first. */
-  public List<String> getRecentEntries(int count) {
+  public @NonNull List<String> getRecentEntries(int count) {
     List<String> all = getEntries();
     List<String> recent = new ArrayList<>();
     int start = Math.max(0, all.size() - count);
@@ -104,7 +105,7 @@ public class SyncActionLog {
   }
 
   /** Returns a formatted summary string for display in the System Monitor. */
-  public String getFormattedLog(int maxEntries) {
+  public @NonNull String getFormattedLog(int maxEntries) {
     List<String> recent = getRecentEntries(maxEntries);
     int total = getEntries().size();
 

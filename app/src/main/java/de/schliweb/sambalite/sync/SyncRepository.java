@@ -2,6 +2,7 @@ package de.schliweb.sambalite.sync;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ public class SyncRepository {
   private final SharedPreferences prefs;
 
   @Inject
-  public SyncRepository(Context context) {
+  public SyncRepository(@NonNull Context context) {
     LogUtils.d(TAG, "Initializing SyncRepository");
     this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
   }
@@ -34,7 +35,7 @@ public class SyncRepository {
    * @param config the sync configuration to save
    * @return the saved configuration (with ID set)
    */
-  public SyncConfig saveSyncConfig(SyncConfig config) {
+  public @NonNull SyncConfig saveSyncConfig(@NonNull SyncConfig config) {
     LogUtils.d(TAG, "Saving sync config: " + config);
     List<SyncConfig> configs = getAllSyncConfigs();
 
@@ -57,7 +58,7 @@ public class SyncRepository {
    *
    * @return list of all sync configurations
    */
-  public List<SyncConfig> getAllSyncConfigs() {
+  public @NonNull List<SyncConfig> getAllSyncConfigs() {
     LogUtils.d(TAG, "Getting all sync configs");
     String json = prefs.getString(KEY_SYNC_CONFIGS, "[]");
 
@@ -83,7 +84,7 @@ public class SyncRepository {
    *
    * @return list of enabled sync configurations
    */
-  public List<SyncConfig> getAllEnabledConfigs() {
+  public @NonNull List<SyncConfig> getAllEnabledConfigs() {
     List<SyncConfig> all = getAllSyncConfigs();
     List<SyncConfig> enabled = new ArrayList<>();
     for (SyncConfig config : all) {
@@ -100,7 +101,7 @@ public class SyncRepository {
    * @param connectionId the connection ID to filter by
    * @return list of enabled sync configurations for the connection
    */
-  public List<SyncConfig> getEnabledConfigsForConnection(String connectionId) {
+  public @NonNull List<SyncConfig> getEnabledConfigsForConnection(@NonNull String connectionId) {
     List<SyncConfig> all = getAllSyncConfigs();
     List<SyncConfig> result = new ArrayList<>();
     for (SyncConfig config : all) {
@@ -117,7 +118,7 @@ public class SyncRepository {
    * @param configId the ID of the configuration to delete
    * @return true if the configuration was found and deleted
    */
-  public boolean deleteSyncConfig(String configId) {
+  public boolean deleteSyncConfig(@NonNull String configId) {
     LogUtils.d(TAG, "Deleting sync config with ID: " + configId);
     List<SyncConfig> configs = getAllSyncConfigs();
     boolean removed = configs.removeIf(c -> c.getId().equals(configId));
@@ -138,7 +139,7 @@ public class SyncRepository {
    * @param connectionId the connection ID whose configs should be deleted
    * @return the number of deleted configurations
    */
-  public int deleteConfigsForConnection(String connectionId) {
+  public int deleteConfigsForConnection(@NonNull String connectionId) {
     LogUtils.d(TAG, "Deleting sync configs for connection: " + connectionId);
     List<SyncConfig> configs = getAllSyncConfigs();
     int originalSize = configs.size();
@@ -159,7 +160,7 @@ public class SyncRepository {
    * @param configId the ID of the configuration to update
    * @param timestamp the new timestamp value
    */
-  public void updateLastSyncTimestamp(String configId, long timestamp) {
+  public void updateLastSyncTimestamp(@NonNull String configId, long timestamp) {
     LogUtils.d(TAG, "Updating last sync timestamp for config: " + configId);
     List<SyncConfig> configs = getAllSyncConfigs();
 
