@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache.strategy;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.util.LogUtils;
@@ -45,7 +46,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
    *
    * @param statistics The statistics object for tracking cache performance
    */
-  public MemoryCacheStrategy(CacheStatistics statistics) {
+  public MemoryCacheStrategy(@NonNull CacheStatistics statistics) {
     this(DEFAULT_MAX_ENTRIES, statistics);
   }
 
@@ -55,7 +56,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
    * @param maxEntries The maximum number of entries in the memory cache
    * @param statistics The statistics object for tracking cache performance
    */
-  public MemoryCacheStrategy(int maxEntries, CacheStatistics statistics) {
+  public MemoryCacheStrategy(int maxEntries, @NonNull CacheStatistics statistics) {
     this.cache = new ConcurrentHashMap<>();
     this.accessOrder = new LinkedHashMap<>();
     this.accessOrderLock = new ReentrantReadWriteLock();
@@ -66,7 +67,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public void put(K key, CacheEntry<V> entry) {
+  public void put(@NonNull K key, @NonNull CacheEntry<V> entry) {
     LogUtils.d(TAG, "Putting entry in memory cache with key: " + key);
     statistics.incrementPutOperations();
 
@@ -86,7 +87,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> get(K key) {
+  public @NonNull CacheEntry<V> get(@NonNull K key) {
     LogUtils.d(TAG, "Getting entry from memory cache with key: " + key);
     statistics.incrementGetOperations();
     statistics.incrementCacheRequests();
@@ -117,7 +118,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public CacheEntry<V> remove(K key) {
+  public @NonNull CacheEntry<V> remove(@NonNull K key) {
     LogUtils.d(TAG, "Removing entry from memory cache with key: " + key);
     statistics.incrementRemoveOperations();
 
@@ -139,7 +140,7 @@ public class MemoryCacheStrategy<K, V> implements CacheStrategy<K, V> {
   }
 
   @Override
-  public int removePattern(String keyPattern) {
+  public int removePattern(@NonNull String keyPattern) {
     LogUtils.d(TAG, "Removing entries matching pattern: " + keyPattern);
 
     List<K> keysToRemove = new ArrayList<>();
