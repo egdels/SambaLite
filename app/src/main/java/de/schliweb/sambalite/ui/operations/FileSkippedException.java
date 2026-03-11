@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.ui.operations;
 
+import androidx.annotation.NonNull;
+
 /**
  * Exception thrown when a file upload is skipped. Extracted from FileBrowserViewModel to be used by
  * FileOperationsViewModel.
@@ -11,7 +13,7 @@ public class FileSkippedException extends Exception {
    *
    * @param message The exception message
    */
-  public FileSkippedException(String message) {
+  public FileSkippedException(@NonNull String message) {
     super(message);
   }
 }
