@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.ui.utils;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 
 /**
  * Utility class for managing preferences related to the SambaLite application. Provides methods to
@@ -22,7 +23,7 @@ public class PreferenceUtils {
    * @param context the application context
    * @param path the path to set as the current SMB folder
    */
-  public static void setCurrentSmbFolder(Context context, String path) {
+  public static void setCurrentSmbFolder(@NonNull Context context, @NonNull String path) {
     context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -34,7 +35,8 @@ public class PreferenceUtils {
    * Stores both the current connection ID and the path in preferences. Also persists the path under
    * the legacy key for backward compatibility.
    */
-  public static void setCurrentSmbContext(Context context, String connectionId, String path) {
+  public static void setCurrentSmbContext(
+      @NonNull Context context, @NonNull String connectionId, @NonNull String path) {
     context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -49,7 +51,7 @@ public class PreferenceUtils {
    * @param context the application context
    * @return the current SMB folder path, or null if not set
    */
-  public static String getCurrentSmbFolder(Context context) {
+  public static @NonNull String getCurrentSmbFolder(@NonNull Context context) {
     return context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .getString(Constants.PREF_CURRENT_SMB_FOLDER, null);
@@ -59,7 +61,7 @@ public class PreferenceUtils {
    * Returns the last used connection ID for the SMB context, if available. Can be null if the app
    * hasn't stored it yet (older versions).
    */
-  public static String getCurrentSmbConnectionId(Context context) {
+  public static @NonNull String getCurrentSmbConnectionId(@NonNull Context context) {
     return context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .getString(Constants.PREF_CURRENT_SMB_CONNECTION_ID, null);
@@ -71,7 +73,7 @@ public class PreferenceUtils {
    * @param context the application context
    * @param value true if a refresh is needed, false otherwise
    */
-  public static void setNeedsRefresh(Context context, boolean value) {
+  public static void setNeedsRefresh(@NonNull Context context, boolean value) {
     context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .edit()
@@ -85,7 +87,7 @@ public class PreferenceUtils {
    * @param context the application context
    * @return true if a refresh is needed, false otherwise
    */
-  public static boolean getNeedsRefresh(Context context) {
+  public static boolean getNeedsRefresh(@NonNull Context context) {
     return context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .getBoolean(Constants.NEEDS_REFRESH, false);
