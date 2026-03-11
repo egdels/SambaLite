@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.data.model;
 
+import androidx.annotation.NonNull;
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Getter;
@@ -27,7 +28,12 @@ public class SmbFileItem implements Serializable {
    * @param size Size of the file in bytes (0 for directories)
    * @param lastModified Last modified date
    */
-  public SmbFileItem(String name, String path, Type type, long size, Date lastModified) {
+  public SmbFileItem(
+      @NonNull String name,
+      @NonNull String path,
+      @NonNull Type type,
+      long size,
+      @NonNull Date lastModified) {
     this.name = name;
     this.path = path;
     this.type = type;
