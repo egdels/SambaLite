@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.ui.operations;
 
+import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,8 @@ public class FileUploadTask {
   private boolean uploaded;
   private boolean skipped;
 
-  public FileUploadTask(DocumentFile file, String relativePath, boolean isDirectory) {
+  public FileUploadTask(
+      @NonNull DocumentFile file, @NonNull String relativePath, boolean isDirectory) {
     this.file = file;
     this.relativePath = relativePath;
     this.isDirectory = isDirectory;
