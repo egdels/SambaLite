@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.cache.exception;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.IOException;
@@ -25,7 +27,7 @@ public class CacheExceptionHandler {
    *
    * @param statistics The statistics object for tracking error counts
    */
-  public CacheExceptionHandler(CacheStatistics statistics) {
+  public CacheExceptionHandler(@NonNull CacheStatistics statistics) {
     this.statistics = statistics;
   }
 
@@ -37,7 +39,8 @@ public class CacheExceptionHandler {
    * @param <T> The return type of the operation
    * @return The result of the operation, or null if an exception occurred
    */
-  public <T> T executeCacheOperation(Callable<T> operation, String errorMessage) {
+  public <T> @NonNull T executeCacheOperation(
+      @NonNull String errorMessage, @NonNull Callable<T> operation) {
     try {
       return operation.call();
     } catch (Exception e) {
@@ -55,7 +58,8 @@ public class CacheExceptionHandler {
    * @param <T> The return type of the operation
    * @return The result of the operation, or the fallback value if an exception occurred
    */
-  public <T> T executeCacheOperation(Callable<T> operation, T fallback, String errorMessage) {
+  public <T> @NonNull T executeCacheOperation(
+      @NonNull T fallback, @NonNull String errorMessage, @NonNull Callable<T> operation) {
     try {
       return operation.call();
     } catch (Exception e) {
@@ -75,7 +79,9 @@ public class CacheExceptionHandler {
    *     occurred
    */
   public <T> T executeCacheOperation(
-      Callable<T> operation, Function<Exception, T> exceptionHandler, String errorMessage) {
+      @NonNull String errorMessage,
+      @NonNull Callable<T> operation,
+      @Nullable Function<Exception, T> exceptionHandler) {
     try {
       return operation.call();
     } catch (Exception e) {
@@ -90,7 +96,7 @@ public class CacheExceptionHandler {
    * @param operation The operation to execute
    * @param errorMessage The error message to log if an exception occurs
    */
-  public void executeVoidCacheOperation(Runnable operation, String errorMessage) {
+  public void executeVoidCacheOperation(@NonNull String errorMessage, @NonNull Runnable operation) {
     try {
       operation.run();
     } catch (Exception e) {
@@ -107,7 +113,9 @@ public class CacheExceptionHandler {
    * @param errorMessage The error message to log if an exception occurs
    */
   public void executeVoidCacheOperation(
-      Runnable operation, Consumer<Exception> exceptionHandler, String errorMessage) {
+      @NonNull String errorMessage,
+      @NonNull Runnable operation,
+      @Nullable Consumer<Exception> exceptionHandler) {
     try {
       operation.run();
     } catch (Exception e) {
@@ -122,7 +130,7 @@ public class CacheExceptionHandler {
    * @param e The exception to handle
    * @param errorMessage The error message to log
    */
-  public void handleException(Exception e, String errorMessage) {
+  public void handleException(@NonNull Exception e, @NonNull String errorMessage) {
     LogUtils.e(TAG, errorMessage + ": " + e.getMessage());
     LogUtils.e(TAG, "Exception type: " + e.getClass().getSimpleName());
     LogUtils.e(TAG, "Exception stack trace: " + android.util.Log.getStackTraceString(e));
@@ -150,7 +158,7 @@ public class CacheExceptionHandler {
    * @param errorMessage The error message to log if the object is not serializable
    * @return true if the object is serializable, false otherwise
    */
-  public boolean validateSerializable(Object obj, String errorMessage) {
+  public boolean validateSerializable(@NonNull Object obj, @NonNull String errorMessage) {
     if (obj == null) {
       return true; // null is technically serializable
     }
@@ -176,7 +184,8 @@ public class CacheExceptionHandler {
    * @return The cast object, or null if the cast is not valid
    */
   @SuppressWarnings("unchecked")
-  public <T> T validateCast(Object obj, Class<T> targetClass, String errorMessage) {
+  public <T> @NonNull T validateCast(
+      @NonNull Object obj, @NonNull Class<T> targetClass, @NonNull String errorMessage) {
     if (obj == null) {
       return null;
     }

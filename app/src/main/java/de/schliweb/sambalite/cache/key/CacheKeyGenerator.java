@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.cache.key;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.util.LogUtils;
@@ -22,7 +24,7 @@ public class CacheKeyGenerator {
    *
    * @param exceptionHandler The exception handler for reporting key generation errors
    */
-  public CacheKeyGenerator(CacheExceptionHandler exceptionHandler) {
+  public CacheKeyGenerator(@Nullable CacheExceptionHandler exceptionHandler) {
     this.exceptionHandler = exceptionHandler;
   }
 
@@ -33,7 +35,8 @@ public class CacheKeyGenerator {
    * @param path The path to the directory
    * @return The cache key
    */
-  public String generateFileListKey(SmbConnection connection, String path) {
+  public @NonNull String generateFileListKey(
+      @NonNull SmbConnection connection, @NonNull String path) {
     try {
       String connectionId = String.valueOf(connection.getId());
       String sanitizedPath = sanitizePath(path);
@@ -54,10 +57,10 @@ public class CacheKeyGenerator {
    * @param includeSubfolders Whether to include subfolders in the search
    * @return The cache key
    */
-  public String generateSearchKey(
-      SmbConnection connection,
-      String path,
-      String query,
+  public @NonNull String generateSearchKey(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders) {
     try {
@@ -88,7 +91,8 @@ public class CacheKeyGenerator {
    * @param fileName The name of the file or folder
    * @return The cache key
    */
-  public String generateFileKey(SmbConnection connection, String path, String fileName) {
+  public @NonNull String generateFileKey(
+      @NonNull SmbConnection connection, @NonNull String path, @NonNull String fileName) {
     try {
       String connectionId = String.valueOf(connection.getId());
       String sanitizedPath = sanitizePath(path);
@@ -108,7 +112,7 @@ public class CacheKeyGenerator {
    * @param params The parameters to include in the key
    * @return The cache key
    */
-  public String generateCustomKey(String prefix, String... params) {
+  public @NonNull String generateCustomKey(@NonNull String prefix, @NonNull String... params) {
     try {
       StringBuilder keyBuilder = new StringBuilder(prefix);
 
@@ -132,7 +136,8 @@ public class CacheKeyGenerator {
    * @param path The path to match
    * @return The cache key pattern
    */
-  public String generateInvalidationPattern(SmbConnection connection, String path) {
+  public @NonNull String generateInvalidationPattern(
+      @NonNull SmbConnection connection, @NonNull String path) {
     try {
       String connectionId = String.valueOf(connection.getId());
       String sanitizedPath = sanitizePath(path);
@@ -150,7 +155,7 @@ public class CacheKeyGenerator {
    * @param path The path to sanitize
    * @return The sanitized path
    */
-  public String sanitizePath(String path) {
+  public @NonNull String sanitizePath(@NonNull String path) {
     if (path == null || path.isEmpty()) {
       return "root";
     }
@@ -178,7 +183,7 @@ public class CacheKeyGenerator {
    * @param query The query to sanitize
    * @return The sanitized query
    */
-  public String sanitizeSearchQuery(String query) {
+  public @NonNull String sanitizeSearchQuery(@NonNull String query) {
     if (query == null || query.isEmpty()) {
       return "empty";
     }
@@ -200,7 +205,7 @@ public class CacheKeyGenerator {
    * @param fileName The file name to sanitize
    * @return The sanitized file name
    */
-  public String sanitizeFileName(String fileName) {
+  public @NonNull String sanitizeFileName(@NonNull String fileName) {
     if (fileName == null || fileName.isEmpty()) {
       return "unnamed";
     }
@@ -222,7 +227,7 @@ public class CacheKeyGenerator {
    * @param param The parameter to sanitize
    * @return The sanitized parameter
    */
-  public String sanitizeParameter(String param) {
+  public @NonNull String sanitizeParameter(@NonNull String param) {
     if (param == null || param.isEmpty()) {
       return "empty";
     }
