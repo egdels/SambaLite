@@ -1,6 +1,7 @@
 package de.schliweb.sambalite;
 
 import android.app.Application;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.di.DaggerAppComponent;
@@ -18,7 +19,7 @@ import lombok.Getter;
 public class SambaLiteApp extends Application {
 
   /** -- GETTER -- Gets the Dagger application component. */
-  @Getter private AppComponent appComponent;
+  @Getter AppComponent appComponent;
 
   /** -- GETTER -- Gets the cache manager instance. */
   @Getter private IntelligentCacheManager cacheManager;
@@ -29,7 +30,7 @@ public class SambaLiteApp extends Application {
   /** -- GETTER -- Gets the error handler instance. */
   @Getter private SmartErrorHandler errorHandler;
 
-  private SambaLiteLifecycleTracker lifecycleTracker;
+  SambaLiteLifecycleTracker lifecycleTracker;
 
   @Override
   public void onCreate() {
@@ -178,7 +179,7 @@ public class SambaLiteApp extends Application {
   }
 
   /** Gets application health status for monitoring. */
-  public ApplicationHealthStatus getHealthStatus() {
+  public @NonNull ApplicationHealthStatus getHealthStatus() {
     ApplicationHealthStatus status = new ApplicationHealthStatus();
 
     // Check if all systems are initialized
