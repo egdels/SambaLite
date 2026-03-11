@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.ui.operations;
 
+import androidx.annotation.NonNull;
+
 /**
  * Callback interfaces for file operations. Extracted from FileBrowserViewModel to be used by
  * FileOperationsViewModel.
@@ -14,7 +16,7 @@ public class FileOperationCallbacks {
      * @param success Whether the operation was successful
      * @param message A message describing the result
      */
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
 
     /**
      * Called to report progress during the download.
@@ -22,7 +24,7 @@ public class FileOperationCallbacks {
      * @param status A status message
      * @param percentage The progress percentage (0-100)
      */
-    void onProgress(String status, int percentage);
+    void onProgress(@NonNull String status, int percentage);
   }
 
   /** Callback for file existence checks. */
@@ -34,7 +36,8 @@ public class FileOperationCallbacks {
      * @param confirmAction The action to take if the user confirms overwrite
      * @param cancelAction The action to take if the user cancels
      */
-    void onFileExists(String fileName, Runnable confirmAction, Runnable cancelAction);
+    void onFileExists(
+        @NonNull String fileName, @NonNull Runnable confirmAction, @NonNull Runnable cancelAction);
   }
 
   /** Callback for folder creation operations. */
@@ -45,7 +48,7 @@ public class FileOperationCallbacks {
      * @param success Whether the operation was successful
      * @param message A message describing the result
      */
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
   }
 
   /** Callback for file deletion operations. */
@@ -56,7 +59,7 @@ public class FileOperationCallbacks {
      * @param success Whether the operation was successful
      * @param message A message describing the result
      */
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
   }
 
   /** Callback for file rename operations. */
@@ -67,7 +70,7 @@ public class FileOperationCallbacks {
      * @param success Whether the operation was successful
      * @param message A message describing the result
      */
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
   }
 
   /** Callback for upload operations. */
@@ -78,7 +81,7 @@ public class FileOperationCallbacks {
      * @param success Whether the operation was successful
      * @param message A message describing the result
      */
-    void onResult(boolean success, String message);
+    void onResult(boolean success, @NonNull String message);
 
     /**
      * Called to report progress during the upload.
@@ -86,7 +89,7 @@ public class FileOperationCallbacks {
      * @param status A status message
      * @param percentage The progress percentage (0-100)
      */
-    void onProgress(String status, int percentage);
+    void onProgress(@NonNull String status, int percentage);
   }
 
   /** Callback for detailed progress tracking. */
@@ -98,7 +101,7 @@ public class FileOperationCallbacks {
      * @param totalFiles The total number of files
      * @param currentFileName The name of the current file
      */
-    void updateFileProgress(int currentFile, int totalFiles, String currentFileName);
+    void updateFileProgress(int currentFile, int totalFiles, @NonNull String currentFileName);
 
     /**
      * Called to report byte progress in file operations.
@@ -107,13 +110,13 @@ public class FileOperationCallbacks {
      * @param totalBytes The total number of bytes
      * @param fileName The name of the file being processed
      */
-    void updateBytesProgress(long currentBytes, long totalBytes, String fileName);
+    void updateBytesProgress(long currentBytes, long totalBytes, @NonNull String fileName);
 
     /**
      * Called to report general progress information.
      *
      * @param progressInfo A progress information message
      */
-    void updateProgress(String progressInfo);
+    void updateProgress(@NonNull String progressInfo);
   }
 }
