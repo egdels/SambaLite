@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.cache.operations;
 
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.entry.CacheEntry;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.cache.key.CacheKeyGenerator;
@@ -52,11 +53,11 @@ public class SearchCacheOperations {
    * @param statistics The statistics object for tracking cache performance
    */
   public SearchCacheOperations(
-      CacheStrategy<String, Serializable> cacheStrategy,
-      CacheKeyGenerator keyGenerator,
-      SerializationValidator serializationValidator,
-      CacheExceptionHandler exceptionHandler,
-      CacheStatistics statistics) {
+      @NonNull CacheStrategy<String, Serializable> cacheStrategy,
+      @NonNull CacheKeyGenerator keyGenerator,
+      @NonNull SerializationValidator serializationValidator,
+      @NonNull CacheExceptionHandler exceptionHandler,
+      @NonNull CacheStatistics statistics) {
     this.cacheStrategy = cacheStrategy;
     this.keyGenerator = keyGenerator;
     this.serializationValidator = serializationValidator;
@@ -77,12 +78,12 @@ public class SearchCacheOperations {
    * @param results The search results to cache
    */
   public void cacheSearchResults(
-      SmbConnection connection,
-      String path,
-      String query,
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders,
-      List<SmbFileItem> results) {
+      @NonNull List<SmbFileItem> results) {
     LogUtils.d(
         TAG,
         "Caching search results for connection: "
@@ -147,10 +148,10 @@ public class SearchCacheOperations {
    * @return The cached search results, or null if not found or expired
    */
   @SuppressWarnings("unchecked")
-  public List<SmbFileItem> getCachedSearchResults(
-      SmbConnection connection,
-      String path,
-      String query,
+  public @NonNull List<SmbFileItem> getCachedSearchResults(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull String query,
       int searchType,
       boolean includeSubfolders) {
     LogUtils.d(
@@ -212,7 +213,7 @@ public class SearchCacheOperations {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void invalidateSearchCache(SmbConnection connection, String path) {
+  public void invalidateSearchCache(@NonNull SmbConnection connection, @NonNull String path) {
     LogUtils.d(
         TAG,
         "Invalidating search cache for connection: " + connection.getName() + ", path: " + path);
@@ -239,7 +240,7 @@ public class SearchCacheOperations {
    *
    * @param connection The SMB connection
    */
-  public void invalidateAllSearchCaches(SmbConnection connection) {
+  public void invalidateAllSearchCaches(@NonNull SmbConnection connection) {
     LogUtils.d(TAG, "Invalidating all search caches for connection: " + connection.getName());
 
     // Generate invalidation pattern
@@ -260,7 +261,7 @@ public class SearchCacheOperations {
    * @param connection The SMB connection
    * @param path The path to the directory
    */
-  public void preloadCommonSearches(SmbConnection connection, String path) {
+  public void preloadCommonSearches(@NonNull SmbConnection connection, @NonNull String path) {
     // This is a placeholder for future implementation
     // In a real implementation, this would preload search results for common queries
     LogUtils.d(
