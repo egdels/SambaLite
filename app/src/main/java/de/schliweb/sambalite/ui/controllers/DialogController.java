@@ -10,6 +10,8 @@ import android.widget.CheckBox;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -32,9 +34,7 @@ public class DialogController {
   private final Context context;
   private final FileListViewModel fileListViewModel;
   private final FileOperationsViewModel fileOperationsViewModel;
-  private final SearchViewModel searchViewModel;
   private final FileBrowserUIState uiState;
-  private final ShareReceiverViewModel shareReceiverViewModel;
 
   @Setter private FileOperationRequester fileOperationRequester;
 
@@ -64,28 +64,26 @@ public class DialogController {
    * @param uiState The shared UI state
    */
   public DialogController(
-      Context context,
-      FileListViewModel fileListViewModel,
-      FileOperationsViewModel fileOperationsViewModel,
-      SearchViewModel searchViewModel,
-      FileBrowserUIState uiState) {
+      @NonNull Context context,
+      @NonNull FileListViewModel fileListViewModel,
+      @NonNull FileOperationsViewModel fileOperationsViewModel,
+      @NonNull SearchViewModel searchViewModel,
+      @NonNull FileBrowserUIState uiState) {
     this.context = context;
     this.fileListViewModel = fileListViewModel;
     this.fileOperationsViewModel = fileOperationsViewModel;
-    this.searchViewModel = searchViewModel;
     this.uiState = uiState;
-    this.shareReceiverViewModel = null;
   }
 
   public DialogController(
-      Context context, ShareReceiverViewModel viewModel, FileBrowserUIState uiState) {
+      @NonNull Context context,
+      @NonNull ShareReceiverViewModel viewModel,
+      @NonNull FileBrowserUIState uiState) {
     this.context = context;
-    this.shareReceiverViewModel = viewModel;
     // For ShareReceiverActivity, we do not need file list or operations view models.
     // Instead, we only need the ShareReceiverViewModel and the UI state.
     this.fileListViewModel = null;
     this.fileOperationsViewModel = null;
-    this.searchViewModel = null;
     this.uiState = uiState;
     LogUtils.d("DialogController", "Created for ShareReceiverActivity");
   }
@@ -95,7 +93,7 @@ public class DialogController {
    *
    * @param file The file to show options for
    */
-  public void showFileOptionsDialog(SmbFileItem file) {
+  public void showFileOptionsDialog(@NonNull SmbFileItem file) {
     LogUtils.d("DialogController", "Showing file options dialog for: " + file.getName());
 
     // Store the selected file in the UI state
@@ -189,7 +187,7 @@ public class DialogController {
    *
    * @param file The file to rename
    */
-  public void showRenameFileDialog(SmbFileItem file) {
+  public void showRenameFileDialog(@NonNull SmbFileItem file) {
     LogUtils.d("DialogController", "Showing rename file dialog for: " + file.getName());
     DialogHelper.showRenameDialog(
         context,
@@ -198,7 +196,7 @@ public class DialogController {
           if (newName != null && !newName.isEmpty()) {
             // The requestFileRename method has already been called before showing this dialog
             // Now we just need to perform the actual rename operation
-            fileOperationsViewModel.renameFile(file, newName, createRenameCallback(file));
+            fileOperationsViewModel.renameFile(file, newName, createRenameCallback());
           }
         });
   }
@@ -208,7 +206,7 @@ public class DialogController {
    *
    * @param file The file to delete
    */
-  public void showDeleteFileConfirmationDialog(SmbFileItem file) {
+  public void showDeleteFileConfirmationDialog(@NonNull SmbFileItem file) {
     LogUtils.d(
         "DialogController", "Showing delete file confirmation dialog for: " + file.getName());
     DialogHelper.showConfirmationDialog(
@@ -371,10 +369,9 @@ public class DialogController {
    * Creates a callback for rename operations. Uses UserFeedbackProvider if available, falls back to
    * DialogHelper for backward compatibility.
    *
-   * @param file The file being renamed
    * @return The callback
    */
-  private FileOperationCallbacks.RenameFileCallback createRenameCallback(SmbFileItem file) {
+  private FileOperationCallbacks.RenameFileCallback createRenameCallback() {
     return (success, message) -> {
       if (success) {
         if (userFeedbackProvider != null) {
@@ -444,7 +441,10 @@ public class DialogController {
    * @param onCancel Callback when user cancels upload
    */
   public void showShareUploadConfirmationDialog(
-      int fileCount, String targetFolder, Runnable onUpload, Runnable onCancel) {
+      int fileCount,
+      @NonNull String targetFolder,
+      @Nullable Runnable onUpload,
+      @Nullable Runnable onCancel) {
     showShareUploadConfirmationDialog(fileCount, targetFolder, onUpload, null, onCancel);
   }
 
@@ -460,10 +460,10 @@ public class DialogController {
    */
   public void showShareUploadConfirmationDialog(
       int fileCount,
-      String targetFolder,
-      Runnable onUpload,
-      Runnable onChangeFolder,
-      Runnable onCancel) {
+      @NonNull String targetFolder,
+      @NonNull Runnable onUpload,
+      @NonNull Runnable onChangeFolder,
+      @NonNull Runnable onCancel) {
     LogUtils.d("DialogController", "Showing share upload confirmation dialog with custom cancel");
     DialogHelper.showShareUploadConfirmationDialog(
         context, fileCount, targetFolder, onUpload, onChangeFolder, onCancel);
@@ -478,7 +478,7 @@ public class DialogController {
    * @param onViewFiles Callback when user wants to view uploaded files
    */
   public void showUploadCompleteDialog(
-      int uploadedCount, int totalCount, int failedCount, Runnable onViewFiles) {
+      int uploadedCount, int totalCount, int failedCount, @Nullable Runnable onViewFiles) {
     LogUtils.d("DialogController", "Showing upload complete dialog");
     DialogHelper.showUploadCompleteDialog(
         context,
@@ -499,7 +499,8 @@ public class DialogController {
    * @param onOverwrite Callback when user chooses to overwrite
    * @param onCancel Callback when user cancels
    */
-  public void showFileExistsDialog(String fileName, Runnable onOverwrite, Runnable onCancel) {
+  public void showFileExistsDialog(
+      @NonNull String fileName, @NonNull Runnable onOverwrite, @NonNull Runnable onCancel) {
     LogUtils.d("DialogController", "Showing file exists dialog for: " + fileName);
     DialogHelper.showFileExistsDialog(context, fileName, onOverwrite, onCancel);
   }
@@ -511,7 +512,7 @@ public class DialogController {
      *
      * @param file The file to download
      */
-    void onDownloadRequested(SmbFileItem file);
+    void onDownloadRequested(@NonNull SmbFileItem file);
   }
 
   /** Callback for search operations. */
@@ -523,7 +524,7 @@ public class DialogController {
      * @param searchType The type of items to search for (0=all, 1=files only, 2=folders only)
      * @param includeSubfolders Whether to include subfolders in the search
      */
-    void onSearchRequested(String query, int searchType, boolean includeSubfolders);
+    void onSearchRequested(@NonNull String query, int searchType, boolean includeSubfolders);
   }
 
   /** Callback for upload operations. */
@@ -538,19 +539,19 @@ public class DialogController {
   /** Callback interface for folder-level sync operations from the context menu. */
   public interface FolderSyncCallback {
     /** Called when the user wants to set up sync for a folder. */
-    void onSetupSyncRequested(SmbFileItem folder);
+    void onSetupSyncRequested(@NonNull SmbFileItem folder);
 
     /** Called when the user wants to sync a folder immediately. */
-    void onSyncNowRequested(SmbFileItem folder);
+    void onSyncNowRequested(@NonNull SmbFileItem folder);
 
     /** Called when the user wants to edit sync for a folder. */
-    void onEditSyncRequested(SmbFileItem folder);
+    void onEditSyncRequested(@NonNull SmbFileItem folder);
 
     /** Called when the user wants to remove sync from a folder. */
-    void onRemoveSyncRequested(SmbFileItem folder);
+    void onRemoveSyncRequested(@NonNull SmbFileItem folder);
 
     /** Checks if the given folder already has a sync configuration. */
-    boolean hasSyncConfig(SmbFileItem folder);
+    boolean hasSyncConfig(@NonNull SmbFileItem folder);
   }
 
   public interface SyncSetupCallback {
@@ -561,7 +562,8 @@ public class DialogController {
      * @param intervalMinutes the sync interval in minutes
      * @param remotePath the remote path
      */
-    void onSyncSetupRequested(SyncDirection direction, int intervalMinutes, String remotePath);
+    void onSyncSetupRequested(
+        @NonNull SyncDirection direction, int intervalMinutes, @NonNull String remotePath);
 
     /** Called when the user wants to select a local folder for sync. */
     void onSyncFolderPickRequested();
@@ -572,7 +574,7 @@ public class DialogController {
    *
    * @param currentRemotePath the current remote path to pre-fill
    */
-  public void showSyncSetupDialog(String currentRemotePath) {
+  public void showSyncSetupDialog(@NonNull String currentRemotePath) {
     LogUtils.d("DialogController", "Showing sync setup dialog");
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
@@ -651,7 +653,7 @@ public class DialogController {
    *
    * @param config the existing sync configuration to edit
    */
-  public void showSyncEditDialog(SyncConfig config) {
+  public void showSyncEditDialog(@NonNull SyncConfig config) {
     LogUtils.d("DialogController", "Showing sync edit dialog for config: " + config.getId());
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
@@ -784,10 +786,10 @@ public class DialogController {
    * @param onSyncNow callback when immediate sync is requested
    */
   public void showManageSyncConfigsDialog(
-      java.util.List<SyncConfig> configs,
-      java.util.function.Consumer<String> onDelete,
-      java.util.function.BiConsumer<String, Boolean> onToggle,
-      Runnable onSyncNow) {
+      @NonNull java.util.List<SyncConfig> configs,
+      @NonNull java.util.function.Consumer<String> onDelete,
+      @NonNull java.util.function.BiConsumer<String, Boolean> onToggle,
+      @NonNull Runnable onSyncNow) {
     LogUtils.d("DialogController", "Showing manage sync configs dialog");
 
     if (configs.isEmpty()) {
