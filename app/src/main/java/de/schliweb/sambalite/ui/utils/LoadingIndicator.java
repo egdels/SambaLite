@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.lifecycle.DefaultLifecycleObserver;
@@ -25,7 +26,7 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
   private boolean isShowing = false;
 
   /** Creates a new loading indicator instance for the given activity. */
-  public LoadingIndicator(Activity activity) {
+  public LoadingIndicator(@NonNull Activity activity) {
     this.activity = activity;
 
     // Register lifecycle observer to handle activity lifecycle events
@@ -35,17 +36,19 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
   }
 
   /** Creates a new builder for fluent loading indicator creation. */
-  public static Builder with(Activity activity) {
+  public static @NonNull Builder with(@NonNull Activity activity) {
     return new Builder(activity);
   }
 
   /** Quick static method for simple loading dialogs. */
-  public static LoadingIndicator showSimple(Activity activity, @StringRes int messageRes) {
+  public static @NonNull LoadingIndicator showSimple(
+      @NonNull Activity activity, @StringRes int messageRes) {
     return showSimple(activity, activity.getString(messageRes));
   }
 
   /** Quick static method for simple loading dialogs. */
-  public static LoadingIndicator showSimple(Activity activity, String message) {
+  public static @NonNull LoadingIndicator showSimple(
+      @NonNull Activity activity, @NonNull String message) {
     LoadingIndicator indicator = new LoadingIndicator(activity);
     indicator.show(message);
     return indicator;
@@ -57,17 +60,17 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
   }
 
   /** Shows an indeterminate loading dialog with a message. */
-  public void show(String message) {
+  public void show(@NonNull String message) {
     show(message, false, null);
   }
 
   /** Shows a loading dialog with optional cancellation. */
-  public void show(@StringRes int messageRes, boolean cancelable, Runnable onCancel) {
+  public void show(@StringRes int messageRes, boolean cancelable, @NonNull Runnable onCancel) {
     show(activity.getString(messageRes), cancelable, onCancel);
   }
 
   /** Shows a loading dialog with optional cancellation. */
-  public void show(String message, boolean cancelable, Runnable onCancel) {
+  public void show(@NonNull String message, boolean cancelable, @NonNull Runnable onCancel) {
     LogUtils.d(TAG, "Showing loading dialog: " + message);
 
     hide(); // Hide any existing dialog
@@ -103,7 +106,7 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
   }
 
   /** Updates the message of the currently showing dialog. */
-  public void updateMessage(String message) {
+  public void updateMessage(@NonNull String message) {
     if (isShowing && progressDialog != null) {
       LogUtils.d(TAG, "Updating loading message: " + message);
       TextView messageText = progressDialog.findViewById(R.id.loading_message);
@@ -142,7 +145,7 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
 
   /** Modern lifecycle observer method to handle activity destruction. */
   @Override
-  public void onDestroy(LifecycleOwner owner) {
+  public void onDestroy(@NonNull LifecycleOwner owner) {
     LogUtils.d(TAG, "Activity destroyed, cleaning up loading dialog");
     hide();
   }
@@ -154,26 +157,26 @@ public class LoadingIndicator implements DefaultLifecycleObserver {
     private boolean cancelable = false;
     private Runnable onCancel;
 
-    public Builder(Activity activity) {
+    public Builder(@NonNull Activity activity) {
       this.activity = activity;
     }
 
-    public Builder message(@StringRes int messageRes) {
+    public @NonNull Builder message(@StringRes int messageRes) {
       this.message = activity.getString(messageRes);
       return this;
     }
 
-    public Builder message(String message) {
+    public @NonNull Builder message(@NonNull String message) {
       this.message = message;
       return this;
     }
 
-    public Builder cancelable(boolean cancelable) {
+    public @NonNull Builder cancelable(boolean cancelable) {
       this.cancelable = cancelable;
       return this;
     }
 
-    public LoadingIndicator show() {
+    public @NonNull LoadingIndicator show() {
       LoadingIndicator indicator = new LoadingIndicator(activity);
       indicator.show(message, cancelable, onCancel);
       return indicator;
