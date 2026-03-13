@@ -5,6 +5,30 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-03-13
+
+### Added
+- Adaptive launcher icons for improved visual consistency across Android devices and launchers.
+- `SharesDiffCallback` for efficient RecyclerView list updates when browsing SMB shares.
+- GitHub Actions workflow for automated code quality checks (CI).
+- New unit tests for caching, file utilities, diff callbacks, and progress formatting.
+
+### Changed
+- Comprehensive `@NonNull` and `@Nullable` annotations added across the entire codebase (~40 classes) for improved null safety, API clarity, and `NullPointerException` prevention. Affected areas include ViewModels, controllers, adapters, repositories, utilities, cache classes, sync classes, Dagger components, and more.
+- Enabled stricter lint checks with a new lint baseline for better code quality enforcement.
+- Updated WorkManager dependencies to version 2.11.1.
+- Removed unused resources, plurals, and obsolete strings; simplified layout attributes for dialogs.
+- Refactored `SambaLiteApp` and utility classes for enhanced readability and formatting consistency.
+- Removed redundant API-level checks in `BatteryOptimizationUtils`.
+
+### Developer Notes
+- Lint baseline file added to track and gradually resolve pre-existing lint issues.
+- `SharesDiffCallback`: New `DiffUtil.ItemCallback` implementation for `SmbFileItem` lists, enabling efficient partial RecyclerView updates.
+- Null safety annotations applied systematically to: `FileBrowserUIState`, `FileListController`, `FileListViewModel`, `ConnectionAdapter`, `FileOperationCallbacks`, `FileSkippedException`, `FileUploadTask`, `InputController`, `LogUtils`, `PreferenceUtils`, `ProgressController`, `ProgressFormat`, `UIHelper`, `UserFeedbackProvider`, `ActivityResultController`, `DialogController`, `MemoryCacheStrategy`, `DiscoveredServerAdapter`, `SmbFileItem`, `LoadingIndicator`, `SearchCacheOperations`, `ShareReceiverViewModel`, `ShareReceiverActivity`, `SimplePerformanceMonitor`, `BatteryOptimizationUtils`, `SmartErrorHandler`, `CacheKeyGenerator`, `CacheExceptionHandler`, `SambaLiteApp`, Dagger components, `ViewModelFactory`, `ConnectionRepository`, `SmbRepository`, and related test classes.
+- CI workflow: GitHub Actions pipeline for lint, unit tests, and build verification.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.5.2] - 2026-03-09
 
 ### Added
