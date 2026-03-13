@@ -1,0 +1,8 @@
+1.6.0
+• Adaptive launcher icons for all devices and launchers.
+• Improved null safety across the entire codebase.
+• New SharesDiffCallback for smoother list updates.
+• Stricter code quality checks.
+• Updated WorkManager to 2.11.1.
+• Removed unused resources and simplified dialogs.
+• New unit tests for caching, utilities & more.
