@@ -1,14 +1,16 @@
 package de.schliweb.sambalite.ui;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.PreferencesManager;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
-import java.util.Stack;
 import lombok.Getter;
 
 /**
@@ -20,7 +22,7 @@ public class FileBrowserState {
   // Preferences manager for persisting UI preferences
   private final PreferencesManager preferencesManager;
   // Navigation state
-  private final Stack<String> pathStack = new Stack<>();
+  private final Deque<String> pathStack = new ArrayDeque<>();
   private final MutableLiveData<String> currentPathLiveData = new MutableLiveData<>("");
   // File list state
   private final MutableLiveData<List<SmbFileItem>> files = new MutableLiveData<>(new ArrayList<>());
@@ -52,7 +54,7 @@ public class FileBrowserState {
    *
    * @param preferencesManager The PreferencesManager to use for storing preferences
    */
-  public FileBrowserState(PreferencesManager preferencesManager) {
+  public FileBrowserState(@NonNull PreferencesManager preferencesManager) {
     this.preferencesManager = preferencesManager;
 
     // Load sorting preferences from PreferencesManager
@@ -78,7 +80,7 @@ public class FileBrowserState {
    *
    * @param connection The connection to use
    */
-  public void setConnection(SmbConnection connection) {
+  public void setConnection(@NonNull SmbConnection connection) {
     // Only reset path when the connection actually changes to preserve navigation state on rotation
     if (this.connection != null && this.connection.getId().equals(connection.getId())) {
       LogUtils.d(
@@ -94,7 +96,7 @@ public class FileBrowserState {
   }
 
   /** Gets the current path. */
-  public String getCurrentPathString() {
+  public @NonNull String getCurrentPathString() {
     return currentPath;
   }
 
@@ -110,12 +112,12 @@ public class FileBrowserState {
   }
 
   /** Pushes the current path onto the path stack. */
-  public void pushPath(String path) {
+  public void pushPath(@NonNull String path) {
     pathStack.push(path);
   }
 
   /** Pops the path stack and returns the previous path. */
-  public String popPath() {
+  public @NonNull String popPath() {
     if (pathStack.isEmpty()) {
       return "";
     }
@@ -128,17 +130,17 @@ public class FileBrowserState {
   }
 
   /** Gets the list of files as LiveData. */
-  public LiveData<List<SmbFileItem>> getFiles() {
+  public @NonNull LiveData<List<SmbFileItem>> getFiles() {
     return files;
   }
 
   /** Sets the list of files. */
-  public void setFiles(List<SmbFileItem> fileList) {
+  public void setFiles(@NonNull List<SmbFileItem> fileList) {
     files.postValue(fileList);
   }
 
   /** Gets the loading state as LiveData. */
-  public LiveData<Boolean> isLoading() {
+  public @NonNull LiveData<Boolean> isLoading() {
     return isLoading;
   }
 
@@ -148,33 +150,33 @@ public class FileBrowserState {
   }
 
   /** Gets the error message as LiveData. */
-  public LiveData<String> getErrorMessage() {
+  public @NonNull LiveData<String> getErrorMessage() {
     return errorMessage;
   }
 
   /** Sets the error message. */
-  public void setErrorMessage(String message) {
+  public void setErrorMessage(@NonNull String message) {
     errorMessage.postValue(message);
   }
 
   /** Gets the current path as LiveData. */
-  public LiveData<String> getCurrentPath() {
+  public @NonNull LiveData<String> getCurrentPath() {
     return currentPathLiveData;
   }
 
   /** Sets the current path. */
-  public void setCurrentPath(String path) {
+  public void setCurrentPath(@NonNull String path) {
     this.currentPath = path;
     updateCurrentPathDisplay();
   }
 
   /** Gets the current sort option as LiveData. */
-  public LiveData<FileSortOption> getSortOption() {
+  public @NonNull LiveData<FileSortOption> getSortOption() {
     return sortOption;
   }
 
   /** Sets the sort option and persists it to preferences. */
-  public void setSortOption(FileSortOption option) {
+  public void setSortOption(@NonNull FileSortOption option) {
     this.currentSortOption = option;
     this.sortOption.setValue(option);
 
@@ -184,12 +186,12 @@ public class FileBrowserState {
   }
 
   /** Gets the current sort option. */
-  public FileSortOption getCurrentSortOption() {
+  public @NonNull FileSortOption getCurrentSortOption() {
     return currentSortOption;
   }
 
   /** Gets the current "directories first" flag as LiveData. */
-  public LiveData<Boolean> getDirectoriesFirst() {
+  public @NonNull LiveData<Boolean> getDirectoriesFirst() {
     return directoriesFirstLiveData;
   }
 
@@ -209,7 +211,7 @@ public class FileBrowserState {
   }
 
   /** Gets the current "show hidden files" flag as LiveData. */
-  public LiveData<Boolean> getShowHiddenFiles() {
+  public @NonNull LiveData<Boolean> getShowHiddenFiles() {
     return showHiddenFilesLiveData;
   }
 
@@ -229,17 +231,17 @@ public class FileBrowserState {
   }
 
   /** Gets the search results as LiveData. */
-  public LiveData<List<SmbFileItem>> getSearchResults() {
+  public @NonNull LiveData<List<SmbFileItem>> getSearchResults() {
     return searchResults;
   }
 
   /** Sets the search results. */
-  public void setSearchResults(List<SmbFileItem> results) {
+  public void setSearchResults(@NonNull List<SmbFileItem> results) {
     searchResults.postValue(results);
   }
 
   /** Gets the searching state as LiveData. */
-  public LiveData<Boolean> isSearching() {
+  public @NonNull LiveData<Boolean> isSearching() {
     return isSearching;
   }
 
@@ -249,7 +251,7 @@ public class FileBrowserState {
   }
 
   /** Checks if the view model is in search mode. */
-  public boolean isInSearchMode() {
+  public boolean getSearchMode() {
     return isSearchMode;
   }
 
@@ -259,22 +261,22 @@ public class FileBrowserState {
   }
 
   /** Gets the current search query. */
-  public String getCurrentSearchQuery() {
+  public @NonNull String getCurrentSearchQuery() {
     return currentSearchQuery;
   }
 
   /** Sets the current search query. */
-  public void setCurrentSearchQuery(String query) {
+  public void setCurrentSearchQuery(@NonNull String query) {
     this.currentSearchQuery = query;
   }
 
   /** Gets the path where the current search was started. */
-  public String getSearchStartPath() {
+  public @NonNull String getSearchStartPath() {
     return searchStartPath;
   }
 
   /** Sets the path where the current search is started. */
-  public void setSearchStartPath(String path) {
+  public void setSearchStartPath(@NonNull String path) {
     this.searchStartPath = path != null ? path : "";
   }
 

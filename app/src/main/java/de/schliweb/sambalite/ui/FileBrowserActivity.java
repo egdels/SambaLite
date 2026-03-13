@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.*;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.IntentCompat;
 import androidx.lifecycle.ViewModelProvider;
@@ -26,7 +28,7 @@ import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
-import de.schliweb.sambalite.util.SmartErrorHandler;
+import java.util.Locale;
 import javax.inject.Inject;
 
 /**
@@ -60,36 +62,34 @@ public class FileBrowserActivity extends AppCompatActivity
   @Inject SyncManager syncManager;
 
   // ViewModels
-  private FileListViewModel fileListViewModel;
+  FileListViewModel fileListViewModel;
   private FileOperationsViewModel fileOperationsViewModel;
-  private SearchViewModel searchViewModel;
+  SearchViewModel searchViewModel;
 
   // Controllers
-  private FileListController fileListController;
+  FileListController fileListController;
   private DialogController dialogController;
-  private FileOperationsController fileOperationsController;
+  FileOperationsController fileOperationsController;
   private ProgressController progressController;
-  private ActivityResultController activityResultController;
+  ActivityResultController activityResultController;
   // ServiceController removed; using BackgroundSmbManager directly
   private InputController inputController;
 
   // Selection state for toolbar actions
-  private int selectionCount = 0;
+  int selectionCount = 0;
   private java.util.List<SmbFileItem> selectedItems = new java.util.ArrayList<>();
-  private Menu optionsMenu;
 
   // UI Components
   private RecyclerView recyclerView;
   private SwipeRefreshLayout swipeRefreshLayout;
   private View emptyView;
   private TextView currentPathView;
-  private FloatingActionButton fab;
-  private FloatingActionButton fabCreateFolder;
+  FloatingActionButton fab;
+  FloatingActionButton fabCreateFolder;
   private com.google.android.material.floatingactionbutton.FloatingActionButton fabDeleteSelected;
   private com.google.android.material.floatingactionbutton.FloatingActionButton fabDownloadSelected;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
       fabClearSelection;
-  private SmartErrorHandler errorHandler;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
       fabSelectFolder;
   private boolean folderPickerMode = false;
@@ -101,7 +101,8 @@ public class FileBrowserActivity extends AppCompatActivity
    * @param connectionId The ID of the connection to browse
    * @return The intent to start this activity
    */
-  public static Intent createIntent(Context context, String connectionId) {
+  public static @Nullable Intent createIntent(
+      @NonNull Context context, @NonNull String connectionId) {
     Intent intent = new Intent(context, FileBrowserActivity.class);
     intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
     return intent;
@@ -115,15 +116,16 @@ public class FileBrowserActivity extends AppCompatActivity
    * @param connectionId The ID of the connection to browse
    * @return The intent to start this activity in folder picker mode
    */
-  public static Intent createFolderPickerIntent(Context context, String connectionId) {
+  public static @Nullable Intent createFolderPickerIntent(
+      @NonNull Context context, @NonNull String connectionId) {
     Intent intent = new Intent(context, FileBrowserActivity.class);
     intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
     intent.putExtra(EXTRA_FOLDER_PICKER_MODE, true);
     return intent;
   }
 
-  public static Intent createIntentFromUploadNotification(
-      Context context, String connectionId, String directoryPath) {
+  public static @Nullable Intent createIntentFromUploadNotification(
+      @NonNull Context context, @NonNull String connectionId, @NonNull String directoryPath) {
     Intent intent = new Intent(context, FileBrowserActivity.class);
     intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
     intent.putExtra(EXTRA_DIRECTORY_PATH, directoryPath);
@@ -141,10 +143,10 @@ public class FileBrowserActivity extends AppCompatActivity
    * @param includeSubfolders Whether to include subfolders in the search
    * @return The intent to start this activity
    */
-  public static Intent createSearchIntent(
-      Context context,
-      String connectionId,
-      String searchQuery,
+  public static @Nullable Intent createSearchIntent(
+      @NonNull Context context,
+      @NonNull String connectionId,
+      @NonNull String searchQuery,
       int searchType,
       boolean includeSubfolders) {
     Intent intent = new Intent(context, FileBrowserActivity.class);
@@ -160,11 +162,11 @@ public class FileBrowserActivity extends AppCompatActivity
    * Creates an intent to start this activity for a Share handoff that will upload URIs to a target
    * path.
    */
-  public static Intent createIntentForShareUpload(
-      Context context,
-      String connectionId,
-      String directoryPath,
-      java.util.ArrayList<android.net.Uri> shareUris) {
+  public static @Nullable Intent createIntentForShareUpload(
+      @NonNull Context context,
+      @NonNull String connectionId,
+      @NonNull String directoryPath,
+      @NonNull java.util.ArrayList<android.net.Uri> shareUris) {
     Intent intent = new Intent(context, FileBrowserActivity.class);
     intent.putExtra(EXTRA_CONNECTION_ID, connectionId);
     intent.putExtra(EXTRA_DIRECTORY_PATH, directoryPath);
@@ -176,11 +178,8 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
     LogUtils.d("FileBrowserActivity", "onCreate called");
-
-    // Initialize error handler
-    errorHandler = ((SambaLiteApp) getApplication()).getErrorHandler();
     LogUtils.d("FileBrowserActivity", "Error handler initialized");
 
     // Get the Dagger component and inject dependencies
@@ -241,6 +240,9 @@ public class FileBrowserActivity extends AppCompatActivity
                 LogUtils.d("FileBrowserActivity", "System back pressed (dispatcher)");
                 if (searchViewModel != null && searchViewModel.isInSearchMode()) {
                   searchViewModel.cancelSearch();
+                  fileListController.setSearchMode(false);
+                  fileListViewModel.refreshCurrentDirectory();
+                  resetToolbarAfterSearch();
                   return;
                 }
                 if (fileListController != null && fileListController.navigateUp()) {
@@ -258,13 +260,21 @@ public class FileBrowserActivity extends AppCompatActivity
     EdgeToEdge.enable(this);
   }
 
+  /** Resets the toolbar title and subtitle after leaving search mode. */
+  void resetToolbarAfterSearch() {
+    if (getSupportActionBar() != null) {
+      getSupportActionBar().setTitle(getString(R.string.files_tab));
+      getSupportActionBar().setSubtitle(null);
+    }
+  }
+
   /** Sets up the toolbar. */
   private void setupToolbar() {
     androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
     if (getSupportActionBar() != null) {
       getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-      getSupportActionBar().setTitle(getString(R.string.file_browser_title));
+      getSupportActionBar().setTitle(getString(R.string.files_tab));
     }
     LogUtils.d("FileBrowserActivity", "Toolbar set up");
   }
@@ -314,7 +324,10 @@ public class FileBrowserActivity extends AppCompatActivity
               final boolean includeSubs = searchViewModel.isIncludeSubfolders();
 
               if (isSearching) {
-                // 1) UI
+                // 1) Prevent the getFiles() observer from overwriting search results
+                fileListController.setSearchMode(true);
+
+                // 2) UI
                 progressController.showSearchProgressDialog();
 
                 // 2) Service: Set context for deep link in notification
@@ -330,12 +343,11 @@ public class FileBrowserActivity extends AppCompatActivity
 
                       // Update progress every 800 ms until the search is complete
                       while (Boolean.TRUE.equals(searchViewModel.isSearching().getValue())) {
-                        // actual hit count, if available
-                        java.util.List<SmbFileItem> results =
-                            searchViewModel.getSearchResults().getValue();
-                        if (results != null) {
-                          callback.updateProgress("Found " + results.size() + " results");
-                        }
+                        // Read live hit count from the repository (updated during search)
+                        int hitCount = searchViewModel.getSearchHitCount();
+                        String progressMsg = "Found " + hitCount + " results";
+                        callback.updateProgress(progressMsg);
+                        progressController.updateSearchProgressMessage(progressMsg);
                         try {
                           Thread.sleep(800);
                         } catch (InterruptedException ie) {
@@ -348,6 +360,7 @@ public class FileBrowserActivity extends AppCompatActivity
               } else {
                 // Search is complete -> close progress dialog
                 progressController.hideSearchProgressDialog();
+                // Keep searchMode true so results stay visible until user navigates away
               }
             });
 
@@ -358,6 +371,13 @@ public class FileBrowserActivity extends AppCompatActivity
             searchResults -> {
               if (searchViewModel.isInSearchMode() && searchResults != null) {
                 fileListController.updateAdapter(searchResults);
+                onFileStatisticsUpdated(searchResults);
+                // Update toolbar to indicate search mode
+                if (getSupportActionBar() != null) {
+                  getSupportActionBar()
+                      .setTitle("\uD83D\uDD0D " + searchViewModel.getCurrentSearchQuery());
+                  getSupportActionBar().setSubtitle(searchResults.size() + " results");
+                }
                 LogUtils.d(
                     "FileBrowserActivity",
                     "Search results updated: " + searchResults.size() + " items");
@@ -637,7 +657,7 @@ public class FileBrowserActivity extends AppCompatActivity
             fab.setVisibility(View.GONE);
             fabCreateFolder.setVisibility(View.GONE);
             // Improve placement of multi-select FABs when regular ones are hidden
-            adjustMultiSelectFabPlacement(true);
+            adjustMultiSelectFabPlacement();
             if (fabDeleteSelected.getVisibility() != View.VISIBLE) fabDeleteSelected.show();
             if (fabDownloadSelected.getVisibility() != View.VISIBLE) fabDownloadSelected.show();
             if (fabClearSelection.getVisibility() != View.VISIBLE) fabClearSelection.show();
@@ -1187,7 +1207,7 @@ public class FileBrowserActivity extends AppCompatActivity
     try {
       currentConn = fileListViewModel != null ? fileListViewModel.getConnection() : null;
       currentConnId = currentConn != null ? currentConn.getId() : null;
-    } catch (Throwable ignore) {
+    } catch (Throwable ignored) {
     }
 
     if (newConnId != null && !newConnId.equals(currentConnId)) {
@@ -1208,7 +1228,6 @@ public class FileBrowserActivity extends AppCompatActivity
   public boolean onCreateOptionsMenu(Menu menu) {
     MenuInflater inflater = getMenuInflater();
     inflater.inflate(R.menu.menu_main, menu);
-    this.optionsMenu = menu;
     return true;
   }
 
@@ -1243,7 +1262,7 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
+  public boolean onOptionsItemSelected(@NonNull MenuItem item) {
     // Multi-select actions
     /*int id = item.getItemId();
 
@@ -1287,6 +1306,9 @@ public class FileBrowserActivity extends AppCompatActivity
       if (searchViewModel != null && searchViewModel.isInSearchMode()) {
         // Cancel any in-flight search and return to the starting folder
         searchViewModel.cancelSearch();
+        fileListController.setSearchMode(false);
+        fileListViewModel.refreshCurrentDirectory();
+        resetToolbarAfterSearch();
         return true;
       }
       // Try to navigate up within the folder hierarchy first
@@ -1319,7 +1341,7 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   /** Finds the SyncConfig that exactly matches the given folder, or null. */
-  private SyncConfig findSyncConfigForFolder(SmbFileItem folder) {
+  SyncConfig findSyncConfigForFolder(SmbFileItem folder) {
     SmbConnection conn = fileListViewModel.getConnection();
     if (conn == null) return null;
     String fullPath = buildFullRemotePath(folder);
@@ -1349,7 +1371,7 @@ public class FileBrowserActivity extends AppCompatActivity
    * Handles setting up sync for a folder from the context menu. Checks for collisions (parent or
    * child already synced) before showing the setup dialog.
    */
-  private void handleFolderSyncSetup(SmbFileItem folder) {
+  void handleFolderSyncSetup(SmbFileItem folder) {
     SmbConnection conn = fileListViewModel.getConnection();
     if (conn == null) return;
 
@@ -1398,7 +1420,7 @@ public class FileBrowserActivity extends AppCompatActivity
    * Handles editing sync for a folder via the context menu. Finds the existing config, removes it,
    * and opens the setup dialog pre-filled with old values.
    */
-  private void handleFolderSyncEdit(SmbFileItem folder) {
+  void handleFolderSyncEdit(SmbFileItem folder) {
     SyncConfig config = findSyncConfigForFolder(folder);
     if (config == null) return;
 
@@ -1410,7 +1432,7 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   /** Handles triggering an immediate sync for a folder via the context menu. */
-  private void handleSyncNow(SmbFileItem folder) {
+  void handleSyncNow(SmbFileItem folder) {
     LogUtils.d("FileBrowserActivity", "Sync now requested for folder: " + folder.getName());
     SyncConfig config = findSyncConfigForFolder(folder);
     if (config != null) {
@@ -1423,7 +1445,7 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   /** Handles removing sync from a folder via the context menu. */
-  private void handleFolderSyncRemove(SmbFileItem folder) {
+  void handleFolderSyncRemove(SmbFileItem folder) {
     SyncConfig config = findSyncConfigForFolder(folder);
     if (config != null) {
       syncManager.removeSyncConfig(config.getId());
@@ -1485,14 +1507,15 @@ public class FileBrowserActivity extends AppCompatActivity
     String prefixWithEncoded =
         prefixUri.endsWith("%2F") || prefixUri.endsWith("%2f") ? prefixUri : prefixUri + "%2F";
     return candidateUri.startsWith(prefixWithEncoded)
-        || candidateUri.toLowerCase().startsWith(prefixWithEncoded.toLowerCase());
+        || candidateUri
+            .toLowerCase(Locale.ROOT)
+            .startsWith(prefixWithEncoded.toLowerCase(Locale.ROOT));
   }
 
   /** Handles the sync setup confirmation from the dialog. */
   private static final int MAX_SYNC_CONFIGS = 5;
 
-  private void handleSyncSetupConfirmed(
-      SyncDirection direction, int intervalMinutes, String remotePath) {
+  void handleSyncSetupConfirmed(SyncDirection direction, int intervalMinutes, String remotePath) {
     Uri folderUri = uiState.getSyncFolderUri();
     if (folderUri == null) {
       progressController.showError(getString(R.string.sync_select_folder_first), null);
@@ -1560,7 +1583,7 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   /** Handles the folder selection result for sync. */
-  private void handleSyncFolderSelected(Uri uri) {
+  void handleSyncFolderSelected(Uri uri) {
     LogUtils.d("FileBrowserActivity", "Sync folder selected: " + uri);
     uiState.setSyncFolderUri(uri);
 
@@ -1582,7 +1605,8 @@ public class FileBrowserActivity extends AppCompatActivity
       int count = backgroundSmbManager.getActiveOperationCount();
       new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
           .setTitle(R.string.quit_app_confirm_title)
-          .setMessage(getString(R.string.quit_app_confirm_message, count))
+          .setMessage(
+              getResources().getQuantityString(R.plurals.quit_app_confirm_message, count, count))
           .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
           .setNegativeButton(R.string.cancel, null)
           .show();
@@ -1631,7 +1655,7 @@ public class FileBrowserActivity extends AppCompatActivity
 
   // FileListController.FileClickCallback implementation
   @Override
-  public void onFileClick(SmbFileItem file) {
+  public void onFileClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileBrowserActivity", "File clicked: " + file.getName());
     if (!file.isDirectory()) {
       // Show file info
@@ -1643,14 +1667,14 @@ public class FileBrowserActivity extends AppCompatActivity
 
   // FileListController.FileOptionsCallback implementation
   @Override
-  public void onFileOptionsClick(SmbFileItem file) {
+  public void onFileOptionsClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileBrowserActivity", "File options clicked: " + file.getName());
     dialogController.showFileOptionsDialog(file);
   }
 
   // FileListController.FileStatisticsCallback implementation
   @Override
-  public void onFileStatisticsUpdated(java.util.List<SmbFileItem> files) {
+  public void onFileStatisticsUpdated(@NonNull java.util.List<SmbFileItem> files) {
     int fileCount = 0;
     int folderCount = 0;
 
@@ -1679,7 +1703,7 @@ public class FileBrowserActivity extends AppCompatActivity
 
   // FileOperationsController.FileOperationListener implementation
   @Override
-  public void onFileOperationStarted(String operationType, SmbFileItem file) {
+  public void onFileOperationStarted(@NonNull String operationType, @NonNull SmbFileItem file) {
     LogUtils.d(
         "FileBrowserActivity",
         "File operation started: "
@@ -1705,7 +1729,10 @@ public class FileBrowserActivity extends AppCompatActivity
 
   @Override
   public void onFileOperationCompleted(
-      String operationType, SmbFileItem file, boolean success, String message) {
+      @NonNull String operationType,
+      @NonNull SmbFileItem file,
+      boolean success,
+      @NonNull String message) {
     LogUtils.d(
         "FileBrowserActivity",
         "File operation completed: "
@@ -1734,7 +1761,10 @@ public class FileBrowserActivity extends AppCompatActivity
 
   @Override
   public void onFileOperationProgress(
-      String operationType, SmbFileItem file, int progress, String message) {
+      @NonNull String operationType,
+      @NonNull SmbFileItem file,
+      int progress,
+      @NonNull String message) {
     LogUtils.d(
         "FileBrowserActivity",
         "File operation progress: "
@@ -1749,7 +1779,7 @@ public class FileBrowserActivity extends AppCompatActivity
 
   // Adjust placement of multi-select FABs when regular FABs are hidden so they sit closer to the
   // bottom
-  private void adjustMultiSelectFabPlacement(boolean compact) {
+  private void adjustMultiSelectFabPlacement() {
     try {
       if (fabDeleteSelected == null || fabDownloadSelected == null || fabClearSelection == null)
         return;
@@ -1759,7 +1789,7 @@ public class FileBrowserActivity extends AppCompatActivity
       setFabBottomMargin(fabClearSelection, base);
       setFabBottomMargin(fabDownloadSelected, base + gap);
       setFabBottomMargin(fabDeleteSelected, base + gap + gap);
-    } catch (Throwable ignore) {
+    } catch (Throwable ignored) {
       // best-effort adjustment only
     }
   }

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 
 /**
  * Enhanced UI utilities for SambaLite. Provides better user experience with animations and
@@ -17,7 +18,8 @@ public class EnhancedUIUtils {
   private static final int ANIMATION_DURATION_MEDIUM = 400;
 
   /** Shows a toast with enhanced styling and positioning. */
-  public static void showEnhancedToast(Context context, String message, int duration) {
+  public static void showEnhancedToast(
+      @NonNull Context context, @NonNull String message, int duration) {
     if (context == null || message == null) return;
 
     try {
@@ -30,17 +32,17 @@ public class EnhancedUIUtils {
   }
 
   /** Shows error message to user. */
-  public static void showError(Context context, String message) {
+  public static void showError(@NonNull Context context, @NonNull String message) {
     showEnhancedToast(context, "✗ " + message, Toast.LENGTH_LONG);
   }
 
   /** Shows info message to user. */
-  public static void showInfo(Context context, String message) {
+  public static void showInfo(@NonNull Context context, @NonNull String message) {
     showEnhancedToast(context, "ℹ " + message, Toast.LENGTH_SHORT);
   }
 
   /** Animates view scale up (pop-in effect). */
-  public static void scaleUp(View view) {
+  public static void scaleUp(@NonNull View view) {
     if (view == null) return;
 
     view.setScaleX(0.8f);
@@ -62,7 +64,7 @@ public class EnhancedUIUtils {
   }
 
   /** Creates ripple effect on view touch. */
-  public static void addRippleEffect(View view) {
+  public static void addRippleEffect(@NonNull View view) {
     if (view == null) return;
 
     // Simple scale animation for ripple-like effect
@@ -77,8 +79,9 @@ public class EnhancedUIUtils {
               scaleDownX.start();
               scaleDownY.start();
               break;
-
             case android.view.MotionEvent.ACTION_UP:
+              v.performClick();
+            // fall through
             case android.view.MotionEvent.ACTION_CANCEL:
               ObjectAnimator scaleUpX = ObjectAnimator.ofFloat(v, "scaleX", 0.95f, 1f);
               ObjectAnimator scaleUpY = ObjectAnimator.ofFloat(v, "scaleY", 0.95f, 1f);
@@ -95,7 +98,8 @@ public class EnhancedUIUtils {
   }
 
   /** Safely gets view by ID with null check. */
-  public static <T extends View> T findViewById(View parent, int id, Class<T> type) {
+  public static <T extends View> @NonNull T findViewById(
+      @NonNull View parent, int id, @NonNull Class<T> type) {
     if (parent == null) return null;
 
     try {

@@ -4,8 +4,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Build;
 import android.os.IBinder;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.service.SmbBackgroundService;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
@@ -28,21 +29,21 @@ public class BackgroundSmbManager {
   private static final String TAG = "BackgroundSmbManager";
   private final java.util.concurrent.ScheduledExecutorService delayExec =
       java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
-  private final Context appContext;
+  final Context appContext;
 
-  private final AtomicBoolean serviceConnected = new AtomicBoolean(false);
-  private final AtomicBoolean bindingInProgress = new AtomicBoolean(false);
-  private final AtomicBoolean stopRequested = new AtomicBoolean(false);
-  private final Queue<Runnable> pendingOps = new ArrayDeque<>();
-  private volatile SmbBackgroundService service;
+  final AtomicBoolean serviceConnected = new AtomicBoolean(false);
+  final AtomicBoolean bindingInProgress = new AtomicBoolean(false);
+  final AtomicBoolean stopRequested = new AtomicBoolean(false);
+  final Queue<Runnable> pendingOps = new ArrayDeque<>();
+  volatile SmbBackgroundService service;
 
   @Inject
-  public BackgroundSmbManager(Context context) {
+  public BackgroundSmbManager(@NonNull Context context) {
     this.appContext = context.getApplicationContext();
     ensureServiceStartedAndBound();
   }
 
-  private final ServiceConnection conn =
+  final ServiceConnection conn =
       new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -72,7 +73,7 @@ public class BackgroundSmbManager {
         }
       };
 
-  private void ensureServiceStartedAndBound() {
+  void ensureServiceStartedAndBound() {
     if (stopRequested.get()) {
       LogUtils.d(TAG, "Resetting stopRequested flag for new service start");
       stopRequested.set(false);
@@ -81,11 +82,7 @@ public class BackgroundSmbManager {
 
     Intent i = new Intent(appContext, SmbBackgroundService.class);
     try {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        appContext.startForegroundService(i);
-      } else {
-        appContext.startService(i);
-      }
+      appContext.startForegroundService(i);
     } catch (Throwable t) {
       LogUtils.e(TAG, "startForegroundService failed, falling back to bind: " + t.getMessage());
     }
@@ -114,11 +111,7 @@ public class BackgroundSmbManager {
       }
       try {
         Intent i = new Intent(appContext, SmbBackgroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          appContext.startForegroundService(i);
-        } else {
-          appContext.startService(i);
-        }
+        appContext.startForegroundService(i);
         LogUtils.d(TAG, "Sent start intent to already-bound service to restore notification");
       } catch (Throwable t) {
         LogUtils.e(TAG, "Failed to restart already-bound service: " + t.getMessage());
@@ -131,7 +124,7 @@ public class BackgroundSmbManager {
   public void shutdown() {
     try {
       if (serviceConnected.get()) appContext.unbindService(conn);
-    } catch (Throwable ignore) {
+    } catch (Throwable ignored) {
     } finally {
       serviceConnected.set(false);
       service = null;
@@ -140,8 +133,10 @@ public class BackgroundSmbManager {
     }
   }
 
-  public <T> CompletableFuture<T> executeBackgroundOperation(
-      String operationId, String operationName, BackgroundOperation<T> operation) {
+  public <T> @NonNull CompletableFuture<T> executeBackgroundOperation(
+      @NonNull String operationId,
+      @NonNull String operationName,
+      @NonNull BackgroundOperation<T> operation) {
 
     Objects.requireNonNull(operationName, "operationName");
     Objects.requireNonNull(operation, "operation");
@@ -178,8 +173,10 @@ public class BackgroundSmbManager {
     return result;
   }
 
-  public <T> CompletableFuture<T> executeMultiFileOperation(
-      String operationId, String operationName, MultiFileOperation<T> operation) {
+  public <T> @NonNull CompletableFuture<T> executeMultiFileOperation(
+      @NonNull String operationId,
+      @NonNull String operationName,
+      @NonNull MultiFileOperation<T> operation) {
 
     return executeBackgroundOperation(
         operationId,
@@ -214,11 +211,7 @@ public class BackgroundSmbManager {
         new Intent(appContext, SmbBackgroundService.class)
             .setAction(SmbBackgroundService.ACTION_CANCEL);
     try {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        appContext.startForegroundService(cancel);
-      } else {
-        appContext.startService(cancel);
-      }
+      appContext.startForegroundService(cancel);
       LogUtils.i(TAG, "Cancel request sent to service");
     } catch (Throwable t) {
       LogUtils.e(
@@ -231,7 +224,7 @@ public class BackgroundSmbManager {
     }
   }
 
-  private <T> void delegateToService(
+  <T> void delegateToService(
       String operationName, BackgroundOperation<T> operation, CompletableFuture<T> future) {
 
     SmbBackgroundService svc = service;
@@ -287,7 +280,7 @@ public class BackgroundSmbManager {
     }
   }
 
-  private void drainPendingQueue() {
+  void drainPendingQueue() {
     final Queue<Runnable> copy;
     synchronized (pendingOps) {
       if (pendingOps.isEmpty()) return;
@@ -311,19 +304,22 @@ public class BackgroundSmbManager {
   }
 
   public void setSearchContext(
-      String connectionId, String searchQuery, int searchType, boolean includeSubfolders) {
+      @NonNull String connectionId,
+      @NonNull String searchQuery,
+      int searchType,
+      boolean includeSubfolders) {
     if (serviceConnected.get() && service != null) {
       service.setSearchParameters(connectionId, searchQuery, searchType, includeSubfolders);
     }
   }
 
-  public void setUploadContext(String connectionId, String uploadPath) {
+  public void setUploadContext(@NonNull String connectionId, @NonNull String uploadPath) {
     if (serviceConnected.get() && service != null) {
       service.setUploadParameters(connectionId, uploadPath);
     }
   }
 
-  public void setDownloadContext(String connectionId, String downloadPath) {
+  public void setDownloadContext(@NonNull String connectionId, @NonNull String downloadPath) {
     if (serviceConnected.get() && service != null) {
       service.setDownloadParameters(connectionId, downloadPath);
     }
@@ -363,18 +359,14 @@ public class BackgroundSmbManager {
       Intent stop =
           new Intent(appContext, SmbBackgroundService.class)
               .setAction(SmbBackgroundService.ACTION_STOP);
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        appContext.startForegroundService(stop);
-      } else {
-        appContext.startService(stop);
-      }
+      appContext.startForegroundService(stop);
       LogUtils.i(TAG, "Stop request sent to service");
     } catch (Throwable t) {
       LogUtils.e(TAG, "Failed to send stop request: " + t.getMessage());
     }
   }
 
-  public void startOperation(String name) {
+  public void startOperation(@NonNull String name) {
     if (serviceConnected.get() && service != null) {
       service.startOperation(name);
     } else {
@@ -382,25 +374,27 @@ public class BackgroundSmbManager {
     }
   }
 
-  public void updateOperationProgress(String name, String info) {
+  public void updateOperationProgress(@NonNull String name, @NonNull String info) {
     if (serviceConnected.get() && service != null) {
       service.updateOperationProgress(name, info);
     }
   }
 
-  public void updateFileProgress(String name, int current, int total, String file) {
+  public void updateFileProgress(
+      @NonNull String name, int current, int total, @NonNull String file) {
     if (serviceConnected.get() && service != null) {
       service.updateFileProgress(name, current, total, file);
     }
   }
 
-  public void updateBytesProgress(String name, long cur, long total, String file) {
+  public void updateBytesProgress(
+      @NonNull String name, long cur, long total, @NonNull String file) {
     if (serviceConnected.get() && service != null) {
       service.updateBytesProgress(name, cur, total, file);
     }
   }
 
-  public void finishOperation(String name, boolean success) {
+  public void finishOperation(@NonNull String name, boolean success) {
     if (serviceConnected.get() && service != null) {
       service.finishOperation(name, success);
     } else {
@@ -409,29 +403,32 @@ public class BackgroundSmbManager {
   }
 
   public interface BackgroundOperation<T> {
-    T execute(ProgressCallback callback) throws Exception;
+    @NonNull
+    T execute(@Nullable ProgressCallback callback) throws Exception;
   }
 
   public interface MultiFileOperation<T> {
-    T execute(MultiFileProgressCallback callback) throws Exception;
+    @NonNull
+    T execute(@Nullable MultiFileProgressCallback callback) throws Exception;
   }
 
   public interface MultiFileProgressCallback {
-    void updateFileProgress(int currentFile, int totalFiles, String currentFileName);
+    void updateFileProgress(int currentFile, int totalFiles, @NonNull String currentFileName);
 
-    void updateBytesProgress(long currentBytes, long totalBytes, String fileName);
+    void updateBytesProgress(long currentBytes, long totalBytes, @NonNull String fileName);
 
-    void updateProgress(String progressInfo);
+    void updateProgress(@NonNull String progressInfo);
   }
 
   public interface ProgressCallback {
-    void updateProgress(String progressInfo);
+    void updateProgress(@NonNull String progressInfo);
 
-    default void updateFileProgress(int currentFile, int totalFiles, String currentFileName) {
+    default void updateFileProgress(
+        int currentFile, int totalFiles, @NonNull String currentFileName) {
       updateProgress("Datei " + currentFile + " von " + totalFiles + ": " + currentFileName);
     }
 
-    default void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
+    default void updateBytesProgress(long currentBytes, long totalBytes, @NonNull String fileName) {
       int pct;
       if (totalBytes > 0) {
         pct =

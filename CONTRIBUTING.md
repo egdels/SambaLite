@@ -40,12 +40,51 @@ Feature suggestions are welcome! Please create an issue with:
 
 ## Development Guidelines
 
+### Code Quality Checks
+
+The project uses automated code quality tools. Before submitting a PR, ensure all checks pass:
+
+```bash
+./gradlew spotlessCheck          # Code formatting (Google Java Format)
+./gradlew :app:compileDebugJavaWithJavac  # Error Prone static analysis
+./gradlew :app:testDebugUnitTest # Unit tests
+./gradlew :app:lintDebug         # Android Lint checks
+./gradlew :app:jacocoTestReport  # Test coverage report
+```
+
+Or run all checks at once:
+
+```bash
+./gradlew spotlessCheck :app:compileDebugJavaWithJavac :app:testDebugUnitTest :app:lintDebug :app:jacocoTestReport
+```
+
+#### Spotless (Code Formatting)
+
+All Java code must be formatted with [Google Java Format](https://github.com/google/google-java-format). To auto-fix formatting:
+
+```bash
+./gradlew spotlessApply
+```
+
+#### Error Prone (Static Analysis)
+
+[Error Prone](https://errorprone.info/) runs during compilation and catches common Java bugs. All warnings are treated as errors; generated code is excluded. Fix any issues reported during compilation.
+
+#### Android Lint
+
+Lint checks cover accessibility, performance, security, unused resources, and more. A `lint-baseline.xml` file tracks accepted issues (e.g., third-party library warnings, architecture-specific patterns). New lint warnings must be resolved — do not add them to the baseline.
+
+#### JaCoCo (Test Coverage)
+
+Coverage reports are generated under `app/build/reports/jacoco/`. Aim to maintain or improve test coverage with your changes.
+
 ### Coding Style
 
-- Follow standard Java coding conventions
+- Code is auto-formatted by Spotless (Google Java Format) — no manual formatting needed
 - Use meaningful variable and method names
 - Write clear comments for complex logic
 - Keep methods focused and concise
+- Annotate all public/protected API parameters and return types with `@NonNull` or `@Nullable`
 
 ### Architecture
 

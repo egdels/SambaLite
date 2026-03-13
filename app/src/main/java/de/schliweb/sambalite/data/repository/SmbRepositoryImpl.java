@@ -47,6 +47,8 @@ public class SmbRepositoryImpl implements SmbRepository {
   private final ReentrantLock operationLock = new ReentrantLock();
 
   private volatile boolean searchCancelled = false;
+  private final java.util.concurrent.atomic.AtomicInteger searchHitCount =
+      new java.util.concurrent.atomic.AtomicInteger(0);
   private volatile boolean downloadCancelled = false;
   private volatile boolean uploadCancelled = false;
 
@@ -111,6 +113,11 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
+  public int getSearchHitCount() {
+    return searchHitCount.get();
+  }
+
+  @Override
   public void cancelSearch() {
     LogUtils.d("SmbRepositoryImpl", "Search cancellation requested");
     searchCancelled = true;
@@ -158,8 +165,9 @@ public class SmbRepositoryImpl implements SmbRepository {
         throw new Exception("Search operation timeout - another operation may be blocking");
       }
 
-      // Reset cancellation flag at the start of a new search
+      // Reset cancellation flag and hit counter at the start of a new search
       searchCancelled = false;
+      searchHitCount.set(0);
 
       List<SmbFileItem> result = new ArrayList<>();
       String folderPath = path == null || path.isEmpty() ? "" : path;
@@ -279,6 +287,7 @@ public class SmbRepositoryImpl implements SmbRepository {
         if (matchesSearchCriteria(name, query, searchType, isDirectory)) {
           result.add(
               createSmbFileItem(info, name, uiFullPath, isDirectory)); // UI-Pfad bleibt mit "/"
+          searchHitCount.incrementAndGet();
         }
         if (isDirectory && includeSubfolders && !searchCancelled) {
           searchFilesRecursive(share, nextPath, query, result, searchType, includeSubfolders);
@@ -755,7 +764,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     try (File file =
         share.openFile(
             oldFilePath,
-            EnumSet.of(AccessMask.GENERIC_ALL),
+            EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_READ),
             null,
             SMB2ShareAccess.ALL,
             SMB2CreateDisposition.FILE_OPEN,
@@ -772,7 +781,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     try (Directory directory =
         share.openDirectory(
             oldFilePath,
-            EnumSet.of(AccessMask.GENERIC_ALL),
+            EnumSet.of(AccessMask.DELETE, AccessMask.GENERIC_READ),
             null,
             SMB2ShareAccess.ALL,
             SMB2CreateDisposition.FILE_OPEN,
@@ -1102,7 +1111,7 @@ public class SmbRepositoryImpl implements SmbRepository {
                       EnumSet.of(AccessMask.GENERIC_WRITE),
                       EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                       SMB2ShareAccess.ALL,
-                      SMB2CreateDisposition.FILE_OVERWRITE_IF,
+                      SMB2CreateDisposition.FILE_SUPERSEDE,
                       null);
               java.io.FileInputStream fis = new java.io.FileInputStream(localFile);
               OutputStream os = remoteFile.getOutputStream()) {

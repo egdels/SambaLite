@@ -7,6 +7,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
@@ -15,8 +16,6 @@ import de.schliweb.sambalite.ui.FileBrowserActivity;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,7 +51,6 @@ public class SmbBackgroundService extends Service {
   private static final long NOTIFICATION_UPDATE_INTERVAL_MS = 1000; // 1 Hz
 
   // Timeouts
-  private static final int SMB_OPERATION_TIMEOUT_SECONDS = 60; // hard cap
   private static final int PROGRESS_WATCHDOG_INTERVAL_SECONDS = 30; // idle detector
 
   // Binder
@@ -146,7 +144,7 @@ public class SmbBackgroundService extends Service {
   }
 
   @Override
-  public IBinder onBind(Intent intent) {
+  public @NonNull IBinder onBind(@Nullable Intent intent) {
     return binder;
   }
 
@@ -174,7 +172,7 @@ public class SmbBackgroundService extends Service {
         for (File f : files) {
           try {
             f.delete();
-          } catch (Throwable ignore) {
+          } catch (Throwable ignored) {
           }
         }
     } catch (Exception e) {
@@ -184,7 +182,7 @@ public class SmbBackgroundService extends Service {
     if (wakeLock != null && wakeLock.isHeld()) {
       try {
         wakeLock.release();
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
       }
       LogUtils.d(TAG, "Wake lock released (service destroy)");
     }
@@ -204,13 +202,13 @@ public class SmbBackgroundService extends Service {
     if (wakeLock != null && wakeLock.isHeld()) {
       try {
         wakeLock.release();
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
       }
     }
     stopSelf();
   }
 
-  public void startOperation(String operationName) {
+  public void startOperation(@NonNull String operationName) {
     int count = activeOperations.incrementAndGet();
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
@@ -262,7 +260,7 @@ public class SmbBackgroundService extends Service {
     }
 
     if (wakeLock != null) {
-      wakeLock.acquire();
+      wakeLock.acquire(30 * 60 * 1000L); // 30 minutes timeout
       LogUtils.d(TAG, "Wake lock ++ (op start): " + operationName);
     }
 
@@ -270,7 +268,7 @@ public class SmbBackgroundService extends Service {
     startWatchdog();
   }
 
-  public void finishOperation(String operationName, boolean success) {
+  public void finishOperation(@NonNull String operationName, boolean success) {
     int count = activeOperations.decrementAndGet();
     LogUtils.d(
         TAG,
@@ -302,7 +300,7 @@ public class SmbBackgroundService extends Service {
     }
   }
 
-  public void updateOperationProgress(String operationName, String progressInfo) {
+  public void updateOperationProgress(@NonNull String operationName, @NonNull String progressInfo) {
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
     String title = op.label() + "…";
     currentOperation = title; // <—
@@ -311,7 +309,10 @@ public class SmbBackgroundService extends Service {
   }
 
   public void updateFileProgress(
-      String operationName, int currentFile, int totalFiles, String currentFileName) {
+      @NonNull String operationName,
+      int currentFile,
+      int totalFiles,
+      @NonNull String currentFileName) {
     int percentage = totalFiles > 0 ? ((currentFile * 100) / totalFiles) : 0;
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
@@ -328,7 +329,7 @@ public class SmbBackgroundService extends Service {
   }
 
   public void updateBytesProgress(
-      String operationName, long currentBytes, long totalBytes, String fileName) {
+      @NonNull String operationName, long currentBytes, long totalBytes, @NonNull String fileName) {
     int percentage = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
@@ -354,7 +355,10 @@ public class SmbBackgroundService extends Service {
 
   // Parameters for deep links from notifications
   public void setSearchParameters(
-      String connectionId, String searchQuery, int searchType, boolean includeSubfolders) {
+      @NonNull String connectionId,
+      @NonNull String searchQuery,
+      int searchType,
+      boolean includeSubfolders) {
     this.connectionId = connectionId;
     this.searchQuery = searchQuery;
     this.searchType = searchType;
@@ -372,7 +376,7 @@ public class SmbBackgroundService extends Service {
     updateNotificationImmediate(title, initialContentForOp(op));
   }
 
-  public void setUploadParameters(String connectionId, String uploadPath) {
+  public void setUploadParameters(@NonNull String connectionId, @NonNull String uploadPath) {
     this.connectionId = connectionId;
     this.uploadPath = uploadPath;
     this.isUploadOperation = true;
@@ -387,7 +391,7 @@ public class SmbBackgroundService extends Service {
     updateNotificationImmediate(title, initialContentForOp(op));
   }
 
-  public void setDownloadParameters(String connectionId, String downloadPath) {
+  public void setDownloadParameters(@NonNull String connectionId, @NonNull String downloadPath) {
     this.connectionId = connectionId;
     this.downloadPath = downloadPath;
     this.isDownloadOperation = true;
@@ -421,7 +425,7 @@ public class SmbBackgroundService extends Service {
    * Execute a Callable SMB operation with built-in inactivity + absolute timeouts. The Callable
    * should periodically check {@link #isOperationCancelled()} to abort early.
    */
-  public void executeSmbOperation(String operationName, Callable<Boolean> work) {
+  public void executeSmbOperation(@NonNull String operationName, @NonNull Callable<Boolean> work) {
     if (smbOperationExecutor == null || smbOperationExecutor.isShutdown()) {
       smbOperationExecutor = Executors.newFixedThreadPool(2);
     }
@@ -458,7 +462,7 @@ public class SmbBackgroundService extends Service {
     // uploads being cancelled after ~60s.
 
     ctx.inactivityTask =
-        watchdogExecutor.scheduleAtFixedRate(
+        watchdogExecutor.scheduleWithFixedDelay(
             inactivityCheck,
             PROGRESS_WATCHDOG_INTERVAL_SECONDS,
             PROGRESS_WATCHDOG_INTERVAL_SECONDS,
@@ -498,7 +502,7 @@ public class SmbBackgroundService extends Service {
 
   // ===== Transfer helpers (temp file handling) =====
 
-  public File createTempFile(String originalFileName) throws IOException {
+  public @NonNull File createTempFile(@NonNull String originalFileName) throws IOException {
     String extension = "";
     int dot = originalFileName == null ? -1 : originalFileName.lastIndexOf('.');
     if (dot > 0) extension = originalFileName.substring(dot);
@@ -541,7 +545,7 @@ public class SmbBackgroundService extends Service {
                 createNotification(
                     getString(R.string.app_name),
                     "Foreground service limit reached. Please try again later."));
-          } catch (Throwable ignore) {
+          } catch (Throwable ignored) {
           }
           stopSelf();
           return START_NOT_STICKY;
@@ -603,43 +607,13 @@ public class SmbBackgroundService extends Service {
     watchdogExecutor = null;
   }
 
-  private boolean copyFile(File source, File dest) {
-    try (FileInputStream fis = new FileInputStream(source);
-        FileOutputStream fos = new FileOutputStream(dest)) {
-      byte[] buf = new byte[8192];
-      int len;
-      long copied = 0;
-      long size = source.length();
-      while ((len = fis.read(buf)) > 0) {
-        fos.write(buf, 0, len);
-        copied += len;
-        if ((copied % (1024 * 1024)) == 0) {
-          int pct = size > 0 ? (int) ((copied * 100) / size) : 0;
-          LogUtils.v(TAG, "Copy progress: " + pct + "% (" + copied + "/" + size + ")");
-          lastProgressUpdate.set(System.currentTimeMillis());
-        }
-        if (isOperationCancelled()) {
-          LogUtils.w(TAG, "Copy cancelled");
-          return false;
-        }
-      }
-      fos.getFD().sync();
-      return true;
-    } catch (Exception e) {
-      LogUtils.e(TAG, "copyFile error", e);
-      return false;
-    }
-  }
-
   private void createNotificationChannel() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      NotificationChannel channel =
-          new NotificationChannel(
-              CHANNEL_ID, "SMB Background Operations", NotificationManager.IMPORTANCE_LOW);
-      channel.setDescription("Shows the status of SMB operations in the background");
-      channel.setShowBadge(false);
-      notificationManager.createNotificationChannel(channel);
-    }
+    NotificationChannel channel =
+        new NotificationChannel(
+            CHANNEL_ID, "SMB Background Operations", NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription("Shows the status of SMB operations in the background");
+    channel.setShowBadge(false);
+    notificationManager.createNotificationChannel(channel);
   }
 
   private void updateNotificationThrottled(String title, String content) {
@@ -795,7 +769,7 @@ public class SmbBackgroundService extends Service {
     if (watchdogExecutor == null || watchdogExecutor.isShutdown()) {
       watchdogExecutor = Executors.newSingleThreadScheduledExecutor();
     }
-    watchdogExecutor.scheduleAtFixedRate(
+    watchdogExecutor.scheduleWithFixedDelay(
         () -> {
           if (hasActiveOperations() && lastProgressUpdate.get() > 0) {
             long idle = System.currentTimeMillis() - lastProgressUpdate.get();
@@ -844,7 +818,7 @@ public class SmbBackgroundService extends Service {
   }
 
   public class LocalBinder extends Binder {
-    public SmbBackgroundService getService() {
+    public @NonNull SmbBackgroundService getService() {
       return SmbBackgroundService.this;
     }
   }

@@ -4,6 +4,8 @@ import static de.schliweb.sambalite.ui.utils.ProgressFormat.normalizePercentInSt
 
 import android.content.Context;
 import android.net.Uri;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -37,27 +39,27 @@ public class FileOperationsController {
   private static final String OPERATION_DELETE = "delete";
   private static final String OPERATION_RENAME = "rename";
 
-  private final Context context;
-  private final FileOperationsViewModel operationsViewModel;
-  private final FileListViewModel fileListViewModel;
-  private final FileBrowserUIState uiState;
+  final Context context;
+  final FileOperationsViewModel operationsViewModel;
+  final FileListViewModel fileListViewModel;
+  final FileBrowserUIState uiState;
 
-  private final BackgroundSmbManager backgroundSmbManager;
+  final BackgroundSmbManager backgroundSmbManager;
 
-  private final List<FileOperationListener> listeners = new ArrayList<>();
+  final List<FileOperationListener> listeners = new ArrayList<>();
 
   @Setter private UserFeedbackProvider userFeedbackProvider; // preferred UX surface
 
-  @Setter private ProgressCallback progressCallback; // legacy feedback path
-  @Setter private ActivityResultController activityResultController;
-  @Setter private DialogController dialogController;
+  @Setter ProgressCallback progressCallback; // legacy feedback path
+  @Setter ActivityResultController activityResultController;
+  @Setter DialogController dialogController;
 
   public FileOperationsController(
-      Context context,
-      FileOperationsViewModel operationsViewModel,
-      FileListViewModel fileListViewModel,
-      FileBrowserUIState uiState,
-      BackgroundSmbManager backgroundSmbManager) {
+      @NonNull Context context,
+      @NonNull FileOperationsViewModel operationsViewModel,
+      @NonNull FileListViewModel fileListViewModel,
+      @NonNull FileBrowserUIState uiState,
+      @NonNull BackgroundSmbManager backgroundSmbManager) {
     this.context = context;
     this.operationsViewModel = operationsViewModel;
     this.fileListViewModel = fileListViewModel;
@@ -67,32 +69,32 @@ public class FileOperationsController {
   }
 
   // Listener wiring
-  public void addListener(FileOperationListener listener) {
+  public void addListener(@Nullable FileOperationListener listener) {
     if (listener != null && !listeners.contains(listener)) listeners.add(listener);
   }
 
-  public void removeListener(FileOperationListener listener) {
+  public void removeListener(@Nullable FileOperationListener listener) {
     listeners.remove(listener);
   }
 
-  private void notifyOperationStarted(String operationType, SmbFileItem file) {
+  void notifyOperationStarted(String operationType, SmbFileItem file) {
     for (FileOperationListener l : listeners) l.onFileOperationStarted(operationType, file);
   }
 
-  private void notifyOperationCompleted(
+  void notifyOperationCompleted(
       String operationType, SmbFileItem file, boolean success, String message) {
     for (FileOperationListener l : listeners)
       l.onFileOperationCompleted(operationType, file, success, message);
   }
 
-  private void notifyOperationProgress(
+  void notifyOperationProgress(
       String operationType, SmbFileItem file, int progress, String message) {
     for (FileOperationListener l : listeners)
       l.onFileOperationProgress(operationType, file, progress, message);
   }
 
   // ---- Unified progress helpers ----
-  private void updateOperationProgress(
+  void updateOperationProgress(
       String operationType, SmbFileItem file, String itemName, int percentage, String status) {
     notifyOperationProgress(operationType, file, percentage, status);
     LogUtils.d(
@@ -100,7 +102,7 @@ public class FileOperationsController {
         "Progress: " + operationType + " " + percentage + "% - " + status);
   }
 
-  private void updateFinalizingProgress(
+  void updateFinalizingProgress(
       String operationType, SmbFileItem file, String itemName, boolean isFolder) {
     String op =
         (operationType.equals(OPERATION_UPLOAD) || operationType.equals(OPERATION_FOLDER_UPLOAD))
@@ -115,7 +117,7 @@ public class FileOperationsController {
     updateOperationProgress(operationType, file, itemName, 99, msg);
   }
 
-  private String titleFor(String operationType, String displayName) {
+  String titleFor(String operationType, String displayName) {
     String safeName = (displayName == null) ? "" : displayName;
     if (OPERATION_DOWNLOAD.equals(operationType))
       return context.getString(de.schliweb.sambalite.R.string.downloading_colon, safeName);
@@ -129,7 +131,7 @@ public class FileOperationsController {
   }
 
   // ---- Public requester ----
-  public FileOperationRequester getFileOperationRequester() {
+  public @NonNull FileOperationRequester getFileOperationRequester() {
     return new FileOperationRequesterImpl();
   }
 
@@ -137,33 +139,39 @@ public class FileOperationsController {
    * Öffnet KEINEN Transfer-Dialog mehr (macht die Activity). Hängt – falls vorhanden – nur die
    * Cancel-Action an einen bereits offenen Dialog.
    */
-  private void showProgressShell(String operationType, String operationName, Runnable onCancel) {
+  void showProgressShell(String operationType, String operationName, Runnable onCancel) {
     if (progressCallback instanceof ProgressController pc) {
       try {
         // Attach cancel action immediately; ProgressController will cache it if dialog not yet
         // visible
         pc.setDetailedProgressDialogCancelAction(onCancel);
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
         /* optional */
       }
     }
   }
 
   // ---- Batch summary helper ----
-  private String summarizeBatch(String base, boolean cancelled, int failedCount) {
+  String summarizeBatch(String base, boolean cancelled, int failedCount) {
     String summary = base != null ? base : "";
     if (cancelled) {
       summary += "; " + context.getString(de.schliweb.sambalite.R.string.cancelled_suffix);
     }
     if (failedCount > 0) {
       summary +=
-          "; " + context.getString(de.schliweb.sambalite.R.string.failed_count_suffix, failedCount);
+          "; "
+              + context
+                  .getResources()
+                  .getQuantityString(
+                      de.schliweb.sambalite.R.plurals.failed_count_suffix,
+                      failedCount,
+                      failedCount);
     }
     return summary;
   }
 
   // ---- File operations ----
-  public void handleFileDownload(Uri uri) {
+  public void handleFileDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null) return;
     final String displayName = uiState.getSelectedFile().getName();
     final String opTitle = titleFor(OPERATION_DOWNLOAD, displayName);
@@ -264,14 +272,14 @@ public class FileOperationsController {
             uiState.setTempFile(null);
             try {
               if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-            } catch (Throwable ignore) {
+            } catch (Throwable ignored) {
             }
           }
           return Boolean.TRUE;
         });
   }
 
-  public void handleFolderDownload(Uri uri) {
+  public void handleFolderDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null || !uiState.getSelectedFile().isDirectory()) return;
     final String folderName = uiState.getSelectedFile().getName();
     final String opTitle = titleFor(OPERATION_DOWNLOAD, folderName);
@@ -301,101 +309,107 @@ public class FileOperationsController {
                   de.schliweb.sambalite.R.string.download_error_invalid_destination));
       try {
         if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
       }
       return;
     }
 
-    backgroundSmbManager.executeMultiFileOperation(
-        "folderDownload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          final java.util.concurrent.CountDownLatch done =
-              new java.util.concurrent.CountDownLatch(1);
+    var unused =
+        backgroundSmbManager.executeMultiFileOperation(
+            "folderDownload:" + System.currentTimeMillis(),
+            opTitle,
+            cb -> {
+              final java.util.concurrent.CountDownLatch done =
+                  new java.util.concurrent.CountDownLatch(1);
 
-          FileOperationCallbacks.ProgressCallback folderProgress =
-              new FileOperationCallbacks.ProgressCallback() {
-                @Override
-                public void updateFileProgress(
-                    int currentFile, int totalFiles, String currentFileName) {
-                  int pct = totalFiles > 0 ? (currentFile * 100) / totalFiles : 0;
-                  String status =
-                      ProgressFormat.formatIdx(
-                          context.getString(de.schliweb.sambalite.R.string.downloading),
-                          currentFile,
-                          totalFiles,
-                          currentFileName);
-                  updateOperationProgress(
-                      OPERATION_DOWNLOAD, uiState.getSelectedFile(), currentFileName, pct, status);
-                  cb.updateFileProgress(
-                      currentFile, totalFiles, currentFileName); // <-- 3 Parameter
-                }
+              FileOperationCallbacks.ProgressCallback folderProgress =
+                  new FileOperationCallbacks.ProgressCallback() {
+                    @Override
+                    public void updateFileProgress(
+                        int currentFile, int totalFiles, String currentFileName) {
+                      int pct = totalFiles > 0 ? (currentFile * 100) / totalFiles : 0;
+                      String status =
+                          ProgressFormat.formatIdx(
+                              context.getString(de.schliweb.sambalite.R.string.downloading),
+                              currentFile,
+                              totalFiles,
+                              currentFileName);
+                      updateOperationProgress(
+                          OPERATION_DOWNLOAD,
+                          uiState.getSelectedFile(),
+                          currentFileName,
+                          pct,
+                          status);
+                      cb.updateFileProgress(
+                          currentFile, totalFiles, currentFileName); // <-- 3 Parameter
+                    }
 
-                @Override
-                public void updateBytesProgress(
-                    long currentBytes, long totalBytes, String fileName) {
-                  int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
-                  String status =
-                      ProgressFormat.formatBytes(
-                          context.getString(de.schliweb.sambalite.R.string.downloading),
-                          currentBytes,
-                          totalBytes);
-                  updateOperationProgress(
-                      OPERATION_DOWNLOAD, uiState.getSelectedFile(), fileName, pct, status);
-                  cb.updateBytesProgress(currentBytes, totalBytes, fileName);
-                }
+                    @Override
+                    public void updateBytesProgress(
+                        long currentBytes, long totalBytes, String fileName) {
+                      int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
+                      String status =
+                          ProgressFormat.formatBytes(
+                              context.getString(de.schliweb.sambalite.R.string.downloading),
+                              currentBytes,
+                              totalBytes);
+                      updateOperationProgress(
+                          OPERATION_DOWNLOAD, uiState.getSelectedFile(), fileName, pct, status);
+                      cb.updateBytesProgress(currentBytes, totalBytes, fileName);
+                    }
 
-                @Override
-                public void updateProgress(String progressInfo) {
-                  updateOperationProgress(
-                      OPERATION_DOWNLOAD,
-                      uiState.getSelectedFile(),
-                      null,
-                      ProgressFormat.parsePercent(progressInfo),
-                      progressInfo);
-                  cb.updateProgress(progressInfo);
-                }
-              };
+                    @Override
+                    public void updateProgress(String progressInfo) {
+                      updateOperationProgress(
+                          OPERATION_DOWNLOAD,
+                          uiState.getSelectedFile(),
+                          null,
+                          ProgressFormat.parsePercent(progressInfo),
+                          progressInfo);
+                      cb.updateProgress(progressInfo);
+                    }
+                  };
 
-          FileOperationCallbacks.DownloadCallback inner =
-              createFolderDownloadCallbackWithNotification(
-                  tempFolder, destFolder, uiState.getSelectedFile(), cancelFinalize, cb);
-          FileOperationCallbacks.DownloadCallback wrapped =
-              new FileOperationCallbacks.DownloadCallback() {
-                @Override
-                public void onProgress(String status, int percentage) {
-                  inner.onProgress(status, percentage);
-                }
+              FileOperationCallbacks.DownloadCallback inner =
+                  createFolderDownloadCallbackWithNotification(
+                      tempFolder, destFolder, uiState.getSelectedFile(), cancelFinalize, cb);
+              FileOperationCallbacks.DownloadCallback wrapped =
+                  new FileOperationCallbacks.DownloadCallback() {
+                    @Override
+                    public void onProgress(String status, int percentage) {
+                      inner.onProgress(status, percentage);
+                    }
 
-                @Override
-                public void onResult(boolean success, String message) {
-                  try {
-                    inner.onResult(success, message);
-                  } finally {
-                    done.countDown();
-                  }
-                }
-              };
+                    @Override
+                    public void onResult(boolean success, String message) {
+                      try {
+                        inner.onResult(success, message);
+                      } finally {
+                        done.countDown();
+                      }
+                    }
+                  };
 
-          operationsViewModel.downloadFolder(
-              uiState.getSelectedFile(), tempFolder, wrapped, folderProgress);
+              operationsViewModel.downloadFolder(
+                  uiState.getSelectedFile(), tempFolder, wrapped, folderProgress);
 
-          done.await();
-          // Clear temp reference after operation completes; deletion handled in callbacks
-          try {
-            uiState.setTempFile(null);
-          } catch (Throwable ignore) {
-          }
-          // As a safety net, ensure the progress dialog is hidden after folder download completes
-          try {
-            if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-          } catch (Throwable ignore) {
-          }
-          return Boolean.TRUE;
-        });
+              done.await();
+              // Clear temp reference after operation completes; deletion handled in callbacks
+              try {
+                uiState.setTempFile(null);
+              } catch (Throwable ignored) {
+              }
+              // As a safety net, ensure the progress dialog is hidden after folder download
+              // completes
+              try {
+                if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
+              } catch (Throwable ignored) {
+              }
+              return Boolean.TRUE;
+            });
   }
 
-  public void handleFileUpload(Uri uri) {
+  public void handleFileUpload(@NonNull Uri uri) {
     // Best-effort ensure the app holds read grant for the URI before background staging
     trySelfGrantRead(uri);
     final String fileNameFromUri = getFileNameFromUri(uri);
@@ -405,166 +419,34 @@ public class FileOperationsController {
 
     showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
 
-    backgroundSmbManager.executeMultiFileOperation(
-        "fileUpload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          cb.updateFileProgress(1, 1, fileName);
-
-          File tempFile = null;
-          try {
-            tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
-            uiState.setTempFile(tempFile);
-            cb.updateProgress(
-                context.getString(de.schliweb.sambalite.R.string.preparing_upload_staging_file));
-            FileOperations.copyUriToFile(uri, tempFile, context);
-          } catch (Exception ex) {
-            if (tempFile != null) tempFile.delete();
-            uiState.setTempFile(null);
-
-            cb.updateProgress(
-                context.getString(
-                    de.schliweb.sambalite.R.string.staging_failed_with_reason, ex.getMessage()));
-            throw ex;
-          }
-
-          String remotePath = buildRemotePath(fileName);
-
-          final java.util.concurrent.CountDownLatch done =
-              new java.util.concurrent.CountDownLatch(1);
-
-          FileOperationCallbacks.UploadCallback inner =
-              createUploadCallbackWithNotification(null, fileName);
-          File finalTempFile = tempFile;
-          FileOperationCallbacks.UploadCallback wrapped =
-              new FileOperationCallbacks.UploadCallback() {
-                @Override
-                public void onProgress(String status, int percentage) {
-                  inner.onProgress(status, percentage);
-                  cb.updateProgress(status);
-                }
-
-                @Override
-                public void onResult(boolean success, String message) {
-                  try {
-                    inner.onResult(success, message);
-                  } finally {
-                    if (finalTempFile != null) finalTempFile.delete();
-                    uiState.setTempFile(null);
-                    done.countDown();
-                  }
-                }
-              };
-
-          operationsViewModel.uploadFile(
-              tempFile, remotePath, wrapped, createFileExistsCallback(), fileName);
-
-          done.await();
-          return Boolean.TRUE;
-        });
-  }
-
-  public void handleFolderContentsUpload(Uri folderUri) {
-    DocumentFile docFolder = DocumentFile.fromTreeUri(context, folderUri);
-    String folderName = getDocumentFileName(docFolder, "folder");
-    final String opTitle = titleFor(OPERATION_UPLOAD, folderName);
-    LogUtils.d("FileOperationsController", "Starting folder contents upload: " + folderName);
-
-    if (progressCallback != null) progressCallback.setZipButtonsEnabled(false);
-    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
-
-    backgroundSmbManager.executeMultiFileOperation(
-        "folderContentsUpload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          final java.util.concurrent.CountDownLatch done =
-              new java.util.concurrent.CountDownLatch(1);
-
-          FileOperationCallbacks.UploadCallback inner =
-              createFolderContentsUploadCallbackWithNotification(folderName);
-
-          FileOperationCallbacks.UploadCallback wrapped =
-              new FileOperationCallbacks.UploadCallback() {
-                @Override
-                public void onProgress(String status, int percentage) {
-                  inner.onProgress(status, percentage);
-                }
-
-                @Override
-                public void onResult(boolean success, String message) {
-                  try {
-                    inner.onResult(success, message);
-                  } finally {
-                    done.countDown();
-                  }
-                }
-              };
-
-          operationsViewModel.uploadFolderContentsFromUri(
-              folderUri, wrapped, createFileExistsCallback(), cb);
-
-          done.await();
-          return Boolean.TRUE;
-        });
-  }
-
-  /** Batch upload multiple URIs within one service operation. Files are processed sequentially. */
-  public void handleMultipleFileUploads(java.util.List<Uri> uris) {
-    handleMultipleFileUploads(uris, null);
-  }
-
-  /**
-   * Batch upload multiple URIs to a specific target directory. If {@code targetDirectoryPath} is
-   * non-null it overrides the ViewModel's current path.
-   */
-  public void handleMultipleFileUploads(java.util.List<Uri> uris, String targetDirectoryPath) {
-    if (uris == null || uris.isEmpty()) return;
-    final int total = uris.size();
-    final String opTitle = titleFor(OPERATION_UPLOAD, "multiple files");
-
-    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
-
-    backgroundSmbManager.executeMultiFileOperation(
-        "batchUpload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          // Keep consolidated upload state active across the entire batch
-          operationsViewModel.beginBatchUpload();
-          try {
-            int index = 0;
-            for (Uri uri : uris) {
-              // Best-effort ensure the app holds read grant for the URI before background staging
-              trySelfGrantRead(uri);
-              final String fileNameFromUri = getFileNameFromUri(uri);
-              final String fileName =
-                  fileNameFromUri != null
-                      ? fileNameFromUri
-                      : "uploaded_file_" + System.currentTimeMillis();
-              final int current = ++index;
-              cb.updateFileProgress(current, total, fileName);
+    var unused =
+        backgroundSmbManager.executeMultiFileOperation(
+            "fileUpload:" + System.currentTimeMillis(),
+            opTitle,
+            cb -> {
+              cb.updateFileProgress(1, 1, fileName);
 
               File tempFile = null;
               try {
                 tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
                 uiState.setTempFile(tempFile);
-                cb.updateProgress("Preparing upload… staging file");
+                cb.updateProgress(
+                    context.getString(
+                        de.schliweb.sambalite.R.string.preparing_upload_staging_file));
                 FileOperations.copyUriToFile(uri, tempFile, context);
-                // Clean up source file if it was a temporary shared-text cache file
-                cleanupSharedTextSourceFile(uri);
               } catch (Exception ex) {
                 if (tempFile != null) tempFile.delete();
                 uiState.setTempFile(null);
-                cb.updateProgress("Staging failed for " + fileName + ": " + ex.getMessage());
-                LogUtils.e(
-                    "FileOperationsController",
-                    "Staging failed for " + fileName + ": " + ex.getMessage());
-                continue; // skip to next file
+
+                cb.updateProgress(
+                    context.getString(
+                        de.schliweb.sambalite.R.string.staging_failed_with_reason,
+                        ex.getMessage()));
+                throw ex;
               }
 
-              String remotePath =
-                  targetDirectoryPath != null && !targetDirectoryPath.isEmpty()
-                      ? targetDirectoryPath + "/" + fileName
-                      : buildRemotePath(fileName);
+              String remotePath = buildRemotePath(fileName);
+
               final java.util.concurrent.CountDownLatch done =
                   new java.util.concurrent.CountDownLatch(1);
 
@@ -592,30 +474,169 @@ public class FileOperationsController {
                   };
 
               operationsViewModel.uploadFile(
-                  tempFile, remotePath, wrapped, createFileExistsCallback(), fileName);
+                  tempFile, remotePath, wrapped, fileName, createFileExistsCallback());
 
+              done.await();
+              return Boolean.TRUE;
+            });
+  }
+
+  public void handleFolderContentsUpload(@NonNull Uri folderUri) {
+    DocumentFile docFolder = DocumentFile.fromTreeUri(context, folderUri);
+    String folderName = getDocumentFileName(docFolder, "folder");
+    final String opTitle = titleFor(OPERATION_UPLOAD, folderName);
+    LogUtils.d("FileOperationsController", "Starting folder contents upload: " + folderName);
+
+    if (progressCallback != null) progressCallback.setZipButtonsEnabled(false);
+    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+
+    var unused =
+        backgroundSmbManager.executeMultiFileOperation(
+            "folderContentsUpload:" + System.currentTimeMillis(),
+            opTitle,
+            cb -> {
+              final java.util.concurrent.CountDownLatch done =
+                  new java.util.concurrent.CountDownLatch(1);
+
+              FileOperationCallbacks.UploadCallback inner =
+                  createFolderContentsUploadCallbackWithNotification(folderName);
+
+              FileOperationCallbacks.UploadCallback wrapped =
+                  new FileOperationCallbacks.UploadCallback() {
+                    @Override
+                    public void onProgress(String status, int percentage) {
+                      inner.onProgress(status, percentage);
+                    }
+
+                    @Override
+                    public void onResult(boolean success, String message) {
+                      try {
+                        inner.onResult(success, message);
+                      } finally {
+                        done.countDown();
+                      }
+                    }
+                  };
+
+              operationsViewModel.uploadFolderContentsFromUri(
+                  folderUri, wrapped, cb, createFileExistsCallback());
+
+              done.await();
+              return Boolean.TRUE;
+            });
+  }
+
+  /** Batch upload multiple URIs within one service operation. Files are processed sequentially. */
+  public void handleMultipleFileUploads(@NonNull java.util.List<Uri> uris) {
+    handleMultipleFileUploads(uris, null);
+  }
+
+  /**
+   * Batch upload multiple URIs to a specific target directory. If {@code targetDirectoryPath} is
+   * non-null it overrides the ViewModel's current path.
+   */
+  public void handleMultipleFileUploads(
+      @NonNull java.util.List<Uri> uris, @NonNull String targetDirectoryPath) {
+    if (uris == null || uris.isEmpty()) return;
+    final int total = uris.size();
+    final String opTitle = titleFor(OPERATION_UPLOAD, "multiple files");
+
+    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+
+    var unused =
+        backgroundSmbManager.executeMultiFileOperation(
+            "batchUpload:" + System.currentTimeMillis(),
+            opTitle,
+            cb -> {
+              // Keep consolidated upload state active across the entire batch
+              operationsViewModel.beginBatchUpload();
               try {
-                done.await();
-              } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                cb.updateProgress(
-                    context.getString(
-                        de.schliweb.sambalite.R.string.upload_interrupted_with_name, fileName));
-                break;
+                int index = 0;
+                for (Uri uri : uris) {
+                  // Best-effort ensure the app holds read grant for the URI before background
+                  // staging
+                  trySelfGrantRead(uri);
+                  final String fileNameFromUri = getFileNameFromUri(uri);
+                  final String fileName =
+                      fileNameFromUri != null
+                          ? fileNameFromUri
+                          : "uploaded_file_" + System.currentTimeMillis();
+                  final int current = ++index;
+                  cb.updateFileProgress(current, total, fileName);
+
+                  File tempFile = null;
+                  try {
+                    tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
+                    uiState.setTempFile(tempFile);
+                    cb.updateProgress("Preparing upload… staging file");
+                    FileOperations.copyUriToFile(uri, tempFile, context);
+                    // Clean up source file if it was a temporary shared-text cache file
+                    cleanupSharedTextSourceFile(uri);
+                  } catch (Exception ex) {
+                    if (tempFile != null) tempFile.delete();
+                    uiState.setTempFile(null);
+                    cb.updateProgress("Staging failed for " + fileName + ": " + ex.getMessage());
+                    LogUtils.e(
+                        "FileOperationsController",
+                        "Staging failed for " + fileName + ": " + ex.getMessage());
+                    continue; // skip to next file
+                  }
+
+                  String remotePath =
+                      targetDirectoryPath != null && !targetDirectoryPath.isEmpty()
+                          ? targetDirectoryPath + "/" + fileName
+                          : buildRemotePath(fileName);
+                  final java.util.concurrent.CountDownLatch done =
+                      new java.util.concurrent.CountDownLatch(1);
+
+                  FileOperationCallbacks.UploadCallback inner =
+                      createUploadCallbackWithNotification(null, fileName);
+                  File finalTempFile = tempFile;
+                  FileOperationCallbacks.UploadCallback wrapped =
+                      new FileOperationCallbacks.UploadCallback() {
+                        @Override
+                        public void onProgress(String status, int percentage) {
+                          inner.onProgress(status, percentage);
+                          cb.updateProgress(status);
+                        }
+
+                        @Override
+                        public void onResult(boolean success, String message) {
+                          try {
+                            inner.onResult(success, message);
+                          } finally {
+                            if (finalTempFile != null) finalTempFile.delete();
+                            uiState.setTempFile(null);
+                            done.countDown();
+                          }
+                        }
+                      };
+
+                  operationsViewModel.uploadFile(
+                      tempFile, remotePath, wrapped, fileName, createFileExistsCallback());
+
+                  try {
+                    done.await();
+                  } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    cb.updateProgress(
+                        context.getString(
+                            de.schliweb.sambalite.R.string.upload_interrupted_with_name, fileName));
+                    break;
+                  }
+                }
+              } finally {
+                operationsViewModel.endBatchUpload();
               }
-            }
-          } finally {
-            operationsViewModel.endBatchUpload();
-          }
-          return Boolean.TRUE;
-        });
+              return Boolean.TRUE;
+            });
   }
 
   /**
    * Deletes the source file if it resides in the shared_text cache directory (i.e. it was created
    * by ShareReceiverActivity for a text share).
    */
-  private void cleanupSharedTextSourceFile(Uri uri) {
+  void cleanupSharedTextSourceFile(Uri uri) {
     if (uri == null || !"file".equals(uri.getScheme())) return;
     try {
       File sourceFile = new File(uri.getPath());
@@ -637,7 +658,7 @@ public class FileOperationsController {
   }
 
   // --- Multi-select: Batch Delete implementation ---
-  public void handleMultipleFileDelete(java.util.List<SmbFileItem> files) {
+  public void handleMultipleFileDelete(@NonNull java.util.List<SmbFileItem> files) {
     if (files == null || files.isEmpty()) {
       if (progressCallback != null)
         progressCallback.showInfo(
@@ -658,7 +679,10 @@ public class FileOperationsController {
     final int total = toProcess.size();
     final String title = context.getString(de.schliweb.sambalite.R.string.delete);
     final String confirmMsg =
-        context.getString(de.schliweb.sambalite.R.string.confirm_delete_multiple, total);
+        context
+            .getResources()
+            .getQuantityString(
+                de.schliweb.sambalite.R.plurals.confirm_delete_multiple, total, total);
 
     de.schliweb.sambalite.ui.dialogs.DialogHelper.showConfirmationDialog(
         context,
@@ -673,7 +697,7 @@ public class FileOperationsController {
           // selection)
           try {
             notifyOperationStarted(OPERATION_DELETE, null);
-          } catch (Throwable ignore) {
+          } catch (Throwable ignored) {
           }
 
           // Show a cancelable progress dialog specifically for batch delete
@@ -685,82 +709,86 @@ public class FileOperationsController {
             }
           }
 
-          backgroundSmbManager.executeMultiFileOperation(
-              "batchDelete:" + System.currentTimeMillis(),
-              opTitle,
-              cb -> {
-                int current = 0;
-                int successCount = 0;
-                java.util.ArrayList<String> failed = new java.util.ArrayList<>();
+          var unused =
+              backgroundSmbManager.executeMultiFileOperation(
+                  "batchDelete:" + System.currentTimeMillis(),
+                  opTitle,
+                  cb -> {
+                    int current = 0;
+                    int successCount = 0;
+                    java.util.ArrayList<String> failed = new java.util.ArrayList<>();
 
-                for (SmbFileItem f : toProcess) {
-                  if (cancel.get()) {
-                    failed.add("(cancelled)");
-                    break;
-                  }
-                  current++;
-                  String fileName = f.getName();
-                  try {
-                    cb.updateFileProgress(current, total, fileName);
+                    for (SmbFileItem f : toProcess) {
+                      if (cancel.get()) {
+                        failed.add("(cancelled)");
+                        break;
+                      }
+                      current++;
+                      String fileName = f.getName();
+                      try {
+                        cb.updateFileProgress(current, total, fileName);
+                        if (progressCallback != null) {
+                          int pct = (int) Math.round((current - 1) * 100.0 / total);
+                          progressCallback.updateDetailedProgress(
+                              pct,
+                              context.getString(de.schliweb.sambalite.R.string.deleting_ellipsis),
+                              fileName);
+                        }
+                        final java.util.concurrent.CountDownLatch done =
+                            new java.util.concurrent.CountDownLatch(1);
+                        final boolean[] ok = new boolean[1];
+                        operationsViewModel.deleteFile(
+                            f,
+                            (s, msg) -> {
+                              ok[0] = s;
+                              done.countDown();
+                            });
+                        try {
+                          done.await();
+                        } catch (InterruptedException ie) {
+                          Thread.currentThread().interrupt();
+                          failed.add(
+                              fileName
+                                  + " "
+                                  + context.getString(
+                                      de.schliweb.sambalite.R.string.interrupted_suffix));
+                          break;
+                        }
+                        if (ok[0]) successCount++;
+                        else failed.add(fileName);
+                      } catch (Throwable t) {
+                        failed.add(fileName + ": " + t.getMessage());
+                      }
+                    }
+
+                    String base =
+                        context
+                            .getResources()
+                            .getQuantityString(
+                                de.schliweb.sambalite.R.plurals.multi_delete_summary_success,
+                                successCount,
+                                successCount,
+                                total);
+                    String summary = summarizeBatch(base, cancel.get(), failed.size());
                     if (progressCallback != null) {
-                      int pct = (int) Math.round((current - 1) * 100.0 / total);
-                      progressCallback.updateDetailedProgress(
-                          pct,
-                          context.getString(de.schliweb.sambalite.R.string.deleting_ellipsis),
-                          fileName);
+                      progressCallback.showInfo(summary);
+                      progressCallback.hideDetailedProgressDialog();
                     }
-                    final java.util.concurrent.CountDownLatch done =
-                        new java.util.concurrent.CountDownLatch(1);
-                    final boolean[] ok = new boolean[1];
-                    operationsViewModel.deleteFile(
-                        f,
-                        (s, msg) -> {
-                          ok[0] = s;
-                          done.countDown();
-                        });
+                    // Ensure fresh list state
+                    fileListViewModel.refreshCurrentDirectory();
+                    // Notify listeners that the batch delete operation has completed (for selection
+                    // reset)
                     try {
-                      done.await();
-                    } catch (InterruptedException ie) {
-                      Thread.currentThread().interrupt();
-                      failed.add(
-                          fileName
-                              + " "
-                              + context.getString(
-                                  de.schliweb.sambalite.R.string.interrupted_suffix));
-                      break;
+                      boolean opSuccess = failed.isEmpty() && !cancel.get();
+                      notifyOperationCompleted(OPERATION_DELETE, null, opSuccess, summary);
+                    } catch (Throwable ignored) {
                     }
-                    if (ok[0]) successCount++;
-                    else failed.add(fileName);
-                  } catch (Throwable t) {
-                    failed.add(fileName + ": " + t.getMessage());
-                  }
-                }
-
-                String base =
-                    context.getString(
-                        de.schliweb.sambalite.R.string.multi_delete_summary_success,
-                        successCount,
-                        total);
-                String summary = summarizeBatch(base, cancel.get(), failed.size());
-                if (progressCallback != null) {
-                  progressCallback.showInfo(summary);
-                  progressCallback.hideDetailedProgressDialog();
-                }
-                // Ensure fresh list state
-                fileListViewModel.refreshCurrentDirectory();
-                // Notify listeners that the batch delete operation has completed (for selection
-                // reset)
-                try {
-                  boolean opSuccess = failed.isEmpty() && !cancel.get();
-                  notifyOperationCompleted(OPERATION_DELETE, null, opSuccess, summary);
-                } catch (Throwable ignore) {
-                }
-                return Boolean.TRUE;
-              });
+                    return Boolean.TRUE;
+                  });
         });
   }
 
-  public void handleMultipleFileDownloads(java.util.List<SmbFileItem> files) {
+  public void handleMultipleFileDownloads(@NonNull java.util.List<SmbFileItem> files) {
     if (files == null || files.isEmpty()) {
       if (progressCallback != null)
         progressCallback.showInfo(
@@ -799,7 +827,7 @@ public class FileOperationsController {
    * Continues a previously initiated multi-file download after the user picked a destination
    * folder.
    */
-  public void handleMultipleFileDownloadsWithTargetUri(Uri folderUri) {
+  public void handleMultipleFileDownloadsWithTargetUri(@NonNull Uri folderUri) {
     java.util.List<SmbFileItem> pending = uiState.getPendingMultiDownloadItems();
     uiState.setMultiDownloadPending(false);
     uiState.setPendingMultiDownloadItems(null);
@@ -818,7 +846,7 @@ public class FileOperationsController {
     // Notify listeners that the operation is starting (to allow immediate UI reset of selection)
     try {
       notifyOperationStarted(OPERATION_DOWNLOAD, null);
-    } catch (Throwable ignore) {
+    } catch (Throwable ignored) {
     }
 
     // Best-effort: persist read/write permission to the chosen destination folder
@@ -835,7 +863,7 @@ public class FileOperationsController {
           progressCallback.showInfo(
               context.getString(de.schliweb.sambalite.R.string.saf_persist_permission_failed));
         }
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
       }
     }
 
@@ -847,222 +875,231 @@ public class FileOperationsController {
           operationsViewModel.cancelDownload();
         });
 
-    backgroundSmbManager.executeMultiFileOperation(
-        "batchDownload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          try {
-            DocumentFile destDir = DocumentFile.fromTreeUri(context, folderUri);
-            if (destDir == null || !destDir.canWrite()) {
-              if (progressCallback != null) {
-                progressCallback.showError(
-                    context.getString(de.schliweb.sambalite.R.string.download_error),
-                    context.getString(
-                        de.schliweb.sambalite.R.string.download_error_invalid_destination));
-                // Ensure any detailed progress UI is dismissed even if we didn't explicitly show it
-                // here
-                try {
-                  progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignore) {
-                }
-              }
-              // Notify completion (failure) so UI can reset selection
+    var unused =
+        backgroundSmbManager.executeMultiFileOperation(
+            "batchDownload:" + System.currentTimeMillis(),
+            opTitle,
+            cb -> {
               try {
-                notifyOperationCompleted(
-                    OPERATION_DOWNLOAD,
-                    null,
-                    false,
-                    context.getString(
-                        de.schliweb.sambalite.R.string.download_error_invalid_destination));
-              } catch (Throwable ignore) {
-              }
-              return Boolean.TRUE;
-            }
-            int index = 0;
-            int success = 0;
-            java.util.ArrayList<String> failed = new java.util.ArrayList<>();
-
-            for (SmbFileItem f : pending) {
-              if (cancelFinalize.get()) break;
-              index++;
-              String fileName = f.getName();
-              cb.updateFileProgress(index, total, fileName);
-              // Choose a unique destination file name
-              String targetName = generateUniqueName(destDir, fileName);
-              // Re-check cancellation before creating target file to avoid unnecessary work
-              if (cancelFinalize.get()) break;
-              DocumentFile outDoc = null;
-              try {
-                outDoc = destDir.createFile("*/*", targetName);
-                if (outDoc == null)
-                  throw new Exception(
-                      context.getString(
-                          de.schliweb.sambalite.R.string.failed_to_create_target_file));
-              } catch (Exception e) {
-                failed.add(fileName + ": " + e.getMessage());
-                continue;
-              }
-
-              File tempFile = null;
-              final java.util.concurrent.CountDownLatch done =
-                  new java.util.concurrent.CountDownLatch(1);
-
-              try {
-                tempFile = File.createTempFile("download", ".tmp", context.getCacheDir());
-                uiState.setTempFile(tempFile);
-                // Re-check cancellation after creating temp file; clean up immediately if cancelled
-                if (cancelFinalize.get()) {
-                  try {
-                    if (tempFile != null && tempFile.exists()) tempFile.delete();
-                  } catch (Throwable ignore) {
+                DocumentFile destDir = DocumentFile.fromTreeUri(context, folderUri);
+                if (destDir == null || !destDir.canWrite()) {
+                  if (progressCallback != null) {
+                    progressCallback.showError(
+                        context.getString(de.schliweb.sambalite.R.string.download_error),
+                        context.getString(
+                            de.schliweb.sambalite.R.string.download_error_invalid_destination));
+                    // Ensure any detailed progress UI is dismissed even if we didn't explicitly
+                    // show it
+                    // here
+                    try {
+                      progressCallback.hideDetailedProgressDialog();
+                    } catch (Throwable ignored) {
+                    }
                   }
+                  // Notify completion (failure) so UI can reset selection
                   try {
-                    uiState.setTempFile(null);
-                  } catch (Throwable ignore) {
+                    notifyOperationCompleted(
+                        OPERATION_DOWNLOAD,
+                        null,
+                        false,
+                        context.getString(
+                            de.schliweb.sambalite.R.string.download_error_invalid_destination));
+                  } catch (Throwable ignored) {
                   }
-                  break;
+                  return Boolean.TRUE;
                 }
-              } catch (Exception e) {
-                failed.add(
-                    fileName
-                        + ": "
-                        + context.getString(
-                            de.schliweb.sambalite.R.string.cannot_create_temp_file));
-                continue;
-              }
+                int index = 0;
+                int success = 0;
+                java.util.ArrayList<String> failed = new java.util.ArrayList<>();
 
-              FileOperationCallbacks.ProgressCallback fileProgress =
-                  new FileOperationCallbacks.ProgressCallback() {
-                    @Override
-                    public void updateFileProgress(
-                        int currentFile, int totalFiles, String currentFileName) {
-                      /* aggregated by service */
-                    }
+                for (SmbFileItem f : pending) {
+                  if (cancelFinalize.get()) break;
+                  index++;
+                  String fileName = f.getName();
+                  cb.updateFileProgress(index, total, fileName);
+                  // Choose a unique destination file name
+                  String targetName = generateUniqueName(destDir, fileName);
+                  // Re-check cancellation before creating target file to avoid unnecessary work
+                  if (cancelFinalize.get()) break;
+                  DocumentFile outDoc = null;
+                  try {
+                    outDoc = destDir.createFile("*/*", targetName);
+                    if (outDoc == null)
+                      throw new Exception(
+                          context.getString(
+                              de.schliweb.sambalite.R.string.failed_to_create_target_file));
+                  } catch (Exception e) {
+                    failed.add(fileName + ": " + e.getMessage());
+                    continue;
+                  }
 
-                    @Override
-                    public void updateBytesProgress(
-                        long currentBytes, long totalBytes, String curName) {
-                      int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
-                      String status =
-                          ProgressFormat.formatBytes(
-                              context.getString(de.schliweb.sambalite.R.string.downloading),
-                              currentBytes,
-                              totalBytes);
-                      updateOperationProgress(OPERATION_DOWNLOAD, f, null, pct, status);
-                      cb.updateBytesProgress(currentBytes, totalBytes, curName);
-                    }
+                  File tempFile = null;
+                  final java.util.concurrent.CountDownLatch done =
+                      new java.util.concurrent.CountDownLatch(1);
 
-                    @Override
-                    public void updateProgress(String progressInfo) {
-                      int p = ProgressFormat.parsePercent(progressInfo);
-                      updateOperationProgress(OPERATION_DOWNLOAD, f, null, p, progressInfo);
-                      cb.updateProgress(progressInfo);
-                    }
-                  };
-
-              FileOperationCallbacks.DownloadCallback inner =
-                  createFileDownloadCallbackWithNotification(
-                      tempFile, outDoc.getUri(), f, cancelFinalize, cb);
-              final boolean[] ok = new boolean[1];
-              FileOperationCallbacks.DownloadCallback wrapped =
-                  new FileOperationCallbacks.DownloadCallback() {
-                    @Override
-                    public void onProgress(String status, int percentage) {
-                      inner.onProgress(status, percentage);
-                    }
-
-                    @Override
-                    public void onResult(boolean s, String message) {
+                  try {
+                    tempFile = File.createTempFile("download", ".tmp", context.getCacheDir());
+                    uiState.setTempFile(tempFile);
+                    // Re-check cancellation after creating temp file; clean up immediately if
+                    // cancelled
+                    if (cancelFinalize.get()) {
                       try {
-                        ok[0] = s;
-                        inner.onResult(s, message);
-                      } finally {
-                        done.countDown();
+                        if (tempFile != null && tempFile.exists()) tempFile.delete();
+                      } catch (Throwable ignored) {
                       }
+                      try {
+                        uiState.setTempFile(null);
+                      } catch (Throwable ignored) {
+                      }
+                      break;
                     }
-                  };
+                  } catch (Exception e) {
+                    failed.add(
+                        fileName
+                            + ": "
+                            + context.getString(
+                                de.schliweb.sambalite.R.string.cannot_create_temp_file));
+                    continue;
+                  }
 
-              operationsViewModel.downloadFile(f, tempFile, wrapped, fileProgress);
+                  FileOperationCallbacks.ProgressCallback fileProgress =
+                      new FileOperationCallbacks.ProgressCallback() {
+                        @Override
+                        public void updateFileProgress(
+                            int currentFile, int totalFiles, String currentFileName) {
+                          /* aggregated by service */
+                        }
 
-              try {
-                done.await();
-                // If user cancelled during this file, stop processing further files.
-                if (cancelFinalize.get() || operationsViewModel.isDownloadCancelled()) {
-                  break;
+                        @Override
+                        public void updateBytesProgress(
+                            long currentBytes, long totalBytes, String curName) {
+                          int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
+                          String status =
+                              ProgressFormat.formatBytes(
+                                  context.getString(de.schliweb.sambalite.R.string.downloading),
+                                  currentBytes,
+                                  totalBytes);
+                          updateOperationProgress(OPERATION_DOWNLOAD, f, null, pct, status);
+                          cb.updateBytesProgress(currentBytes, totalBytes, curName);
+                        }
+
+                        @Override
+                        public void updateProgress(String progressInfo) {
+                          int p = ProgressFormat.parsePercent(progressInfo);
+                          updateOperationProgress(OPERATION_DOWNLOAD, f, null, p, progressInfo);
+                          cb.updateProgress(progressInfo);
+                        }
+                      };
+
+                  FileOperationCallbacks.DownloadCallback inner =
+                      createFileDownloadCallbackWithNotification(
+                          tempFile, outDoc.getUri(), f, cancelFinalize, cb);
+                  final boolean[] ok = new boolean[1];
+                  FileOperationCallbacks.DownloadCallback wrapped =
+                      new FileOperationCallbacks.DownloadCallback() {
+                        @Override
+                        public void onProgress(String status, int percentage) {
+                          inner.onProgress(status, percentage);
+                        }
+
+                        @Override
+                        public void onResult(boolean s, String message) {
+                          try {
+                            ok[0] = s;
+                            inner.onResult(s, message);
+                          } finally {
+                            done.countDown();
+                          }
+                        }
+                      };
+
+                  operationsViewModel.downloadFile(f, tempFile, wrapped, fileProgress);
+
+                  try {
+                    done.await();
+                    // If user cancelled during this file, stop processing further files.
+                    if (cancelFinalize.get() || operationsViewModel.isDownloadCancelled()) {
+                      break;
+                    }
+                    if (ok[0]) {
+                      success++;
+                    } else {
+                      failed.add(fileName);
+                    }
+                  } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    failed.add(
+                        fileName
+                            + " "
+                            + context.getString(de.schliweb.sambalite.R.string.interrupted_suffix));
+                    break;
+                  }
                 }
-                if (ok[0]) {
-                  success++;
-                } else {
-                  failed.add(fileName);
-                }
-              } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                failed.add(
-                    fileName
-                        + " "
-                        + context.getString(de.schliweb.sambalite.R.string.interrupted_suffix));
-                break;
-              }
-            }
 
-            String base =
-                context.getString(
-                    de.schliweb.sambalite.R.string.multi_download_summary, success, total);
-            String summary = summarizeBatch(base, cancelFinalize.get(), failed.size());
-            if (progressCallback != null) {
-              progressCallback.showInfo(summary);
-              // Close any detailed progress dialog to ensure clean UX after batch completes
-              try {
-                progressCallback.hideDetailedProgressDialog();
-              } catch (Throwable ignore) {
-              }
-            }
-            // Notify listeners about completion to reset selection
-            try {
-              boolean opSuccess = failed.isEmpty() && !cancelFinalize.get();
-              notifyOperationCompleted(OPERATION_DOWNLOAD, null, opSuccess, summary);
-            } catch (Throwable ignore) {
-            }
-            return Boolean.TRUE;
-          } catch (Exception e) {
-            try {
-              if (progressCallback != null) {
-                progressCallback.showError(
-                    context.getString(de.schliweb.sambalite.R.string.download_error),
-                    context.getString(
-                        de.schliweb.sambalite.R.string.download_failed_with_reason,
-                        e.getMessage()));
+                String base =
+                    context
+                        .getResources()
+                        .getQuantityString(
+                            de.schliweb.sambalite.R.plurals.multi_download_summary,
+                            success,
+                            success,
+                            total);
+                String summary = summarizeBatch(base, cancelFinalize.get(), failed.size());
+                if (progressCallback != null) {
+                  progressCallback.showInfo(summary);
+                  // Close any detailed progress dialog to ensure clean UX after batch completes
+                  try {
+                    progressCallback.hideDetailedProgressDialog();
+                  } catch (Throwable ignored) {
+                  }
+                }
+                // Notify listeners about completion to reset selection
                 try {
-                  progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignore) {
+                  boolean opSuccess = failed.isEmpty() && !cancelFinalize.get();
+                  notifyOperationCompleted(OPERATION_DOWNLOAD, null, opSuccess, summary);
+                } catch (Throwable ignored) {
+                }
+                return Boolean.TRUE;
+              } catch (Exception e) {
+                try {
+                  if (progressCallback != null) {
+                    progressCallback.showError(
+                        context.getString(de.schliweb.sambalite.R.string.download_error),
+                        context.getString(
+                            de.schliweb.sambalite.R.string.download_failed_with_reason,
+                            e.getMessage()));
+                    try {
+                      progressCallback.hideDetailedProgressDialog();
+                    } catch (Throwable ignored) {
+                    }
+                  }
+                } catch (Throwable ignored) {
+                }
+                // Notify completion (failure) so UI can reset selection
+                try {
+                  String err =
+                      context.getString(
+                          de.schliweb.sambalite.R.string.download_failed_with_reason,
+                          e.getMessage());
+                  notifyOperationCompleted(OPERATION_DOWNLOAD, null, false, err);
+                } catch (Throwable ignored) {
+                }
+                return Boolean.TRUE;
+              } finally {
+                // Final safety: clear temp ref and ensure dialog is hidden
+                try {
+                  uiState.setTempFile(null);
+                } catch (Throwable ignored) {
+                }
+                try {
+                  if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
+                } catch (Throwable ignored) {
                 }
               }
-            } catch (Throwable ignore) {
-            }
-            // Notify completion (failure) so UI can reset selection
-            try {
-              String err =
-                  context.getString(
-                      de.schliweb.sambalite.R.string.download_failed_with_reason, e.getMessage());
-              notifyOperationCompleted(OPERATION_DOWNLOAD, null, false, err);
-            } catch (Throwable ignore2) {
-            }
-            return Boolean.TRUE;
-          } finally {
-            // Final safety: clear temp ref and ensure dialog is hidden
-            try {
-              uiState.setTempFile(null);
-            } catch (Throwable ignore) {
-            }
-            try {
-              if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-            } catch (Throwable ignore) {
-            }
-          }
-        });
+            });
   }
 
-  private void trySelfGrantRead(Uri uri) {
+  void trySelfGrantRead(Uri uri) {
     try {
       context.grantUriPermission(
           context.getPackageName(), uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -1080,7 +1117,7 @@ public class FileOperationsController {
   }
 
   // ---- Helpers for download destinations ----
-  private DocumentFile createDestinationFolder(Uri uri) throws Exception {
+  DocumentFile createDestinationFolder(Uri uri) throws Exception {
     DocumentFile documentFile = DocumentFile.fromTreeUri(context, uri);
     if (documentFile == null || !documentFile.exists() || !documentFile.isDirectory())
       throw new Exception("Invalid destination folder");
@@ -1089,7 +1126,7 @@ public class FileOperationsController {
     return subFolder;
   }
 
-  private File createTempFolder() throws Exception {
+  File createTempFolder() throws Exception {
     File tempFolder = new File(context.getCacheDir(), "download_" + System.currentTimeMillis());
     if (!tempFolder.mkdirs()) throw new Exception("Failed to create temporary folder");
     return tempFolder;
@@ -1145,7 +1182,6 @@ public class FileOperationsController {
   private String generateUniqueName(DocumentFile dir, String original) {
     if (original == null || original.isEmpty()) original = "file";
     if (!documentChildExists(dir, original)) return original;
-    String name = original;
     String base = original;
     String ext = "";
     int dot = original.lastIndexOf('.');
@@ -1193,7 +1229,7 @@ public class FileOperationsController {
                 if (tempFile != null) tempFile.delete();
                 try {
                   uiState.setTempFile(null);
-                } catch (Throwable ignore) {
+                } catch (Throwable ignored) {
                 }
               });
           return;
@@ -1250,7 +1286,7 @@ public class FileOperationsController {
                       if (tempFile != null) tempFile.delete();
                       try {
                         uiState.setTempFile(null);
-                      } catch (Throwable ignore) {
+                      } catch (Throwable ignored) {
                       }
                     });
               }
@@ -1272,7 +1308,7 @@ public class FileOperationsController {
                         if (tempFile != null) tempFile.delete();
                         try {
                           uiState.setTempFile(null);
-                        } catch (Throwable ignore) {
+                        } catch (Throwable ignored) {
                         }
                       });
                 } else {
@@ -1290,7 +1326,7 @@ public class FileOperationsController {
                         if (tempFile != null) tempFile.delete();
                         try {
                           uiState.setTempFile(null);
-                        } catch (Throwable ignore) {
+                        } catch (Throwable ignored) {
                         }
                       });
                 }
@@ -1398,7 +1434,7 @@ public class FileOperationsController {
                 // Ensure the progress dialog is closed after successful folder download
                 try {
                   if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignore) {
+                } catch (Throwable ignored) {
                 }
               }
 
@@ -1433,7 +1469,7 @@ public class FileOperationsController {
                 // Ensure the progress dialog is closed after error/cancel in folder download
                 try {
                   if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignore) {
+                } catch (Throwable ignored) {
                 }
               }
             });
@@ -1534,13 +1570,8 @@ public class FileOperationsController {
     else if (progressCallback != null) progressCallback.showError(title, message);
   }
 
-  private void showInfo(String message) {
-    if (userFeedbackProvider != null) userFeedbackProvider.showInfo(message);
-    else if (progressCallback != null) progressCallback.showInfo(message);
-  }
-
   // ---- Success/Error unifiers ----
-  private void handleOperationSuccess(
+  void handleOperationSuccess(
       String operationType,
       SmbFileItem file,
       String itemName,
@@ -1580,7 +1611,7 @@ public class FileOperationsController {
     notifyOperationCompleted(operationType, file, true, successMessage);
   }
 
-  private void handleOperationError(
+  void handleOperationError(
       String operationType,
       SmbFileItem file,
       String errorMessage,
@@ -1611,60 +1642,69 @@ public class FileOperationsController {
 
   // ---- Interfaces ----
   public interface FileOperationRequester {
-    void requestFileOrFolderDownload(SmbFileItem file);
+    void requestFileOrFolderDownload(@NonNull SmbFileItem file);
 
     void requestFileUpload();
 
     void requestFolderContentsUpload();
 
-    void requestFileDeletion(SmbFileItem file);
+    void requestFileDeletion(@NonNull SmbFileItem file);
 
-    void requestFileRename(SmbFileItem file);
+    void requestFileRename(@NonNull SmbFileItem file);
   }
 
   public interface FileOperationListener {
-    void onFileOperationStarted(String operationType, SmbFileItem file);
+    void onFileOperationStarted(@NonNull String operationType, @NonNull SmbFileItem file);
 
     void onFileOperationCompleted(
-        String operationType, SmbFileItem file, boolean success, String message);
+        @NonNull String operationType,
+        @NonNull SmbFileItem file,
+        boolean success,
+        @NonNull String message);
 
     void onFileOperationProgress(
-        String operationType, SmbFileItem file, int progress, String message);
+        @NonNull String operationType,
+        @NonNull SmbFileItem file,
+        int progress,
+        @NonNull String message);
   }
 
   public interface ProgressCallback {
-    void showLoadingIndicator(String message, boolean cancelable, Runnable cancelAction);
+    void showLoadingIndicator(
+        @NonNull String message, boolean cancelable, @NonNull Runnable cancelAction);
 
-    void updateLoadingMessage(String message);
+    void updateLoadingMessage(@NonNull String message);
 
     void setCancelButtonEnabled(boolean enabled);
 
     void hideLoadingIndicator();
 
-    void showDetailedProgressDialog(String title, String message);
+    void showDetailedProgressDialog(@NonNull String title, @NonNull String message);
 
-    void updateDetailedProgress(int percentage, String statusText, String fileName);
+    void updateDetailedProgress(
+        int percentage, @NonNull String statusText, @NonNull String fileName);
 
     void hideDetailedProgressDialog();
 
-    void showProgressInUI(String operationName, String progressText);
+    void showProgressInUI(@NonNull String operationName, @NonNull String progressText);
 
-    void showFileExistsDialog(String fileName, Runnable confirmAction, Runnable cancelAction);
+    void showFileExistsDialog(
+        @NonNull String fileName, @NonNull Runnable confirmAction, @NonNull Runnable cancelAction);
 
     void setZipButtonsEnabled(boolean enabled);
 
     void animateSuccess();
 
-    void showSuccess(String message);
+    void showSuccess(@NonNull String message);
 
-    void showError(String title, String message);
+    void showError(@NonNull String title, @NonNull String message);
 
-    void showInfo(String message);
+    void showInfo(@NonNull String message);
   }
 
   public class FileOperationRequesterImpl implements FileOperationRequester {
     @Override
-    public void requestFileOrFolderDownload(SmbFileItem file) {
+    public void requestFileOrFolderDownload(@NonNull SmbFileItem file) {
       uiState.setSelectedFile(file);
       notifyOperationStarted("download", file);
       if (activityResultController != null) activityResultController.initDownloadFileOrFolder(file);
@@ -1685,7 +1725,7 @@ public class FileOperationsController {
     }
 
     @Override
-    public void requestFileDeletion(SmbFileItem file) {
+    public void requestFileDeletion(@NonNull SmbFileItem file) {
       uiState.setSelectedFile(file);
       notifyOperationStarted("delete", file);
       if (dialogController != null) dialogController.showDeleteFileConfirmationDialog(file);
@@ -1696,7 +1736,7 @@ public class FileOperationsController {
     }
 
     @Override
-    public void requestFileRename(SmbFileItem file) {
+    public void requestFileRename(@NonNull SmbFileItem file) {
       uiState.setSelectedFile(file);
       notifyOperationStarted("rename", file);
       // Actual rename handled by DialogController elsewhere

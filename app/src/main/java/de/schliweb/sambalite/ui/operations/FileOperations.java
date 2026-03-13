@@ -4,10 +4,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.*;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -19,13 +22,13 @@ public class FileOperations {
   public interface Callback {
     default void onStart() {}
 
-    default void onFileCopied(String name, long bytes) {}
+    default void onFileCopied(@NonNull String name, long bytes) {}
 
-    default void onProgress(int percent, String status) {} // NEW
+    default void onProgress(int percent, @NonNull String status) {} // NEW
 
     default void onDone() {}
 
-    default void onError(Exception e) {}
+    default void onError(@NonNull Exception e) {}
 
     default boolean isCancelled() {
       return false;
@@ -33,26 +36,26 @@ public class FileOperations {
   }
 
   public static class OperationCancelledException extends IOException {
-    public OperationCancelledException(String msg) {
+    public OperationCancelledException(@NonNull String msg) {
       super(msg);
     }
   }
 
-  private static void throwIfCancelled(Callback cb) throws OperationCancelledException {
+  static void throwIfCancelled(Callback cb) throws OperationCancelledException {
     if (cb != null && cb.isCancelled()) throw new OperationCancelledException("Cancelled by user");
   }
 
-  private record Count(long files, long bytes) {}
+  record Count(long files, long bytes) {}
 
-  private static Count countFilesAndBytes(File root) {
+  static Count countFilesAndBytes(File root) {
     long files = 0, bytes = 0;
     File[] list = root.listFiles();
     if (list == null) return new Count(0, 0);
     for (File f : list) {
       if (f.isDirectory()) {
         Count c = countFilesAndBytes(f);
-        files += c.files;
-        bytes += c.bytes;
+        files += c.files();
+        bytes += c.bytes();
       } else {
         files++;
         bytes += Math.max(0L, f.length());
@@ -62,17 +65,19 @@ public class FileOperations {
   }
 
   public static void copyFolderAsync(
-      File sourceFolder, DocumentFile destFolder, Context context, Callback cb) {
+      @NonNull File sourceFolder,
+      @NonNull DocumentFile destFolder,
+      @NonNull Context context,
+      @Nullable Callback cb) {
     if (cb == null) cb = new Callback() {};
     final Callback callback = cb;
     callback.onStart();
-
     COPY_EXECUTOR.submit(
         () -> {
           try {
             Count total = countFilesAndBytes(sourceFolder);
-            final long totalFiles = total.files;
-            final long totalBytes = total.bytes <= 0 ? 1 : total.bytes;
+            final long totalFiles = total.files();
+            final long totalBytes = total.bytes() <= 0 ? 1 : total.bytes();
 
             final java.util.concurrent.atomic.AtomicLong bytesCopied =
                 new java.util.concurrent.atomic.AtomicLong(0L);
@@ -100,7 +105,7 @@ public class FileOperations {
         });
   }
 
-  private static void copyFolderWithProgress(
+  static void copyFolderWithProgress(
       File src,
       DocumentFile dst,
       Context ctx,
@@ -128,7 +133,7 @@ public class FileOperations {
     }
   }
 
-  private static void copySingleFileWithProgress(
+  static void copySingleFileWithProgress(
       File sourceFile,
       DocumentFile destFolder,
       Context context,
@@ -190,7 +195,7 @@ public class FileOperations {
     } catch (OperationCancelledException oce) {
       try {
         target.delete();
-      } catch (Throwable ignore) {
+      } catch (Throwable ignored) {
       }
       throw oce;
     }
@@ -211,13 +216,12 @@ public class FileOperations {
     }
   }
 
-  private static int safeInt(long v) {
+  static int safeInt(long v) {
     if (v < 0) return 0;
     return (v > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) v;
   }
 
-  private static int computePercent(
-      long bytesCopied, long totalBytes, long filesCopied, long totalFiles) {
+  static int computePercent(long bytesCopied, long totalBytes, long filesCopied, long totalFiles) {
     double by = (bytesCopied * 100.0) / Math.max(1L, totalBytes);
     double fi = (filesCopied * 100.0) / Math.max(1L, totalFiles);
     int pct = (int) Math.round(Double.isFinite(by) ? by : fi);
@@ -226,13 +230,14 @@ public class FileOperations {
     return pct;
   }
 
-  private static int pct(long cur, long total) {
+  static int pct(long cur, long total) {
     if (total <= 0) return 0;
     if (cur >= total) return 100;
     return (int) Math.round(cur * 100.0 / total);
   }
 
-  public static void copyFileToUri(File file, Uri uri, Context context, Callback cb)
+  public static void copyFileToUri(
+      @NonNull File file, @NonNull Uri uri, @NonNull Context context, @NonNull Callback cb)
       throws IOException {
     LogUtils.d(
         "FileOperations", "Copying file to URI: " + uri + ", size: " + file.length() + " bytes");
@@ -250,7 +255,10 @@ public class FileOperations {
   }
 
   public static void copyFileToUriAsync(
-      File sourceFile, Uri destUri, Context context, Callback cb) {
+      @NonNull File sourceFile,
+      @NonNull Uri destUri,
+      @NonNull Context context,
+      @Nullable Callback cb) {
     if (cb == null) cb = new Callback() {};
     final Callback callback = cb;
     callback.onStart();
@@ -299,7 +307,7 @@ public class FileOperations {
               androidx.documentfile.provider.DocumentFile tgt =
                   androidx.documentfile.provider.DocumentFile.fromSingleUri(context, destUri);
               if (tgt != null) tgt.delete();
-            } catch (Throwable ignore) {
+            } catch (Throwable ignored) {
             }
             callback.onError(oce);
             return;
@@ -311,18 +319,18 @@ public class FileOperations {
           if (completedThisFile) {
             try {
               callback.onProgress(100, "Copying • 100%");
-            } catch (Throwable ignore) {
+            } catch (Throwable ignored) {
             }
             try {
               callback.onFileCopied(sourceFile.getName(), sourceFile.length());
-            } catch (Throwable ignore) {
+            } catch (Throwable ignored) {
             }
             callback.onDone();
           }
         });
   }
 
-  public static boolean deleteRecursive(File fileOrDirectory) {
+  public static boolean deleteRecursive(@NonNull File fileOrDirectory) {
     LogUtils.d("FileOperations", "Deleting: " + fileOrDirectory.getAbsolutePath());
     if (fileOrDirectory.isDirectory()) {
       File[] files = fileOrDirectory.listFiles();
@@ -336,7 +344,8 @@ public class FileOperations {
     return deleted;
   }
 
-  public static void copyUriToFile(Uri uri, File targetFile, Context context) throws IOException {
+  public static void copyUriToFile(
+      @NonNull Uri uri, @NonNull File targetFile, @NonNull Context context) throws IOException {
     LogUtils.d("FileOperations", "Copying URI content to file: " + targetFile.getAbsolutePath());
     try (InputStream is = context.getContentResolver().openInputStream(uri);
         BufferedInputStream bis =
@@ -389,7 +398,8 @@ public class FileOperations {
     return total;
   }
 
-  public static File createTempFileFromUri(Context context, Uri uri) throws IOException {
+  public static @NonNull File createTempFileFromUri(@NonNull Context context, @NonNull Uri uri)
+      throws IOException {
     String fileName = getDisplayNameFromUri(context, uri);
     File tempFile = new File(context.getCacheDir(), fileName);
     try (InputStream is = context.getContentResolver().openInputStream(uri);
@@ -402,7 +412,7 @@ public class FileOperations {
     return tempFile;
   }
 
-  public static String getDisplayNameFromUri(Context context, Uri uri) {
+  public static @NonNull String getDisplayNameFromUri(@NonNull Context context, @NonNull Uri uri) {
     String result = "shared_file";
     try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
@@ -416,7 +426,7 @@ public class FileOperations {
   }
 
   private static String guessMimeType(String name) {
-    String lower = name.toLowerCase();
+    String lower = name.toLowerCase(Locale.ROOT);
     if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
     if (lower.endsWith(".png")) return "image/png";
     if (lower.endsWith(".pdf")) return "application/pdf";

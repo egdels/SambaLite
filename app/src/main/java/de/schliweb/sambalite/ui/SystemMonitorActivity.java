@@ -7,6 +7,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -40,12 +42,12 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
   @Inject BackgroundSmbManager backgroundSmbManager;
 
-  public static Intent createIntent(Context context) {
+  public static @Nullable Intent createIntent(@NonNull Context context) {
     return new Intent(context, SystemMonitorActivity.class);
   }
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
     // Inject dependencies
     ((SambaLiteApp) getApplication()).getAppComponent().inject(this);
 
@@ -72,7 +74,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
       setSupportActionBar(toolbar);
       if (getSupportActionBar() != null) {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(getString(R.string.system_monitor_title));
+        getSupportActionBar().setTitle(getString(R.string.system_monitor));
       }
     }
 
@@ -470,7 +472,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
   }
 
   @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
+  public boolean onOptionsItemSelected(@NonNull MenuItem item) {
     // Handle action bar item clicks here.
     int id = item.getItemId();
 
@@ -492,7 +494,8 @@ public class SystemMonitorActivity extends AppCompatActivity {
       int count = backgroundSmbManager.getActiveOperationCount();
       new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
           .setTitle(R.string.quit_app_confirm_title)
-          .setMessage(getString(R.string.quit_app_confirm_message, count))
+          .setMessage(
+              getResources().getQuantityString(R.plurals.quit_app_confirm_message, count, count))
           .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
           .setNegativeButton(R.string.cancel, null)
           .show();

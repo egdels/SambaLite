@@ -3,6 +3,7 @@ package de.schliweb.sambalite.cache.maintenance;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import androidx.annotation.NonNull;
 import de.schliweb.sambalite.cache.exception.CacheExceptionHandler;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.cache.strategy.CacheStrategy;
@@ -59,10 +60,10 @@ public class CacheMaintenanceManager {
    * @param exceptionHandler The exception handler for reporting maintenance errors
    */
   public CacheMaintenanceManager(
-      Context context,
-      CacheStrategy<?, ?> cacheStrategy,
-      CacheStatistics statistics,
-      CacheExceptionHandler exceptionHandler) {
+      @NonNull Context context,
+      @NonNull CacheStrategy<?, ?> cacheStrategy,
+      @NonNull CacheStatistics statistics,
+      @NonNull CacheExceptionHandler exceptionHandler) {
     this(context, cacheStrategy, statistics, exceptionHandler, DEFAULT_MAINTENANCE_INTERVAL_MS);
   }
 
@@ -76,10 +77,10 @@ public class CacheMaintenanceManager {
    * @param maintenanceIntervalMs The maintenance interval in milliseconds
    */
   public CacheMaintenanceManager(
-      Context context,
-      CacheStrategy<?, ?> cacheStrategy,
-      CacheStatistics statistics,
-      CacheExceptionHandler exceptionHandler,
+      @NonNull Context context,
+      @NonNull CacheStrategy<?, ?> cacheStrategy,
+      @NonNull CacheStatistics statistics,
+      @NonNull CacheExceptionHandler exceptionHandler,
       long maintenanceIntervalMs) {
     this.context = context;
     this.cacheStrategy = cacheStrategy;
@@ -98,7 +99,7 @@ public class CacheMaintenanceManager {
     LogUtils.d(TAG, "Starting scheduled maintenance");
 
     // Schedule periodic maintenance
-    scheduledExecutor.scheduleAtFixedRate(
+    scheduledExecutor.scheduleWithFixedDelay(
         this::performMaintenance,
         maintenanceIntervalMs,
         maintenanceIntervalMs,
@@ -250,7 +251,7 @@ public class CacheMaintenanceManager {
      *
      * @param error The error that occurred
      */
-    void onMaintenanceFailed(Exception error);
+    void onMaintenanceFailed(@NonNull Exception error);
 
     /** Called when deep cleanup starts. */
     void onDeepCleanupStarted();
@@ -267,7 +268,7 @@ public class CacheMaintenanceManager {
      *
      * @param error The error that occurred
      */
-    void onDeepCleanupFailed(Exception error);
+    void onDeepCleanupFailed(@NonNull Exception error);
   }
 
   /**
@@ -282,7 +283,7 @@ public class CacheMaintenanceManager {
     public void onMaintenanceCompleted(int entriesRemoved) {}
 
     @Override
-    public void onMaintenanceFailed(Exception error) {}
+    public void onMaintenanceFailed(@NonNull Exception error) {}
 
     @Override
     public void onDeepCleanupStarted() {}
@@ -291,6 +292,6 @@ public class CacheMaintenanceManager {
     public void onDeepCleanupCompleted(int entriesRemoved) {}
 
     @Override
-    public void onDeepCleanupFailed(Exception error) {}
+    public void onDeepCleanupFailed(@NonNull Exception error) {}
   }
 }

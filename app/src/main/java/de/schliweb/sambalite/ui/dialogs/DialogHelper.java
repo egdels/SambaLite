@@ -9,6 +9,8 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -50,7 +52,7 @@ public class DialogHelper {
    * @param context The context
    * @param message The message to show
    */
-  public static void showToast(Context context, String message) {
+  public static void showToast(@NonNull Context context, @NonNull String message) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
   }
 
@@ -61,7 +63,8 @@ public class DialogHelper {
    * @param title The dialog title
    * @param message The error message
    */
-  public static void showErrorDialog(Context context, String title, String message) {
+  public static void showErrorDialog(
+      @NonNull Context context, @NonNull String title, @NonNull String message) {
     new MaterialAlertDialogBuilder(context)
         .setTitle(title)
         .setMessage(message)
@@ -78,7 +81,10 @@ public class DialogHelper {
    * @param listener The listener for the positive button click
    */
   public static void showConfirmationDialog(
-      Context context, String title, String message, DialogInterface.OnClickListener listener) {
+      @NonNull Context context,
+      @NonNull String title,
+      @NonNull String message,
+      @Nullable DialogInterface.OnClickListener listener) {
     new MaterialAlertDialogBuilder(context)
         .setTitle(title)
         .setMessage(message)
@@ -94,7 +100,8 @@ public class DialogHelper {
    * @param fileName The current file name
    * @param callback The callback for the new name
    */
-  public static void showRenameDialog(Context context, String fileName, RenameCallback callback) {
+  public static void showRenameDialog(
+      @NonNull Context context, @NonNull String fileName, @Nullable RenameCallback callback) {
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_rename_file, null);
     TextInputEditText fileNameEditText = dialogView.findViewById(R.id.file_name_edit_text);
     fileNameEditText.setText(fileName);
@@ -143,7 +150,11 @@ public class DialogHelper {
    * @param callback The callback for the entered text
    */
   public static void showInputDialog(
-      Context context, String title, String message, String hint, InputCallback callback) {
+      @NonNull Context context,
+      @NonNull String title,
+      @NonNull String message,
+      @NonNull String hint,
+      @Nullable InputCallback callback) {
     LogUtils.d("DialogHelper", "Showing input dialog");
 
     // Create an EditText with padding
@@ -201,7 +212,7 @@ public class DialogHelper {
    * @param context The context
    * @param callback The callback for the search parameters
    */
-  public static void showSearchDialog(Context context, SearchCallback callback) {
+  public static void showSearchDialog(@NonNull Context context, @Nullable SearchCallback callback) {
     LogUtils.d("DialogHelper", "Showing search dialog");
 
     // Create a simple search dialog with EditText and options
@@ -276,7 +287,7 @@ public class DialogHelper {
 
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(context)
-            .setTitle(context.getString(R.string.search_files_title))
+            .setTitle(context.getString(R.string.search_files))
             .setView(input)
             .setPositiveButton(
                 android.R.string.ok,
@@ -305,7 +316,7 @@ public class DialogHelper {
    * @param onCancel Callback when user cancels
    */
   public static void showNeedsTargetFolderDialog(
-      Context context, Runnable onSelectFolder, Runnable onCancel) {
+      @NonNull Context context, @Nullable Runnable onSelectFolder, @Nullable Runnable onCancel) {
     LogUtils.d("DialogHelper", "Showing needs target folder dialog");
     new MaterialAlertDialogBuilder(context)
         .setTitle(R.string.share_needs_target_folder_title)
@@ -327,7 +338,11 @@ public class DialogHelper {
    * @param onCancel Callback when user cancels
    */
   public static void showShareUploadConfirmationDialog(
-      Context context, int fileCount, String targetFolder, Runnable onUpload, Runnable onCancel) {
+      @NonNull Context context,
+      int fileCount,
+      @NonNull String targetFolder,
+      @NonNull Runnable onUpload,
+      @NonNull Runnable onCancel) {
     showShareUploadConfirmationDialog(context, fileCount, targetFolder, onUpload, null, onCancel);
   }
 
@@ -342,12 +357,12 @@ public class DialogHelper {
    * @param onCancel Callback when user cancels
    */
   public static void showShareUploadConfirmationDialog(
-      Context context,
+      @NonNull Context context,
       int fileCount,
-      String targetFolder,
-      Runnable onUpload,
-      Runnable onChangeFolder,
-      Runnable onCancel) {
+      @NonNull String targetFolder,
+      @NonNull Runnable onUpload,
+      @NonNull Runnable onChangeFolder,
+      @NonNull Runnable onCancel) {
     LogUtils.d(
         "DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
     MaterialAlertDialogBuilder builder =
@@ -382,17 +397,25 @@ public class DialogHelper {
    * @param onClose Callback when user wants to close
    */
   public static void showUploadCompleteDialog(
-      Context context,
+      @NonNull Context context,
       int uploadedCount,
       int totalCount,
       int failedCount,
-      Runnable onViewFiles,
-      Runnable onClose) {
+      @NonNull Runnable onViewFiles,
+      @NonNull Runnable onClose) {
     LogUtils.d("DialogHelper", "Showing upload complete dialog");
 
-    String message = context.getString(R.string.upload_complete_message, uploadedCount, totalCount);
+    String message =
+        context
+            .getResources()
+            .getQuantityString(
+                R.plurals.upload_complete_message, uploadedCount, uploadedCount, totalCount);
     if (failedCount > 0) {
-      message += " " + context.getString(R.string.upload_some_failed, failedCount);
+      message +=
+          " "
+              + context
+                  .getResources()
+                  .getQuantityString(R.plurals.upload_some_failed, failedCount, failedCount);
     }
 
     new MaterialAlertDialogBuilder(context)
@@ -413,7 +436,10 @@ public class DialogHelper {
    * @param onCancel Callback when user cancels
    */
   public static void showFileExistsDialog(
-      Context context, String fileName, Runnable onOverwrite, Runnable onCancel) {
+      @NonNull Context context,
+      @NonNull String fileName,
+      @Nullable Runnable onOverwrite,
+      @Nullable Runnable onCancel) {
     LogUtils.d("DialogHelper", "Showing file exists dialog for: " + fileName);
     new MaterialAlertDialogBuilder(context)
         .setTitle(R.string.file_exists_title)
@@ -431,7 +457,7 @@ public class DialogHelper {
      *
      * @param newName The new name
      */
-    void onNameEntered(String newName);
+    void onNameEntered(@NonNull String newName);
   }
 
   /** Callback for input operations. */
@@ -441,7 +467,7 @@ public class DialogHelper {
      *
      * @param text The entered text
      */
-    void onTextEntered(String text);
+    void onTextEntered(@NonNull String text);
   }
 
   /** Callback for search operations. */
@@ -453,6 +479,6 @@ public class DialogHelper {
      * @param searchType The type of items to search for (0=all, 1=files only, 2=folders only)
      * @param includeSubfolders Whether to include subfolders in the search
      */
-    void onSearchRequested(String query, int searchType, boolean includeSubfolders);
+    void onSearchRequested(@NonNull String query, int searchType, boolean includeSubfolders);
   }
 }

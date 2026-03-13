@@ -3,7 +3,6 @@ package de.schliweb.sambalite.ui;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -17,6 +16,8 @@ import android.widget.*;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationManagerCompat;
@@ -54,8 +55,8 @@ public class MainActivity extends AppCompatActivity
   private NetworkScanner networkScanner;
 
   // Temporary flags for share discovery to honor per-connection security during discovery
-  private boolean discoverRequireEncrypt = false;
-  private boolean discoverRequireSigning = false;
+  boolean discoverRequireEncrypt = false;
+  boolean discoverRequireSigning = false;
 
   // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
   private static final String PREFS = "perm_prefs";
@@ -134,21 +135,14 @@ public class MainActivity extends AppCompatActivity
   }
 
   private void openAppNotificationSettings() {
-    Intent intent;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      intent =
-          new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-              .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
-    } else {
-      intent =
-          new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-              .setData(Uri.fromParts("package", getPackageName(), null));
-    }
+    Intent intent =
+        new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
     startActivity(intent);
   }
 
   @Override
-  protected void onCreate(Bundle savedInstanceState) {
+  protected void onCreate(@Nullable Bundle savedInstanceState) {
     LogUtils.d("MainActivity", "onCreate called");
 
     // Initialize loading indicator
@@ -207,8 +201,10 @@ public class MainActivity extends AppCompatActivity
     if (fab != null) {
       fab.setOnClickListener(
           v -> {
+            v.setEnabled(false);
             EnhancedUIUtils.scaleUp(v);
             showAddConnectionDialog();
+            v.postDelayed(() -> v.setEnabled(true), 500);
           });
       EnhancedUIUtils.addRippleEffect(fab);
       LogUtils.d("MainActivity", "FAB set up with enhanced animations");
@@ -293,7 +289,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   @Override
-  public void onConnectionClick(SmbConnection connection) {
+  public void onConnectionClick(@NonNull SmbConnection connection) {
     LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
 
     // Open file browser activity for this connection
@@ -307,7 +303,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   @Override
-  public void onConnectionOptionsClick(SmbConnection connection) {
+  public void onConnectionOptionsClick(@NonNull SmbConnection connection) {
     LogUtils.d("MainActivity", "Connection options clicked: " + connection.getName());
     showConnectionOptionsDialog(connection);
   }
@@ -317,7 +313,6 @@ public class MainActivity extends AppCompatActivity
     if (event.getAction() == MotionEvent.ACTION_DOWN) {
       View v = getCurrentFocus();
       if (v instanceof com.google.android.material.textfield.TextInputEditText) {
-        LogUtils.d("MainActivity", "Touch event on TextInputEditText");
         // Check if the touch was outside the focused text field
         float x = event.getRawX();
         float y = event.getRawY();
@@ -328,9 +323,9 @@ public class MainActivity extends AppCompatActivity
             || x > location[0] + v.getWidth()
             || y < location[1]
             || y > location[1] + v.getHeight()) {
-          LogUtils.d("MainActivity", "Touch outside of text field, hiding keyboard");
-          // Touch was outside the text field, hide keyboard
-          KeyboardUtils.hideKeyboard(this);
+          LogUtils.d("MainActivity", "Touch outside of text field, clearing focus");
+          // Clear focus instead of hiding keyboard directly to avoid interfering with button clicks
+          v.clearFocus();
         }
       }
     }
@@ -459,21 +454,15 @@ public class MainActivity extends AppCompatActivity
 
     // Prevent accidental dismissal by touching outside the dialog
     dialog.setCanceledOnTouchOutside(false);
-    dialog.setCancelable(false);
 
     // Show the dialog
     dialog.show();
-
-    // Set dialog dismiss listener to hide keyboard
-    dialog.setOnDismissListener(
-        dialogInterface -> {
-          KeyboardUtils.hideKeyboard(MainActivity.this);
-        });
 
     // Set up the cancel button click listener
     btnCancel.setOnClickListener(
         v -> {
           LogUtils.d("MainActivity", "Add connection dialog cancelled");
+          KeyboardUtils.hideKeyboard(MainActivity.this);
           dialog.dismiss();
         });
 
@@ -772,21 +761,15 @@ public class MainActivity extends AppCompatActivity
 
     // Prevent accidental dismissal by touching outside the dialog
     dialog.setCanceledOnTouchOutside(false);
-    dialog.setCancelable(false);
 
     // Show the dialog
     dialog.show();
-
-    // Set dialog dismiss listener to hide keyboard
-    dialog.setOnDismissListener(
-        dialogInterface -> {
-          KeyboardUtils.hideKeyboard(MainActivity.this);
-        });
 
     // Set up the cancel button click listener
     btnCancel.setOnClickListener(
         v -> {
           LogUtils.d("MainActivity", "Edit connection dialog cancelled");
+          KeyboardUtils.hideKeyboard(MainActivity.this);
           dialog.dismiss();
         });
 
@@ -926,7 +909,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
+  public boolean onOptionsItemSelected(@NonNull MenuItem item) {
     if (item.getItemId() == R.id.action_system_monitor) {
       LogUtils.d("MainActivity", "System Monitor menu item selected");
       Intent intent = SystemMonitorActivity.createIntent(this);
@@ -946,7 +929,8 @@ public class MainActivity extends AppCompatActivity
       int count = backgroundSmbManager.getActiveOperationCount();
       new MaterialAlertDialogBuilder(this)
           .setTitle(R.string.quit_app_confirm_title)
-          .setMessage(getString(R.string.quit_app_confirm_message, count))
+          .setMessage(
+              getResources().getQuantityString(R.plurals.quit_app_confirm_message, count, count))
           .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
           .setNegativeButton(R.string.cancel, null)
           .show();
@@ -1187,7 +1171,9 @@ public class MainActivity extends AppCompatActivity
                   }
                   if (scanProgressText != null) {
                     scanProgressText.setText(
-                        getString(R.string.hosts_scanned, scannedHosts, totalHosts));
+                        getResources()
+                            .getQuantityString(
+                                R.plurals.hosts_scanned, scannedHosts, scannedHosts, totalHosts));
                   }
                   if (scanStatusText != null) {
                     scanStatusText.setText(getString(R.string.currently_scanning, currentHost));
@@ -1208,7 +1194,9 @@ public class MainActivity extends AppCompatActivity
                         "MainActivity", "Added server to adapter. New count: " + serverCount);
                     if (serversFoundLabel != null) {
                       serversFoundLabel.setText(
-                          getString(R.string.servers_found_count, serverCount));
+                          getResources()
+                              .getQuantityString(
+                                  R.plurals.servers_found_count, serverCount, serverCount));
                     }
                   }
                 });
@@ -1260,7 +1248,9 @@ public class MainActivity extends AppCompatActivity
                     if (serversFoundLabel != null) {
                       serversFoundLabel.setVisibility(View.VISIBLE);
                       serversFoundLabel.setText(
-                          getString(R.string.servers_found_count, serverCount));
+                          getResources()
+                              .getQuantityString(
+                                  R.plurals.servers_found_count, serverCount, serverCount));
                     }
                     // OK button will be shown when user selects a server
                   }
@@ -1310,7 +1300,7 @@ public class MainActivity extends AppCompatActivity
    * Checks if the server address is complete enough to attempt a connection. Validates IP addresses
    * (xxx.xxx.xxx.xxx) and hostnames.
    */
-  private boolean isValidServerAddress(String serverAddress) {
+  boolean isValidServerAddress(String serverAddress) {
     if (serverAddress == null || serverAddress.trim().isEmpty()) {
       return false;
     }
@@ -1332,7 +1322,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   /** Discovers available shares on the specified server. */
-  private void discoverShares(
+  void discoverShares(
       String server,
       String username,
       String password,

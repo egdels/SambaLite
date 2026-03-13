@@ -9,6 +9,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
@@ -27,29 +29,31 @@ import lombok.Getter;
 /** Adapter for displaying SMB files and directories in a RecyclerView. */
 public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder> {
 
-  @Getter private List<SmbFileItem> files = new ArrayList<>();
-  private OnFileClickListener listener;
-  private OnFileOptionsClickListener optionsClickListener;
-  private OnFileLongClickListener longClickListener;
-  private boolean showParentDirectory = false;
+  @Getter List<SmbFileItem> files = new ArrayList<>();
+  OnFileClickListener listener;
+  OnFileOptionsClickListener optionsClickListener;
+  OnFileLongClickListener longClickListener;
+  boolean showParentDirectory = false;
 
   // Selection support (minimal UI highlight via itemView.setActivated)
-  private boolean selectionMode = false;
-  private java.util.Set<String> selectedPaths = new java.util.HashSet<>();
+  boolean selectionMode = false;
+  java.util.Set<String> selectedPaths = new java.util.HashSet<>();
 
   // Sync direction markers: maps folder path to its SyncDirection
-  private Map<String, SyncDirection> syncDirections = new HashMap<>();
+  Map<String, SyncDirection> syncDirections = new HashMap<>();
 
   /**
    * Updates the list of files.
    *
    * @param files The new list of files
    */
-  public void setFiles(List<SmbFileItem> files) {
+  public void setFiles(@NonNull List<SmbFileItem> files) {
     int size = files != null ? files.size() : 0;
     LogUtils.d("FileAdapter", "Setting files: " + size + " items");
-    this.files = files != null ? files : new ArrayList<>();
-    notifyDataSetChanged();
+    List<SmbFileItem> newFiles = files != null ? files : new ArrayList<>();
+    DiffUtil.DiffResult result = DiffUtil.calculateDiff(new FileDiffCallback(this.files, newFiles));
+    this.files = newFiles;
+    result.dispatchUpdatesTo(this);
   }
 
   /**
@@ -59,8 +63,15 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    */
   public void setShowParentDirectory(boolean showParentDirectory) {
     LogUtils.d("FileAdapter", "Setting showParentDirectory: " + showParentDirectory);
+    boolean oldValue = this.showParentDirectory;
     this.showParentDirectory = showParentDirectory;
-    notifyDataSetChanged();
+    if (oldValue != showParentDirectory) {
+      if (showParentDirectory) {
+        notifyItemInserted(0);
+      } else {
+        notifyItemRemoved(0);
+      }
+    }
   }
 
   /**
@@ -68,7 +79,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    *
    * @param listener The listener to set
    */
-  public void setOnFileClickListener(OnFileClickListener listener) {
+  public void setOnFileClickListener(@Nullable OnFileClickListener listener) {
     LogUtils.d("FileAdapter", "Setting file click listener");
     this.listener = listener;
   }
@@ -78,7 +89,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    *
    * @param listener The listener to set
    */
-  public void setOnFileOptionsClickListener(OnFileOptionsClickListener listener) {
+  public void setOnFileOptionsClickListener(@Nullable OnFileOptionsClickListener listener) {
     LogUtils.d("FileAdapter", "Setting file options click listener");
     this.optionsClickListener = listener;
   }
@@ -88,21 +99,23 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    *
    * @param listener The long-click listener to set
    */
-  public void setOnFileLongClickListener(OnFileLongClickListener listener) {
+  public void setOnFileLongClickListener(@Nullable OnFileLongClickListener listener) {
     LogUtils.d("FileAdapter", "Setting file long click listener");
     this.longClickListener = listener;
   }
 
   /** Enables or disables selection mode (affects highlighting only). */
   public void setSelectionMode(boolean enabled) {
-    this.selectionMode = enabled;
-    notifyDataSetChanged();
+    if (this.selectionMode != enabled) {
+      this.selectionMode = enabled;
+      notifyItemRangeChanged(0, getItemCount());
+    }
   }
 
   /** Updates the selected paths used for highlighting. */
-  public void setSelectedPaths(java.util.Set<String> selectedPaths) {
+  public void setSelectedPaths(@NonNull java.util.Set<String> selectedPaths) {
     this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
-    notifyDataSetChanged();
+    notifyItemRangeChanged(0, getItemCount());
   }
 
   /**
@@ -110,9 +123,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    *
    * @param syncDirections Map of folder paths to their SyncDirection
    */
-  public void setSyncDirections(Map<String, SyncDirection> syncDirections) {
+  public void setSyncDirections(@NonNull Map<String, SyncDirection> syncDirections) {
     this.syncDirections = syncDirections != null ? syncDirections : new HashMap<>();
-    notifyDataSetChanged();
+    notifyItemRangeChanged(0, getItemCount());
   }
 
   @NonNull
@@ -167,7 +180,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    * @param filename The name of the file
    * @return Resource ID for the appropriate icon
    */
-  private int getFileIcon(String filename) {
+  int getFileIcon(String filename) {
     if (filename == null) {
       return android.R.drawable.ic_menu_save;
     }
@@ -231,19 +244,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
   /** Interface for file click events. */
   public interface OnFileClickListener {
-    void onFileClick(SmbFileItem file);
+    void onFileClick(@NonNull SmbFileItem file);
 
     void onParentDirectoryClick();
   }
 
   /** Interface for file options button click events. */
   public interface OnFileOptionsClickListener {
-    void onFileOptionsClick(SmbFileItem file);
+    void onFileOptionsClick(@NonNull SmbFileItem file);
   }
 
   /** Interface for long-click events on files. */
   public interface OnFileLongClickListener {
-    void onFileLongClick(SmbFileItem file);
+    void onFileLongClick(@NonNull SmbFileItem file);
   }
 
   /** ViewHolder for a file item. */
@@ -254,7 +267,6 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final TextView dateView;
     private final TextView sizeView;
     private final ImageButton moreOptionsButton;
-    private final View selectionIndicator;
     private final MaterialCardView rootCard;
     private final View syncIndicator;
     private final ImageView syncIndicatorIcon;
@@ -266,8 +278,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       dateView = itemView.findViewById(R.id.file_date);
       sizeView = itemView.findViewById(R.id.file_size);
       moreOptionsButton = itemView.findViewById(R.id.more_options);
-      selectionIndicator = itemView.findViewById(R.id.selection_indicator);
-      rootCard = (itemView instanceof MaterialCardView) ? (MaterialCardView) itemView : null;
+      rootCard = (itemView instanceof MaterialCardView matched) ? matched : null;
       syncIndicator = itemView.findViewById(R.id.sync_indicator);
       syncIndicatorIcon = itemView.findViewById(R.id.sync_indicator_icon);
 

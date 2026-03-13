@@ -604,8 +604,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             progressPercentage.setText("");
             progressDetails.setText("");
 
-            // Set indeterminate progress for search
-            searchProgressBar.setIndeterminate(true);
+            // Hide the progress bar for search – only text progress is shown
+            searchProgressBar.setVisibility(View.GONE);
 
             MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(activity);
             builder.setView(dialogView).setCancelable(false);
@@ -633,6 +633,25 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
           } catch (Exception e) {
             LogUtils.e(
                 "ProgressController", "Error showing search progress dialog: " + e.getMessage());
+          }
+        });
+  }
+
+  /**
+   * Updates the message displayed in the search progress dialog.
+   *
+   * @param message the progress message to display
+   */
+  public void updateSearchProgressMessage(@NonNull String message) {
+    if (!isActivitySafe()) return;
+
+    activity.runOnUiThread(
+        () -> {
+          if (searchProgressDialog != null && searchProgressDialog.isShowing()) {
+            TextView progressDetails = searchProgressDialog.findViewById(R.id.progress_details);
+            if (progressDetails != null) {
+              progressDetails.setText(message);
+            }
           }
         });
   }

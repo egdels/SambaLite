@@ -38,6 +38,14 @@ public interface SmbRepository {
   void cancelSearch();
 
   /**
+   * Returns the current number of search hits found so far during an ongoing search. This can be
+   * used to display live progress while the search is still running.
+   *
+   * @return the number of items found so far
+   */
+  int getSearchHitCount();
+
+  /**
    * Cancels any ongoing download operation. This method should be called when a user wants to stop
    * a download in progress.
    */

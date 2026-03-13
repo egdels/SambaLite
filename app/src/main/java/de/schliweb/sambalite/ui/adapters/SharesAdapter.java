@@ -5,6 +5,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.util.LogUtils;
@@ -16,25 +18,29 @@ public class SharesAdapter extends RecyclerView.Adapter<SharesAdapter.ShareViewH
 
   private static final String TAG = "SharesAdapter";
 
-  private List<String> shares = new ArrayList<>();
-  private String selectedShare = null;
-  private OnShareSelectedListener listener;
+  List<String> shares = new ArrayList<>();
+  String selectedShare = null;
+  OnShareSelectedListener listener;
 
-  public void setOnShareSelectedListener(OnShareSelectedListener listener) {
+  public void setOnShareSelectedListener(@Nullable OnShareSelectedListener listener) {
     this.listener = listener;
   }
 
-  public void setShares(List<String> shares) {
-    this.shares = new ArrayList<>(shares);
+  public void setShares(@NonNull List<String> shares) {
+    List<String> newShares = new ArrayList<>(shares);
+    DiffUtil.DiffResult result =
+        DiffUtil.calculateDiff(new SharesDiffCallback(this.shares, newShares));
+    this.shares = newShares;
     this.selectedShare = null; // Reset selection
-    notifyDataSetChanged();
+    result.dispatchUpdatesTo(this);
     LogUtils.d(TAG, "Updated shares list with " + shares.size() + " shares");
   }
 
   public void clearShares() {
+    int oldSize = this.shares.size();
     this.shares.clear();
     this.selectedShare = null;
-    notifyDataSetChanged();
+    notifyItemRangeRemoved(0, oldSize);
     LogUtils.d(TAG, "Cleared shares list");
   }
 
@@ -58,7 +64,7 @@ public class SharesAdapter extends RecyclerView.Adapter<SharesAdapter.ShareViewH
   }
 
   public interface OnShareSelectedListener {
-    void onShareSelected(String shareName);
+    void onShareSelected(@NonNull String shareName);
   }
 
   class ShareViewHolder extends RecyclerView.ViewHolder {

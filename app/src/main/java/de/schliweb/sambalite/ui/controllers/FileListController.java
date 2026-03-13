@@ -34,6 +34,9 @@ public class FileListController
   private final FileListViewModel viewModel;
   private final FileBrowserUIState uiState;
 
+  // Search mode flag – when true, the getFiles() observer will not overwrite search results
+  @Getter @Setter private boolean searchMode = false;
+
   // Selection state
   @Getter private boolean selectionMode = false;
   private final java.util.LinkedHashSet<String> selectedPaths = new java.util.LinkedHashSet<>();
@@ -111,6 +114,11 @@ public class FileListController
         .observe(
             getLifecycleOwner(),
             files -> {
+              if (searchMode) {
+                LogUtils.d("FileListController", "Ignoring file list update while in search mode");
+                swipeRefreshLayout.setRefreshing(false);
+                return;
+              }
               LogUtils.d("FileListController", "File list updated: " + files.size() + " files");
               adapter.setFiles(files);
               // Propagate current selection state to adapter

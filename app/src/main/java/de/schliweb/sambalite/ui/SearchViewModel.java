@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.ui;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -11,6 +12,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -42,7 +44,9 @@ public class SearchViewModel extends ViewModel {
 
   @Inject
   public SearchViewModel(
-      SmbRepository smbRepository, FileBrowserState state, FileListViewModel fileListViewModel) {
+      @NonNull SmbRepository smbRepository,
+      @NonNull FileBrowserState state,
+      @NonNull FileListViewModel fileListViewModel) {
     this.smbRepository = smbRepository;
     this.state = state;
     this.fileListViewModel = fileListViewModel;
@@ -51,18 +55,23 @@ public class SearchViewModel extends ViewModel {
   }
 
   /** Gets the search results as LiveData. */
-  public LiveData<List<SmbFileItem>> getSearchResults() {
+  public @NonNull LiveData<List<SmbFileItem>> getSearchResults() {
     return state.getSearchResults();
   }
 
   /** Gets the searching state as LiveData. */
-  public LiveData<Boolean> isSearching() {
+  public @NonNull LiveData<Boolean> isSearching() {
     return state.isSearching();
   }
 
   /** Checks if the view model is in search mode. */
   public boolean isInSearchMode() {
-    return state.isInSearchMode();
+    return state.getSearchMode();
+  }
+
+  /** Returns the current number of search hits found so far during an ongoing search. */
+  public int getSearchHitCount() {
+    return smbRepository.getSearchHitCount();
   }
 
   /**
@@ -72,7 +81,7 @@ public class SearchViewModel extends ViewModel {
    * @param searchType The type of items to search for (0=all, 1=files only, 2=folders only)
    * @param includeSubfolders Whether to include subfolders in the search
    */
-  public void searchFiles(String query, int searchType, boolean includeSubfolders) {
+  public void searchFiles(@NonNull String query, int searchType, boolean includeSubfolders) {
     if (state.getConnection() == null) {
       LogUtils.w("SearchViewModel", "Cannot search: connection is null");
       return;
@@ -302,7 +311,7 @@ public class SearchViewModel extends ViewModel {
             // (e.g., a download/upload is running), keep the current results and just
             // stop the searching indicator without clearing the list.
             boolean isLockTimeout =
-                msg != null && msg.toLowerCase().contains("search operation timeout");
+                msg != null && msg.toLowerCase(Locale.ROOT).contains("search operation timeout");
             if (!isLockTimeout) {
               state.setSearchResults(new ArrayList<>());
               state.setErrorMessage("Failed to search files: " + msg);
@@ -326,7 +335,7 @@ public class SearchViewModel extends ViewModel {
 
   public void cancelSearch() {
     boolean currentlySearching = Boolean.TRUE.equals(state.isSearching().getValue());
-    boolean inSearchMode = state.isInSearchMode();
+    boolean inSearchMode = state.getSearchMode();
 
     // If there's nothing to cancel/clear, return silently
     if (!currentlySearching && !inSearchMode) {
@@ -383,7 +392,7 @@ public class SearchViewModel extends ViewModel {
    *
    * @return The current search query
    */
-  public String getCurrentSearchQuery() {
+  public @NonNull String getCurrentSearchQuery() {
     return state.getCurrentSearchQuery();
   }
 
@@ -392,7 +401,7 @@ public class SearchViewModel extends ViewModel {
    *
    * @return The connection ID, or empty string if no connection is set
    */
-  public String getConnectionId() {
+  public @NonNull String getConnectionId() {
     if (state.getConnection() != null) {
       return state.getConnection().getId();
     }
@@ -503,7 +512,7 @@ public class SearchViewModel extends ViewModel {
 
               // Sort and update UI if still current
               fileListViewModel.sortFiles(fresh);
-              if (gen == searchGeneration.get() && state.isInSearchMode()) {
+              if (gen == searchGeneration.get() && state.getSearchMode()) {
                 state.setSearchResults(fresh);
                 state.setSearching(false);
               }
