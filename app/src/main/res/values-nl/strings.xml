@@ -14,22 +14,17 @@
     <string name="content_desc_more_options">Meer opties</string>
     <string name="content_desc_file_type_icon">Bestandstype icoon</string>
     <string name="content_desc_sync_indicator">Synchronisatie-indicator</string>
-    <string name="content_desc_selected">Geselecteerd</string>
+    <string name="content_desc_selected">@string/selected</string>
     <string name="content_desc_share">Delen</string>
     <string name="content_desc_refresh_system_info">Systeeminformatie vernieuwen</string>
 
     <!-- Menu Items -->
     <string name="menu_refresh">Vernieuwen</string>
-    <string name="action_multi_download">Downloaden</string>
-    <string name="action_multi_delete">Verwijderen</string>
-    <string name="action_select_all">Alles selecteren</string>
-    <string name="action_clear_selection">Selectie wissen</string>
     <string name="clear_selection">Selectie wissen</string>
     <string name="download_selected">Geselecteerde downloaden</string>
     <string name="delete_selected">Geselecteerde verwijderen</string>
 
     <!-- System Monitor -->
-    <string name="system_monitor_title">Systeemmonitor</string>
 
     <!-- Example Content -->
     <string name="example_ip">192.168.1.100</string>
@@ -43,9 +38,6 @@
     <string name="username">Gebruikersnaam</string>
     <string name="password">Wachtwoord</string>
     <string name="domain">Domein (optioneel)</string>
-    <string name="port">Poort</string>
-    <string name="connect">Verbinden</string>
-    <string name="edit">Bewerken</string>
     <string name="test_connection">Verbinding testen</string>
     <string name="save">Opslaan</string>
     <string name="cancel">Annuleren</string>
@@ -59,24 +51,16 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbinding verwijderen</string>
-    <string name="confirm_delete_connection">Weet je zeker dat je de verbinding \'%1$s\' wilt verwijderen?</string>
+    <string name="confirm_delete_connection">Weet je zeker dat je de verbinding ’%1$s’ wilt verwijderen?</string>
     <string name="delete">Verwijderen</string>
-    <string name="connection_deleted">Verbinding \'%1$s\' verwijderd</string>
-    <string name="undo">Ongedaan maken</string>
 
     <!-- File Browser -->
     <string name="empty_directory">Deze directory is leeg</string>
     <string name="loading_files">Bestanden laden…</string>
-    <string name="error_loading_files">Fout bij laden van bestanden</string>
     <string name="parent_directory">Bovenliggende directory</string>
-    <string name="file_browser_title">Bestanden</string>
     <string name="search_files">Bestanden zoeken</string>
-    <string name="search_files_title">Bestanden zoeken</string>
-    <string name="search_title">Zoeken</string>
-    <string name="searching">Zoeken…</string>
+    <string name="search_title">@string/search</string>
     <string name="searching_files">Bestanden zoeken…</string>
-    <string name="search_results">Zoekresultaten</string>
-    <string name="no_search_results">Geen bestanden gevonden die overeenkomen met je zoekopdracht</string>
     <string name="search_query_hint">Voer zoekterm in</string>
     <string name="search_wildcard_hint">Ondersteunt wildcards: * (alle tekens), ? (enkel teken)</string>
     <string name="search_type">Zoeken naar</string>
@@ -85,28 +69,20 @@
     <string name="search_type_folders">Alleen mappen</string>
     <string name="include_subfolders">Submappen insluiten</string>
     <string name="search">Zoeken</string>
-    <string name="cancel_search">Zoeken annuleren</string>
 
     <!-- Download -->
     <string name="download">Downloaden</string>
     <string name="downloading">Downloaden…</string>
     <string name="download_success">Bestand succesvol gedownload</string>
     <string name="download_error">Fout bij downloaden van bestand</string>
-    <string name="file_not_found">Het bestand \"%1$s\" kon niet worden gevonden op de server. Controleer of het bestand bestaat en probeer opnieuw.</string>
-    <string name="save_file">Bestand opslaan</string>
-    <string name="file_options">Bestandsopties</string>
 
     <!-- Upload -->
     <string name="upload">Uploaden</string>
     <string name="uploading">Uploaden…</string>
     <string name="upload_success">Bestand succesvol geüpload</string>
-    <string name="upload_error">Fout bij uploaden van bestand</string>
-    <string name="select_file">Selecteer bestand om te uploaden</string>
     <string name="file_exists_title">Bestand bestaat al</string>
-    <string name="file_exists_message">Het bestand \"%1$s\" bestaat al. Wil je het overschrijven?</string>
-    <string name="file_exists_individual_message">Het bestand \"%1$s\" bestaat al op de server. Wil je het overschrijven of dit bestand overslaan?</string>
+    <string name="file_exists_message">Het bestand &#8220;%1$s&#8221; bestaat al. Wil je het overschrijven?</string>
     <string name="overwrite">Overschrijven</string>
-    <string name="skip_file">Bestand overslaan</string>
 
     <!-- Folder Creation -->
     <string name="create_folder">Map maken</string>
@@ -117,7 +93,6 @@
 
     <!-- Sorting -->
     <string name="sort">Sorteren</string>
-    <string name="sort_dialog_title">Bestanden sorteren</string>
     <string name="sort_by">Sorteren op</string>
     <string name="sort_by_name">Naam</string>
     <string name="sort_by_date">Datum</string>
@@ -133,40 +108,20 @@
     <string name="rename_error">Fout bij hernoemen van bestand</string>
 
     <!-- Delete -->
-    <string name="delete_file">Verwijderen</string>
     <string name="delete_file_dialog_title">Bestand verwijderen</string>
-    <string name="confirm_delete_file">Weet je zeker dat je \'%1$s\' wilt verwijderen?</string>
+    <string name="confirm_delete_file">Weet je zeker dat je ’%1$s’ wilt verwijderen?</string>
     <string name="delete_success">Bestand succesvol verwijderd</string>
     <string name="delete_error">Fout bij verwijderen van bestand</string>
-    <string name="file_exists">Bestand bestaat</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
     <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
 
     <!-- Folder Upload Options -->
-    <string name="zip_transfer_title">Map upload</string>
-    <string name="zip_upload_folder">Map uploaden als ZIP</string>
     <string name="zip_download_folder">Mapinhoud uploaden</string>
-    <string name="creating_zip">ZIP-archief maken…</string>
-    <string name="uploading_zip">ZIP-archief uploaden…</string>
-    <string name="uploading_folder_contents">Mapinhoud uploaden…</string>
-    <string name="processing_files">Bestanden verwerken…</string>
-    <string name="zip_upload_success">Map succesvol geüpload als ZIP</string>
     <string name="folder_contents_upload_success">Mapinhoud succesvol geüpload</string>
-    <string name="zip_upload_error">Fout bij uploaden van ZIP-archief</string>
-    <string name="folder_contents_upload_error">Fout bij uploaden van mapinhoud</string>
-    <string name="select_folder_to_upload">Selecteer map om te uploaden als ZIP</string>
-    <string name="select_folder_contents_to_upload">Selecteer map om inhoud te uploaden</string>
-    <string name="upload_progress_files">%1$d van %2$d bestanden uploaden</string>
-    <string name="upload_incomplete_warning">Upload was onvolledig. Sommige bestanden zijn mogelijk niet overgedragen.</string>
-    <string name="cleanup_incomplete_upload">Onvolledige upload opruimen…</string>
-    <string name="folder_structure_created">Mapstructuur succesvol gemaakt</string>
-    <string name="verifying_upload_integrity">Upload-integriteit verifiëren…</string>
 
     <!-- Enhanced UI Strings -->
-    <string name="success">Succes</string>
-    <string name="retry">Opnieuw proberen</string>
     <string name="ok">OK</string>
     <string name="please_wait">Een moment geduld</string>
 
@@ -175,15 +130,12 @@
     <string name="scanning_network">Scannen…</string>
     <string name="servers_found">Beschikbare servers</string>
     <string name="no_servers_found">Geen SMB-servers gevonden in het lokale netwerk.\n\nJe kunt nog steeds handmatig serverdetails invoeren.</string>
-    <string name="network_scan_instructions">Selecteer een server om verbindingsdetails automatisch in te vullen, of tik op \"Netwerk scannen\" om naar meer servers te zoeken.</string>
+    <string name="network_scan_instructions">Selecteer een server om verbindingsdetails automatisch in te vullen, of tik op &#8220;Netwerk scannen&#8221; om naar meer servers te zoeken.</string>
     <string name="scan_complete">Netwerkcan voltooid</string>
-    <string name="scan_cancelled">Netwerkscan geannuleerd</string>
     <string name="scan_error">Scanfout: %1$s</string>
     <string name="server_icon">Server</string>
     <string name="selected">Geselecteerd</string>
-    <string name="hosts_scanned">%1$d / %2$d hosts gescand</string>
     <string name="currently_scanning">Momenteel scannen: %1$s</string>
-    <string name="servers_found_count">%1$d server(s) gevonden</string>
     <string name="server_info_applied">Serverinformatie toegepast: %1$s</string>
     <string name="available_shares">Beschikbare shares</string>
     <string name="discovering_shares">Shares ontdekken…</string>
@@ -191,8 +143,6 @@
     <string name="tap_share_to_select">Tik op een share om deze te selecteren:</string>
     <string name="could_not_connect_check_credentials">Kon niet verbinden met server. Controleer inloggegevens.</string>
     <string name="enter_server_details">Voer serverdetails in om shares te ontdekken</string>
-    <string name="scan_network_permission_required">Netwerk scannen vereist locatietoestemming voor toegang tot WiFi-informatie.</string>
-    <string name="scanning_fallback_networks">WiFi-toegang beperkt - scannen van algemene netwerkbereiken</string>
 
     <!-- File Browser Additional Strings -->
     <string name="go_to_parent_directory">Ga naar bovenliggende directory</string>
@@ -203,22 +153,14 @@
 
     <!-- Upload Completion -->
     <string name="upload_complete_title">Upload voltooid</string>
-    <string name="upload_complete_message">%1$d van %2$d bestanden succesvol geüpload</string>
-    <string name="upload_some_failed">%1$d bestanden konden niet worden geüpload</string>
     <string name="view_uploaded_files">Geüploade bestanden bekijken</string>
     <string name="close">Sluiten</string>
     <string name="upload_failed">Upload mislukt</string>
 
     <!-- Upload Progress Notifications -->
-    <string name="upload_progress_channel_name">Upload voortgang</string>
-    <string name="upload_progress_channel_description">Toont de voortgang van bestandsuploads naar SMB-shares</string>
-    <string name="uploading_files">Bestanden uploaden</string>
-    <string name="preparing_upload">Upload voorbereiden…</string>
-    <string name="starting_upload">Upload starten…</string>
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Bestanden uploaden</string>
-    <string name="cancel_search_action">Zoeken annuleren</string>
     <string name="loading_system_information">Systeeminformatie laden…</string>
     <string name="authentication">Authenticatie</string>
     <string name="smb_connection">SMB-verbinding</string>
@@ -234,19 +176,12 @@
     <string name="later">Later</string>
 
     <!-- Robust Connection Messages -->
-    <string name="connection_recovering">Verbinding herstellen…</string>
-    <string name="connection_recovered">Verbinding succesvol hersteld</string>
-    <string name="connection_recovery_failed">Verbindingsherstel mislukt</string>
-    <string name="connection_timeout">Verbindingstime-out</string>
-    <string name="connection_broken_pipe">Verbinding onderbroken</string>
-    <string name="connection_retry_attempt">Verbindingspoging opnieuw proberen (poging %1$d van %2$d)</string>
-    <string name="error_no_files_to_share">Geen bestanden om te delen</string>
     <string name="share_needs_target_folder_title">Doelmap vereist</string>
     <string name="share_needs_target_folder_message">Selecteer doelmap</string>
     <string name="share_needs_target_folder_select">Selecteren</string>
     <string name="share_upload_title">Items delen</string>
-    <string name="share_upload_message">Delen</string>
-    <string name="share_upload_select">Selecteren</string>
+    <string name="share_upload_message">@string/content_desc_share</string>
+    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Map wijzigen</string>
     <string name="select_this_folder">Deze map selecteren</string>
     <string name="items_to">items naar</string>
@@ -254,7 +189,7 @@
     <string name="permission_explain_notifications">SambaLite houdt u op de hoogte van de voortgang van bestandsoverdrachten, zelfs wanneer de app op de achtergrond draait. Schakel meldingen in om altijd op de hoogte te blijven van uploads en downloads.</string>
 
     <string name="transfer_title">Overdracht bezig …</string>
-    <string name="preparing_transfer">Een ogenblik geduld alstublieft</string>
+    <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->
     <string name="security_options">Beveiliging</string>
@@ -263,8 +198,6 @@
 
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Bestanden verwijderen</string>
-    <string name="confirm_delete_multiple">%1$d bestanden verwijderen?</string>
-    <string name="multi_delete_summary_success">%1$d van %2$d bestanden verwijderd</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Geen bestanden geselecteerd</string>
@@ -273,9 +206,7 @@
     <string name="preparing_ellipsis">Bezig met voorbereiden…</string>
     <string name="deleting_ellipsis">Bezig met verwijderen…</string>
     <string name="download_error_invalid_destination">Ongeldige doelmap</string>
-    <string name="multi_download_summary">%1$d van %2$d bestanden gedownload</string>
     <string name="cancelled_suffix">geannuleerd</string>
-    <string name="failed_count_suffix">%1$d mislukt</string>
     <string name="saf_persist_permission_failed">Kon de machtiging voor de geselecteerde map niet behouden. Mogelijk wordt de toestemming de volgende keer opnieuw gevraagd.</string>
 
     <!-- i18n for operation labels and messages -->
@@ -321,9 +252,7 @@
     <!-- Quit App -->
     <string name="quit_app">Afsluiten</string>
     <string name="quit_app_confirm_title">Actieve bewerkingen</string>
-    <string name="quit_app_confirm_message">Er lopen nog %1$d bewerkingen. Bij het afsluiten worden deze geannuleerd. Toch afsluiten?</string>
     <string name="quit_app_confirm_positive">Toch afsluiten</string>
-    <string name="sync_folder">Map synchroniseren</string>
     <string name="sync_setup_title">Mapsynchronisatie instellen</string>
     <string name="sync_direction">Synchronisatierichting</string>
     <string name="sync_direction_local_to_remote">Lokaal → Extern</string>
@@ -339,7 +268,6 @@
     <string name="sync_remote_path">Extern pad</string>
     <string name="sync_select_local_folder">Lokale map selecteren</string>
     <string name="sync_config_saved">Synchronisatieconfiguratie opgeslagen</string>
-    <string name="sync_config_deleted">Synchronisatieconfiguratie verwijderd</string>
     <string name="sync_manage_title">Synchronisatieconfiguraties beheren</string>
     <string name="sync_no_configs">Geen synchronisatieconfiguraties</string>
     <string name="sync_last_sync">Laatste synchronisatie: %1$s</string>
@@ -361,4 +289,40 @@
     <string name="sync_local_parent_folder_synced">Een bovenliggende map van de geselecteerde lokale map wordt al gesynchroniseerd. Submappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
     <string name="sync_local_child_folder_synced">Een submap van de geselecteerde lokale map wordt al gesynchroniseerd. Bovenliggende mappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
     <string name="sync_local_folder_already_synced">De geselecteerde lokale map wordt al gesynchroniseerd.</string>
+    <plurals name="servers_found_count">
+        <item quantity="one">%1$d server gevonden</item>
+        <item quantity="other">%1$d servers gevonden</item>
+    </plurals>
+    <plurals name="upload_complete_message">
+        <item quantity="one">%1$d van %2$d bestand succesvol geüpload</item>
+        <item quantity="other">%1$d van %2$d bestanden succesvol geüpload</item>
+    </plurals>
+    <plurals name="upload_some_failed">
+        <item quantity="one">%1$d bestand kon niet worden geüpload</item>
+        <item quantity="other">%1$d bestanden konden niet worden geüpload</item>
+    </plurals>
+    <plurals name="confirm_delete_multiple">
+        <item quantity="one">%1$d bestand verwijderen?</item>
+        <item quantity="other">%1$d bestanden verwijderen?</item>
+    </plurals>
+    <plurals name="multi_delete_summary_success">
+        <item quantity="one">%1$d van %2$d bestand verwijderd</item>
+        <item quantity="other">%1$d van %2$d bestanden verwijderd</item>
+    </plurals>
+    <plurals name="multi_download_summary">
+        <item quantity="one">%1$d van %2$d bestand gedownload</item>
+        <item quantity="other">%1$d van %2$d bestanden gedownload</item>
+    </plurals>
+    <plurals name="failed_count_suffix">
+        <item quantity="one">%1$d mislukt</item>
+        <item quantity="other">%1$d mislukt</item>
+    </plurals>
+    <plurals name="quit_app_confirm_message">
+        <item quantity="one">Er is nog %1$d actieve bewerking. Afsluiten zal deze annuleren. Toch afsluiten?</item>
+        <item quantity="other">Er zijn nog %1$d actieve bewerkingen. Afsluiten zal deze annuleren. Toch afsluiten?</item>
+    </plurals>
+    <plurals name="hosts_scanned">
+        <item quantity="one">%1$d / %2$d host gescand</item>
+        <item quantity="other">%1$d / %2$d hosts gescand</item>
+    </plurals>
 </resources>

@@ -83,30 +83,18 @@
                 android:padding="16dp">
 
                 <!-- Header with icon and title -->
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_search"
-                        android:contentDescription="@string/scan_network"
-                        app:tint="?attr/colorPrimary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="@string/scan_network"
-                        android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
+                    app:drawableStartCompat="@drawable/ic_search"
+                    android:drawablePadding="12dp"
+                    app:drawableTint="?attr/colorPrimary"
+                    android:text="@string/scan_network"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textStyle="bold" />
 
                 <!-- Instructions text -->
                 <TextView
@@ -248,7 +236,6 @@
 
         <!-- Username -->
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/username_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -267,7 +254,6 @@
 
         <!-- Password -->
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/password_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -286,7 +272,6 @@
 
         <!-- Domain (Optional) -->
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/domain_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"

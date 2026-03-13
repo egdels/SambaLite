@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:baselineAligned="false"
     android:orientation="horizontal"
     android:padding="16dp">
 
@@ -10,6 +11,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+    android:baselineAligned="false"
         android:layout_weight="1"
         android:orientation="vertical"
         android:layout_marginEnd="8dp">
@@ -17,6 +19,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/sort_by"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             android:layout_marginBottom="8dp" />
@@ -24,12 +27,14 @@
         <RadioGroup
             android:id="@+id/sort_type_radio_group"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+    android:baselineAligned="false">
 
             <RadioButton
                 android:id="@+id/radio_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/sort_by_name"
                 android:checked="true" />
 
@@ -37,12 +42,14 @@
                 android:id="@+id/radio_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/sort_by_date" />
 
             <RadioButton
                 android:id="@+id/radio_size"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/sort_by_size" />
         </RadioGroup>
     </LinearLayout>
@@ -51,6 +58,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+    android:baselineAligned="false"
         android:layout_weight="1"
         android:orientation="vertical"
         android:layout_marginStart="8dp"
@@ -60,6 +68,7 @@
             android:id="@+id/directories_first_checkbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/directories_first"
             android:checked="true" />
 
@@ -67,6 +76,7 @@
             android:id="@+id/show_hidden_files_checkbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/show_hidden_files"
             android:checked="false" />
     </LinearLayout>

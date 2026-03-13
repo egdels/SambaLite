@@ -14,22 +14,17 @@
     <string name="content_desc_more_options">Weitere Optionen</string>
     <string name="content_desc_file_type_icon">Dateityp-Symbol</string>
     <string name="content_desc_sync_indicator">Synchronisierungsanzeige</string>
-    <string name="content_desc_selected">Ausgewählt</string>
+    <string name="content_desc_selected">@string/selected</string>
     <string name="content_desc_share">Freigabe</string>
     <string name="content_desc_refresh_system_info">Systeminformationen aktualisieren</string>
 
     <!-- Menu Items -->
     <string name="menu_refresh">Aktualisieren</string>
-    <string name="action_multi_download">Herunterladen</string>
-    <string name="action_multi_delete">Löschen</string>
-    <string name="action_select_all">Alle auswählen</string>
-    <string name="action_clear_selection">Auswahl aufheben</string>
     <string name="clear_selection">Auswahl aufheben</string>
     <string name="download_selected">Ausgewählte herunterladen</string>
     <string name="delete_selected">Ausgewählte löschen</string>
 
     <!-- System Monitor -->
-    <string name="system_monitor_title">System Monitor</string>
 
     <!-- Example Content -->
     <string name="example_ip">192.168.1.100</string>
@@ -43,9 +38,6 @@
     <string name="username">Benutzername</string>
     <string name="password">Passwort</string>
     <string name="domain">Domäne (optional)</string>
-    <string name="port">Port</string>
-    <string name="connect">Verbinden</string>
-    <string name="edit">Bearbeiten</string>
     <string name="test_connection">Verbindung testen</string>
     <string name="save">Speichern</string>
     <string name="cancel">Abbrechen</string>
@@ -59,24 +51,16 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbindung löschen</string>
-    <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung \'%1$s\' löschen möchten?</string>
+    <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung ’%1$s’ löschen möchten?</string>
     <string name="delete">Löschen</string>
-    <string name="connection_deleted">Verbindung \'%1$s\' gelöscht</string>
-    <string name="undo">Rückgängig</string>
 
     <!-- File Browser -->
     <string name="empty_directory">Dieses Verzeichnis ist leer</string>
     <string name="loading_files">Lade Dateien…</string>
-    <string name="error_loading_files">Fehler beim Laden der Dateien</string>
     <string name="parent_directory">Übergeordnetes Verzeichnis</string>
-    <string name="file_browser_title">Dateien</string>
     <string name="search_files">Dateien suchen</string>
-    <string name="search_files_title">Dateien suchen</string>
     <string name="search_title">Suche</string>
-    <string name="searching">Suche…</string>
     <string name="searching_files">Dateien werden durchsucht…</string>
-    <string name="search_results">Suchergebnisse</string>
-    <string name="no_search_results">Keine Dateien gefunden, die Ihrer Suche entsprechen</string>
     <string name="search_query_hint">Suchbegriff eingeben</string>
     <string name="search_wildcard_hint">Unterstützt Wildcards: * (beliebige Zeichen), ? (einzelnes Zeichen)</string>
     <string name="search_type">Suchen nach</string>
@@ -85,28 +69,20 @@
     <string name="search_type_folders">Nur Ordner</string>
     <string name="include_subfolders">Unterordner einschließen</string>
     <string name="search">Suchen</string>
-    <string name="cancel_search">Suche abbrechen</string>
 
     <!-- Download -->
     <string name="download">Herunterladen</string>
     <string name="downloading">Herunterladen…</string>
     <string name="download_success">Datei erfolgreich heruntergeladen</string>
     <string name="download_error">Fehler beim Herunterladen der Datei</string>
-    <string name="file_not_found">Die Datei \"%1$s\" konnte auf dem Server nicht gefunden werden. Bitte überprüfen Sie, ob die Datei existiert und versuchen Sie es erneut.</string>
-    <string name="save_file">Datei speichern</string>
-    <string name="file_options">Datei-Optionen</string>
 
     <!-- Upload -->
     <string name="upload">Hochladen</string>
     <string name="uploading">Hochladen…</string>
     <string name="upload_success">Datei erfolgreich hochgeladen</string>
-    <string name="upload_error">Fehler beim Hochladen der Datei</string>
-    <string name="select_file">Datei zum Hochladen auswählen</string>
     <string name="file_exists_title">Datei existiert bereits</string>
-    <string name="file_exists_message">Die Datei \"%1$s\" existiert bereits. Möchten Sie sie überschreiben?</string>
-    <string name="file_exists_individual_message">Die Datei \"%1$s\" existiert bereits auf dem Server. Möchten Sie sie überschreiben oder diese Datei überspringen?</string>
+    <string name="file_exists_message">Die Datei &#8220;%1$s&#8221; existiert bereits. Möchten Sie sie überschreiben?</string>
     <string name="overwrite">Überschreiben</string>
-    <string name="skip_file">Datei überspringen</string>
 
     <!-- Folder Creation -->
     <string name="create_folder">Ordner erstellen</string>
@@ -117,7 +93,6 @@
 
     <!-- Sorting -->
     <string name="sort">Sortieren</string>
-    <string name="sort_dialog_title">Dateien sortieren</string>
     <string name="sort_by">Sortieren nach</string>
     <string name="sort_by_name">Name</string>
     <string name="sort_by_date">Datum</string>
@@ -133,40 +108,20 @@
     <string name="rename_error">Fehler beim Umbenennen der Datei</string>
 
     <!-- Delete -->
-    <string name="delete_file">Löschen</string>
     <string name="delete_file_dialog_title">Datei löschen</string>
-    <string name="confirm_delete_file">Sind Sie sicher, dass Sie \'%1$s\' löschen möchten?</string>
+    <string name="confirm_delete_file">Sind Sie sicher, dass Sie ’%1$s’ löschen möchten?</string>
     <string name="delete_success">Datei erfolgreich gelöscht</string>
     <string name="delete_error">Fehler beim Löschen der Datei</string>
-    <string name="file_exists">Datei existiert</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
     <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
 
     <!-- Folder Upload Options -->
-    <string name="zip_transfer_title">Ordner-Upload</string>
-    <string name="zip_upload_folder">Ordner als ZIP hochladen</string>
     <string name="zip_download_folder">Ordnerinhalt hochladen</string>
-    <string name="creating_zip">ZIP-Archiv wird erstellt…</string>
-    <string name="uploading_zip">ZIP-Archiv wird hochgeladen…</string>
-    <string name="uploading_folder_contents">Ordnerinhalt wird hochgeladen…</string>
-    <string name="processing_files">Dateien werden verarbeitet…</string>
-    <string name="zip_upload_success">Ordner als ZIP erfolgreich hochgeladen</string>
     <string name="folder_contents_upload_success">Ordnerinhalt erfolgreich hochgeladen</string>
-    <string name="zip_upload_error">Fehler beim Hochladen des ZIP-Archivs</string>
-    <string name="folder_contents_upload_error">Fehler beim Hochladen des Ordnerinhalts</string>
-    <string name="select_folder_to_upload">Ordner zum Hochladen als ZIP auswählen</string>
-    <string name="select_folder_contents_to_upload">Ordner zum Hochladen des Inhalts auswählen</string>
-    <string name="upload_progress_files">%1$d von %2$d Dateien werden hochgeladen</string>
-    <string name="upload_incomplete_warning">Upload war unvollständig. Einige Dateien wurden möglicherweise nicht übertragen.</string>
-    <string name="cleanup_incomplete_upload">Unvollständiger Upload wird bereinigt…</string>
-    <string name="folder_structure_created">Ordnerstruktur erfolgreich erstellt</string>
-    <string name="verifying_upload_integrity">Upload-Integrität wird überprüft…</string>
 
     <!-- Enhanced UI Strings -->
-    <string name="success">Erfolg</string>
-    <string name="retry">Wiederholen</string>
     <string name="ok">OK</string>
     <string name="please_wait">Bitte warten</string>
 
@@ -175,15 +130,12 @@
     <string name="scanning_network">Scanne…</string>
     <string name="servers_found">Verfügbare Server</string>
     <string name="no_servers_found">Keine SMB-Server im lokalen Netzwerk gefunden.\n\nSie können Server-Details weiterhin manuell eingeben.</string>
-    <string name="network_scan_instructions">Wählen Sie einen Server aus, um die Verbindungsdetails automatisch auszufüllen, oder tippen Sie auf "Netzwerk scannen", um nach weiteren Servern zu suchen.</string>
+    <string name="network_scan_instructions">Wählen Sie einen Server aus, um die Verbindungsdetails automatisch auszufüllen, oder tippen Sie auf “Netzwerk scannen”, um nach weiteren Servern zu suchen.</string>
     <string name="scan_complete">Netzwerk-Scan abgeschlossen</string>
-    <string name="scan_cancelled">Netzwerk-Scan abgebrochen</string>
     <string name="scan_error">Scan-Fehler: %1$s</string>
     <string name="server_icon">Server</string>
     <string name="selected">Ausgewählt</string>
-    <string name="hosts_scanned">%1$d / %2$d Hosts gescannt</string>
     <string name="currently_scanning">Scanne gerade: %1$s</string>
-    <string name="servers_found_count">%1$d Server gefunden</string>
     <string name="server_info_applied">Server-Informationen übernommen: %1$s</string>
     <string name="available_shares">Verfügbare Freigaben</string>
     <string name="discovering_shares">Suche Freigaben…</string>
@@ -191,8 +143,6 @@
     <string name="tap_share_to_select">Tippe auf eine Freigabe um sie auszuwählen:</string>
     <string name="could_not_connect_check_credentials">Konnte nicht zum Server verbinden. Prüfe die Anmeldedaten.</string>
     <string name="enter_server_details">Server-Details eingeben um Freigaben zu entdecken</string>
-    <string name="scan_network_permission_required">Netzwerk-Scannen erfordert Standortberechtigung für den Zugriff auf WiFi-Informationen.</string>
-    <string name="scanning_fallback_networks">WiFi-Zugriff eingeschränkt - Scannen allgemeiner Netzwerkbereiche</string>
 
     <!-- File Browser Additional Strings -->
     <string name="go_to_parent_directory">Zum übergeordneten Verzeichnis</string>
@@ -203,22 +153,14 @@
 
     <!-- Upload Completion -->
     <string name="upload_complete_title">Upload abgeschlossen</string>
-    <string name="upload_complete_message">%1$d von %2$d Dateien erfolgreich hochgeladen</string>
-    <string name="upload_some_failed">%1$d Dateien konnten nicht hochgeladen werden</string>
     <string name="view_uploaded_files">Hochgeladene Dateien anzeigen</string>
     <string name="close">Schließen</string>
     <string name="upload_failed">Upload fehlgeschlagen</string>
 
     <!-- Upload Progress Notifications -->
-    <string name="upload_progress_channel_name">Upload-Fortschritt</string>
-    <string name="upload_progress_channel_description">Zeigt den Fortschritt von Datei-Uploads zu SMB-Freigaben</string>
-    <string name="uploading_files">Dateien hochladen</string>
-    <string name="preparing_upload">Upload wird vorbereitet…</string>
-    <string name="starting_upload">Upload wird gestartet…</string>
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Dateien hochladen</string>
-    <string name="cancel_search_action">Suche abbrechen</string>
     <string name="loading_system_information">Lade Systeminformationen…</string>
     <string name="authentication">Authentifizierung</string>
     <string name="smb_connection">SMB-Verbindung</string>
@@ -234,19 +176,12 @@
     <string name="later">Später</string>
 
     <!-- Robust Connection Messages -->
-    <string name="connection_recovering">Verbindung wird wiederhergestellt…</string>
-    <string name="connection_recovered">Verbindung erfolgreich wiederhergestellt</string>
-    <string name="connection_recovery_failed">Verbindungswiederherstellung fehlgeschlagen</string>
-    <string name="connection_timeout">Verbindungszeit überschritten</string>
-    <string name="connection_broken_pipe">Verbindung unterbrochen</string>
-    <string name="connection_retry_attempt">Verbindungsversuch wird wiederholt (Versuch %1$d von %2$d)</string>
-    <string name="error_no_files_to_share">Keine Dateien zum Teilen</string>
     <string name="share_needs_target_folder_title">Zielordner erforderlich</string>
     <string name="share_needs_target_folder_message">Zielordner auswählen</string>
     <string name="share_needs_target_folder_select">Auswählen</string>
     <string name="share_upload_title">Elemente teilen</string>
-    <string name="share_upload_message">Teile</string>
-    <string name="share_upload_select">Auswählen</string>
+    <string name="share_upload_message">@string/content_desc_share</string>
+    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Ordner ändern</string>
     <string name="select_this_folder">Diesen Ordner auswählen</string>
     <string name="items_to">Elemente nach</string>
@@ -254,7 +189,7 @@
     <string name="permission_explain_notifications">SambaLite informiert Sie über den Fortschritt von Dateiübertragungen auch dann, wenn die App im Hintergrund läuft. Aktivieren Sie Benachrichtigungen, um stets über Uploads und Downloads auf dem Laufenden zu bleiben.</string>
 
     <string name="transfer_title">Übertragung läuft …</string>
-    <string name="preparing_transfer">Bitte warten</string>
+    <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->
     <string name="security_options">Sicherheit</string>
@@ -263,8 +198,6 @@
 
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Dateien löschen</string>
-    <string name="confirm_delete_multiple">%1$d Dateien löschen?</string>
-    <string name="multi_delete_summary_success">%1$d von %2$d Dateien gelöscht</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Keine Dateien ausgewählt</string>
@@ -273,9 +206,7 @@
     <string name="preparing_ellipsis">Wird vorbereitet…</string>
     <string name="deleting_ellipsis">Wird gelöscht…</string>
     <string name="download_error_invalid_destination">Ungültiger Zielordner</string>
-    <string name="multi_download_summary">%1$d von %2$d Dateien heruntergeladen</string>
     <string name="cancelled_suffix">abgebrochen</string>
-    <string name="failed_count_suffix">%1$d fehlgeschlagen</string>
     <string name="saf_persist_permission_failed">Berechtigung für den ausgewählten Ordner konnte nicht gespeichert werden. Möglicherweise wirst du beim nächsten Mal erneut gefragt.</string>
 
     <!-- i18n for operation labels and messages -->
@@ -321,9 +252,7 @@
     <!-- Quit App -->
     <string name="quit_app">Beenden</string>
     <string name="quit_app_confirm_title">Aktive Operationen</string>
-    <string name="quit_app_confirm_message">Es laufen noch %1$d Operationen. Beim Beenden werden diese abgebrochen. Trotzdem beenden?</string>
     <string name="quit_app_confirm_positive">Trotzdem beenden</string>
-    <string name="sync_folder">Ordner synchronisieren</string>
     <string name="sync_setup_title">Ordner-Synchronisation einrichten</string>
     <string name="sync_direction">Sync-Richtung</string>
     <string name="sync_direction_local_to_remote">Lokal → Remote</string>
@@ -339,7 +268,6 @@
     <string name="sync_remote_path">Remote-Pfad</string>
     <string name="sync_select_local_folder">Lokalen Ordner auswählen</string>
     <string name="sync_config_saved">Sync-Konfiguration gespeichert</string>
-    <string name="sync_config_deleted">Sync-Konfiguration gelöscht</string>
     <string name="sync_manage_title">Sync-Konfigurationen verwalten</string>
     <string name="sync_no_configs">Keine Sync-Konfigurationen</string>
     <string name="sync_last_sync">Letzte Synchronisation: %1$s</string>
@@ -361,4 +289,40 @@
     <string name="sync_local_parent_folder_synced">Ein übergeordneter Ordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Unterordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>
     <string name="sync_local_child_folder_synced">Ein Unterordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Übergeordnete Ordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>
     <string name="sync_local_folder_already_synced">Der ausgewählte lokale Ordner wird bereits synchronisiert.</string>
+    <plurals name="servers_found_count">
+        <item quantity="one">%1$d Server gefunden</item>
+        <item quantity="other">%1$d Server gefunden</item>
+    </plurals>
+    <plurals name="upload_complete_message">
+        <item quantity="one">%1$d von %2$d Datei erfolgreich hochgeladen</item>
+        <item quantity="other">%1$d von %2$d Dateien erfolgreich hochgeladen</item>
+    </plurals>
+    <plurals name="upload_some_failed">
+        <item quantity="one">%1$d Datei konnte nicht hochgeladen werden</item>
+        <item quantity="other">%1$d Dateien konnten nicht hochgeladen werden</item>
+    </plurals>
+    <plurals name="confirm_delete_multiple">
+        <item quantity="one">%1$d Datei löschen?</item>
+        <item quantity="other">%1$d Dateien löschen?</item>
+    </plurals>
+    <plurals name="multi_delete_summary_success">
+        <item quantity="one">%1$d von %2$d Datei gelöscht</item>
+        <item quantity="other">%1$d von %2$d Dateien gelöscht</item>
+    </plurals>
+    <plurals name="multi_download_summary">
+        <item quantity="one">%1$d von %2$d Datei heruntergeladen</item>
+        <item quantity="other">%1$d von %2$d Dateien heruntergeladen</item>
+    </plurals>
+    <plurals name="failed_count_suffix">
+        <item quantity="one">%1$d fehlgeschlagen</item>
+        <item quantity="other">%1$d fehlgeschlagen</item>
+    </plurals>
+    <plurals name="quit_app_confirm_message">
+        <item quantity="one">Es läuft noch %1$d aktive Operation. Beenden wird sie abbrechen. Trotzdem beenden?</item>
+        <item quantity="other">Es laufen noch %1$d aktive Operationen. Beenden wird sie abbrechen. Trotzdem beenden?</item>
+    </plurals>
+    <plurals name="hosts_scanned">
+        <item quantity="one">%1$d / %2$d Host gescannt</item>
+        <item quantity="other">%1$d / %2$d Hosts gescannt</item>
+    </plurals>
 </resources>

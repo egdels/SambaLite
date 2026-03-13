@@ -14,22 +14,17 @@
     <string name="content_desc_more_options">More options</string>
     <string name="content_desc_file_type_icon">File type icon</string>
     <string name="content_desc_sync_indicator">Sync indicator</string>
-    <string name="content_desc_selected">Selected</string>
+    <string name="content_desc_selected">@string/selected</string>
     <string name="content_desc_share">Share</string>
     <string name="content_desc_refresh_system_info">Refresh system information</string>
 
     <!-- Menu Items -->
     <string name="menu_refresh">Refresh</string>
-    <string name="action_multi_download">Download</string>
-    <string name="action_multi_delete">Delete</string>
-    <string name="action_select_all">Select All</string>
-    <string name="action_clear_selection">Clear Selection</string>
     <string name="clear_selection">Clear selection</string>
     <string name="download_selected">Download selected</string>
     <string name="delete_selected">Delete selected</string>
 
     <!-- System Monitor -->
-    <string name="system_monitor_title">System Monitor</string>
 
     <!-- Example Content -->
     <string name="example_ip">192.168.1.100</string>
@@ -43,9 +38,6 @@
     <string name="username">Username</string>
     <string name="password">Password</string>
     <string name="domain">Domain (optional)</string>
-    <string name="port">Port</string>
-    <string name="connect">Connect</string>
-    <string name="edit">Edit</string>
     <string name="test_connection">Test Connection</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
@@ -59,24 +51,16 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Delete Connection</string>
-    <string name="confirm_delete_connection">Are you sure you want to delete the connection \'%1$s\'?</string>
+    <string name="confirm_delete_connection">Are you sure you want to delete the connection ’%1$s’?</string>
     <string name="delete">Delete</string>
-    <string name="connection_deleted">Connection \'%1$s\' deleted</string>
-    <string name="undo">Undo</string>
 
     <!-- File Browser -->
     <string name="empty_directory">This directory is empty</string>
     <string name="loading_files">Loading files…</string>
-    <string name="error_loading_files">Error loading files</string>
     <string name="parent_directory">Parent Directory</string>
-    <string name="file_browser_title">Files</string>
     <string name="search_files">Search files</string>
-    <string name="search_files_title">Search Files</string>
-    <string name="search_title">Search</string>
-    <string name="searching">Searching…</string>
+    <string name="search_title">@string/search</string>
     <string name="searching_files">Searching files…</string>
-    <string name="search_results">Search Results</string>
-    <string name="no_search_results">No files found matching your search</string>
     <string name="search_query_hint">Enter search term</string>
     <string name="search_wildcard_hint">Supports wildcards: * (any characters), ? (single character)</string>
     <string name="search_type">Search for</string>
@@ -85,28 +69,20 @@
     <string name="search_type_folders">Folders only</string>
     <string name="include_subfolders">Include subfolders</string>
     <string name="search">Search</string>
-    <string name="cancel_search">Cancel Search</string>
 
     <!-- Download -->
     <string name="download">Download</string>
     <string name="downloading">Downloading…</string>
     <string name="download_success">File downloaded successfully</string>
     <string name="download_error">Error downloading file</string>
-    <string name="file_not_found">The file \"%1$s\" could not be found on the server. Please check if the file exists and try again.</string>
-    <string name="save_file">Save file</string>
-    <string name="file_options">File options</string>
 
     <!-- Upload -->
     <string name="upload">Upload</string>
     <string name="uploading">Uploading…</string>
     <string name="upload_success">File uploaded successfully</string>
-    <string name="upload_error">Error uploading file</string>
-    <string name="select_file">Select file to upload</string>
     <string name="file_exists_title">File already exists</string>
-    <string name="file_exists_message">The file \"%1$s\" already exists. Do you want to overwrite it?</string>
-    <string name="file_exists_individual_message">The file \"%1$s\" already exists on the server. Do you want to overwrite it or skip this file?</string>
+    <string name="file_exists_message">The file &#8220;%1$s&#8221; already exists. Do you want to overwrite it?</string>
     <string name="overwrite">Overwrite</string>
-    <string name="skip_file">Skip File</string>
 
     <!-- Folder Creation -->
     <string name="create_folder">Create Folder</string>
@@ -117,7 +93,6 @@
 
     <!-- Sorting -->
     <string name="sort">Sort</string>
-    <string name="sort_dialog_title">Sort Files</string>
     <string name="sort_by">Sort by</string>
     <string name="sort_by_name">Name</string>
     <string name="sort_by_date">Date</string>
@@ -133,40 +108,20 @@
     <string name="rename_error">Error renaming file</string>
 
     <!-- Delete -->
-    <string name="delete_file">Delete</string>
     <string name="delete_file_dialog_title">Delete File</string>
-    <string name="confirm_delete_file">Are you sure you want to delete \'%1$s\'?</string>
+    <string name="confirm_delete_file">Are you sure you want to delete ’%1$s’?</string>
     <string name="delete_success">File deleted successfully</string>
     <string name="delete_error">Error deleting file</string>
-    <string name="file_exists">File exists</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
     <!-- Code Simplification: Large onActivityResult method broken into smaller methods -->
 
     <!-- Folder Upload Options -->
-    <string name="zip_transfer_title">Folder Upload</string>
-    <string name="zip_upload_folder">Upload folder as ZIP</string>
     <string name="zip_download_folder">Upload folder contents</string>
-    <string name="creating_zip">Creating ZIP archive…</string>
-    <string name="uploading_zip">Uploading ZIP archive…</string>
-    <string name="uploading_folder_contents">Uploading folder contents…</string>
-    <string name="processing_files">Processing files…</string>
-    <string name="zip_upload_success">Folder uploaded as ZIP successfully</string>
     <string name="folder_contents_upload_success">Folder contents uploaded successfully</string>
-    <string name="zip_upload_error">Error uploading ZIP archive</string>
-    <string name="folder_contents_upload_error">Error uploading folder contents</string>
-    <string name="select_folder_to_upload">Select folder to upload as ZIP</string>
-    <string name="select_folder_contents_to_upload">Select folder to upload contents</string>
-    <string name="upload_progress_files">Uploading %1$d of %2$d files</string>
-    <string name="upload_incomplete_warning">Upload was incomplete. Some files may not have been transferred.</string>
-    <string name="cleanup_incomplete_upload">Cleaning up incomplete upload…</string>
-    <string name="folder_structure_created">Folder structure created successfully</string>
-    <string name="verifying_upload_integrity">Verifying upload integrity…</string>
 
     <!-- Enhanced UI Strings -->
-    <string name="success">Success</string>
-    <string name="retry">Retry</string>
     <string name="ok">OK</string>
     <string name="please_wait">Please wait</string>
 
@@ -175,15 +130,12 @@
     <string name="scanning_network">Scanning…</string>
     <string name="servers_found">Available Servers</string>
     <string name="no_servers_found">No SMB servers found in the local network.\n\nYou can still enter server details manually.</string>
-    <string name="network_scan_instructions">Select a server to auto-fill connection details, or tap "Scan Network" to search for more servers.</string>
+    <string name="network_scan_instructions">Select a server to auto-fill connection details, or tap “Scan Network” to search for more servers.</string>
     <string name="scan_complete">Network scan completed</string>
-    <string name="scan_cancelled">Network scan cancelled</string>
     <string name="scan_error">Scan error: %1$s</string>
     <string name="server_icon">Server</string>
     <string name="selected">Selected</string>
-    <string name="hosts_scanned">%1$d / %2$d hosts scanned</string>
     <string name="currently_scanning">Currently scanning: %1$s</string>
-    <string name="servers_found_count">Found %1$d server(s)</string>
     <string name="server_info_applied">Server information applied: %1$s</string>
     <string name="available_shares">Available Shares</string>
     <string name="discovering_shares">Discovering shares…</string>
@@ -191,8 +143,6 @@
     <string name="tap_share_to_select">Tap a share to select it:</string>
     <string name="could_not_connect_check_credentials">Could not connect to server. Check credentials.</string>
     <string name="enter_server_details">Enter server details to discover shares</string>
-    <string name="scan_network_permission_required">Network scanning requires location permission to access WiFi information.</string>
-    <string name="scanning_fallback_networks">WiFi access limited - scanning common network ranges</string>
 
     <!-- File Browser Additional Strings -->
     <string name="go_to_parent_directory">Go to parent directory</string>
@@ -203,22 +153,14 @@
 
     <!-- Upload Completion -->
     <string name="upload_complete_title">Upload Complete</string>
-    <string name="upload_complete_message">Successfully uploaded %1$d of %2$d files</string>
-    <string name="upload_some_failed">%1$d files failed to upload</string>
     <string name="view_uploaded_files">View Uploaded Files</string>
     <string name="close">Close</string>
     <string name="upload_failed">Upload failed</string>
 
     <!-- Upload Progress Notifications -->
-    <string name="upload_progress_channel_name">Upload Progress</string>
-    <string name="upload_progress_channel_description">Shows progress of file uploads to SMB shares</string>
-    <string name="uploading_files">Uploading Files</string>
-    <string name="preparing_upload">Preparing upload…</string>
-    <string name="starting_upload">Starting upload…</string>
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Upload files</string>
-    <string name="cancel_search_action">Cancel search</string>
     <string name="loading_system_information">Loading system information…</string>
     <string name="authentication">Authentication</string>
     <string name="smb_connection">SMB Connection</string>
@@ -235,19 +177,12 @@
     <string name="later">Later</string>
 
     <!-- Robust Connection Messages -->
-    <string name="connection_recovering">Recovering connection…</string>
-    <string name="connection_recovered">Connection recovered successfully</string>
-    <string name="connection_recovery_failed">Connection recovery failed</string>
-    <string name="connection_timeout">Connection timeout</string>
-    <string name="connection_broken_pipe">Connection interrupted</string>
-    <string name="connection_retry_attempt">Retrying connection (attempt %1$d of %2$d)</string>
-    <string name="error_no_files_to_share">No files to share</string>
     <string name="share_needs_target_folder_title">Target folder required</string>
     <string name="share_needs_target_folder_message">Select target folder</string>
     <string name="share_needs_target_folder_select">Select</string>
     <string name="share_upload_title">Share items</string>
-    <string name="share_upload_message">Share</string>
-    <string name="share_upload_select">Select</string>
+    <string name="share_upload_message">@string/content_desc_share</string>
+    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Change folder</string>
     <string name="select_this_folder">Select this folder</string>
     <string name="items_to">items to</string>
@@ -255,7 +190,7 @@
     <string name="permission_explain_notifications">SambaLite keeps you informed about file transfer progress even when the app is running in the background. Enable notifications to stay up to date with uploads and downloads.</string>
 
     <string name="transfer_title">Transfer in progress …</string>
-    <string name="preparing_transfer">Please wait</string>
+    <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->
     <string name="security_options">Security</string>
@@ -263,8 +198,6 @@
     <string name="require_signing">Require signing</string>
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Delete files</string>
-    <string name="confirm_delete_multiple">Delete %1$d files?</string>
-    <string name="multi_delete_summary_success">Deleted %1$d of %2$d files</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">No files selected</string>
@@ -273,9 +206,7 @@
     <string name="preparing_ellipsis">Preparing…</string>
     <string name="deleting_ellipsis">Deleting…</string>
     <string name="download_error_invalid_destination">Invalid destination folder</string>
-    <string name="multi_download_summary">Downloaded %1$d of %2$d files</string>
     <string name="cancelled_suffix">cancelled</string>
-    <string name="failed_count_suffix">%1$d failed</string>
     <string name="saf_persist_permission_failed">Could not persist permission for the selected folder. You may be asked again next time.</string>
 
     <!-- i18n for operation labels and messages -->
@@ -319,7 +250,6 @@
     <string name="interrupted_suffix">(interrupted)</string>
 
     <!-- Folder Sync -->
-    <string name="sync_folder">Sync Folder</string>
     <string name="sync_setup_title">Set Up Folder Sync</string>
     <string name="sync_direction">Sync Direction</string>
     <string name="sync_direction_local_to_remote">Local → Remote</string>
@@ -335,7 +265,6 @@
     <string name="sync_remote_path">Remote Path</string>
     <string name="sync_select_local_folder">Select Local Folder</string>
     <string name="sync_config_saved">Sync configuration saved</string>
-    <string name="sync_config_deleted">Sync configuration deleted</string>
     <string name="sync_manage_title">Manage Sync Configurations</string>
     <string name="sync_no_configs">No sync configurations</string>
     <string name="sync_last_sync">Last sync: %1$s</string>
@@ -361,7 +290,42 @@
     <!-- Quit App -->
     <string name="quit_app">Quit</string>
     <string name="quit_app_confirm_title">Active operations</string>
-    <string name="quit_app_confirm_message">There are still %1$d active operations running. Quitting will cancel them. Do you want to quit anyway?</string>
     <string name="quit_app_confirm_positive">Quit anyway</string>
+    <plurals name="servers_found_count">
+        <item quantity="one">Found %1$d server</item>
+        <item quantity="other">Found %1$d servers</item>
+    </plurals>
+    <plurals name="upload_complete_message">
+        <item quantity="one">Successfully uploaded %1$d of %2$d file</item>
+        <item quantity="other">Successfully uploaded %1$d of %2$d files</item>
+    </plurals>
+    <plurals name="upload_some_failed">
+        <item quantity="one">%1$d file failed to upload</item>
+        <item quantity="other">%1$d files failed to upload</item>
+    </plurals>
+    <plurals name="confirm_delete_multiple">
+        <item quantity="one">Delete %1$d file?</item>
+        <item quantity="other">Delete %1$d files?</item>
+    </plurals>
+    <plurals name="multi_delete_summary_success">
+        <item quantity="one">Deleted %1$d of %2$d file</item>
+        <item quantity="other">Deleted %1$d of %2$d files</item>
+    </plurals>
+    <plurals name="multi_download_summary">
+        <item quantity="one">Downloaded %1$d of %2$d file</item>
+        <item quantity="other">Downloaded %1$d of %2$d files</item>
+    </plurals>
+    <plurals name="failed_count_suffix">
+        <item quantity="one">%1$d failed</item>
+        <item quantity="other">%1$d failed</item>
+    </plurals>
+    <plurals name="quit_app_confirm_message">
+        <item quantity="one">There is still %1$d active operation running. Quitting will cancel it. Do you want to quit anyway?</item>
+        <item quantity="other">There are still %1$d active operations running. Quitting will cancel them. Do you want to quit anyway?</item>
+    </plurals>
+    <plurals name="hosts_scanned">
+        <item quantity="one">%1$d / %2$d host scanned</item>
+        <item quantity="other">%1$d / %2$d hosts scanned</item>
+    </plurals>
 </resources>
 

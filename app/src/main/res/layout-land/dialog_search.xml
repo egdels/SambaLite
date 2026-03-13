@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:baselineAligned="false"
     android:orientation="horizontal"
     android:padding="16dp">
 
@@ -10,6 +11,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+    android:baselineAligned="false"
         android:layout_weight="1"
         android:orientation="vertical"
         android:layout_marginEnd="8dp">
@@ -18,6 +20,7 @@
             android:id="@+id/search_query_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:layout_marginBottom="4dp"
             android:hint="@string/search_query_hint">
 
@@ -25,6 +28,7 @@
                 android:id="@+id/search_query_edit_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:inputType="text"
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -32,6 +36,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/search_wildcard_hint"
             android:textSize="12sp"
             android:textStyle="italic"
@@ -42,6 +47,7 @@
             android:id="@+id/include_subfolders_checkbox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/include_subfolders"
             android:checked="true" />
     </LinearLayout>
@@ -50,6 +56,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+    android:baselineAligned="false"
         android:layout_weight="1"
         android:orientation="vertical"
         android:layout_marginStart="8dp">
@@ -57,6 +64,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+    android:baselineAligned="false"
             android:text="@string/search_type"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             android:layout_marginBottom="8dp" />
@@ -64,12 +72,14 @@
         <RadioGroup
             android:id="@+id/search_type_radio_group"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+    android:baselineAligned="false">
 
             <RadioButton
                 android:id="@+id/radio_all"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/search_type_all"
                 android:checked="true" />
 
@@ -77,12 +87,14 @@
                 android:id="@+id/radio_files"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/search_type_files" />
 
             <RadioButton
                 android:id="@+id/radio_folders"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+    android:baselineAligned="false"
                 android:text="@string/search_type_folders" />
         </RadioGroup>
     </LinearLayout>

@@ -45,6 +45,7 @@
         <!-- File name with improved typography -->
         <TextView
             android:id="@+id/file_name"
+            tools:ignore="SelectableText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
@@ -61,7 +62,6 @@
 
         <!-- File details with improved layout -->
         <LinearLayout
-            android:id="@+id/file_details"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
@@ -74,6 +74,7 @@
 
             <TextView
                 android:id="@+id/file_date"
+                tools:ignore="SelectableText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?attr/textAppearanceBodySmall"
@@ -91,6 +92,7 @@
 
             <TextView
                 android:id="@+id/file_size"
+                tools:ignore="SelectableText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?attr/textAppearanceBodySmall"
