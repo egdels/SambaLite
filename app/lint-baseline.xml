@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.12.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.12.0)" variant="all" version="8.12.0">
+
+    <!-- InlinedApi: POST_NOTIFICATIONS requires API 33, but our minSdk is 28.
+         The code already has a proper Build.VERSION.SDK_INT >= 33 guard before this call,
+         so this is a false positive. Safe to keep in baseline. -->
+    <issue
+        id="InlinedApi"
+        message="Field requires API level 33 (current min is 28): `android.Manifest.permission#POST_NOTIFICATIONS`"
+        errorLine1="            (d, w) -> requestNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS))"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/MainActivity.java"
+            line="123"
+            column="53"/>
+    </issue>
+
+    <!-- InvalidPackage (3x): These are transitive references inside third-party libraries
+         (BouncyCastle, mbassador) to javax.naming and javax.el packages that don't exist
+         on Android. The affected code paths are never executed at runtime on Android.
+         Not fixable without replacing the libraries. -->
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in library; not included in Android: `javax.naming.directory`. Referenced from `org.bouncycastle.jce.provider.CrlCache`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.83/310e719f391bd9f4ee5103ca299c172643efb595/bcprov-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in library; not included in Android: `javax.naming`. Referenced from `org.bouncycastle.jce.provider.X509LDAPCertStoreSpi`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.83/310e719f391bd9f4ee5103ca299c172643efb595/bcprov-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in library; not included in Android: `javax.el`. Referenced from `net.engio.mbassy.dispatch.el.ElFilter`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.engio/mbassador/1.3.0/df00b81f8efe0bfd7d0fdd63da988e2223d16a03/mbassador-1.3.0.jar"/>
+    </issue>
+
+    <!-- BatteryLife: REQUEST_IGNORE_BATTERY_OPTIMIZATIONS is intentionally used.
+         Sambalite needs reliable background SMB synchronization which requires exemption
+         from battery optimization (Doze mode). This is an acceptable use case per Google's
+         guidelines for file sync apps. The Play Store policy warning is acknowledged. -->
+    <issue
+        id="BatteryLife"
+        message="Use of `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` violates the Play Store Content Policy regarding acceptable use cases, as described in https://developer.android.com/training/monitoring-device-state/doze-standby.html"
+        errorLine1="      Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);"
+        errorLine2="                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/util/BatteryOptimizationUtils.java"
+            line="56"
+            column="43"/>
+    </issue>
+
+    <!-- AndroidGradlePluginVersion: Gradle 8.14.x is available but upgrading the Gradle
+         wrapper can introduce build-breaking changes. This should be done as a separate,
+         dedicated upgrade with thorough testing. -->
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of Gradle than 8.13 is available: 8.14.4"
+        errorLine1="distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/Documents/git/sambalite/gradle/wrapper/gradle-wrapper.properties"
+            line="3"
+            column="17"/>
+    </issue>
+
+    <!-- AnnotationProcessorOnCompilePath: Lombok requires both compileOnly (for IDE support
+         and compile-time code generation) and annotationProcessor (for annotation processing).
+         The compileOnly declaration is intentional and cannot be removed. -->
+    <issue
+        id="AnnotationProcessorOnCompilePath"
+        message="Add annotation processor to processor path using `annotationProcessor` instead of `compileOnly`"
+        errorLine1="    compileOnly &quot;org.projectlombok:lombok:1.18.42&quot;"
+        errorLine2="    ~~~~~~~~~~~">
+        <location
+            file="build.gradle"
+            line="213"
+            column="5"/>
+    </issue>
+
+    <!-- KotlinPropertyAccess (10x): These warnings flag a type mismatch between getter
+         (returns LiveData<T>) and setter (takes T directly) in our MVVM ViewModels and
+         state classes. This is the standard Android MVVM pattern where getters expose
+         observable LiveData while setters update the internal MutableLiveData value.
+         Fixing this would require an architectural redesign of the MVVM layer.
+         Only relevant if Kotlin interop is planned; the app is pure Java. -->
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;List&lt;SmbFileItem>>`) and setter parameter type (`List&lt;SmbFileItem>`) getter and setter methods for property `files` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;List&lt;SmbFileItem>> getFiles() {"
+        errorLine2="                                              ~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="132"
+            column="47"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="137"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;Boolean>`) and setter parameter type (`boolean`) getter and setter methods for property `loading` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;Boolean> isLoading() {"
+        errorLine2="                                    ~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="142"
+            column="37"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="147"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;String>`) and setter parameter type (`String`) getter and setter methods for property `errorMessage` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;String> getErrorMessage() {"
+        errorLine2="                                   ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="152"
+            column="36"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="157"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;String>`) and setter parameter type (`String`) getter and setter methods for property `currentPath` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;String> getCurrentPath() {"
+        errorLine2="                                   ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="162"
+            column="36"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="167"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;FileSortOption>`) and setter parameter type (`FileSortOption`) getter and setter methods for property `sortOption` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;FileSortOption> getSortOption() {"
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="173"
+            column="44"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="178"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;List&lt;SmbFileItem>>`) and setter parameter type (`List&lt;SmbFileItem>`) getter and setter methods for property `searchResults` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;List&lt;SmbFileItem>> getSearchResults() {"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="233"
+            column="47"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="238"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;Boolean>`) and setter parameter type (`boolean`) getter and setter methods for property `searching` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;Boolean> isSearching() {"
+        errorLine2="                                    ~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="243"
+            column="37"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileBrowserState.java"
+            line="248"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;FileSortOption>`) and setter parameter type (`FileSortOption`) getter and setter methods for property `sortOption` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;FileSortOption> getSortOption() {"
+        errorLine2="                                           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="89"
+            column="44"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="98"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;Boolean>`) and setter parameter type (`boolean`) getter and setter methods for property `directoriesFirst` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;Boolean> getDirectoriesFirst() {"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="121"
+            column="37"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="130"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+    <issue
+        id="KotlinPropertyAccess"
+        message="The getter return type (`LiveData&lt;Boolean>`) and setter parameter type (`boolean`) getter and setter methods for property `showHiddenFiles` should have exactly the same type to allow be accessed as a property from Kotlin; see https://android.github.io/kotlin-guides/interop.html#property-prefixes"
+        errorLine1="  public @NonNull LiveData&lt;Boolean> getShowHiddenFiles() {"
+        errorLine2="                                    ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="153"
+            column="37"/>
+        <location
+            file="src/main/java/de/schliweb/sambalite/ui/FileListViewModel.java"
+            line="162"
+            column="15"
+            message="Setter here"/>
+    </issue>
+
+</issues>

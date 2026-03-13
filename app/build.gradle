@@ -17,7 +17,7 @@ android {
     defaultConfig {
         applicationId "de.schliweb.sambalite"
         minSdk 28
-        targetSdk = 35 // Configured for borderless display (transparent system bars)
+        targetSdk = 36
         
         versionCode 10502
         versionName project.version.toString()
@@ -48,6 +48,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             minifyEnabled = true
             shrinkResources = true
@@ -64,12 +67,6 @@ android {
         targetCompatibility JavaVersion.VERSION_21
     }
 
-    // Ensure consistent encoding
-    tasks.withType(JavaCompile) {
-        options.encoding = 'UTF-8'
-        // Show deprecation details during compilation to identify and fix them
-        options.compilerArgs << '-Xlint:deprecation'
-    }
 
     // Configure build features
     // Note: buildConfig true is the recommended way to enable BuildConfig generation
@@ -121,13 +118,34 @@ android {
         // Disable problematic Timber lint checks that don't work with AGP 8.10.1
         disable += ['LogNotTimber', 'StringFormatInTimber', 'ThrowableNotAtBeginning',
                     'BinaryOperationInTimber', 'TimberArgCount', 'TimberArgTypes',
-                    'TimberTagLength', 'TimberExceptionLogging',
-                    // Unused resources detection disabled
-                    'UnusedResources']
+                    'TimberTagLength', 'TimberExceptionLogging']
 
-        // Keep other important checks enabled
+        // Enable important lint check categories
+        // Accessibility: contentDescription, touchTargetSize, etc.
+        // Performance: overdraw, unused resources, view hierarchy depth
+        // Security: insecure permissions, exported components
+        enable += ['ContentDescription', 'LabelFor',
+                   'UnusedResources', 'ObsoleteLayoutParam', 'InefficientWeight',
+                   'UselessParent', 'TooDeepLayout', 'TooManyViews',
+                   'ExportedContentProvider', 'ExportedReceiver', 'ExportedService',
+                   'HardcodedText', 'SetTextI18n', 'RelativeOverlap',
+                   'Overdraw', 'UnusedIds']
+
+        // Generate HTML and XML reports for CI integration
+        htmlReport = true
+        xmlReport = true
+
+        // Treat lint warnings as warnings (not errors) to avoid blocking builds
         warningsAsErrors = false
-        abortOnError = false
+        // Abort on errors to catch critical issues early
+        abortOnError = true
+        // Check all files, not just changed ones
+        checkAllWarnings = true
+        // Show all locations for an issue
+        showAll = true
+
+        // Baseline file to suppress existing issues and only flag new ones
+        baseline = file("lint-baseline.xml")
     }
 }
 
@@ -154,10 +172,10 @@ configurations.all {
 
 dependencies {
     // Activity library for EdgeToEdge helper
-    implementation 'androidx.activity:activity:1.12.4'
+    implementation 'androidx.activity:activity:1.13.0'
     // Android core libraries
     implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.core:core-ktx:1.17.0'
+    implementation 'androidx.core:core-ktx:1.18.0'
     implementation 'androidx.documentfile:documentfile:1.1.0'
     implementation 'com.google.android.material:material:1.13.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
@@ -192,8 +210,8 @@ dependencies {
     // Timber for logging
     implementation 'com.jakewharton.timber:timber:5.0.1'
 
-    compileOnly "org.projectlombok:lombok:1.18.42"
-    annotationProcessor "org.projectlombok:lombok:1.18.42"
+    compileOnly "org.projectlombok:lombok:1.18.44"
+    annotationProcessor "org.projectlombok:lombok:1.18.44"
 
     // Testing dependencies for comprehensive data integrity verification
     testImplementation 'junit:junit:4.13.2'
@@ -204,8 +222,13 @@ dependencies {
     testImplementation 'androidx.test.ext:junit:1.3.0'
     
     // Additional testing libraries for data integrity
-    testImplementation 'org.mockito:mockito-core:5.22.0'
+    testImplementation 'org.mockito:mockito-core:5.23.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
+
+    // Error Prone
+    errorprone 'com.google.errorprone:error_prone_core:2.48.0'
+    annotationProcessor 'com.google.errorprone:error_prone_core:2.48.0'
+    testAnnotationProcessor 'com.google.errorprone:error_prone_core:2.48.0'
     
     // SLF4J simple provider to suppress "No SLF4J providers were found" warning
     testImplementation 'org.slf4j:slf4j-simple:2.0.17'
@@ -243,6 +266,36 @@ tasks.withType(AbstractArchiveTask) {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
+
+// Ensure Java compiler shows deprecation and unchecked warnings
+// and enable Error Prone static analysis
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.deprecation = true
+    options.compilerArgs += [
+            '-Xlint:deprecation',
+            '-Xlint:unchecked',
+            '-XDaddTypeAnnotationsToSymbol=true',
+            '-Xmaxwarns', '500'
+    ]
+    options.errorprone {
+        enabled = true
+        disableWarningsInGeneratedCode = true
+        allErrorsAsWarnings = true
+        // Intentionally ignored checks:
+        // EmptyCatch: catch blocks with 'ignored' variable are intentional no-ops for cleanup/teardown
+        // FutureReturnValueIgnored: fire-and-forget background operations are by design
+        // StatementSwitchToExpressionSwitch: style preference, not a bug
+        // LabelledBreakTarget: style preference, not a bug
+        // PatternMatchingInstanceof: requires Java 16+ pattern matching, style preference
+        // JavaUtilDate: Date used by external SMB library API, cannot change
+        // StringSplitter: split("/") behavior is well-understood in our usage
+        disable 'EmptyCatch', 'FutureReturnValueIgnored', 'StatementSwitchToExpressionSwitch',
+                'LabelledBreakTarget', 'PatternMatchingInstanceof', 'JavaUtilDate',
+                'StringSplitter', 'ReturnValueIgnored'
+    }
+}
+
 spotless {
     java {
         target("src/*/java/**/*.java")
@@ -251,4 +304,20 @@ spotless {
         trimTrailingWhitespace()
         endWithNewline()
     }
+}
+
+tasks.register("jacocoTestReport", JacocoReport) {
+    dependsOn "testDebugUnitTest"
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    def mainSrc = "$projectDir/src/main/java"
+    sourceDirectories.setFrom(mainSrc)
+    classDirectories.setFrom(
+            fileTree("$buildDir/intermediates/javac/debug") {
+                exclude("**/R.class", "**/R\$*.class", "**/BuildConfig.class")
+            }
+    )
+    executionData.setFrom("$buildDir/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
 }
