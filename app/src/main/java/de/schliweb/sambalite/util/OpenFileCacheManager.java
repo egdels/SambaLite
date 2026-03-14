@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -52,6 +53,14 @@ public final class OpenFileCacheManager {
    * be called before each new download into the cache.
    */
   public static void enforceMaxSize(@NonNull Context context) {
+    enforceMaxSize(context, null);
+  }
+
+  /**
+   * Ensures the cache does not exceed 100 MB. Deletes oldest files first until under 50 MB, but
+   * never deletes the specified {@code excludeFile} (e.g. a file that is about to be opened).
+   */
+  public static void enforceMaxSize(@NonNull Context context, @Nullable File excludeFile) {
     File cacheDir = new File(context.getCacheDir(), CACHE_DIR_NAME);
     if (!cacheDir.exists()) return;
 
@@ -68,6 +77,9 @@ public final class OpenFileCacheManager {
     int deleted = 0;
     for (File f : files) {
       if (totalSize <= TARGET_CACHE_SIZE_BYTES) break;
+      if (excludeFile != null && f.getAbsolutePath().equals(excludeFile.getAbsolutePath())) {
+        continue;
+      }
       totalSize -= f.length();
       if (f.delete()) {
         deleted++;
