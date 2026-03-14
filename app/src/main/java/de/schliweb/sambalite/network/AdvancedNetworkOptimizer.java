@@ -421,7 +421,6 @@ public class AdvancedNetworkOptimizer {
   }
 
   static class BandwidthMonitor {
-    private final long lastByteCount = 0;
     private long lastMeasureTime = 0;
 
     long measureBandwidth() {
