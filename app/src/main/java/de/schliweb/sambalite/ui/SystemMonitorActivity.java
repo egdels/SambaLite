@@ -306,6 +306,26 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
     stats.append("=== Cache Statistics ===\n");
 
+    // Open-File Cache size
+    java.io.File openFileCacheDir =
+        de.schliweb.sambalite.util.OpenFileCacheManager.getCacheDir(app);
+    java.io.File[] openFiles = openFileCacheDir.listFiles();
+    long openFileCacheSize = 0;
+    int openFileCount = 0;
+    if (openFiles != null) {
+      for (java.io.File f : openFiles) {
+        openFileCacheSize += f.length();
+        openFileCount++;
+      }
+    }
+    stats.append("\nOpen-File Cache:\n");
+    stats
+        .append("- Size: ")
+        .append(EnhancedFileUtils.formatFileSize(openFileCacheSize))
+        .append("\n");
+    stats.append("- Files: ").append(openFileCount).append("\n");
+    stats.append("- Max Size: 100 MB (evicts to 50 MB)\n");
+
     IntelligentCacheManager cacheManager = app.getCacheManager();
     if (cacheManager != null) {
       // Run a cache performance test to verify hit rate calculation
