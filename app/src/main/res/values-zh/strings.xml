@@ -251,6 +251,12 @@
     <string name="interrupted_suffix">（已中断）</string>
 
     <!-- Quit App -->
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">活动传输</string>
+    <string name="leave_confirm_message">文件传输仍在进行中。离开将取消传输。确定要离开吗？</string>
+    <string name="leave_confirm_positive">离开</string>
+    <string name="transfer_cancelled_toast">活动传输已取消</string>
+
     <string name="quit_app">退出</string>
     <string name="quit_app_confirm_title">活动操作</string>
     <string name="quit_app_confirm_positive">仍然退出</string>
@@ -318,4 +324,7 @@
         <item quantity="other">已扫描 %1$d / %2$d 个主机</item>
     </plurals>
     <string name="search_type">搜索类型</string>
+    <string name="open_file">打开</string>
+    <string name="no_app_to_open_file">未找到可打开此文件的应用</string>
+    <string name="opening_file">正在打开 %s…</string>
 </resources>

@@ -251,6 +251,12 @@
     <string name="interrupted_suffix">(interrompu)</string>
 
     <!-- Quit App -->
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">Transfert actif</string>
+    <string name="leave_confirm_message">Un transfert de fichiers est encore en cours. Quitter annulera le transfert. Voulez-vous quitter quand même ?</string>
+    <string name="leave_confirm_positive">Quitter</string>
+    <string name="transfer_cancelled_toast">Le transfert actif a été annulé</string>
+
     <string name="quit_app">Quitter</string>
     <string name="quit_app_confirm_title">Opérations actives</string>
     <string name="quit_app_confirm_positive">Quitter quand même</string>
@@ -335,4 +341,7 @@
         <item quantity="many">%1$d / %2$d hôtes analysés</item>
         <item quantity="other">%1$d / %2$d hôtes analysés</item>
     </plurals>
+    <string name="open_file">Ouvrir</string>
+    <string name="no_app_to_open_file">Aucune application trouvée pour ouvrir ce fichier</string>
+    <string name="opening_file">Ouverture de %s…</string>
 </resources>

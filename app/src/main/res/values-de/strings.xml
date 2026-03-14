@@ -249,6 +249,12 @@
     <string name="cannot_create_temp_file">Temporäre Datei kann nicht erstellt werden</string>
     <string name="interrupted_suffix">(unterbrochen)</string>
 
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">Aktive Übertragung</string>
+    <string name="leave_confirm_message">Eine Dateiübertragung läuft noch. Beim Verlassen wird sie abgebrochen. Trotzdem verlassen?</string>
+    <string name="leave_confirm_positive">Verlassen</string>
+    <string name="transfer_cancelled_toast">Aktive Übertragung wurde abgebrochen</string>
+
     <!-- Quit App -->
     <string name="quit_app">Beenden</string>
     <string name="quit_app_confirm_title">Aktive Operationen</string>
@@ -325,4 +331,7 @@
         <item quantity="one">%1$d / %2$d Host gescannt</item>
         <item quantity="other">%1$d / %2$d Hosts gescannt</item>
     </plurals>
+    <string name="open_file">Öffnen</string>
+    <string name="no_app_to_open_file">Keine App zum Öffnen dieser Datei gefunden</string>
+    <string name="opening_file">Öffne %s…</string>
 </resources>

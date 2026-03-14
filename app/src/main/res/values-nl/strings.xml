@@ -250,6 +250,12 @@
     <string name="interrupted_suffix">(onderbroken)</string>
 
     <!-- Quit App -->
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">Actieve overdracht</string>
+    <string name="leave_confirm_message">Er is nog een bestandsoverdracht bezig. Bij het verlaten wordt deze geannuleerd. Toch verlaten?</string>
+    <string name="leave_confirm_positive">Verlaten</string>
+    <string name="transfer_cancelled_toast">Actieve overdracht is geannuleerd</string>
+
     <string name="quit_app">Afsluiten</string>
     <string name="quit_app_confirm_title">Actieve bewerkingen</string>
     <string name="quit_app_confirm_positive">Toch afsluiten</string>
@@ -325,4 +331,7 @@
         <item quantity="one">%1$d / %2$d host gescand</item>
         <item quantity="other">%1$d / %2$d hosts gescand</item>
     </plurals>
+    <string name="open_file">Openen</string>
+    <string name="no_app_to_open_file">Geen app gevonden om dit bestand te openen</string>
+    <string name="opening_file">Openen van %s…</string>
 </resources>

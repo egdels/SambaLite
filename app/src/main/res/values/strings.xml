@@ -287,6 +287,12 @@
     <string name="sync_local_child_folder_synced">A sub-folder of the selected local folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>
     <string name="sync_local_folder_already_synced">The selected local folder is already being synced.</string>
 
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">Active transfer</string>
+    <string name="leave_confirm_message">A file transfer is still in progress. Leaving will cancel it. Do you want to leave anyway?</string>
+    <string name="leave_confirm_positive">Leave</string>
+    <string name="transfer_cancelled_toast">Active transfer was cancelled</string>
+
     <!-- Quit App -->
     <string name="quit_app">Quit</string>
     <string name="quit_app_confirm_title">Active operations</string>
@@ -327,5 +333,10 @@
         <item quantity="one">%1$d / %2$d host scanned</item>
         <item quantity="other">%1$d / %2$d hosts scanned</item>
     </plurals>
+
+    <!-- File open feature -->
+    <string name="open_file">Open</string>
+    <string name="no_app_to_open_file">No app found to open this file</string>
+    <string name="opening_file">Opening %s…</string>
 </resources>
 

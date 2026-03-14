@@ -250,6 +250,12 @@
     <string name="interrupted_suffix">(przerwano)</string>
 
     <!-- Quit App -->
+    <!-- Leave / Quit confirmation -->
+    <string name="leave_confirm_title">Aktywny transfer</string>
+    <string name="leave_confirm_message">Transfer plików jest nadal w toku. Opuszczenie spowoduje jego anulowanie. Czy chcesz opuścić?</string>
+    <string name="leave_confirm_positive">Opuść</string>
+    <string name="transfer_cancelled_toast">Aktywny transfer został anulowany</string>
+
     <string name="quit_app">Zakończ</string>
     <string name="quit_app_confirm_title">Aktywne operacje</string>
     <string name="quit_app_confirm_positive">Zakończ mimo to</string>
@@ -344,4 +350,7 @@
         <item quantity="other">%1$d / %2$d hostów przeskanowanych</item>
     </plurals>
     <string name="search_type">Szukaj według</string>
+    <string name="open_file">Otwórz</string>
+    <string name="no_app_to_open_file">Nie znaleziono aplikacji do otwarcia tego pliku</string>
+    <string name="opening_file">Otwieranie %s…</string>
 </resources>
