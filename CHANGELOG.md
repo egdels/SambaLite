@@ -5,13 +5,19 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0] - 2026-03-13
+## [1.6.0] - 2026-03-14
 
 ### Added
 - Adaptive launcher icons for improved visual consistency across Android devices and launchers.
 - `SharesDiffCallback` for efficient RecyclerView list updates when browsing SMB shares.
 - GitHub Actions workflow for automated code quality checks (CI).
 - New unit tests for caching, file utilities, diff callbacks, and progress formatting.
+- Open files directly from SMB shares: New utility classes for file opening (`FileOpenHelper`), MIME type resolution (`MimeTypeUtils`), cache management (`OpenFileCacheManager`), and a custom `FileProvider` with `_data` column support for broad app compatibility.
+- `downloadToCache` method in `FileOperationsViewModel` for managing open-file downloads and cache handling.
+- Leave confirmation dialog when navigating away from the file browser during active file transfers.
+- New unit tests for `MimeTypeUtils` and `OpenFileCacheManager` covering MIME type resolution, cache cleanup, and size-based eviction logic.
+- Translations for leave confirmation and file open strings in all supported languages.
+- FileProvider configuration (`file_paths.xml`) for external file sharing via content URIs.
 
 ### Changed
 - Comprehensive `@NonNull` and `@Nullable` annotations added across the entire codebase (~40 classes) for improved null safety, API clarity, and `NullPointerException` prevention. Affected areas include ViewModels, controllers, adapters, repositories, utilities, cache classes, sync classes, Dagger components, and more.
@@ -20,12 +26,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused resources, plurals, and obsolete strings; simplified layout attributes for dialogs.
 - Refactored `SambaLiteApp` and utility classes for enhanced readability and formatting consistency.
 - Removed redundant API-level checks in `BatteryOptimizationUtils`.
+- Replaced `getMimeType` implementation in `FolderSyncWorker` with shared utility method from `MimeTypeUtils`.
+- Prevented potential memory leaks in `DialogController` by replacing strong `Context` references with `WeakReference` and adding null checks.
+- Made `instance` field volatile in `IntelligentCacheManager` to ensure thread-safe singleton access.
+- Improved keyboard handling: New utility method for hiding keyboard in dialogs; dialogs now resize correctly with keyboard visibility.
+- Added file transfer activity checks before finishing `FileBrowserActivity` and streamlined FAB visibility logic.
+- Added default case handling in `SmartErrorHandler` switch statements for improved code clarity.
+- Used UTF-8 charset explicitly in `hashString` method and simplified fallback hash calculation logic.
+- Removed redundant code: unused `Locale` import and `getSubnetFromIp` method in `NetworkScanner`, unused `lastByteCount` field in `BandwidthMonitor`, redundant `if` checks in `DiscoveredServerAdapter` and `SharesAdapter`, unused `isLifecycleAtLeastStarted` method in `ProgressController`, redundant fallback cache key logic in `SearchViewModel`, unnecessary type checks in `SerializationValidator`.
+- Suppressed lint warnings in `FileListCacheOperations`, `CacheMaintenanceManager`, `SmbBackgroundService`, `SmbRepositoryImpl`, `SearchCacheOperations`, and `ShareReceiverActivity` for future-use variables and non-API types.
+- Open-file cache cleanup now runs on app start in `SambaLiteApp` initialization.
+- Updated `AndroidManifest.xml`: Added FileProvider for external file sharing and handle configuration changes in `MainActivity`.
+
+### Fixed
+- `FileDiffCallback.areContentsTheSame` now compares timestamps correctly.
+- Keyboard dismissal logic fixed in `MainActivity` dialogs.
 
 ### Developer Notes
 - Lint baseline file added to track and gradually resolve pre-existing lint issues.
 - `SharesDiffCallback`: New `DiffUtil.ItemCallback` implementation for `SmbFileItem` lists, enabling efficient partial RecyclerView updates.
 - Null safety annotations applied systematically to: `FileBrowserUIState`, `FileListController`, `FileListViewModel`, `ConnectionAdapter`, `FileOperationCallbacks`, `FileSkippedException`, `FileUploadTask`, `InputController`, `LogUtils`, `PreferenceUtils`, `ProgressController`, `ProgressFormat`, `UIHelper`, `UserFeedbackProvider`, `ActivityResultController`, `DialogController`, `MemoryCacheStrategy`, `DiscoveredServerAdapter`, `SmbFileItem`, `LoadingIndicator`, `SearchCacheOperations`, `ShareReceiverViewModel`, `ShareReceiverActivity`, `SimplePerformanceMonitor`, `BatteryOptimizationUtils`, `SmartErrorHandler`, `CacheKeyGenerator`, `CacheExceptionHandler`, `SambaLiteApp`, Dagger components, `ViewModelFactory`, `ConnectionRepository`, `SmbRepository`, and related test classes.
 - CI workflow: GitHub Actions pipeline for lint, unit tests, and build verification.
+- `MimeTypeUtils`: Extracted shared MIME type resolution utility, used by both `FolderSyncWorker` and the new file open feature.
+- `OpenFileCacheManager`: Size-based eviction cache for temporarily stored files opened from SMB shares.
+- `DialogController`: Refactored to use `WeakReference<Context>` to prevent activity leak on configuration changes.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 
