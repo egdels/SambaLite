@@ -5,6 +5,31 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-03-14
+
+### Added
+- Modernized all dialogs (Rename, Search, Sort, Progress, Sync Setup, Loading, Share) with Material Design 3 styling matching the Connection dialog: header with icon card, title and subtitle, MaterialCardView sections, and consistent 24dp padding.
+- New custom layouts for Share dialogs (`dialog_share_upload.xml`, `dialog_share_needs_target.xml`, `dialog_upload_complete.xml`, `dialog_file_exists.xml`) with Material Design 3 header and card sections.
+- New "Change folder" dialog (`dialog_change_folder.xml`) for Share workflow, displaying available connections as clickable Material cards (matching the Shares section in the Connection dialog).
+- Night theme variant for `Theme.SambaLite.Dialog` to ensure correct text colors in Dark Mode.
+- Translations for all new dialog subtitles and labels in all supported languages (DE, ES, FR, NL, PL, ZH).
+- Automatic service shutdown: The background SMB service now stops automatically when all activities are closed and no file transfers are active, eliminating the need to manually stop the service.
+
+### Changed
+- Replaced CheckBox with MaterialSwitch in Search and Sort dialogs for a more modern appearance.
+- Replaced ProgressBar with LinearProgressIndicator (Material Design 3) in the Progress dialog.
+
+### Fixed
+- Memory leak: `SmbBackgroundService$LocalBinder` (non-static inner class) held an implicit strong reference to the destroyed service, preventing garbage collection. Converted to a static class with `WeakReference`.
+
+### Developer Notes
+- `BackgroundSmbManager`: New `visibleActivityCount` (AtomicInteger) tracks visible activities. New `onActivityStarted()`/`onActivityStopped()` methods auto-stop the service when count reaches zero and no operations are active. Auto-stop check also added in `finishOperation()`.
+- `MainActivity` and `FileBrowserActivity`: Added `onStart()`/`onStop()` lifecycle overrides to call the new activity tracking methods.
+- `SmbBackgroundService.LocalBinder`: Converted from non-static inner class to `static` class with `WeakReference<SmbBackgroundService>`. Added `clearService()` called in `onDestroy()`.
+- `BackgroundSmbManager.onServiceConnected()`: Updated to handle nullable return from `getService()`.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.6.0] - 2026-03-14
 
 ### Added
