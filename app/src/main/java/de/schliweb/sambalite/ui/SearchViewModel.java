@@ -124,34 +124,19 @@ public class SearchViewModel extends ViewModel {
 
     // Increment generation for this search
     final int myGen = searchGeneration.incrementAndGet();
-    String cacheKey;
     try {
-      cacheKey =
-          IntelligentCacheManager.getInstance()
-              .generateSearchCacheKey(
-                  state.getConnection(),
-                  state.getCurrentPathString(),
-                  state.getCurrentSearchQuery(),
-                  searchType,
-                  includeSubfolders);
+      IntelligentCacheManager.getInstance()
+          .generateSearchCacheKey(
+              state.getConnection(),
+              state.getCurrentPathString(),
+              state.getCurrentSearchQuery(),
+              searchType,
+              includeSubfolders);
     } catch (Exception e) {
       LogUtils.w(
           "SearchViewModel",
           "Failed to generate cache key, proceeding without revalidation throttle: "
               + e.getMessage());
-      // Fallback cache key to avoid NPE in maps
-      // Note: actual cache access below also computes its own key internally
-      String tmpPath = state.getCurrentPathString() == null ? "" : state.getCurrentPathString();
-      cacheKey =
-          (state.getConnection() != null ? state.getConnection().getId() : "no_conn")
-              + "|"
-              + tmpPath
-              + "|"
-              + state.getCurrentSearchQuery()
-              + "|"
-              + searchType
-              + "|"
-              + includeSubfolders;
     }
 
     // Ensure effectively-final copies for background tasks
