@@ -12,6 +12,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.*;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -458,11 +459,16 @@ public class MainActivity extends AppCompatActivity
     // Show the dialog
     dialog.show();
 
+    // Ensure the dialog resizes when the keyboard appears so buttons remain visible
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    }
+
     // Set up the cancel button click listener
     btnCancel.setOnClickListener(
         v -> {
           LogUtils.d("MainActivity", "Add connection dialog cancelled");
-          KeyboardUtils.hideKeyboard(MainActivity.this);
+          KeyboardUtils.hideKeyboard(dialog);
           dialog.dismiss();
         });
 
@@ -515,6 +521,7 @@ public class MainActivity extends AppCompatActivity
 
             LogUtils.i("MainActivity", "Saving new connection: " + name);
             viewModel.saveConnection(connection);
+            KeyboardUtils.hideKeyboard(dialog);
             dialog.dismiss();
           }
         });
@@ -765,11 +772,16 @@ public class MainActivity extends AppCompatActivity
     // Show the dialog
     dialog.show();
 
+    // Ensure the dialog resizes when the keyboard appears so buttons remain visible
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    }
+
     // Set up the cancel button click listener
     btnCancel.setOnClickListener(
         v -> {
           LogUtils.d("MainActivity", "Edit connection dialog cancelled");
-          KeyboardUtils.hideKeyboard(MainActivity.this);
+          KeyboardUtils.hideKeyboard(dialog);
           dialog.dismiss();
         });
 
@@ -827,6 +839,7 @@ public class MainActivity extends AppCompatActivity
 
             LogUtils.i("MainActivity", "Updating connection: " + name);
             viewModel.saveConnection(updatedConnection);
+            KeyboardUtils.hideKeyboard(dialog);
             dialog.dismiss();
           }
         });
