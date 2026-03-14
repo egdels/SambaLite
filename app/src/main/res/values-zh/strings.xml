@@ -184,6 +184,8 @@
     <string name="share_upload_message">@string/content_desc_share</string>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">更改文件夹</string>
+    <string name="share_change_folder_subtitle">选择要浏览的连接</string>
+    <string name="share_change_folder_connections">可用连接</string>
     <string name="select_this_folder">选择此文件夹</string>
     <string name="items_to">项目到</string>
     <string name="permission_title_notifications">启用通知</string>
@@ -327,4 +329,13 @@
     <string name="open_file">打开</string>
     <string name="no_app_to_open_file">未找到可打开此文件的应用</string>
     <string name="opening_file">正在打开 %s…</string>
+    <string name="rename_subtitle">输入新名称</string>
+    <string name="search_subtitle">搜索文件和文件夹</string>
+    <string name="sort_subtitle">选择文件排序方式</string>
+    <string name="sync_setup_subtitle">配置文件夹同步</string>
+    <string name="share_upload_subtitle">将共享项目上传到服务器</string>
+    <string name="share_needs_target_subtitle">您的文件需要一个目标位置</string>
+    <string name="upload_complete_subtitle">传输完成</string>
+    <string name="file_exists_subtitle">检测到名称冲突</string>
+    <string name="progress_subtitle">正在传输</string>
 </resources>

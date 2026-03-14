@@ -151,6 +151,17 @@
     <string name="folders_tab">Folders</string>
     <string name="empty_folder">This folder is empty. Use the + button to upload files or create folders.</string>
 
+    <!-- Dialog Subtitles -->
+    <string name="rename_subtitle">Enter a new name for this item</string>
+    <string name="search_subtitle">Find files and folders</string>
+    <string name="sort_subtitle">Choose how to organize your files</string>
+    <string name="sync_setup_subtitle">Configure folder synchronization</string>
+    <string name="share_upload_subtitle">Upload shared items to your server</string>
+    <string name="share_needs_target_subtitle">A destination is needed for your files</string>
+    <string name="upload_complete_subtitle">Transfer finished</string>
+    <string name="file_exists_subtitle">A naming conflict was detected</string>
+    <string name="progress_subtitle">Transfer in progress</string>
+
     <!-- Upload Completion -->
     <string name="upload_complete_title">Upload Complete</string>
     <string name="view_uploaded_files">View Uploaded Files</string>
@@ -184,6 +195,8 @@
     <string name="share_upload_message">@string/content_desc_share</string>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Change folder</string>
+    <string name="share_change_folder_subtitle">Select a connection to browse</string>
+    <string name="share_change_folder_connections">Available connections</string>
     <string name="select_this_folder">Select this folder</string>
     <string name="items_to">items to</string>
     <string name="permission_title_notifications">Enable notifications</string>

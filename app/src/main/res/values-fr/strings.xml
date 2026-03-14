@@ -184,6 +184,8 @@
     <string name="share_upload_message">@string/content_desc_share</string>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Changer de dossier</string>
+    <string name="share_change_folder_subtitle">Sélectionner une connexion à parcourir</string>
+    <string name="share_change_folder_connections">Connexions disponibles</string>
     <string name="select_this_folder">Sélectionner ce dossier</string>
     <string name="items_to">éléments vers</string>
     <string name="permission_title_notifications">Activer les notifications</string>
@@ -344,4 +346,13 @@
     <string name="open_file">Ouvrir</string>
     <string name="no_app_to_open_file">Aucune application trouvée pour ouvrir ce fichier</string>
     <string name="opening_file">Ouverture de %s…</string>
+    <string name="rename_subtitle">Entrez un nouveau nom</string>
+    <string name="search_subtitle">Rechercher des fichiers et dossiers</string>
+    <string name="sort_subtitle">Choisissez comment organiser vos fichiers</string>
+    <string name="sync_setup_subtitle">Configurer la synchronisation des dossiers</string>
+    <string name="share_upload_subtitle">Téléverser les éléments partagés sur le serveur</string>
+    <string name="share_needs_target_subtitle">Un dossier de destination est requis pour vos fichiers</string>
+    <string name="upload_complete_subtitle">Transfert terminé</string>
+    <string name="file_exists_subtitle">Un conflit de noms a été détecté</string>
+    <string name="progress_subtitle">Transfert en cours</string>
 </resources>
