@@ -5,7 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
@@ -225,7 +225,7 @@ public class DialogHelper {
             dialogView.findViewById(R.id.search_query_edit_text);
         TextInputLayout searchQueryLayout = dialogView.findViewById(R.id.search_query_layout);
         RadioGroup searchTypeRadioGroup = dialogView.findViewById(R.id.search_type_radio_group);
-        CheckBox includeSubfoldersCheckbox =
+        CompoundButton includeSubfoldersCheckbox =
             dialogView.findViewById(R.id.include_subfolders_checkbox);
 
         if (searchQueryEditText != null
@@ -234,7 +234,6 @@ public class DialogHelper {
           // All views found, create the dialog with the layout
           AlertDialog dialog =
               new MaterialAlertDialogBuilder(context)
-                  .setTitle(R.string.search_files)
                   .setView(dialogView)
                   .setPositiveButton(R.string.search, null)
                   .setNegativeButton(R.string.cancel, null)
@@ -318,9 +317,10 @@ public class DialogHelper {
   public static void showNeedsTargetFolderDialog(
       @NonNull Context context, @Nullable Runnable onSelectFolder, @Nullable Runnable onCancel) {
     LogUtils.d("DialogHelper", "Showing needs target folder dialog");
+    View dialogView =
+        LayoutInflater.from(context).inflate(R.layout.dialog_share_needs_target, null);
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.share_needs_target_folder_title)
-        .setMessage(R.string.share_needs_target_folder_message)
+        .setView(dialogView)
         .setPositiveButton(
             R.string.share_needs_target_folder_select, (dialog, which) -> onSelectFolder.run())
         .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
@@ -365,17 +365,19 @@ public class DialogHelper {
       @NonNull Runnable onCancel) {
     LogUtils.d(
         "DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
+    View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_share_upload, null);
+    android.widget.TextView messageView = dialogView.findViewById(R.id.share_upload_message);
+    messageView.setText(
+        context.getString(R.string.share_upload_message)
+            + " "
+            + fileCount
+            + " "
+            + context.getString(R.string.items_to)
+            + " "
+            + targetFolder);
     MaterialAlertDialogBuilder builder =
         new MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.share_upload_title)
-            .setMessage(
-                context.getString(R.string.share_upload_message)
-                    + " "
-                    + fileCount
-                    + " "
-                    + context.getString(R.string.items_to)
-                    + " "
-                    + targetFolder)
+            .setView(dialogView)
             .setPositiveButton(R.string.share_upload_select, (dialog, which) -> onUpload.run())
             .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
             .setCancelable(false);
@@ -418,9 +420,11 @@ public class DialogHelper {
                   .getQuantityString(R.plurals.upload_some_failed, failedCount, failedCount);
     }
 
+    View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_upload_complete, null);
+    android.widget.TextView messageView = dialogView.findViewById(R.id.upload_complete_message);
+    messageView.setText(message);
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.upload_complete_title)
-        .setMessage(message)
+        .setView(dialogView)
         .setPositiveButton(R.string.view_uploaded_files, (dialog, which) -> onViewFiles.run())
         .setNegativeButton(R.string.close, (dialog, which) -> onClose.run())
         .setCancelable(false)
@@ -441,9 +445,11 @@ public class DialogHelper {
       @Nullable Runnable onOverwrite,
       @Nullable Runnable onCancel) {
     LogUtils.d("DialogHelper", "Showing file exists dialog for: " + fileName);
+    View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_file_exists, null);
+    android.widget.TextView messageView = dialogView.findViewById(R.id.file_exists_message);
+    messageView.setText(context.getString(R.string.file_exists_message, fileName));
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.file_exists_title)
-        .setMessage(context.getString(R.string.file_exists_message, fileName))
+        .setView(dialogView)
         .setPositiveButton(R.string.overwrite, (dialog, which) -> onOverwrite.run())
         .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
         .setCancelable(false)

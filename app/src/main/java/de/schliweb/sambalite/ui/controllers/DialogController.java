@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -308,8 +308,10 @@ public class DialogController {
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sort, null);
     RadioGroup sortGroup = dialogView.findViewById(R.id.sort_type_radio_group);
-    CheckBox directoriesFirstCheckbox = dialogView.findViewById(R.id.directories_first_checkbox);
-    CheckBox showHiddenFilesCheckbox = dialogView.findViewById(R.id.show_hidden_files_checkbox);
+    CompoundButton directoriesFirstCheckbox =
+        dialogView.findViewById(R.id.directories_first_checkbox);
+    CompoundButton showHiddenFilesCheckbox =
+        dialogView.findViewById(R.id.show_hidden_files_checkbox);
 
     // Set initial values
     FileSortOption currentSortOption = fileListViewModel.getSortOption().getValue();
@@ -329,7 +331,6 @@ public class DialogController {
     showHiddenFilesCheckbox.setChecked(showHiddenFiles);
 
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.sort_by)
         .setView(dialogView)
         .setPositiveButton(
             R.string.ok,
