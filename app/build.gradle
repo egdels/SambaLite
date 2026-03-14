@@ -118,7 +118,10 @@ android {
         // Disable problematic Timber lint checks that don't work with AGP 8.10.1
         disable += ['LogNotTimber', 'StringFormatInTimber', 'ThrowableNotAtBeginning',
                     'BinaryOperationInTimber', 'TimberArgCount', 'TimberArgTypes',
-                    'TimberTagLength', 'TimberExceptionLogging']
+                    'TimberTagLength', 'TimberExceptionLogging',
+                    // BouncyCastle (transitive via SMBJ) references javax.naming.directory
+                    // which is not available on Android – safe to ignore at lint level
+                    'InvalidPackage']
 
         // Enable important lint check categories
         // Accessibility: contentDescription, touchTargetSize, etc.
