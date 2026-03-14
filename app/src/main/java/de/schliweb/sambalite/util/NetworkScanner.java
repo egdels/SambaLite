@@ -13,7 +13,6 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -181,28 +180,6 @@ public class NetworkScanner {
     return ranges;
   }
 
-  /** Converts an IP address integer to a subnet string. */
-  private String getSubnetFromIp(int ip) {
-    try {
-      String ipStr =
-          String.format(
-              Locale.ROOT,
-              "%d.%d.%d.%d",
-              (ip & 0xff),
-              (ip >> 8 & 0xff),
-              (ip >> 16 & 0xff),
-              (ip >> 24 & 0xff));
-
-      // Assume /24 subnet
-      String[] parts = ipStr.split("\\.");
-      return parts[0] + "." + parts[1] + "." + parts[2] + ".";
-
-    } catch (Exception e) {
-      LogUtils.e(TAG, "Error converting IP to subnet: " + e.getMessage());
-      return null;
-    }
-  }
-
   /** Gets subnet from InetAddress. */
   private String getSubnetFromAddress(InetAddress address) {
     try {
@@ -251,7 +228,7 @@ public class NetworkScanner {
 
       try {
         DiscoveredServer server =
-            discoveredServerCompletableFuture.get(timeoutMs + (long) 500, TimeUnit.MILLISECONDS);
+            discoveredServerCompletableFuture.get(timeoutMs + 500L, TimeUnit.MILLISECONDS);
 
         if (server != null && server.isLikelySmbServer()) {
           servers.add(server);
