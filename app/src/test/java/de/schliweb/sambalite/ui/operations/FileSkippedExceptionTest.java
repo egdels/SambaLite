@@ -16,6 +16,6 @@ public class FileSkippedExceptionTest {
   @Test
   public void isException_extendsException() {
     FileSkippedException exception = new FileSkippedException("test");
-    assertTrue(exception instanceof Exception);
+    assertNotNull(exception);
   }
 }

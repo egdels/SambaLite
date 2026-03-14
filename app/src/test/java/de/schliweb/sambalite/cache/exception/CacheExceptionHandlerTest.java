@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config;
 
 /** Unit tests for {@link CacheExceptionHandler}. */
 @RunWith(RobolectricTestRunner.class)
-@Config(manifest = Config.NONE)
+@Config(sdk = {28})
 public class CacheExceptionHandlerTest {
 
   private CacheStatistics statistics;

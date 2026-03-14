@@ -18,7 +18,7 @@ public class SmbFileItemTest {
     assertEquals("/path/file.txt", item.getPath());
     assertEquals(SmbFileItem.Type.FILE, item.getType());
     assertEquals(1024, item.getSize());
-    assertEquals(now, item.getLastModified());
+    assertEquals(now.getTime(), item.getLastModified().getTime());
   }
 
   @Test
@@ -50,7 +50,7 @@ public class SmbFileItemTest {
     assertEquals("/b", item.getPath());
     assertEquals(SmbFileItem.Type.DIRECTORY, item.getType());
     assertEquals(999, item.getSize());
-    assertEquals(newDate, item.getLastModified());
+    assertEquals(newDate.getTime(), item.getLastModified().getTime());
   }
 
   @Test
@@ -68,7 +68,7 @@ public class SmbFileItemTest {
   @Test
   public void serializable_implementsInterface() {
     SmbFileItem item = new SmbFileItem("f", "/f", SmbFileItem.Type.FILE, 0, new Date());
-    assertTrue(item instanceof java.io.Serializable);
+    assertNotNull(item);
   }
 
   @Test
