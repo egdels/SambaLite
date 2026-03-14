@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -481,13 +480,6 @@ public class FolderSyncWorker extends Worker {
 
   /** Returns a MIME type for a file based on its extension. */
   String getMimeType(String fileName) {
-    if (fileName == null) return "application/octet-stream";
-    String extension =
-        fileName.contains(".")
-            ? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
-            : "";
-    if (extension.isEmpty()) return "application/octet-stream";
-    String mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-    return mimeType != null ? mimeType : "application/octet-stream";
+    return de.schliweb.sambalite.util.MimeTypeUtils.getMimeType(fileName);
   }
 }
