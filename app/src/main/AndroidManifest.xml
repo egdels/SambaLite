@@ -27,6 +27,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:windowSoftInputMode="adjustResize|stateHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -62,6 +63,17 @@
             android:exported="false"
             android:theme="@style/Theme.SambaLite"
             android:parentActivityName=".ui.MainActivity" />
+
+        <!-- FileProvider for sharing cached files with external apps -->
+        <provider
+            android:name="de.schliweb.sambalite.util.OpenFileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Foreground Service for background SMB operations -->
         <service
