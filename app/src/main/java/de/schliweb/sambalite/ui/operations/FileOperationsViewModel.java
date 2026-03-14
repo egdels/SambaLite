@@ -17,6 +17,7 @@ import de.schliweb.sambalite.ui.FileBrowserState;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.OpenFileCacheManager;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +36,7 @@ public class FileOperationsViewModel extends ViewModel {
   final BackgroundSmbManager backgroundSmbManager;
 
   final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private volatile boolean cleared = false;
 
   final AtomicInteger uploadCount = new AtomicInteger(0);
   final AtomicInteger downloadCount = new AtomicInteger(0);
@@ -144,6 +146,134 @@ public class FileOperationsViewModel extends ViewModel {
     LogUtils.d("FileOperationsViewModel", "Upload cancellation requested from UI");
     state.setUploadCancelled(true);
     smbRepository.cancelUpload();
+  }
+
+  /**
+   * Downloads a file into the open-file cache directory for viewing with an external app. Reports
+   * download progress via the {@link #getTransferProgress()} LiveData and supports cancellation.
+   *
+   * @param file the remote file to download
+   * @param onSuccess called on the main thread with the local cache file on success
+   * @param onError called on the main thread with an error message on failure
+   */
+  public void downloadToCache(
+      @NonNull SmbFileItem file,
+      @NonNull java.util.function.Consumer<File> onSuccess,
+      @NonNull java.util.function.Consumer<String> onError) {
+    if (state.getConnection() == null || file == null || !file.isFile()) {
+      LogUtils.w("FileOperationsViewModel", "Cannot download to cache: invalid file or connection");
+      String msg = context.getString(de.schliweb.sambalite.R.string.invalid_file_or_connection);
+      mainHandler.post(() -> onError.accept(msg));
+      return;
+    }
+
+    File cacheDir = OpenFileCacheManager.getCacheDir(context);
+    File targetFile = new File(cacheDir, file.getName());
+
+    // Check if file already exists in cache with matching size
+    if (targetFile.exists() && targetFile.length() > 0) {
+      LogUtils.d(
+          "FileOperationsViewModel",
+          "File found in cache, skipping download: "
+              + file.getName()
+              + " ("
+              + targetFile.length()
+              + " bytes)");
+      mainHandler.post(() -> onSuccess.accept(targetFile));
+      return;
+    }
+
+    // Enforce cache size limit before downloading
+    OpenFileCacheManager.enforceMaxSize(context);
+
+    LogUtils.d(
+        "FileOperationsViewModel",
+        "Downloading file to cache: " + file.getName() + " -> " + targetFile.getAbsolutePath());
+
+    backgroundSmbManager.ensureServiceRunning();
+    String opName = "Opening: " + file.getName();
+    backgroundSmbManager.startOperation(opName);
+
+    state.setDownloadCancelled(false);
+
+    String initialStatus =
+        context.getString(de.schliweb.sambalite.R.string.downloading_colon, file.getName());
+    emitProgress(initialStatus, 0, file.getName());
+
+    executor.execute(
+        () -> {
+          try {
+            final ProgressThrottler throttle = new ProgressThrottler(PROGRESS_THROTTLE_MS);
+            final int[] lastPctBox = {0};
+
+            smbRepository.downloadFileWithProgress(
+                state.getConnection(),
+                file.getPath(),
+                targetFile,
+                new BackgroundSmbManager.ProgressCallback() {
+                  @Override
+                  public void updateProgress(String progressInfo) {
+                    int raw = ProgressFormat.parsePercent(progressInfo);
+                    int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
+                    if (throttle.allow(pct)) {
+                      emitProgress(progressInfo, pct, file.getName());
+                    }
+                    if (pct > lastPctBox[0]) lastPctBox[0] = pct;
+                  }
+
+                  @Override
+                  public void updateBytesProgress(
+                      long currentBytes, long totalBytes, String fileName) {
+                    int raw = calculateAccuratePercentage(currentBytes, totalBytes);
+                    int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
+                    if (throttle.allow(pct)) {
+                      String status =
+                          ProgressFormat.formatBytes(
+                              context.getString(de.schliweb.sambalite.R.string.downloading),
+                              currentBytes,
+                              totalBytes);
+                      emitProgress(status, pct, fileName);
+                    }
+                    if (pct > lastPctBox[0]) lastPctBox[0] = pct;
+                  }
+                });
+
+            if (state.isDownloadCancelled()) {
+              LogUtils.i(
+                  "FileOperationsViewModel",
+                  "Open-file download was cancelled by user: " + file.getName());
+              if (targetFile.exists()) {
+                targetFile.delete();
+              }
+              String msg =
+                  context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user);
+              mainHandler.post(() -> onError.accept(msg));
+              return;
+            }
+
+            LogUtils.d(
+                "FileOperationsViewModel",
+                "File downloaded to cache successfully: " + file.getName());
+            mainHandler.post(() -> onSuccess.accept(targetFile));
+          } catch (Exception e) {
+            LogUtils.e(
+                "FileOperationsViewModel", "Failed to download file to cache: " + e.getMessage());
+            // Clean up partial file
+            if (targetFile.exists()) {
+              targetFile.delete();
+            }
+            if (state.isDownloadCancelled()
+                || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
+              String msg =
+                  context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user);
+              mainHandler.post(() -> onError.accept(msg));
+            } else {
+              mainHandler.post(() -> onError.accept(e.getMessage()));
+            }
+          } finally {
+            backgroundSmbManager.finishOperation(opName, true);
+          }
+        });
   }
 
   public void downloadFile(
@@ -1352,8 +1482,13 @@ public class FileOperationsViewModel extends ViewModel {
   @Override
   protected void onCleared() {
     super.onCleared();
-    // Allow in-flight operations to complete so background uploads/downloads aren't interrupted
-    executor.shutdown();
+    cleared = true;
+    executor.shutdownNow();
+  }
+
+  /** Returns true if this ViewModel has been cleared and should no longer be used. */
+  boolean isCleared() {
+    return cleared;
   }
 
   private static final long PROGRESS_THROTTLE_MS = 100; // ~10 Updates/Sek.
