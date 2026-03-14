@@ -1644,6 +1644,22 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   @Override
+  protected void onStart() {
+    super.onStart();
+    if (backgroundSmbManager != null) {
+      backgroundSmbManager.onActivityStarted();
+    }
+  }
+
+  @Override
+  protected void onStop() {
+    super.onStop();
+    if (backgroundSmbManager != null) {
+      backgroundSmbManager.onActivityStopped();
+    }
+  }
+
+  @Override
   protected void onDestroy() {
     super.onDestroy();
     LogUtils.d("FileBrowserActivity", "onDestroy called");
