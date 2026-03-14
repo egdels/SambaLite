@@ -112,6 +112,10 @@ public class SambaLiteApp extends Application {
 
       LogUtils.i("SambaLiteApp", "Background-aware connection management initialized");
 
+      // Clean up expired open-file cache entries
+      de.schliweb.sambalite.util.OpenFileCacheManager.cleanupOnAppStart(this);
+      LogUtils.i("SambaLiteApp", "Open-file cache cleanup completed");
+
       LogUtils.i("SambaLiteApp", "SambaLite application fully initialized");
 
     } catch (Exception e) {
