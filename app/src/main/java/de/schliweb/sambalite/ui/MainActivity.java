@@ -462,9 +462,7 @@ public class MainActivity extends AppCompatActivity
     // Ensure the dialog resizes when the keyboard appears so buttons remain visible
     if (dialog.getWindow() != null) {
       //noinspection deprecation
-      dialog
-          .getWindow()
-          .setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+      dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     // Set up the cancel button click listener
@@ -778,9 +776,7 @@ public class MainActivity extends AppCompatActivity
     // Ensure the dialog resizes when the keyboard appears so buttons remain visible
     if (dialog.getWindow() != null) {
       //noinspection deprecation
-      dialog
-          .getWindow()
-          .setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+      dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     // Set up the cancel button click listener
