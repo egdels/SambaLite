@@ -17,6 +17,9 @@ Main features:
 • Refresh view ("Pull-to-Refresh")
 • Sorting options (name, date, size)
 • File operations: Download, upload, delete, rename
+• Open files directly from the share
+• Share files and text to SMB shares
+• Automatic folder sync between device and share
 • Display file properties
 • Modern Material Design 3 interface with app logo colors
 • Dark/Light Mode (system default)

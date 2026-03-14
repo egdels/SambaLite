@@ -23,6 +23,8 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 | SMB/Share Connection   | ✅     | Connect with username/password and domain       |
 | File Browsing          | ✅     | Navigate through folders and files              |
 | Download/Upload        | ✅     | Transfer files between device and share         |
+| Open Files             | ✅     | Open files directly from the share              |
+| Share Files/Text       | ✅     | Share files and text to SMB shares              |
 | Delete/Rename          | ✅     | Basic file operations with confirmation         |
 | Search with Wildcards  | ✅     | Find files using * and ? wildcards              |
 | Modern UI              | ✅     | Material Design with Dark Mode support          |
