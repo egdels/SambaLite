@@ -34,7 +34,7 @@ public class IntelligentCacheManager {
   private static final String TAG = "IntelligentCacheManager";
 
   // Singleton instance
-  private static IntelligentCacheManager instance;
+  private static volatile IntelligentCacheManager instance;
 
   // Core components
   private final CacheStrategy<String, Serializable> cacheStrategy;
