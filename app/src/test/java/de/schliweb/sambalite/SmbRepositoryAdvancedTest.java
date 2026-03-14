@@ -1,5 +1,6 @@
 package de.schliweb.sambalite;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -9,8 +10,8 @@ import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
 import de.schliweb.sambalite.util.SambaContainer;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -109,7 +110,7 @@ public class SmbRepositoryAdvancedTest {
 
         // Write some content to the file
         String testContent = "Content for " + filename;
-        try (FileWriter writer = new FileWriter(localFile)) {
+        try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
           writer.write(testContent);
         }
 
@@ -128,7 +129,7 @@ public class SmbRepositoryAdvancedTest {
         smbRepository.downloadFile(testConnection, filename, downloadedLocalFile);
 
         // Verify the content
-        String downloadedContent = new String(Files.readAllBytes(downloadedFile));
+        String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
         assertEquals("Content should match for file: " + filename, testContent, downloadedContent);
 
         // Clean up
@@ -169,7 +170,7 @@ public class SmbRepositoryAdvancedTest {
         localFile.deleteOnExit();
 
         String testContent = "Content for level " + i;
-        try (FileWriter writer = new FileWriter(localFile)) {
+        try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
           writer.write(testContent);
         }
 
@@ -220,7 +221,7 @@ public class SmbRepositoryAdvancedTest {
       localFile.deleteOnExit();
 
       // Ensure the file is empty
-      try (FileWriter writer = new FileWriter(localFile)) {
+      try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
         writer.write("");
       }
 
@@ -240,7 +241,7 @@ public class SmbRepositoryAdvancedTest {
       smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
 
       // Verify the content is empty
-      String downloadedContent = new String(Files.readAllBytes(downloadedFile));
+      String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
       assertEquals("Downloaded content should be empty", "", downloadedContent);
 
       // Clean up
@@ -279,8 +280,8 @@ public class SmbRepositoryAdvancedTest {
       long fileSize = Files.size(tempFile);
       assertEquals(
           "File size should be approximately " + fileSizeMB + " MB",
-          fileSizeMB * 1024 * 1024,
-          fileSize,
+          (double) fileSizeMB * 1024 * 1024,
+          (double) fileSize,
           1024); // Allow 1 KB tolerance
 
       // Upload the large file
@@ -338,7 +339,7 @@ public class SmbRepositoryAdvancedTest {
                         File localFile = tempFile.toFile();
                         localFile.deleteOnExit();
 
-                        try (FileWriter writer = new FileWriter(localFile)) {
+                        try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
                           writer.write("Content from thread " + threadNum);
                         }
 
@@ -488,7 +489,7 @@ public class SmbRepositoryAdvancedTest {
 
       // Try to list files with invalid credentials
       try {
-        List<SmbFileItem> files = smbRepository.listFiles(invalidConnection, "");
+        smbRepository.listFiles(invalidConnection, "");
         fail("Should throw an exception when listing files with invalid credentials");
       } catch (Exception e) {
         // Expected exception
@@ -525,7 +526,7 @@ public class SmbRepositoryAdvancedTest {
 
       // Try to list files with an invalid share
       try {
-        List<SmbFileItem> files = smbRepository.listFiles(invalidShareConnection, "");
+        smbRepository.listFiles(invalidShareConnection, "");
         fail("Should throw an exception when listing files with invalid share name");
       } catch (Exception e) {
         // Expected exception
@@ -548,7 +549,7 @@ public class SmbRepositoryAdvancedTest {
       localFile1.deleteOnExit();
 
       String testContent1 = "Original content";
-      try (FileWriter writer = new FileWriter(localFile1)) {
+      try (Writer writer = Files.newBufferedWriter(localFile1.toPath(), UTF_8)) {
         writer.write(testContent1);
       }
 
@@ -561,7 +562,7 @@ public class SmbRepositoryAdvancedTest {
       localFile2.deleteOnExit();
 
       String testContent2 = "New content that should overwrite the original";
-      try (FileWriter writer = new FileWriter(localFile2)) {
+      try (Writer writer = Files.newBufferedWriter(localFile2.toPath(), UTF_8)) {
         writer.write(testContent2);
       }
 
@@ -576,7 +577,7 @@ public class SmbRepositoryAdvancedTest {
       smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
 
       // Verify the content is from the second file
-      String downloadedContent = new String(Files.readAllBytes(downloadedFile));
+      String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
       assertEquals(
           "Downloaded content should match the second file", testContent2, downloadedContent);
 
@@ -607,7 +608,7 @@ public class SmbRepositoryAdvancedTest {
       localFile.deleteOnExit();
 
       String testContent = "Content for file with very long name";
-      try (FileWriter writer = new FileWriter(localFile)) {
+      try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
         writer.write(testContent);
       }
 
@@ -627,7 +628,7 @@ public class SmbRepositoryAdvancedTest {
         smbRepository.downloadFile(testConnection, longFileName, downloadedLocalFile);
 
         // Verify the content
-        String downloadedContent = new String(Files.readAllBytes(downloadedFile));
+        String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
         assertEquals(
             "Content should match for file with long name", testContent, downloadedContent);
 

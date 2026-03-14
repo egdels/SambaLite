@@ -1,5 +1,6 @@
 package de.schliweb.sambalite;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -103,10 +104,8 @@ public class SambaServerTest {
           smbRepository.listFiles(testConnection, "");
 
       // Verify that the test file exists
-      boolean foundTestFile = false;
       for (de.schliweb.sambalite.data.model.SmbFileItem file : files) {
         if ("testfile.txt".equals(file.getName())) {
-          foundTestFile = true;
           break;
         }
       }
@@ -133,7 +132,7 @@ public class SambaServerTest {
       smbRepository.downloadFile(testConnection, "testfile.txt", localFile);
 
       // Verify the content
-      String content = new String(Files.readAllBytes(tempFile));
+      String content = new String(Files.readAllBytes(tempFile), UTF_8);
       assertEquals("Test content\n", content);
     } catch (Exception e) {
       // For now, we'll just print the exception and pass the test

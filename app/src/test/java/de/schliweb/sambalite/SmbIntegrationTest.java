@@ -1,5 +1,6 @@
 package de.schliweb.sambalite;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.model.SmbConnection;
@@ -20,7 +21,6 @@ import org.junit.Test;
 public class SmbIntegrationTest {
 
   private SmbTestHelper testHelper;
-  private MockSmbServer mockServer;
 
   @Before
   public void setUp() {
@@ -29,7 +29,7 @@ public class SmbIntegrationTest {
     // Initialize test helper with mock-only mode for reliable testing
     testHelper = new SmbTestHelper.Builder().withMockOnly().build();
 
-    mockServer = new MockSmbServer();
+    new MockSmbServer();
     testHelper.setupTestData();
 
     System.out.println("[DEBUG_LOG] SMB test environment ready");
@@ -127,7 +127,7 @@ public class SmbIntegrationTest {
 
       assertTrue("Should read some bytes", bytesRead > 0);
 
-      String content = new String(buffer, 0, bytesRead);
+      String content = new String(buffer, 0, bytesRead, UTF_8);
       assertTrue("Content should contain expected text", content.contains("test document"));
 
       inputStream.close();
@@ -143,7 +143,7 @@ public class SmbIntegrationTest {
   public void testUploadFile() {
     try {
       String testContent = "This is a test upload file content";
-      ByteArrayInputStream uploadStream = new ByteArrayInputStream(testContent.getBytes());
+      ByteArrayInputStream uploadStream = new ByteArrayInputStream(testContent.getBytes(UTF_8));
 
       // Upload the file
       testHelper.uploadFile("/uploaded_test.txt", uploadStream);
@@ -168,7 +168,7 @@ public class SmbIntegrationTest {
       InputStream downloadStream = testHelper.downloadFile("/uploaded_test.txt");
       byte[] buffer = new byte[1024];
       int bytesRead = downloadStream.read(buffer);
-      String downloadedContent = new String(buffer, 0, bytesRead);
+      String downloadedContent = new String(buffer, 0, bytesRead, UTF_8);
 
       assertEquals(
           "Downloaded content should match uploaded content", testContent, downloadedContent);
@@ -187,7 +187,7 @@ public class SmbIntegrationTest {
     try {
       // First upload a file to delete
       String testContent = "File to be deleted";
-      ByteArrayInputStream uploadStream = new ByteArrayInputStream(testContent.getBytes());
+      ByteArrayInputStream uploadStream = new ByteArrayInputStream(testContent.getBytes(UTF_8));
       testHelper.uploadFile("/delete_test.txt", uploadStream);
 
       // Verify file exists

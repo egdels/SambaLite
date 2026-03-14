@@ -34,7 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SmbRepositoryAdvancedIntegrityTest {
 
   private final SecureRandom random = new SecureRandom();
-  private SmbRepositoryImpl smbRepository;
   private SmbConnection testConnection;
   private File tempTestDir;
 
@@ -48,7 +47,7 @@ public class SmbRepositoryAdvancedIntegrityTest {
             mockBackgroundManager.executeBackgroundOperation(
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
         .thenReturn(failedFuture);
-    smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
+    new SmbRepositoryImpl(mockBackgroundManager);
 
     // Test connection setup
     testConnection = new SmbConnection();
@@ -330,14 +329,11 @@ public class SmbRepositoryAdvancedIntegrityTest {
     // Numbers and mixed case
     problematicFiles.put("MixedCase123FILE.TXT", "Mixed case content");
 
-    Map<String, String> hashes = new HashMap<>();
-
     // Create and verify all problematic files
     for (Map.Entry<String, String> entry : problematicFiles.entrySet()) {
       try {
         File file = createTestFile(entry.getKey(), entry.getValue());
         String hash = calculateFileHash(file);
-        hashes.put(entry.getKey(), hash);
 
         // Copy file to test transfer
         File copiedFile = new File(tempTestDir, "copied_" + entry.getKey());
@@ -382,9 +378,11 @@ public class SmbRepositoryAdvancedIntegrityTest {
 
   private String generateUniqueContent(int threadId, int fileId) {
     return String.format(
-        "Thread %d, File %d - Unique content with timestamp: %d\n"
-            + "Data integrity test content that must be preserved!\n"
-            + "Random data: %s\n",
+        """
+        Thread %d, File %d - Unique content with timestamp: %d
+        Data integrity test content that must be preserved!
+        Random data: %s
+        """,
         threadId, fileId, System.currentTimeMillis(), UUID.randomUUID().toString());
   }
 
@@ -431,7 +429,7 @@ public class SmbRepositoryAdvancedIntegrityTest {
   private String generateBinaryString(int length) {
     StringBuilder sb = new StringBuilder(length);
     for (int i = 0; i < length; i++) {
-      sb.append((char) (random.nextInt(256)));
+      sb.append((char) random.nextInt(256));
     }
     return sb.toString();
   }

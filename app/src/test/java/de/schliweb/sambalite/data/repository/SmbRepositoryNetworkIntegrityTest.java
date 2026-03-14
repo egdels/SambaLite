@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import org.junit.Before;
 import org.junit.Test;
@@ -114,16 +115,17 @@ public class SmbRepositoryNetworkIntegrityTest {
       // Expected - verify graceful handling of null values
       assertNotNull("Error message should be provided", e.getMessage());
       // Accept any error from invalid connection parameters
+      String msg = e.getMessage().toLowerCase(Locale.ROOT);
       assertTrue(
           "Error should be for invalid parameters",
-          e.getMessage().toLowerCase().contains("connection")
-              || e.getMessage().toLowerCase().contains("connect")
-              || e.getMessage().toLowerCase().contains("refused")
-              || e.getMessage().toLowerCase().contains("null")
-              || e.getMessage().toLowerCase().contains("error")
-              || e.getMessage().toLowerCase().contains("failed")
-              || e.getMessage().toLowerCase().contains("operation")
-              || e.getMessage().toLowerCase().contains("attempts"));
+          msg.contains("connection")
+              || msg.contains("connect")
+              || msg.contains("refused")
+              || msg.contains("null")
+              || msg.contains("error")
+              || msg.contains("failed")
+              || msg.contains("operation")
+              || msg.contains("attempts"));
     }
   }
 
@@ -310,6 +312,7 @@ public class SmbRepositoryNetworkIntegrityTest {
   }
 
   /** Test folder operations with complex structures */
+  @SuppressWarnings("MissingFail")
   @Test
   public void testFolderOperationComplexity() throws Exception {
     // Create a complex local folder structure for testing

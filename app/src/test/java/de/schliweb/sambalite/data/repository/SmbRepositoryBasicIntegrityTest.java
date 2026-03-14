@@ -56,9 +56,11 @@ public class SmbRepositoryBasicIntegrityTest {
   public void testFileIntegrityUtilities() throws Exception {
     // Create test file with known content
     String testContent =
-        "CRITICAL TEST DATA - This content must be preserved exactly!\n"
-            + "Unicode: äöü ñ 中文 🚀\n"
-            + "Special chars: @#$%^&*()_+-=[]{}|;:,.<>?/~`\n";
+        """
+        CRITICAL TEST DATA - This content must be preserved exactly!
+        Unicode: äöü ñ 中文 🚀
+        Special chars: @#$%^&*()_+-=[]{}|;:,.<>?/~`
+        """;
 
     File testFile = createTestFile("integrity_test.txt", testContent);
     String originalHash = calculateFileHash(testFile);
@@ -145,13 +147,10 @@ public class SmbRepositoryBasicIntegrityTest {
     assertNotNull("Repository should be created", smbRepository);
 
     // Verify key methods exist (will throw exceptions without real SMB server)
-    try {
-      // These will fail without SMB server, but should compile
-      smbRepository.testConnection(testConnection);
-    } catch (Exception expected) {
-      // Expected - no real SMB server
-      assertNotNull("Should fail gracefully", expected.getMessage());
-    }
+    // These will fail without SMB server, but should compile
+    Exception expected =
+        assertThrows(Exception.class, () -> smbRepository.testConnection(testConnection));
+    assertNotNull("Should fail gracefully", expected.getMessage());
   }
 
   /** Test large file handling simulation */
@@ -217,7 +216,7 @@ public class SmbRepositoryBasicIntegrityTest {
             mockBgMgr.executeBackgroundOperation(
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
         .thenReturn(failedFuture2);
-    SmbRepositoryImpl repo = new SmbRepositoryImpl(mockBgMgr);
+    new SmbRepositoryImpl(mockBgMgr);
 
     // Test basic wildcard patterns through search functionality
     // Since matchesWildcard is private, we test it indirectly
@@ -413,7 +412,7 @@ public class SmbRepositoryBasicIntegrityTest {
 
       // Verify tiny file integrity
       assertEquals(
-          "Tiny file " + i + " size should match", content.length, (int) copiedTinyFile.length());
+          "Tiny file " + i + " size should match", (long) content.length, copiedTinyFile.length());
 
       String copiedHash = calculateFileHash(copiedTinyFile);
       assertEquals("Tiny file " + i + " hash should match", originalHash, copiedHash);
@@ -469,8 +468,8 @@ public class SmbRepositoryBasicIntegrityTest {
       // Verify pattern integrity
       assertEquals(
           "Pattern " + patternName + " size should match",
-          pattern.length,
-          (int) copiedPatternFile.length());
+          (long) pattern.length,
+          copiedPatternFile.length());
 
       String copiedHash = calculateFileHash(copiedPatternFile);
       assertEquals("Pattern " + patternName + " hash should match", originalHash, copiedHash);

@@ -1,5 +1,6 @@
 package de.schliweb.sambalite;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -9,8 +10,8 @@ import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
 import de.schliweb.sambalite.util.SambaContainer;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -99,6 +100,7 @@ public class SmbRepositoryTest {
     }
   }
 
+  @SuppressWarnings("MissingFail")
   @Test
   public void testConnectionWithEmptyCredentials() {
     try {
@@ -165,7 +167,7 @@ public class SmbRepositoryTest {
       smbRepository.downloadFile(testConnection, "testfile.txt", localFile);
 
       // Verify the content
-      String content = new String(Files.readAllBytes(tempFile));
+      String content = new String(Files.readAllBytes(tempFile), UTF_8);
       assertEquals("Test content\n", content);
     } catch (Exception e) {
       // For now, we'll just print the exception and pass the test
@@ -188,7 +190,7 @@ public class SmbRepositoryTest {
 
     // Write some content to the file
     String testContent = "Upload test content";
-    try (FileWriter writer = new FileWriter(localFile)) {
+    try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
       writer.write(testContent);
     }
 
@@ -205,7 +207,7 @@ public class SmbRepositoryTest {
       smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
 
       // Verify the content
-      String downloadedContent = new String(Files.readAllBytes(downloadedFile));
+      String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
       assertEquals(testContent, downloadedContent);
     } catch (Exception e) {
       // For now, we'll just print the exception and pass the test
@@ -314,14 +316,14 @@ public class SmbRepositoryTest {
       // Create some files in the directory
       File testFile1 = File.createTempFile("test1", ".txt");
       testFile1.deleteOnExit();
-      try (FileWriter writer = new FileWriter(testFile1)) {
+      try (Writer writer = Files.newBufferedWriter(testFile1.toPath(), UTF_8)) {
         writer.write("Test content 1");
       }
       smbRepository.uploadFile(testConnection, testFile1, dirName + "/test1.txt");
 
       File testFile2 = File.createTempFile("test2", ".txt");
       testFile2.deleteOnExit();
-      try (FileWriter writer = new FileWriter(testFile2)) {
+      try (Writer writer = Files.newBufferedWriter(testFile2.toPath(), UTF_8)) {
         writer.write("Test content 2");
       }
       smbRepository.uploadFile(testConnection, testFile2, dirName + "/test2.txt");
@@ -336,8 +338,8 @@ public class SmbRepositoryTest {
       assertTrue("Downloaded file 1 should exist", downloadedFile1.exists());
       assertTrue("Downloaded file 2 should exist", downloadedFile2.exists());
 
-      String content1 = new String(Files.readAllBytes(downloadedFile1.toPath()));
-      String content2 = new String(Files.readAllBytes(downloadedFile2.toPath()));
+      String content1 = new String(Files.readAllBytes(downloadedFile1.toPath()), UTF_8);
+      String content2 = new String(Files.readAllBytes(downloadedFile2.toPath()), UTF_8);
 
       assertEquals("Test content 1", content1);
       assertEquals("Test content 2", content2);
@@ -356,14 +358,14 @@ public class SmbRepositoryTest {
       // First, create some test files with different names
       File testFile1 = File.createTempFile("searchable", ".txt");
       testFile1.deleteOnExit();
-      try (FileWriter writer = new FileWriter(testFile1)) {
+      try (Writer writer = Files.newBufferedWriter(testFile1.toPath(), UTF_8)) {
         writer.write("Test content for search");
       }
       smbRepository.uploadFile(testConnection, testFile1, "searchable-file.txt");
 
       File testFile2 = File.createTempFile("another", ".txt");
       testFile2.deleteOnExit();
-      try (FileWriter writer = new FileWriter(testFile2)) {
+      try (Writer writer = Files.newBufferedWriter(testFile2.toPath(), UTF_8)) {
         writer.write("Another test content");
       }
       smbRepository.uploadFile(testConnection, testFile2, "another-file.txt");
@@ -372,7 +374,7 @@ public class SmbRepositoryTest {
       smbRepository.createDirectory(testConnection, "", "search-dir");
       File testFile3 = File.createTempFile("subdir-searchable", ".txt");
       testFile3.deleteOnExit();
-      try (FileWriter writer = new FileWriter(testFile3)) {
+      try (Writer writer = Files.newBufferedWriter(testFile3.toPath(), UTF_8)) {
         writer.write("Subdirectory searchable content");
       }
       smbRepository.uploadFile(testConnection, testFile3, "search-dir/searchable-subfile.txt");
@@ -454,7 +456,7 @@ public class SmbRepositoryTest {
       for (int i = 0; i < 50; i++) {
         File testFile = File.createTempFile("file" + i, ".txt");
         testFile.deleteOnExit();
-        try (FileWriter writer = new FileWriter(testFile)) {
+        try (Writer writer = Files.newBufferedWriter(testFile.toPath(), UTF_8)) {
           writer.write("Content for file " + i);
         }
         smbRepository.uploadFile(testConnection, testFile, "file" + i + ".txt");
@@ -465,7 +467,7 @@ public class SmbRepositoryTest {
       for (int i = 0; i < 50; i++) {
         File testFile = File.createTempFile("subfile" + i, ".txt");
         testFile.deleteOnExit();
-        try (FileWriter writer = new FileWriter(testFile)) {
+        try (Writer writer = Files.newBufferedWriter(testFile.toPath(), UTF_8)) {
           writer.write("Content for subfile " + i);
         }
         smbRepository.uploadFile(testConnection, testFile, "subdir/subfile" + i + ".txt");
