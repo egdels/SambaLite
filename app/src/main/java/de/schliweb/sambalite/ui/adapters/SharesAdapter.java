@@ -69,21 +69,17 @@ public class SharesAdapter extends RecyclerView.Adapter<SharesAdapter.ShareViewH
 
   class ShareViewHolder extends RecyclerView.ViewHolder {
     private final TextView shareName;
-    private final View itemView;
 
     public ShareViewHolder(@NonNull View itemView) {
       super(itemView);
-      this.itemView = itemView;
       shareName = itemView.findViewById(R.id.share_name);
 
       itemView.setOnClickListener(
           v -> {
             int position = getBindingAdapterPosition();
             if (position == RecyclerView.NO_POSITION) return;
-            if (position != RecyclerView.NO_POSITION) {
-              String share = shares.get(position);
-              selectShare(share);
-            }
+            String share = shares.get(position);
+            selectShare(share);
           });
     }
 
