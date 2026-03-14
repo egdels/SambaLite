@@ -24,13 +24,15 @@ public class CacheMaintenanceManager {
   // Default maintenance interval in milliseconds (30 minutes)
   private static final long DEFAULT_MAINTENANCE_INTERVAL_MS = 30 * 60 * 1000;
 
-  // The application context
+  // The application context (retained for future use)
+  @SuppressWarnings("UnusedVariable")
   private final Context context;
 
   // The cache strategy to maintain
   private final CacheStrategy<?, ?> cacheStrategy;
 
-  // Statistics for monitoring cache performance
+  // Statistics for monitoring cache performance (retained for future use)
+  @SuppressWarnings("UnusedVariable")
   private final CacheStatistics statistics;
 
   // Exception handler for reporting maintenance errors
