@@ -168,19 +168,35 @@ public class ShareReceiverActivity extends AppCompatActivity {
       openFileBrowserForFolderChange(connections.get(0));
       return;
     }
-    // Show connection picker
-    String[] names = new String[connections.size()];
-    for (int i = 0; i < connections.size(); i++) {
-      names[i] = connections.get(i).getName();
+    // Show connection picker with custom layout
+    android.view.View dialogView =
+        android.view.LayoutInflater.from(this).inflate(R.layout.dialog_change_folder, null);
+    android.widget.LinearLayout connectionsList = dialogView.findViewById(R.id.connections_list);
+
+    androidx.appcompat.app.AlertDialog dialog =
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .setNegativeButton(
+                R.string.cancel,
+                (d, which) -> showShareDialog(PreferenceUtils.getCurrentSmbFolder(this)))
+            .setCancelable(false)
+            .create();
+
+    for (SmbConnection connection : connections) {
+      android.view.View itemView =
+          android.view.LayoutInflater.from(this)
+              .inflate(R.layout.item_share, connectionsList, false);
+      android.widget.TextView nameText = itemView.findViewById(R.id.share_name);
+      nameText.setText(connection.getName());
+      itemView.setOnClickListener(
+          v -> {
+            dialog.dismiss();
+            openFileBrowserForFolderChange(connection);
+          });
+      connectionsList.addView(itemView);
     }
-    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.share_change_folder)
-        .setItems(names, (dialog, which) -> openFileBrowserForFolderChange(connections.get(which)))
-        .setNegativeButton(
-            R.string.cancel,
-            (dialog, which) -> showShareDialog(PreferenceUtils.getCurrentSmbFolder(this)))
-        .setCancelable(false)
-        .show();
+
+    dialog.show();
   }
 
   private void openFileBrowserForFolderChange(SmbConnection connection) {
