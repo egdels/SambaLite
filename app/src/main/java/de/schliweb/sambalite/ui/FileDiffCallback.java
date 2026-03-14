@@ -46,6 +46,6 @@ public class FileDiffCallback extends DiffUtil.Callback {
         && Objects.equals(oldItem.getPath(), newItem.getPath())
         && oldItem.getType() == newItem.getType()
         && oldItem.getSize() == newItem.getSize()
-        && Objects.equals(oldItem.getLastModified(), newItem.getLastModified());
+        && oldItem.getLastModified().getTime() == newItem.getLastModified().getTime();
   }
 }
