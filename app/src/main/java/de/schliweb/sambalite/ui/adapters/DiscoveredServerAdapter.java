@@ -86,11 +86,9 @@ public class DiscoveredServerAdapter
     private final TextView serverName;
     private final TextView serverDetails;
     private final ImageView selectionIndicator;
-    private final View itemView;
 
     public ServerViewHolder(@NonNull View itemView) {
       super(itemView);
-      this.itemView = itemView;
       serverName = itemView.findViewById(R.id.server_name);
       serverDetails = itemView.findViewById(R.id.server_details);
       selectionIndicator = itemView.findViewById(R.id.selection_indicator);
@@ -99,10 +97,8 @@ public class DiscoveredServerAdapter
           v -> {
             int position = getBindingAdapterPosition();
             if (position == RecyclerView.NO_POSITION) return;
-            if (position != RecyclerView.NO_POSITION) {
-              DiscoveredServer server = servers.get(position);
-              selectServer(server);
-            }
+            DiscoveredServer server = servers.get(position);
+            selectServer(server);
           });
     }
 
