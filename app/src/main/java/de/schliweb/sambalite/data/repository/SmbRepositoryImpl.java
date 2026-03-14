@@ -100,6 +100,7 @@ public class SmbRepositoryImpl implements SmbRepository {
    * @throws IOException if the server does not support the required security features such as
    *     encryption or signing.
    */
+  @SuppressWarnings("UnusedVariable")
   private void enforceSecurityRequirements(SmbConnection cfg, Session session) throws IOException {
     // No post-verification needed – SMBJ enforces the policy already during negotiation.
     // Intentionally left empty to avoid false positives.
@@ -847,6 +848,7 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   /** Decides whether the background service should be used for download */
+  @SuppressWarnings("UnusedVariable")
   private boolean shouldUseBackgroundService(SmbConnection connection, String remotePath) {
     // Use Background Service for all downloads to ensure connection stability
     return true;
@@ -980,6 +982,7 @@ public class SmbRepositoryImpl implements SmbRepository {
    * @param localFilePath The path to the local file to save the downloaded file to
    * @throws Exception if an error occurs during the download
    */
+  @Override
   public void downloadFile(
       @NonNull SmbConnection connection, @NonNull String remotePath, @NonNull String localFilePath)
       throws Exception {
@@ -1679,8 +1682,8 @@ public class SmbRepositoryImpl implements SmbRepository {
     // High severity errors
     if (className.contains("authentication")
         || message.contains("authentication")
-        || className.contains("access") && message.contains("denied")
-        || className.contains("connection") && message.contains("refused")) {
+        || (className.contains("access") && message.contains("denied"))
+        || (className.contains("connection") && message.contains("refused"))) {
       return SmartErrorHandler.ErrorSeverity.HIGH;
     }
 
