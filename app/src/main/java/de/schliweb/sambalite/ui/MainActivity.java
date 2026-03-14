@@ -1400,6 +1400,22 @@ public class MainActivity extends AppCompatActivity
   }
 
   @Override
+  protected void onStart() {
+    super.onStart();
+    if (backgroundSmbManager != null) {
+      backgroundSmbManager.onActivityStarted();
+    }
+  }
+
+  @Override
+  protected void onStop() {
+    super.onStop();
+    if (backgroundSmbManager != null) {
+      backgroundSmbManager.onActivityStopped();
+    }
+  }
+
+  @Override
   protected void onDestroy() {
     super.onDestroy();
     // Clean up network scanner
