@@ -68,6 +68,8 @@ public class SmartErrorHandler {
         case CRITICAL:
           criticalErrors.incrementAndGet();
           break;
+        default:
+          break;
       }
 
       switch (category) {
@@ -76,6 +78,8 @@ public class SmartErrorHandler {
           break;
         case SMB_PROTOCOL:
           smbErrors.incrementAndGet();
+          break;
+        default:
           break;
       }
 
