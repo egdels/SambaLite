@@ -251,6 +251,10 @@ public class FileOperationsViewModel extends ViewModel {
               return;
             }
 
+            // Enforce cache size limit after download to prevent unbounded growth
+            // Exclude the just-downloaded file so it is not evicted before being opened
+            OpenFileCacheManager.enforceMaxSize(context, targetFile);
+
             LogUtils.d(
                 "FileOperationsViewModel",
                 "File downloaded to cache successfully: " + file.getName());
