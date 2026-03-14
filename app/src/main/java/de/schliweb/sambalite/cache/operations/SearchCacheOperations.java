@@ -40,7 +40,8 @@ public class SearchCacheOperations {
   // The exception handler for reporting errors
   private final CacheExceptionHandler exceptionHandler;
 
-  // Statistics for monitoring cache performance
+  // Statistics for monitoring cache performance (retained for future use)
+  @SuppressWarnings("UnusedVariable")
   private final CacheStatistics statistics;
 
   /**
