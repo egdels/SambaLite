@@ -162,6 +162,7 @@ public class FileBrowserActivity extends AppCompatActivity
    * Creates an intent to start this activity for a Share handoff that will upload URIs to a target
    * path.
    */
+  @SuppressWarnings("NonApiType")
   public static @Nullable Intent createIntentForShareUpload(
       @NonNull Context context,
       @NonNull String connectionId,
@@ -249,7 +250,7 @@ public class FileBrowserActivity extends AppCompatActivity
                   return;
                 }
                 // Already at top-level -> finish activity
-                finish();
+                confirmFinishIfBusy();
               }
             });
   }
@@ -405,15 +406,9 @@ public class FileBrowserActivity extends AppCompatActivity
                 fab.setVisibility(View.GONE);
                 fabCreateFolder.setVisibility(View.GONE);
               } else {
-                // In an empty folder, explicitly show upload and create-folder buttons
-                if (files == null || files.isEmpty()) {
-                  if (!fab.isShown()) fab.show();
-                  if (!fabCreateFolder.isShown()) fabCreateFolder.show();
-                } else {
-                  // Also ensure they are visible when content loads (top of list)
-                  if (!fab.isShown()) fab.show();
-                  if (!fabCreateFolder.isShown()) fabCreateFolder.show();
-                }
+                // Ensure upload and create-folder buttons are visible
+                if (!fab.isShown()) fab.show();
+                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
               }
             });
 
@@ -571,6 +566,7 @@ public class FileBrowserActivity extends AppCompatActivity
         (query, searchType, includeSubfolders) -> {
           searchViewModel.searchFiles(query, searchType, includeSubfolders);
         });
+    dialogController.setFileOpenCallback(this::openFileFromServer);
     dialogController.setUploadCallback(
         new DialogController.UploadCallback() {
           @Override
@@ -1316,7 +1312,7 @@ public class FileBrowserActivity extends AppCompatActivity
         return true; // consumed by navigating up
       }
       // Already at top-level -> finish to return to connections
-      finish();
+      confirmFinishIfBusy();
       return true;
     } else if (item.getItemId() == R.id.action_system_monitor) {
       LogUtils.d("FileBrowserActivity", "System Monitor menu item selected");
@@ -1600,6 +1596,24 @@ public class FileBrowserActivity extends AppCompatActivity
     }
   }
 
+  /**
+   * Checks whether a file transfer (upload/download) is active and, if so, shows a confirmation
+   * dialog before finishing the activity. If no transfer is active, finishes immediately.
+   */
+  private void confirmFinishIfBusy() {
+    Boolean active = fileOperationsViewModel.isAnyOperationActive().getValue();
+    if (Boolean.TRUE.equals(active)) {
+      new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+          .setTitle(R.string.leave_confirm_title)
+          .setMessage(R.string.leave_confirm_message)
+          .setPositiveButton(R.string.leave_confirm_positive, (dialog, which) -> finish())
+          .setNegativeButton(R.string.cancel, null)
+          .show();
+    } else {
+      finish();
+    }
+  }
+
   private void handleQuit() {
     if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
       int count = backgroundSmbManager.getActiveOperationCount();
@@ -1645,6 +1659,14 @@ public class FileBrowserActivity extends AppCompatActivity
     boolean shouldCancelOps = isFinishing() && !isChangingConfigurations();
     if (shouldCancelOps) {
       LogUtils.d("FileBrowserActivity", "Activity finishing – requesting operation cancellations");
+      Boolean active = fileOperationsViewModel.isAnyOperationActive().getValue();
+      if (Boolean.TRUE.equals(active)) {
+        android.widget.Toast.makeText(
+                getApplicationContext(),
+                R.string.transfer_cancelled_toast,
+                android.widget.Toast.LENGTH_LONG)
+            .show();
+      }
       fileOperationsViewModel.cancelUpload();
       fileOperationsViewModel.cancelDownload();
       searchViewModel.cancelSearch();
@@ -1658,11 +1680,31 @@ public class FileBrowserActivity extends AppCompatActivity
   public void onFileClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileBrowserActivity", "File clicked: " + file.getName());
     if (!file.isDirectory()) {
-      // Show file info
-      progressController.showInfo(file.getName());
-      // Show file options
-      dialogController.showFileOptionsDialog(file);
+      // Open the file by downloading to cache and launching with an external app
+      openFileFromServer(file);
     }
+  }
+
+  /** Downloads a file to the local cache and opens it with an appropriate external app. */
+  private void openFileFromServer(@NonNull SmbFileItem file) {
+    progressController.showDetailedProgressDialog(
+        String.format(getString(R.string.opening_file), file.getName()),
+        getString(R.string.preparing_ellipsis));
+    progressController.setDetailedProgressDialogCancelAction(
+        () -> fileOperationsViewModel.cancelDownload());
+
+    fileOperationsViewModel.downloadToCache(
+        file,
+        localFile -> {
+          progressController.hideDetailedProgressDialog();
+          if (!de.schliweb.sambalite.util.FileOpener.openFile(this, localFile)) {
+            progressController.showError(file.getName(), getString(R.string.no_app_to_open_file));
+          }
+        },
+        error -> {
+          progressController.hideDetailedProgressDialog();
+          progressController.showError(file.getName(), error);
+        });
   }
 
   // FileListController.FileOptionsCallback implementation
