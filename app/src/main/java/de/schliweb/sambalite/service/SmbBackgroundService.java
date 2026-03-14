@@ -488,7 +488,8 @@ public class SmbBackgroundService extends Service {
               } finally {
                 if (ctx.inactivityTask != null) ctx.inactivityTask.cancel(false);
                 if (ctx.absoluteTimeoutTask != null) ctx.absoluteTimeoutTask.cancel(false);
-                runningFutures.remove(ctx.future);
+                @SuppressWarnings("CollectionUndefinedEquality")
+                boolean ignored = runningFutures.remove(ctx.future);
                 finishOperation(
                     operationName, !ctx.cancelled.get() && !Thread.currentThread().isInterrupted());
               }
@@ -618,14 +619,6 @@ public class SmbBackgroundService extends Service {
 
   private void updateNotificationThrottled(String title, String content) {
     long now = System.currentTimeMillis();
-    LogUtils.d(
-        TAG,
-        "updateNotificationThrottled: now="
-            + now
-            + ", lastUpdate="
-            + lastNotificationUpdate
-            + ", interval="
-            + NOTIFICATION_UPDATE_INTERVAL_MS);
     if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {
       updateNotificationImmediate(title, content);
       lastNotificationUpdate = now;
@@ -641,7 +634,6 @@ public class SmbBackgroundService extends Service {
           pendingNotificationUpdate = null;
         };
     long delay = NOTIFICATION_UPDATE_INTERVAL_MS - (now - lastNotificationUpdate);
-    LogUtils.d(TAG, "Throttling notification update: delay=" + delay + "ms");
     notificationHandler.postDelayed(pendingNotificationUpdate, Math.max(delay, 100));
   }
 
