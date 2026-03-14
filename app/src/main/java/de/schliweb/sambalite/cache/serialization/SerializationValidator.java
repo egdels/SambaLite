@@ -127,25 +127,11 @@ public class SerializationValidator {
     try {
       // Validate name field
       if (fileItem.getName() != null) {
-        String nameClass = fileItem.getName().getClass().getSimpleName();
-        if (!(fileItem.getName() instanceof String)) {
-          LogUtils.e(
-              TAG,
-              "SmbFileItem name is not String: " + nameClass + " - value: " + fileItem.getName());
-          throw new ClassCastException("SmbFileItem name field is not String: " + nameClass);
-        }
         LogUtils.d(TAG, "Name field validated as String: " + fileItem.getName());
       }
 
       // Validate path field
       if (fileItem.getPath() != null) {
-        String pathClass = fileItem.getPath().getClass().getSimpleName();
-        if (!(fileItem.getPath() instanceof String)) {
-          LogUtils.e(
-              TAG,
-              "SmbFileItem path is not String: " + pathClass + " - value: " + fileItem.getPath());
-          throw new ClassCastException("SmbFileItem path field is not String: " + pathClass);
-        }
         LogUtils.d(TAG, "Path field validated as String: " + fileItem.getPath());
       }
 
