@@ -1,5 +1,7 @@
 package de.schliweb.sambalite.test.mock;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.ByteArrayInputStream;
@@ -51,10 +53,10 @@ public class MockSmbServer {
     createDirectory("/temp");
 
     // Create some test files
-    createFile("/documents/test.txt", "This is a test document".getBytes());
-    createFile("/documents/readme.md", "# Test File\nThis is a test markdown file".getBytes());
+    createFile("/documents/test.txt", "This is a test document".getBytes(UTF_8));
+    createFile("/documents/readme.md", "# Test File\nThis is a test markdown file".getBytes(UTF_8));
     createFile("/images/sample.jpg", generateDummyImageData());
-    createFile("/test_file.txt", "Root level test file".getBytes());
+    createFile("/test_file.txt", "Root level test file".getBytes(UTF_8));
 
     LogUtils.d(TAG, "Default directory structure created");
   }
@@ -198,7 +200,7 @@ public class MockSmbServer {
 
   private void createDirectory(String path) {
     String normalizedPath = normalizePath(path);
-    directories.put(normalizedPath, new MockDirectory(normalizedPath));
+    directories.put(normalizedPath, new MockDirectory());
     LogUtils.d(TAG, "Created directory: " + normalizedPath);
   }
 
@@ -337,20 +339,14 @@ public class MockSmbServer {
   }
 
   private static class MockDirectory {
-    public final String path;
-    public final long created;
-
-    public MockDirectory(String path) {
-      this.path = path;
-      this.created = System.currentTimeMillis();
-    }
+    MockDirectory() {}
   }
 
   private static class MockFile {
-    public final byte[] data;
-    public final long lastModified;
+    final byte[] data;
+    final long lastModified;
 
-    public MockFile(byte[] data) {
+    MockFile(byte[] data) {
       this.data = data;
       this.lastModified = System.currentTimeMillis();
     }

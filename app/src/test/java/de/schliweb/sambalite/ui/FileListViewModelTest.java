@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import android.content.Context;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
@@ -31,8 +30,6 @@ public class FileListViewModelTest {
   @Rule public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   @Mock private SmbRepository smbRepository;
-
-  @Mock private Context context;
 
   @Mock private FileBrowserState state;
 
@@ -169,10 +166,6 @@ public class FileListViewModelTest {
       // Act
       viewModel.navigateToDirectory(directory);
 
-      // Debug verification
-      System.out.println("[DEBUG_LOG] After navigateToDirectory - verifying interactions");
-      System.out.println("[DEBUG_LOG] Current path: " + state.getCurrentPathString());
-
       // Verify state changes first
       verify(state).pushPath(eq(""));
       verify(state).setCurrentPath(eq("folder1"));
@@ -222,15 +215,8 @@ public class FileListViewModelTest {
           .when(state)
           .setCurrentPath(eq("parent-path"));
 
-      // Add debug verification
-      System.out.println("[DEBUG_LOG] Before navigateUp - mocks setup");
-
       // Act
       boolean result = viewModel.navigateUp();
-
-      // Debug verification
-      System.out.println("[DEBUG_LOG] After navigateUp - verifying interactions");
-      System.out.println("[DEBUG_LOG] Current path: " + state.getCurrentPathString());
 
       // No need to wait for background tasks since we're using a direct executor
 

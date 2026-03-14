@@ -58,11 +58,9 @@ public class QuitFeatureTest {
 
   private static class ManagerWithConnection {
     final BackgroundSmbManager manager;
-    final ServiceConnection serviceConnection;
 
-    ManagerWithConnection(BackgroundSmbManager manager, ServiceConnection serviceConnection) {
+    ManagerWithConnection(BackgroundSmbManager manager) {
       this.manager = manager;
-      this.serviceConnection = serviceConnection;
     }
   }
 
@@ -91,7 +89,7 @@ public class QuitFeatureTest {
           new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
     }
 
-    return new ManagerWithConnection(mgr, captured[0]);
+    return new ManagerWithConnection(mgr);
   }
 
   // =========================================================================
@@ -367,7 +365,7 @@ public class QuitFeatureTest {
         .when(mockAppContext)
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
-    BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
+    new BackgroundSmbManager(mockAppContext);
 
     // Create a service that has stopRequested=true
     SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);

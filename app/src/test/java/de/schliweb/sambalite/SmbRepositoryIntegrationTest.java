@@ -17,6 +17,7 @@ import org.mockito.MockitoAnnotations;
  * Repository integration tests with mock SMB server. Tests the SmbRepository implementation with
  * realistic SMB operations using the mock server infrastructure.
  */
+@SuppressWarnings("DirectInvocationOnMock")
 public class SmbRepositoryIntegrationTest {
 
   @Mock private SmbRepository mockSmbRepository;

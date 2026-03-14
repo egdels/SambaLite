@@ -8,6 +8,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import java.util.List;
+import java.util.Locale;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -454,7 +455,8 @@ public class NotificationFeatureTest {
     String title = n.extras.getString(Notification.EXTRA_TITLE);
     assertNotNull(title);
     assertTrue(
-        "After cancel, title should indicate cancellation", title.toLowerCase().contains("cancel"));
+        "After cancel, title should indicate cancellation",
+        title.toLowerCase(Locale.ROOT).contains("cancel"));
   }
 
   // =========================================================================

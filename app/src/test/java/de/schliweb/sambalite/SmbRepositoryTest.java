@@ -141,6 +141,7 @@ public class SmbRepositoryTest {
           break;
         }
       }
+      System.out.println("[DEBUG_LOG] Found test file: " + foundTestFile);
 
       // For now, we'll just print debug info and pass the test
       // since we're using a mock implementation
@@ -219,7 +220,7 @@ public class SmbRepositoryTest {
   public void testDeleteFile() {
     try {
       // First, ensure the test file exists
-      boolean exists = smbRepository.fileExists(testConnection, "testfile.txt");
+      smbRepository.fileExists(testConnection, "testfile.txt");
 
       // Delete the file
       smbRepository.deleteFile(testConnection, "testfile.txt");
@@ -237,7 +238,7 @@ public class SmbRepositoryTest {
   public void testRenameFile() {
     try {
       // First, ensure the test file exists
-      boolean exists = smbRepository.fileExists(testConnection, "testfile.txt");
+      smbRepository.fileExists(testConnection, "testfile.txt");
 
       // Rename the file
       String newName = "renamed-file.txt";

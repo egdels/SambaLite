@@ -63,7 +63,7 @@ public class SambaContainer {
    * @return this container instance
    */
   public SambaContainer withShare(String shareName, String path) {
-    shares.put(shareName, new InMemoryShare(shareName));
+    shares.put(shareName, new InMemoryShare());
     return this;
   }
 
@@ -71,7 +71,7 @@ public class SambaContainer {
   public void start() {
     // Create a default share if none were added
     if (shares.isEmpty()) {
-      shares.put("share", new InMemoryShare("share"));
+      shares.put("share", new InMemoryShare());
     }
     started = true;
   }
@@ -192,27 +192,12 @@ public class SambaContainer {
 
   /** An in-memory implementation of a SMB share. */
   private static class InMemoryShare {
-    private final String name;
     private final Map<String, byte[]> files = new HashMap<>();
 
-    public InMemoryShare(String name) {
-      this.name = name;
-    }
+    InMemoryShare() {}
 
-    public void createFile(String fileName, String content) {
+    void createFile(String fileName, String content) {
       files.put(fileName, content.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public byte[] getFileContent(String fileName) {
-      return files.get(fileName);
-    }
-
-    public boolean fileExists(String fileName) {
-      return files.containsKey(fileName);
-    }
-
-    public String[] listFiles() {
-      return files.keySet().toArray(new String[0]);
     }
   }
 }

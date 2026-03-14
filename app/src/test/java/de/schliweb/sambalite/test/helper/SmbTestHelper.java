@@ -202,20 +202,6 @@ public class SmbTestHelper {
     }
   }
 
-  /** Checks if the test environment supports Docker containers. */
-  private boolean isContainerEnvironmentAvailable() {
-    try {
-      // Try to detect if Docker is available
-      ProcessBuilder processBuilder = new ProcessBuilder("docker", "--version");
-      Process process = processBuilder.start();
-      int exitCode = process.waitFor();
-      return exitCode == 0;
-    } catch (Exception e) {
-      LogUtils.d(TAG, "Docker not available: " + e.getMessage());
-      return false;
-    }
-  }
-
   public enum TestMode {
     MOCK_ONLY, // Use only in-memory mock server
     CONTAINER_ONLY, // Use only Docker container

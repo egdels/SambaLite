@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.ui.controllers;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.*;
 
 import android.content.Context;
@@ -79,7 +80,7 @@ public class FileOperationsControllerCleanupTest {
 
   private void writeFile(File file, String content) throws IOException {
     try (FileOutputStream fos = new FileOutputStream(file)) {
-      fos.write(content.getBytes());
+      fos.write(content.getBytes(UTF_8));
     }
   }
 }
