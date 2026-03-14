@@ -17,6 +17,7 @@ import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,7 +55,7 @@ public class SmbBackgroundService extends Service {
   private static final int PROGRESS_WATCHDOG_INTERVAL_SECONDS = 30; // idle detector
 
   // Binder
-  private final IBinder binder = new LocalBinder();
+  private final LocalBinder binder = new LocalBinder(this);
 
   // Concurrency / lifecycle
   private final AtomicInteger activeOperations = new AtomicInteger(0);
@@ -186,6 +187,7 @@ public class SmbBackgroundService extends Service {
       }
       LogUtils.d(TAG, "Wake lock released (service destroy)");
     }
+    binder.clearService();
     isRunning = false;
     super.onDestroy();
   }
@@ -809,9 +811,24 @@ public class SmbBackgroundService extends Service {
     }
   }
 
-  public class LocalBinder extends Binder {
-    public @NonNull SmbBackgroundService getService() {
-      return SmbBackgroundService.this;
+  public static class LocalBinder extends Binder {
+    private volatile WeakReference<SmbBackgroundService> serviceRef;
+
+    public LocalBinder(@NonNull SmbBackgroundService service) {
+      this.serviceRef = new WeakReference<>(service);
+    }
+
+    public @Nullable SmbBackgroundService getService() {
+      WeakReference<SmbBackgroundService> ref = serviceRef;
+      return ref != null ? ref.get() : null;
+    }
+
+    void clearService() {
+      WeakReference<SmbBackgroundService> ref = serviceRef;
+      if (ref != null) {
+        ref.clear();
+      }
+      serviceRef = null;
     }
   }
 }
