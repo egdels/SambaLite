@@ -116,7 +116,7 @@ public class BackgroundSmbManagerTest {
       }
     }
     TestService testService = new TestService();
-    IBinder binder = testService.new LocalBinder();
+    IBinder binder = new SmbBackgroundService.LocalBinder(testService);
 
     // Act: queue an operation before the service is connected
     AtomicBoolean executed = new AtomicBoolean(false);

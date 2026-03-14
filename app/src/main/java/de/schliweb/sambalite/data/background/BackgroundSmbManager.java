@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -34,6 +35,7 @@ public class BackgroundSmbManager {
   final AtomicBoolean serviceConnected = new AtomicBoolean(false);
   final AtomicBoolean bindingInProgress = new AtomicBoolean(false);
   final AtomicBoolean stopRequested = new AtomicBoolean(false);
+  private final AtomicInteger visibleActivityCount = new AtomicInteger(0);
   final Queue<Runnable> pendingOps = new ArrayDeque<>();
   volatile SmbBackgroundService service;
 
@@ -49,9 +51,15 @@ public class BackgroundSmbManager {
         public void onServiceConnected(ComponentName name, IBinder binder) {
           LogUtils.i(TAG, "Service connected");
           SmbBackgroundService.LocalBinder b = (SmbBackgroundService.LocalBinder) binder;
-          service = b.getService();
+          SmbBackgroundService svc = b.getService();
+          if (svc == null) {
+            LogUtils.w(TAG, "Service connected but reference already cleared");
+            bindingInProgress.set(false);
+            return;
+          }
+          service = svc;
           // If the service was stopped via notification button, mirror the flag
-          if (service.isStopRequested()) {
+          if (svc.isStopRequested()) {
             stopRequested.set(true);
           }
           serviceConnected.set(true);
@@ -327,6 +335,31 @@ public class BackgroundSmbManager {
 
   // ===== Interfaces =====
 
+  /**
+   * Notifies the manager that an activity has become visible. Called from {@code onStart()} of
+   * MainActivity and FileBrowserActivity.
+   */
+  public void onActivityStarted() {
+    visibleActivityCount.incrementAndGet();
+  }
+
+  /**
+   * Notifies the manager that an activity is no longer visible. Called from {@code onStop()} of
+   * MainActivity and FileBrowserActivity. When no activities are visible and no operations are
+   * active, the service is auto-stopped.
+   */
+  public void onActivityStopped() {
+    int count = visibleActivityCount.decrementAndGet();
+    if (count <= 0) {
+      visibleActivityCount.set(0);
+      // If no operations are active, stop the service immediately
+      if (!hasActiveOperations()) {
+        LogUtils.i(TAG, "All activities stopped and no active operations — auto-stopping service");
+        requestStopService();
+      }
+    }
+  }
+
   public boolean isServiceConnected() {
     return serviceConnected.get();
   }
@@ -397,6 +430,12 @@ public class BackgroundSmbManager {
   public void finishOperation(@NonNull String name, boolean success) {
     if (serviceConnected.get() && service != null) {
       service.finishOperation(name, success);
+      // Auto-stop service when all transfers are done and no activity is visible
+      if (!service.hasActiveOperations() && visibleActivityCount.get() <= 0) {
+        LogUtils.i(
+            TAG, "All operations finished and MainActivity not visible — auto-stopping service");
+        requestStopService();
+      }
     } else {
       LogUtils.v(TAG, "finishOperation skipped (service not connected): " + name);
     }
