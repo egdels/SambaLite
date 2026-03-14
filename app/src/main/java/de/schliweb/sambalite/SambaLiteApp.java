@@ -84,6 +84,10 @@ public class SambaLiteApp extends Application {
               LogUtils.i(
                   "SambaLiteApp", "Eva's app moved to foreground - ready for SMB operations");
               // Connections will be automatically restored when needed
+
+              // Clean up expired and oversized open-file cache entries
+              de.schliweb.sambalite.util.OpenFileCacheManager.cleanupOnAppStart(SambaLiteApp.this);
+              de.schliweb.sambalite.util.OpenFileCacheManager.enforceMaxSize(SambaLiteApp.this);
             }
           });
 
