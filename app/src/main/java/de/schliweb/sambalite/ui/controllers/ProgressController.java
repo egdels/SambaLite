@@ -735,21 +735,6 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     return true;
   }
 
-  private boolean isLifecycleAtLeastStarted() {
-    if (activity instanceof AppCompatActivity appCompatActivity) {
-      try {
-        return appCompatActivity
-            .getLifecycle()
-            .getCurrentState()
-            .isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED);
-      } catch (Exception e) {
-        LogUtils.w("ProgressController", "Lifecycle check failed: " + e.getMessage());
-        return false;
-      }
-    }
-    return true;
-  }
-
   private boolean isLifecycleAtLeastResumed() {
     if (activity instanceof AppCompatActivity appCompatActivity) {
       try {
