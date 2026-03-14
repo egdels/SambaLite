@@ -315,6 +315,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
     }
   }
 
+  @SuppressWarnings("NonApiType")
   private ArrayList<Uri> getParcelableArrayListExtraCompat(Intent intent, String key) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       return intent.getParcelableArrayListExtra(key, Uri.class);
