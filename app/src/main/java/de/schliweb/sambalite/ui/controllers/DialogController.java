@@ -23,15 +23,19 @@ import de.schliweb.sambalite.ui.dialogs.DialogHelper;
 import de.schliweb.sambalite.ui.operations.FileOperationCallbacks;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.util.LogUtils;
+import java.lang.ref.WeakReference;
 import lombok.Setter;
 
 /**
  * Controller for managing dialogs in the FileBrowserActivity. Handles file operation dialogs,
  * search dialogs, sort dialogs, and upload/download dialogs.
+ *
+ * <p>The Activity context is held via a {@link WeakReference} to prevent memory leaks when
+ * background threads outlive the Activity lifecycle.
  */
 public class DialogController {
 
-  private final Context context;
+  private final WeakReference<Context> contextRef;
   private final FileListViewModel fileListViewModel;
   private final FileOperationsViewModel fileOperationsViewModel;
   private final FileBrowserUIState uiState;
@@ -48,11 +52,22 @@ public class DialogController {
 
   @Setter private FolderSyncCallback folderSyncCallback;
 
+  @Setter private FileOpenCallback fileOpenCallback;
+
   /**
    * User feedback provider for showing success, error, and info messages. This provides a
    * standardized approach to user feedback across controllers.
    */
   @Setter private UserFeedbackProvider userFeedbackProvider;
+
+  /**
+   * Returns the context if still available, or {@code null} if the Activity has been destroyed and
+   * garbage-collected.
+   */
+  @Nullable
+  private Context getContext() {
+    return contextRef.get();
+  }
 
   /**
    * Creates a new DialogController.
@@ -69,7 +84,7 @@ public class DialogController {
       @NonNull FileOperationsViewModel fileOperationsViewModel,
       @NonNull SearchViewModel searchViewModel,
       @NonNull FileBrowserUIState uiState) {
-    this.context = context;
+    this.contextRef = new WeakReference<>(context);
     this.fileListViewModel = fileListViewModel;
     this.fileOperationsViewModel = fileOperationsViewModel;
     this.uiState = uiState;
@@ -79,7 +94,7 @@ public class DialogController {
       @NonNull Context context,
       @NonNull ShareReceiverViewModel viewModel,
       @NonNull FileBrowserUIState uiState) {
-    this.context = context;
+    this.contextRef = new WeakReference<>(context);
     // For ShareReceiverActivity, we do not need file list or operations view models.
     // Instead, we only need the ShareReceiverViewModel and the UI state.
     this.fileListViewModel = null;
@@ -94,6 +109,9 @@ public class DialogController {
    * @param file The file to show options for
    */
   public void showFileOptionsDialog(@NonNull SmbFileItem file) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing file options dialog for: " + file.getName());
 
     // Store the selected file in the UI state
@@ -125,6 +143,7 @@ public class DialogController {
     } else {
       options =
           new String[] {
+            context.getString(R.string.open_file),
             context.getString(R.string.download),
             context.getString(R.string.rename),
             context.getString(R.string.delete)
@@ -136,7 +155,16 @@ public class DialogController {
         .setItems(
             options,
             (dialog, which) -> {
-              switch (which) {
+              // For non-directory files, options are shifted by 1 due to "Open" at index 0
+              int adjustedWhich = !file.isDirectory() ? which - 1 : which;
+              if (!file.isDirectory() && which == 0) {
+                // Open file
+                if (fileOpenCallback != null) {
+                  fileOpenCallback.onOpenRequested(file);
+                }
+                return;
+              }
+              switch (adjustedWhich) {
                 case 0: // Download
                   if (fileOperationCallback != null) {
                     fileOperationCallback.onDownloadRequested(file);
@@ -188,6 +216,9 @@ public class DialogController {
    * @param file The file to rename
    */
   public void showRenameFileDialog(@NonNull SmbFileItem file) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing rename file dialog for: " + file.getName());
     DialogHelper.showRenameDialog(
         context,
@@ -207,6 +238,9 @@ public class DialogController {
    * @param file The file to delete
    */
   public void showDeleteFileConfirmationDialog(@NonNull SmbFileItem file) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d(
         "DialogController", "Showing delete file confirmation dialog for: " + file.getName());
     DialogHelper.showConfirmationDialog(
@@ -227,6 +261,9 @@ public class DialogController {
     fileOperationsViewModel.deleteFile(
         file,
         (success, message) -> {
+          Context context = getContext();
+          if (context == null) return;
+
           if (success) {
             if (userFeedbackProvider != null) {
               userFeedbackProvider.showSuccess(context.getString(R.string.delete_success));
@@ -246,6 +283,9 @@ public class DialogController {
 
   /** Shows a dialog to create a new folder. */
   public void showCreateFolderDialog() {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing create folder dialog");
     DialogHelper.showInputDialog(
         context,
@@ -261,6 +301,9 @@ public class DialogController {
 
   /** Shows a dialog for sorting files. */
   public void showSortDialog() {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing sort dialog");
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sort, null);
@@ -313,6 +356,9 @@ public class DialogController {
 
   /** Shows a dialog for searching files. */
   public void showSearchDialog() {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing search dialog");
     DialogHelper.showSearchDialog(
         context,
@@ -327,6 +373,9 @@ public class DialogController {
 
   /** Shows a dialog for upload options. */
   public void showUploadOptionsDialog() {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing upload options dialog");
 
     String[] options =
@@ -373,6 +422,9 @@ public class DialogController {
    */
   private FileOperationCallbacks.RenameFileCallback createRenameCallback() {
     return (success, message) -> {
+      Context context = getContext();
+      if (context == null) return;
+
       if (success) {
         if (userFeedbackProvider != null) {
           userFeedbackProvider.showSuccess(context.getString(R.string.rename_success));
@@ -397,6 +449,9 @@ public class DialogController {
    */
   private FileOperationCallbacks.CreateFolderCallback createFolderCallback() {
     return (success, message) -> {
+      Context context = getContext();
+      if (context == null) return;
+
       if (success) {
         if (userFeedbackProvider != null) {
           userFeedbackProvider.showSuccess(context.getString(R.string.folder_created));
@@ -417,18 +472,25 @@ public class DialogController {
 
   /** Shows a dialog when no target folder is set for sharing. */
   public void showNeedsTargetFolderDialog() {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing needs target folder dialog");
     DialogHelper.showNeedsTargetFolderDialog(
         context,
         () -> {
+          Context ctx = getContext();
+          if (ctx == null) return;
           // Navigate to MainActivity to select folder
-          Intent intent = new Intent(context, MainActivity.class);
-          context.startActivity(intent);
-          ((Activity) context).finish();
+          Intent intent = new Intent(ctx, MainActivity.class);
+          ctx.startActivity(intent);
+          ((Activity) ctx).finish();
         },
         () -> {
+          Context ctx = getContext();
+          if (ctx == null) return;
           // Cancel and finish
-          ((Activity) context).finish();
+          ((Activity) ctx).finish();
         });
   }
 
@@ -464,6 +526,9 @@ public class DialogController {
       @NonNull Runnable onUpload,
       @NonNull Runnable onChangeFolder,
       @NonNull Runnable onCancel) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing share upload confirmation dialog with custom cancel");
     DialogHelper.showShareUploadConfirmationDialog(
         context, fileCount, targetFolder, onUpload, onChangeFolder, onCancel);
@@ -479,6 +544,9 @@ public class DialogController {
    */
   public void showUploadCompleteDialog(
       int uploadedCount, int totalCount, int failedCount, @Nullable Runnable onViewFiles) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing upload complete dialog");
     DialogHelper.showUploadCompleteDialog(
         context,
@@ -487,8 +555,10 @@ public class DialogController {
         failedCount,
         onViewFiles,
         () -> {
+          Context ctx = getContext();
+          if (ctx == null) return;
           // Close and finish
-          ((Activity) context).finish();
+          ((Activity) ctx).finish();
         });
   }
 
@@ -501,8 +571,16 @@ public class DialogController {
    */
   public void showFileExistsDialog(
       @NonNull String fileName, @NonNull Runnable onOverwrite, @NonNull Runnable onCancel) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing file exists dialog for: " + fileName);
     DialogHelper.showFileExistsDialog(context, fileName, onOverwrite, onCancel);
+  }
+
+  /** Callback for opening a file with an external app. */
+  public interface FileOpenCallback {
+    void onOpenRequested(@NonNull SmbFileItem file);
   }
 
   /** Callback for file operations. */
@@ -575,6 +653,9 @@ public class DialogController {
    * @param currentRemotePath the current remote path to pre-fill
    */
   public void showSyncSetupDialog(@NonNull String currentRemotePath) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing sync setup dialog");
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
@@ -654,6 +735,9 @@ public class DialogController {
    * @param config the existing sync configuration to edit
    */
   public void showSyncEditDialog(@NonNull SyncConfig config) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing sync edit dialog for config: " + config.getId());
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
@@ -790,6 +874,9 @@ public class DialogController {
       @NonNull java.util.function.Consumer<String> onDelete,
       @NonNull java.util.function.BiConsumer<String, Boolean> onToggle,
       @NonNull Runnable onSyncNow) {
+    Context context = getContext();
+    if (context == null) return;
+
     LogUtils.d("DialogController", "Showing manage sync configs dialog");
 
     if (configs.isEmpty()) {
@@ -846,6 +933,9 @@ public class DialogController {
       SyncConfig config,
       java.util.function.Consumer<String> onDelete,
       java.util.function.BiConsumer<String, Boolean> onToggle) {
+    Context context = getContext();
+    if (context == null) return;
+
     String toggleLabel =
         config.isEnabled()
             ? context.getString(R.string.sync_disabled)
