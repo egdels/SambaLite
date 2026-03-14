@@ -252,7 +252,7 @@ public class CacheKeyGenerator {
   private String hashString(String input) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(input.getBytes());
+      byte[] hash = digest.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
       // Convert to hex string
       StringBuilder hexString = new StringBuilder();
@@ -271,7 +271,7 @@ public class CacheKeyGenerator {
       LogUtils.e(TAG, "Error hashing string: " + e.getMessage());
 
       // Fallback to simple hash code
-      return String.valueOf(Math.abs(input.hashCode()));
+      return String.valueOf(input.hashCode() & 0x7fffffff);
     }
   }
 }
