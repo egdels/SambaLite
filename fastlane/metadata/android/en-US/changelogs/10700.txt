@@ -1,0 +1,6 @@
+• All dialogs redesigned with Material Design 3 styling.
+• New Share dialogs with modern header and card layout.
+• Automatic service shutdown when all activities are closed.
+• MaterialSwitch and LinearProgressIndicator in dialogs.
+• Memory leak fix in SmbBackgroundService.
+• Translations updated for all supported languages.
