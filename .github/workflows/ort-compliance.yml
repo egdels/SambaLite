@@ -1,0 +1,48 @@
+name: ORT Compliance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  compliance-ort:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install ORT
+        run: |
+          ORT_URL=$(curl -s https://api.github.com/repos/oss-review-toolkit/ort/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^ort-.*\\.tgz$")) | .browser_download_url')
+          curl -L -o ort.tgz "$ORT_URL"
+          tar -xzf ort.tgz
+          sudo mv ort-*/ /opt/ort
+          sudo ln -s /opt/ort/bin/ort /usr/local/bin/ort
+
+      - name: Install ScanCode
+        run: |
+          pip install scancode-toolkit
+          scancode --version
+
+      - name: Run ORT
+        run: |
+          chmod +x scripts/run-ort.sh
+          ./scripts/run-ort.sh
+
+      - name: Upload ORT artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ort-reports
+          path: ort-out/
+

@@ -3,6 +3,7 @@ plugins {
     id 'com.diffplug.spotless'
     id 'net.ltgt.errorprone'
     id 'jacoco'
+    id 'com.github.jk1.dependency-license-report'
 }
 
 android {
