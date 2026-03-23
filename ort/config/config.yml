@@ -7,6 +7,19 @@ ort:
       - PIP
       - NuGet
       - Bazel
+  scanner:
+    skipExcluded: true
+    detectedLicenseMapping:
+      LicenseRef-scancode-unknown-license-reference: NOASSERTION
+    storages:
+      local:
+        backend:
+          localFileStorage:
+            directory: ~/.ort/scanner
+    storageReaders:
+      - local
+    storageWriters:
+      - local
   packageConfigurationProviders:
     - type: Dir
       options:

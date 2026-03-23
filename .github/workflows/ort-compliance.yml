@@ -9,6 +9,7 @@ on:
 jobs:
   compliance-ort:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,14 +36,22 @@ jobs:
           pip install scancode-toolkit
           scancode --version
 
+      - name: Restore ORT scanner cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ort/scanner
+          key: ort-scanner-${{ hashFiles('app/build.gradle', 'build.gradle', 'settings.gradle', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            ort-scanner-
+
       - name: Run ORT
         run: |
           chmod +x scripts/run-ort.sh
           ./scripts/run-ort.sh
 
       - name: Upload ORT artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ort-reports
           path: ort-out/
-
