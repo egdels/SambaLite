@@ -6,15 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  compliance-ort:
+  ort-analyze-report:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -31,27 +34,37 @@ jobs:
           sudo mv ort-*/ /opt/ort
           sudo ln -s /opt/ort/bin/ort /usr/local/bin/ort
 
-      - name: Install ScanCode
-        run: |
-          pip install scancode-toolkit
-          scancode --version
-
-      - name: Restore ORT scanner cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.ort/scanner
-          key: ort-scanner-${{ hashFiles('app/build.gradle', 'build.gradle', 'settings.gradle', 'gradle/libs.versions.toml') }}
-          restore-keys: |
-            ort-scanner-
-
-      - name: Run ORT
+      - name: Run ORT (Analyze + Report)
         run: |
           chmod +x scripts/run-ort.sh
           ./scripts/run-ort.sh
 
       - name: Upload ORT artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ort-reports
           path: ort-out/
+
+  scancode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ScanCode
+        run: |
+          pip install scancode-toolkit
+          scancode --version
+
+      - name: Run ScanCode
+        run: |
+          chmod +x scripts/run-scancode.sh
+          ./scripts/run-scancode.sh
+
+      - name: Upload ScanCode artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scancode-reports
+          path: ort-out/scancode/
