@@ -302,7 +302,8 @@ tasks.withType(JavaCompile).configureEach {
 
 spotless {
     java {
-        target("src/*/java/**/*.java")
+        target("src/main/java/de/schliweb/**/*.java")
+        licenseHeaderFile(rootProject.file("HEADER"))
         googleJavaFormat("1.25.2")
         removeUnusedImports()
         trimTrailingWhitespace()
