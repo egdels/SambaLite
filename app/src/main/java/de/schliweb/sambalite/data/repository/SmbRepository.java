@@ -183,6 +183,15 @@ public interface SmbRepository {
   boolean fileExists(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
+   * Returns the size of a remote file in bytes.
+   *
+   * @param connection The SMB connection to use
+   * @param path The path to the file on the SMB server
+   * @return the file size in bytes, or -1 if the file does not exist or an error occurs
+   */
+  long getRemoteFileSize(@NonNull SmbConnection connection, @NonNull String path);
+
+  /**
    * Lists available shares on the SMB server.
    *
    * @param connection The SMB connection to use (only server, username, password, domain are

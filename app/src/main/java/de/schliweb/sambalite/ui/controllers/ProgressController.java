@@ -12,12 +12,15 @@ package de.schliweb.sambalite.ui.controllers;
 import android.app.Activity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.ui.controllers.FileOperationsController.ProgressCallback;
@@ -52,6 +55,11 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
   // If a cancel action is provided before the dialog is visible (lazy-open case),
   // cache it here and apply as soon as the dialog is shown.
   private Runnable pendingCancelAction;
+
+  // Pending dialog show request when activity is not yet RESUMED
+  private String pendingDialogTitle;
+  private String pendingDialogMessage;
+  private LifecycleEventObserver pendingDialogObserver;
 
   private int lastOverall = -1;
   private int lastCur = -1;
@@ -124,10 +132,14 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     LogUtils.d(
         "ProgressController", "Showing detailed progress dialog: " + title + " - " + message);
 
-    // Do not show if activity is not in foreground state
-    if (!isActivitySafe() || !isLifecycleAtLeastResumed()) {
-      LogUtils.w(
-          "ProgressController", "Activity not in RESUMED state, skipping progress dialog show");
+    // If activity is not yet RESUMED, defer the dialog show until it is
+    if (!isActivitySafe()) {
+      LogUtils.w("ProgressController", "Activity not safe, skipping progress dialog show");
+      return;
+    }
+    if (!isLifecycleAtLeastResumed()) {
+      LogUtils.d("ProgressController", "Activity not yet RESUMED, deferring progress dialog show");
+      deferDialogShowUntilResumed(title, message);
       return;
     }
 
@@ -142,6 +154,10 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                   "ProgressController", "Activity not safe/resumed during dialog show, aborting");
               return;
             }
+
+            // Cancel any pending deferred show to avoid duplicate dialogs
+            cancelPendingDialogShow();
+
             if (progressDialog != null && progressDialog.isShowing()) {
               progressDialog.dismiss();
             }
@@ -150,6 +166,16 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
             // Inflate custom progress dialog layout
             View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
+
+            // Set the appropriate icon based on whether this is a download or upload
+            ImageView progressIcon = dialogView.findViewById(R.id.progress_icon);
+            if (progressIcon != null) {
+              String downloadingText = activity.getString(R.string.downloading);
+              if (finalTitle.contains(downloadingText) || finalMessage.contains(downloadingText)) {
+                progressIcon.setImageResource(android.R.drawable.stat_sys_download);
+                progressIcon.setContentDescription(downloadingText);
+              }
+            }
 
             TextView titleView = dialogView.findViewById(R.id.progress_title);
             progressMessage = dialogView.findViewById(R.id.progress_message);
@@ -425,16 +451,22 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     activity.runOnUiThread(
         () -> {
           try {
+            // Hide the progress dialog before showing the file-exists confirmation dialog
+            hideDetailedProgressDialog();
+
             new MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.file_exists_title)
                 .setMessage(activity.getString(R.string.file_exists_message, finalFileName))
                 .setPositiveButton(
                     R.string.overwrite,
                     (dialog, which) -> {
-                      // User confirmed overwrite
+                      // User confirmed overwrite — re-show progress dialog for the upload
                       LogUtils.d(
                           "ProgressController",
                           "User confirmed overwrite for file: " + finalFileName);
+                      showDetailedProgressDialog(
+                          activity.getString(R.string.uploading),
+                          activity.getString(R.string.please_wait));
                       finalConfirmAction.run();
                     })
                 .setNegativeButton(
@@ -742,6 +774,40 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
       return !appCompatActivity.isFinishing() && !appCompatActivity.isDestroyed();
     }
     return true;
+  }
+
+  private void cancelPendingDialogShow() {
+    if (pendingDialogObserver != null && activity instanceof AppCompatActivity appCompat) {
+      appCompat.getLifecycle().removeObserver(pendingDialogObserver);
+      pendingDialogObserver = null;
+      pendingDialogTitle = null;
+      pendingDialogMessage = null;
+    }
+  }
+
+  private void deferDialogShowUntilResumed(@NonNull String title, @NonNull String message) {
+    if (!(activity instanceof AppCompatActivity appCompat)) return;
+    // Remove any previous observer
+    if (pendingDialogObserver != null) {
+      appCompat.getLifecycle().removeObserver(pendingDialogObserver);
+    }
+    pendingDialogTitle = title;
+    pendingDialogMessage = message;
+    pendingDialogObserver =
+        (source, event) -> {
+          if (event == Lifecycle.Event.ON_RESUME) {
+            appCompat.getLifecycle().removeObserver(pendingDialogObserver);
+            pendingDialogObserver = null;
+            String t = pendingDialogTitle;
+            String m = pendingDialogMessage;
+            pendingDialogTitle = null;
+            pendingDialogMessage = null;
+            if (t != null) {
+              showDetailedProgressDialog(t, m);
+            }
+          }
+        };
+    appCompat.getLifecycle().addObserver(pendingDialogObserver);
   }
 
   private boolean isLifecycleAtLeastResumed() {

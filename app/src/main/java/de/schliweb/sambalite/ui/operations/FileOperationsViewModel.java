@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 
+@SuppressWarnings("KotlinPropertyAccess") // LiveData getters intentionally return wrapped types
 public class FileOperationsViewModel extends ViewModel {
 
   final SmbRepository smbRepository;
@@ -43,6 +44,7 @@ public class FileOperationsViewModel extends ViewModel {
   final FileBrowserState state;
   final FileListViewModel fileListViewModel;
   final BackgroundSmbManager backgroundSmbManager;
+  final TransferActionLog transferActionLog;
 
   final Handler mainHandler = new Handler(Looper.getMainLooper());
   private volatile boolean cleared = false;
@@ -52,6 +54,7 @@ public class FileOperationsViewModel extends ViewModel {
 
   final MutableLiveData<Boolean> uploading = new MutableLiveData<>(false);
   final MutableLiveData<Boolean> downloading = new MutableLiveData<>(false);
+  final MutableLiveData<Boolean> finalizing = new MutableLiveData<>(false);
   final MediatorLiveData<Boolean> anyOperationActive = new MediatorLiveData<>();
 
   public @NonNull LiveData<Boolean> isUploading() {
@@ -60,6 +63,14 @@ public class FileOperationsViewModel extends ViewModel {
 
   public @NonNull LiveData<Boolean> isDownloading() {
     return downloading;
+  }
+
+  public @NonNull LiveData<Boolean> isFinalizing() {
+    return finalizing;
+  }
+
+  public void setFinalizing(boolean value) {
+    mainHandler.post(() -> finalizing.setValue(value));
   }
 
   public @NonNull LiveData<Boolean> isAnyOperationActive() {
@@ -89,12 +100,12 @@ public class FileOperationsViewModel extends ViewModel {
     mainHandler.post(() -> uploading.setValue(c > 0));
   }
 
-  void incDownload() {
+  public void incDownload() {
     int c = downloadCount.incrementAndGet();
     mainHandler.post(() -> downloading.setValue(c > 0));
   }
 
-  void decDownload() {
+  public void decDownload() {
     int c = Math.max(0, downloadCount.decrementAndGet());
     mainHandler.post(() -> downloading.setValue(c > 0));
   }
@@ -107,7 +118,7 @@ public class FileOperationsViewModel extends ViewModel {
     return transferProgress;
   }
 
-  void emitProgress(String status, int pct, String fileName) {
+  public void emitProgress(@NonNull String status, int pct, @NonNull String fileName) {
     int clamped = Math.max(0, Math.min(100, pct));
     transferProgress.postValue(new TransferProgress(clamped, status, fileName));
   }
@@ -125,6 +136,7 @@ public class FileOperationsViewModel extends ViewModel {
     this.fileListViewModel = fileListViewModel;
     this.backgroundSmbManager = backgroundSmbManager;
     this.executor = Executors.newSingleThreadExecutor();
+    this.transferActionLog = new TransferActionLog(this.context);
     LogUtils.d("FileOperationsViewModel", "FileOperationsViewModel initialized");
 
     anyOperationActive.setValue(false);
@@ -179,22 +191,48 @@ public class FileOperationsViewModel extends ViewModel {
     File cacheDir = OpenFileCacheManager.getCacheDir(context);
     File targetFile = new File(cacheDir, file.getName());
 
-    // Check if file already exists in cache with matching size
+    // Check if file already exists in cache with matching size and timestamp
     if (targetFile.exists() && targetFile.length() > 0) {
+      boolean sizeMatches = file.getSize() <= 0 || targetFile.length() == file.getSize();
+      boolean notStale =
+          file.getLastModified() == null
+              || targetFile.lastModified() >= file.getLastModified().getTime();
+      if (sizeMatches && notStale) {
+        LogUtils.d(
+            "FileOperationsViewModel",
+            "Cache hit (size+timestamp valid): "
+                + file.getName()
+                + " (local="
+                + targetFile.length()
+                + " bytes, remote="
+                + file.getSize()
+                + " bytes)");
+        transferActionLog.log(TransferActionLog.Action.CACHE_HIT, file.getName());
+        mainHandler.post(() -> onSuccess.accept(targetFile));
+        return;
+      }
+      transferActionLog.log(
+          TransferActionLog.Action.CACHE_MISS, file.getName(), "stale cache entry");
       LogUtils.d(
           "FileOperationsViewModel",
-          "File found in cache, skipping download: "
+          "Cache stale, re-downloading: "
               + file.getName()
-              + " ("
+              + " (localSize="
               + targetFile.length()
-              + " bytes)");
-      mainHandler.post(() -> onSuccess.accept(targetFile));
-      return;
+              + ", remoteSize="
+              + file.getSize()
+              + ", localMod="
+              + targetFile.lastModified()
+              + ", remoteMod="
+              + (file.getLastModified() != null ? file.getLastModified().getTime() : "null")
+              + ")");
+      targetFile.delete();
     }
 
     // Enforce cache size limit before downloading
     OpenFileCacheManager.enforceMaxSize(context);
 
+    transferActionLog.log(TransferActionLog.Action.DOWNLOAD_STARTED, file.getName());
     LogUtils.d(
         "FileOperationsViewModel",
         "Downloading file to cache: " + file.getName() + " -> " + targetFile.getAbsolutePath());
@@ -205,8 +243,7 @@ public class FileOperationsViewModel extends ViewModel {
 
     state.setDownloadCancelled(false);
 
-    String initialStatus =
-        context.getString(de.schliweb.sambalite.R.string.downloading_colon, file.getName());
+    String initialStatus = ProgressFormat.Op.DOWNLOAD.label() + ": " + file.getName();
     emitProgress(initialStatus, 0, file.getName());
 
     executor.execute(
@@ -238,10 +275,8 @@ public class FileOperationsViewModel extends ViewModel {
                     if (throttle.allow(pct)) {
                       String status =
                           ProgressFormat.formatBytes(
-                              context.getString(de.schliweb.sambalite.R.string.downloading),
-                              currentBytes,
-                              totalBytes);
-                      emitProgress(status, pct, fileName);
+                              ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
+                      emitProgress(status, pct, file.getName());
                     }
                     if (pct > lastPctBox[0]) lastPctBox[0] = pct;
                   }
@@ -260,6 +295,26 @@ public class FileOperationsViewModel extends ViewModel {
               return;
             }
 
+            // Integrity check: verify downloaded file size matches remote size
+            if (file.getSize() > 0
+                && targetFile.exists()
+                && targetFile.length() != file.getSize()) {
+              LogUtils.w(
+                  "FileOperationsViewModel",
+                  "Download integrity check failed: expected "
+                      + file.getSize()
+                      + " bytes, got "
+                      + targetFile.length()
+                      + " bytes for "
+                      + file.getName());
+              targetFile.delete();
+              throw new java.io.IOException(
+                  "Download incomplete: expected "
+                      + file.getSize()
+                      + " bytes, got "
+                      + targetFile.length());
+            }
+
             // Enforce cache size limit after download to prevent unbounded growth
             // Exclude the just-downloaded file so it is not evicted before being opened
             OpenFileCacheManager.enforceMaxSize(context, targetFile);
@@ -267,10 +322,13 @@ public class FileOperationsViewModel extends ViewModel {
             LogUtils.d(
                 "FileOperationsViewModel",
                 "File downloaded to cache successfully: " + file.getName());
+            transferActionLog.log(TransferActionLog.Action.DOWNLOAD_COMPLETED, file.getName());
             mainHandler.post(() -> onSuccess.accept(targetFile));
           } catch (Exception e) {
             LogUtils.e(
                 "FileOperationsViewModel", "Failed to download file to cache: " + e.getMessage());
+            transferActionLog.log(
+                TransferActionLog.Action.DOWNLOAD_FAILED, file.getName(), e.getMessage());
             // Clean up partial file
             if (targetFile.exists()) {
               targetFile.delete();
@@ -310,6 +368,7 @@ public class FileOperationsViewModel extends ViewModel {
       return;
     }
 
+    transferActionLog.log(TransferActionLog.Action.DOWNLOAD_STARTED, file.getName());
     LogUtils.d(
         "FileOperationsViewModel",
         "Downloading file: " + file.getName() + " to " + localFile.getAbsolutePath());
@@ -323,16 +382,6 @@ public class FileOperationsViewModel extends ViewModel {
           try {
             state.setDownloadCancelled(false);
 
-            if (state.isDownloadCancelled()) {
-              LogUtils.d("FileOperationsViewModel", "Download cancelled before starting");
-              handleDownloadCancellation(
-                  localFile,
-                  "file download pre-start cancellation",
-                  callback,
-                  context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
-              return;
-            }
-
             if (progressCallback != null) {
               LogUtils.d("FileOperationsViewModel", "Using progress-aware file download");
 
@@ -340,9 +389,7 @@ public class FileOperationsViewModel extends ViewModel {
               final int[] lastPctBox = {0};
 
               // Seed initial progress so the UI can show the file name immediately
-              String initialStatus =
-                  context.getString(
-                      de.schliweb.sambalite.R.string.downloading_colon, file.getName());
+              String initialStatus = ProgressFormat.Op.DOWNLOAD.label() + ": " + file.getName();
               emitProgress(initialStatus, 0, file.getName());
               if (callback != null) {
                 mainHandler.post(() -> callback.onProgress(initialStatus, 0));
@@ -378,10 +425,8 @@ public class FileOperationsViewModel extends ViewModel {
                         if (throttle.allow(pct)) {
                           String status =
                               ProgressFormat.formatBytes(
-                                  context.getString(de.schliweb.sambalite.R.string.downloading),
-                                  currentBytes,
-                                  totalBytes);
-                          emitProgress(status, pct, fileName);
+                                  ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
+                          emitProgress(status, pct, file.getName());
                           int p = pct;
                           mainHandler.post(() -> callback.onProgress(status, p));
                         }
@@ -394,8 +439,27 @@ public class FileOperationsViewModel extends ViewModel {
               smbRepository.downloadFile(state.getConnection(), file.getPath(), localFile);
             }
 
+            // Integrity check: verify downloaded file size matches remote size
+            if (file.getSize() > 0 && localFile.exists() && localFile.length() != file.getSize()) {
+              LogUtils.w(
+                  "FileOperationsViewModel",
+                  "Download integrity check failed: expected "
+                      + file.getSize()
+                      + " bytes, got "
+                      + localFile.length()
+                      + " bytes for "
+                      + file.getName());
+              cleanupDownloadFiles(localFile, "file download integrity failure");
+              throw new java.io.IOException(
+                  "Download incomplete: expected "
+                      + file.getSize()
+                      + " bytes, got "
+                      + localFile.length());
+            }
+
             LogUtils.i(
                 "FileOperationsViewModel", "File downloaded successfully: " + file.getName());
+            transferActionLog.log(TransferActionLog.Action.DOWNLOAD_COMPLETED, file.getName());
             backgroundSmbManager.finishOperation(dlOpName, true);
             if (callback != null) {
               String ok = context.getString(de.schliweb.sambalite.R.string.download_success);
@@ -403,6 +467,8 @@ public class FileOperationsViewModel extends ViewModel {
             }
           } catch (Exception e) {
             LogUtils.e("FileOperationsViewModel", "Download failed: " + e.getMessage());
+            transferActionLog.log(
+                TransferActionLog.Action.DOWNLOAD_FAILED, file.getName(), e.getMessage());
             backgroundSmbManager.finishOperation(dlOpName, false);
 
             if (state.isDownloadCancelled()
@@ -446,6 +512,7 @@ public class FileOperationsViewModel extends ViewModel {
       return;
     }
 
+    transferActionLog.log(TransferActionLog.Action.DOWNLOAD_STARTED, folder.getName());
     LogUtils.d(
         "FileOperationsViewModel",
         "Downloading folder: " + folder.getName() + " to " + localFolder.getAbsolutePath());
@@ -458,16 +525,6 @@ public class FileOperationsViewModel extends ViewModel {
         () -> {
           try {
             state.setDownloadCancelled(false);
-
-            if (state.isDownloadCancelled()) {
-              LogUtils.d("FileOperationsViewModel", "Folder download cancelled before starting");
-              handleDownloadCancellation(
-                  localFolder,
-                  "folder download pre-start cancellation",
-                  callback,
-                  context.getString(de.schliweb.sambalite.R.string.download_cancelled_by_user));
-              return;
-            }
 
             if (progressCallback != null) {
               LogUtils.d("FileOperationsViewModel", "Using progress-aware folder download");
@@ -506,13 +563,11 @@ public class FileOperationsViewModel extends ViewModel {
                         String status =
                             (lastTotalFiles > 0 && lastCurrentFile > 0)
                                 ? ProgressFormat.formatIdx(
-                                    context.getString(de.schliweb.sambalite.R.string.downloading),
+                                    ProgressFormat.Op.DOWNLOAD.label(),
                                     lastCurrentFile,
                                     lastTotalFiles,
                                     currentFileName)
-                                : context.getString(
-                                    de.schliweb.sambalite.R.string.downloading_colon,
-                                    currentFileName);
+                                : ProgressFormat.Op.DOWNLOAD.label() + ": " + currentFileName;
                         final int p = pct;
                         emitProgress(status, pct, currentFileName);
                         mainHandler.post(() -> callback.onProgress(status, p));
@@ -538,12 +593,11 @@ public class FileOperationsViewModel extends ViewModel {
                         String base =
                             (lastTotalFiles > 0 && lastCurrentFile > 0)
                                 ? ProgressFormat.formatIdx(
-                                    context.getString(de.schliweb.sambalite.R.string.downloading),
+                                    ProgressFormat.Op.DOWNLOAD.label(),
                                     lastCurrentFile,
                                     lastTotalFiles,
                                     fileName)
-                                : context.getString(
-                                    de.schliweb.sambalite.R.string.downloading_colon, fileName);
+                                : ProgressFormat.Op.DOWNLOAD.label() + ": " + fileName;
 
                         String status =
                             (filePct >= 0 && totalBytes > 0)
@@ -583,6 +637,7 @@ public class FileOperationsViewModel extends ViewModel {
 
             LogUtils.i(
                 "FileOperationsViewModel", "Folder downloaded successfully: " + folder.getName());
+            transferActionLog.log(TransferActionLog.Action.DOWNLOAD_COMPLETED, folder.getName());
             backgroundSmbManager.finishOperation(folderDlOpName, true);
             if (callback != null) {
               String ok = context.getString(de.schliweb.sambalite.R.string.folder_download_success);
@@ -590,6 +645,8 @@ public class FileOperationsViewModel extends ViewModel {
             }
           } catch (Exception e) {
             LogUtils.e("FileOperationsViewModel", "Folder download failed: " + e.getMessage());
+            transferActionLog.log(
+                TransferActionLog.Action.DOWNLOAD_FAILED, folder.getName(), e.getMessage());
             backgroundSmbManager.finishOperation(folderDlOpName, false);
 
             if (state.isDownloadCancelled()
@@ -614,6 +671,17 @@ public class FileOperationsViewModel extends ViewModel {
             decDownload();
           }
         });
+  }
+
+  /** Synchronously checks whether a remote file exists. Must be called from a background thread. */
+  public boolean checkFileExists(@NonNull String remotePath) {
+    if (state.getConnection() == null) return false;
+    try {
+      return smbRepository.fileExists(state.getConnection(), remotePath);
+    } catch (Exception e) {
+      LogUtils.e("FileOperationsViewModel", "Error checking if file exists: " + e.getMessage());
+      return false;
+    }
   }
 
   public void uploadFile(
@@ -652,7 +720,7 @@ public class FileOperationsViewModel extends ViewModel {
                     LogUtils.d(
                         "FileOperationsViewModel",
                         "User confirmed overwrite, uploading file: " + localFile.getName());
-                    performUpload(localFile, remotePath, callback);
+                    performUpload(localFile, remotePath, callback, displayFileName);
                   };
 
               Runnable cancelAction =
@@ -678,7 +746,7 @@ public class FileOperationsViewModel extends ViewModel {
               LogUtils.d(
                   "FileOperationsViewModel",
                   "File doesn't exist or no callback provided, proceeding with upload");
-              performUpload(localFile, remotePath, callback);
+              performUpload(localFile, remotePath, callback, displayFileName);
             }
           } catch (Exception e) {
             LogUtils.e(
@@ -697,8 +765,23 @@ public class FileOperationsViewModel extends ViewModel {
         });
   }
 
-  void performUpload(
-      File localFile, String remotePath, FileOperationCallbacks.UploadCallback callback) {
+  public void performUpload(
+      @NonNull File localFile,
+      @NonNull String remotePath,
+      @NonNull FileOperationCallbacks.UploadCallback callback) {
+    performUpload(localFile, remotePath, callback, null);
+  }
+
+  public void performUpload(
+      @NonNull File localFile,
+      @NonNull String remotePath,
+      @NonNull FileOperationCallbacks.UploadCallback callback,
+      @Nullable String displayFileName) {
+    String logFileName =
+        (displayFileName != null && !displayFileName.isEmpty())
+            ? displayFileName
+            : localFile.getName();
+    transferActionLog.log(TransferActionLog.Action.UPLOAD_STARTED, logFileName);
     LogUtils.d(
         "FileOperationsViewModel", "Uploading file: " + localFile.getName() + " to " + remotePath);
     String uploadOpName = "Uploading: " + localFile.getName();
@@ -720,7 +803,7 @@ public class FileOperationsViewModel extends ViewModel {
                   public void updateProgress(String progressInfo) {
                     if (callback != null) {
                       int percentage = ProgressFormat.parsePercent(progressInfo);
-                      emitProgress(progressInfo, percentage, localFile.getName());
+                      emitProgress(progressInfo, percentage, logFileName);
                       mainHandler.post(() -> callback.onProgress(progressInfo, percentage));
                     }
                   }
@@ -731,18 +814,37 @@ public class FileOperationsViewModel extends ViewModel {
                     if (callback != null) {
                       String status =
                           ProgressFormat.formatBytes(
-                              context.getString(de.schliweb.sambalite.R.string.uploading),
-                              currentBytes,
-                              totalBytes);
+                              ProgressFormat.Op.UPLOAD.label(), currentBytes, totalBytes);
                       int p = calculateAccuratePercentage(currentBytes, totalBytes);
-                      emitProgress(status, p, fileName);
+                      emitProgress(status, p, logFileName);
                       mainHandler.post(() -> callback.onProgress(status, p));
                     }
                   }
                 });
 
+            // Integrity check: verify uploaded file size matches local size
+            long localSize = localFile.length();
+            long remoteSize = smbRepository.getRemoteFileSize(state.getConnection(), remotePath);
+            if (remoteSize >= 0 && remoteSize != localSize) {
+              LogUtils.w(
+                  "FileOperationsViewModel",
+                  "Upload integrity check failed: local="
+                      + localSize
+                      + " bytes, remote="
+                      + remoteSize
+                      + " bytes for "
+                      + localFile.getName());
+              throw new java.io.IOException(
+                  "Upload incomplete: local="
+                      + localSize
+                      + " bytes, remote="
+                      + remoteSize
+                      + " bytes");
+            }
+
             LogUtils.i(
                 "FileOperationsViewModel", "File uploaded successfully: " + localFile.getName());
+            transferActionLog.log(TransferActionLog.Action.UPLOAD_COMPLETED, logFileName);
             state.setLoading(false);
             backgroundSmbManager.finishOperation(uploadOpName, true);
             if (callback != null) {
@@ -753,6 +855,8 @@ public class FileOperationsViewModel extends ViewModel {
             invalidateCacheAndRefreshUI();
           } catch (Exception e) {
             LogUtils.e("FileOperationsViewModel", "Upload failed: " + e.getMessage());
+            transferActionLog.log(
+                TransferActionLog.Action.UPLOAD_FAILED, logFileName, e.getMessage());
             state.setLoading(false);
             backgroundSmbManager.finishOperation(uploadOpName, false);
 

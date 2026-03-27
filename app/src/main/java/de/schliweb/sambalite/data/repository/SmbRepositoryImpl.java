@@ -839,6 +839,34 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
+  public long getRemoteFileSize(@NonNull SmbConnection connection, @NonNull String path) {
+    try {
+      return withShare(
+          connection,
+          share -> {
+            String filePath = getPathWithoutShare(path);
+            try (File remoteFile =
+                share.openFile(
+                    filePath,
+                    EnumSet.of(AccessMask.GENERIC_READ),
+                    null,
+                    SMB2ShareAccess.ALL,
+                    SMB2CreateDisposition.FILE_OPEN,
+                    null)) {
+              long size = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+              LogUtils.d("SmbRepositoryImpl", "Remote file size for " + path + ": " + size);
+              return size;
+            }
+          });
+    } catch (Exception e) {
+      LogUtils.w(
+          "SmbRepositoryImpl",
+          "Failed to get remote file size for " + path + ": " + e.getMessage());
+      return -1;
+    }
+  }
+
+  @Override
   public void downloadFile(
       @NonNull SmbConnection connection,
       @NonNull String remotePath,

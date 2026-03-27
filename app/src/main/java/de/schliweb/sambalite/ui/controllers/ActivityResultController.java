@@ -103,6 +103,18 @@ public class ActivityResultController {
    * @param operation The operation type
    */
   private void handleDocumentResult(ActivityResult result, String operation) {
+    LogUtils.d(
+        "ActivityResultController",
+        "handleDocumentResult: operation="
+            + operation
+            + ", resultCode="
+            + result.getResultCode()
+            + ", hasData="
+            + (result.getData() != null)
+            + ", dataUri="
+            + (result.getData() != null ? result.getData().getData() : "null")
+            + ", flags="
+            + (result.getData() != null ? result.getData().getFlags() : "no-data"));
     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
       Uri uri = result.getData().getData();
       if (uri != null) {
@@ -165,6 +177,16 @@ public class ActivityResultController {
    * @param uri The URI of the created folder
    */
   private void handleCreateFolderResult(Uri uri) {
+    LogUtils.d(
+        "ActivityResultController",
+        "handleCreateFolderResult: uri="
+            + uri
+            + ", isMultiDownloadPending="
+            + uiState.isMultiDownloadPending()
+            + ", pendingItems="
+            + (uiState.getPendingMultiDownloadItems() != null
+                ? uiState.getPendingMultiDownloadItems().size()
+                : "null"));
     // Clean up UI state first
     inputController.hideKeyboardAndClearFocus();
 
@@ -236,6 +258,10 @@ public class ActivityResultController {
     if (file.isDirectory()) {
       // For directories, we need to create a folder picker
       Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+      intent.addFlags(
+          Intent.FLAG_GRANT_READ_URI_PERMISSION
+              | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+              | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
       LogUtils.d(
           "ActivityResultController", "Created folder picker intent for folder: " + file.getName());
 
@@ -280,8 +306,20 @@ public class ActivityResultController {
    * path (onFolderDownloadResult).
    */
   public void selectFolderForDownloadTarget() {
-    LogUtils.d("ActivityResultController", "Selecting folder for multi-file download target");
+    LogUtils.d(
+        "ActivityResultController",
+        "Selecting folder for multi-file download target"
+            + ", isMultiDownloadPending="
+            + uiState.isMultiDownloadPending()
+            + ", pendingItems="
+            + (uiState.getPendingMultiDownloadItems() != null
+                ? uiState.getPendingMultiDownloadItems().size()
+                : "null"));
     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+    intent.addFlags(
+        Intent.FLAG_GRANT_READ_URI_PERMISSION
+            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
     // Use createFolderLauncher so the result routes to onFolderDownloadResult
     createFolderLauncher.launch(intent);
   }

@@ -377,13 +377,10 @@ public class DialogHelper {
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_share_upload, null);
     android.widget.TextView messageView = dialogView.findViewById(R.id.share_upload_message);
     messageView.setText(
-        context.getString(R.string.share_upload_message)
-            + " "
-            + fileCount
-            + " "
-            + context.getString(R.string.items_to)
-            + " "
-            + targetFolder);
+        context
+            .getResources()
+            .getQuantityString(
+                R.plurals.share_upload_full_message, fileCount, fileCount, targetFolder));
     MaterialAlertDialogBuilder builder =
         new MaterialAlertDialogBuilder(context)
             .setView(dialogView)

@@ -244,7 +244,7 @@ public final class ProgressFormat {
 
   private static final Pattern P_PREFIX =
       Pattern.compile(
-          "^\\s*(Downloading|Uploading|Deleting|Renaming|Searching|Finalizing|Copying)[:\\s]+(.*)$",
+          "^\\s*(Downloading|Uploading|Deleting|Renaming|Searching|Finalizing|Copying)[\u2026.]?[:\\s]+(.*)$",
           Pattern.CASE_INSENSITIVE);
   private static final Pattern P_BRACKET =
       Pattern.compile("^\\s*\\[PROGRESS:(\\d{1,3}):(\\d+):(\\d+)\\](.*)$");

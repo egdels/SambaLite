@@ -268,8 +268,18 @@ public class FileOperations {
       @NonNull Uri destUri,
       @NonNull Context context,
       @Nullable Callback cb) {
+    copyFileToUriAsync(sourceFile, destUri, context, cb, null);
+  }
+
+  public static void copyFileToUriAsync(
+      @NonNull File sourceFile,
+      @NonNull Uri destUri,
+      @NonNull Context context,
+      @Nullable Callback cb,
+      @Nullable String displayName) {
     if (cb == null) cb = new Callback() {};
     final Callback callback = cb;
+    final String name = (displayName != null) ? displayName : sourceFile.getName();
     callback.onStart();
 
     COPY_EXECUTOR.submit(
@@ -296,7 +306,7 @@ public class FileOperations {
               long now = System.nanoTime();
               if (now - lastEmit > 80_000_000L) {
                 int filePct = pct(local, fileTotal);
-                String base = ProgressFormat.formatIdx("Copying", 1, 1, sourceFile.getName());
+                String base = ProgressFormat.formatIdx("Copying", 1, 1, name);
                 String status =
                     base
                         + " • "
@@ -331,7 +341,7 @@ public class FileOperations {
             } catch (Throwable ignored) {
             }
             try {
-              callback.onFileCopied(sourceFile.getName(), sourceFile.length());
+              callback.onFileCopied(name, sourceFile.length());
             } catch (Throwable ignored) {
             }
             callback.onDone();
@@ -353,16 +363,62 @@ public class FileOperations {
     return deleted;
   }
 
+  /** Callback for staging progress during URI-to-file copy. */
+  public interface StagingProgressCallback {
+    void onStagingProgress(long copiedBytes, long totalBytes, int percent);
+  }
+
   public static void copyUriToFile(
       @NonNull Uri uri, @NonNull File targetFile, @NonNull Context context) throws IOException {
+    copyUriToFile(uri, targetFile, context, null);
+  }
+
+  public static void copyUriToFile(
+      @NonNull Uri uri,
+      @NonNull File targetFile,
+      @NonNull Context context,
+      @Nullable StagingProgressCallback progressCallback)
+      throws IOException {
     LogUtils.d("FileOperations", "Copying URI content to file: " + targetFile.getAbsolutePath());
+
+    long totalSize = -1;
+    try (Cursor cursor =
+        context
+            .getContentResolver()
+            .query(uri, new String[] {OpenableColumns.SIZE}, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        int idx = cursor.getColumnIndex(OpenableColumns.SIZE);
+        if (idx >= 0 && !cursor.isNull(idx)) {
+          totalSize = cursor.getLong(idx);
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w("FileOperations", "Could not query file size: " + e.getMessage());
+    }
+
     try (InputStream is = context.getContentResolver().openInputStream(uri);
         BufferedInputStream bis =
             new BufferedInputStream(require(is, "input stream from URI: " + uri), BUFFER_SIZE);
         BufferedOutputStream bos =
             new BufferedOutputStream(new FileOutputStream(targetFile), BUFFER_SIZE)) {
-      long bytes = copyStream(bis, bos);
-      LogUtils.d("FileOperations", "URI content copied successfully (" + bytes + " bytes)");
+      byte[] buffer = new byte[BUFFER_SIZE];
+      int read;
+      long total = 0;
+      int lastPct = -1;
+      while ((read = bis.read(buffer)) != -1) {
+        bos.write(buffer, 0, read);
+        total += read;
+        if (progressCallback != null && totalSize > 0) {
+          int pct = (int) (total * 100 / totalSize);
+          if (pct != lastPct) {
+            lastPct = pct;
+            progressCallback.onStagingProgress(total, totalSize, pct);
+          }
+        }
+      }
+      bos.flush();
+      LogUtils.d("FileOperations", "Stream copied: " + total + " bytes");
+      LogUtils.d("FileOperations", "URI content copied successfully (" + total + " bytes)");
     } catch (IOException e) {
       LogUtils.e("FileOperations", "Error copying URI to file: " + e.getMessage());
       throw e;

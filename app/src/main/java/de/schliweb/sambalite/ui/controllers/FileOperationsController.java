@@ -145,14 +145,25 @@ public class FileOperationsController {
   }
 
   /**
-   * Öffnet KEINEN Transfer-Dialog mehr (macht die Activity). Hängt – falls vorhanden – nur die
-   * Cancel-Action an einen bereits offenen Dialog.
+   * Öffnet sofort den Fortschrittsdialog und hängt die Cancel-Action an, damit der Benutzer
+   * unmittelbar Feedback erhält, noch bevor der Hintergrunddienst gebunden ist.
    */
   void showProgressShell(String operationType, String operationName, Runnable onCancel) {
     if (progressCallback instanceof ProgressController pc) {
       try {
-        // Attach cancel action immediately; ProgressController will cache it if dialog not yet
-        // visible
+        // Show the progress dialog immediately so the user sees feedback right away,
+        // even before the background service is bound and the operation callback fires.
+        String title;
+        if (OPERATION_DOWNLOAD.equals(operationType)) {
+          title = context.getString(de.schliweb.sambalite.R.string.downloading);
+        } else if (OPERATION_UPLOAD.equals(operationType)
+            || OPERATION_FOLDER_UPLOAD.equals(operationType)) {
+          title = context.getString(de.schliweb.sambalite.R.string.uploading);
+        } else {
+          title = context.getString(de.schliweb.sambalite.R.string.transfer_title);
+        }
+        String message = context.getString(de.schliweb.sambalite.R.string.preparing_transfer);
+        pc.showDetailedProgressDialog(title, message);
         pc.setDetailedProgressDialogCancelAction(onCancel);
       } catch (Throwable ignored) {
         /* optional */
@@ -235,12 +246,10 @@ public class FileOperationsController {
                     int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
                     String status =
                         ProgressFormat.formatBytes(
-                            context.getString(de.schliweb.sambalite.R.string.downloading),
-                            currentBytes,
-                            totalBytes);
+                            ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
                     updateOperationProgress(
                         OPERATION_DOWNLOAD, uiState.getSelectedFile(), null, pct, status);
-                    cb.updateBytesProgress(currentBytes, totalBytes, fileName);
+                    cb.updateBytesProgress(currentBytes, totalBytes, displayName);
                   }
 
                   @Override
@@ -339,7 +348,7 @@ public class FileOperationsController {
                       int pct = totalFiles > 0 ? (currentFile * 100) / totalFiles : 0;
                       String status =
                           ProgressFormat.formatIdx(
-                              context.getString(de.schliweb.sambalite.R.string.downloading),
+                              ProgressFormat.Op.DOWNLOAD.label(),
                               currentFile,
                               totalFiles,
                               currentFileName);
@@ -359,9 +368,7 @@ public class FileOperationsController {
                       int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
                       String status =
                           ProgressFormat.formatBytes(
-                              context.getString(de.schliweb.sambalite.R.string.downloading),
-                              currentBytes,
-                              totalBytes);
+                              ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
                       updateOperationProgress(
                           OPERATION_DOWNLOAD, uiState.getSelectedFile(), fileName, pct, status);
                       cb.updateBytesProgress(currentBytes, totalBytes, fileName);
@@ -426,7 +433,8 @@ public class FileOperationsController {
         fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
     final String opTitle = titleFor(OPERATION_UPLOAD, fileName);
 
-    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+    // Do NOT show progress dialog yet — first check if the file already exists on the server.
+    // The progress dialog will be shown only after the user confirms (or if the file is new).
 
     var unused =
         backgroundSmbManager.executeMultiFileOperation(
@@ -435,14 +443,75 @@ public class FileOperationsController {
             cb -> {
               cb.updateFileProgress(1, 1, fileName);
 
+              // Check if the remote file already exists BEFORE copying the file to cache
+              String remotePath = buildRemotePath(fileName);
+              backgroundSmbManager.ensureServiceRunning();
+              boolean fileExists = operationsViewModel.checkFileExists(remotePath);
+
+              if (fileExists) {
+                // Ask the user for confirmation on the main thread and wait for the answer
+                final java.util.concurrent.CountDownLatch confirmLatch =
+                    new java.util.concurrent.CountDownLatch(1);
+                final java.util.concurrent.atomic.AtomicBoolean userConfirmed =
+                    new java.util.concurrent.atomic.AtomicBoolean(false);
+
+                android.os.Handler mainHandler =
+                    new android.os.Handler(android.os.Looper.getMainLooper());
+                mainHandler.post(
+                    () -> {
+                      FileOperationCallbacks.FileExistsCallback feCallback =
+                          createFileExistsCallback();
+                      feCallback.onFileExists(
+                          fileName,
+                          () -> {
+                            userConfirmed.set(true);
+                            confirmLatch.countDown();
+                          },
+                          () -> {
+                            userConfirmed.set(false);
+                            confirmLatch.countDown();
+                          });
+                    });
+
+                confirmLatch.await();
+
+                if (!userConfirmed.get()) {
+                  // User cancelled — report cancellation
+                  LogUtils.d(
+                      "FileOperationsController",
+                      "User cancelled upload of existing file: " + fileName);
+                  String msg =
+                      context.getString(de.schliweb.sambalite.R.string.upload_cancelled_by_user);
+                  android.os.Handler handler =
+                      new android.os.Handler(android.os.Looper.getMainLooper());
+                  handler.post(
+                      () -> {
+                        handleOperationError(OPERATION_UPLOAD, null, msg, null, false, null);
+                      });
+                  return Boolean.TRUE;
+                }
+              }
+
+              // Now show the progress dialog (file is new or user confirmed overwrite)
+              showProgressShell(
+                  OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+
               File tempFile = null;
               try {
                 tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
                 uiState.setTempFile(tempFile);
-                cb.updateProgress(
-                    context.getString(
-                        de.schliweb.sambalite.R.string.preparing_upload_staging_file));
-                FileOperations.copyUriToFile(uri, tempFile, context);
+                String stagingMsg =
+                    context.getString(de.schliweb.sambalite.R.string.preparing_upload_staging_file);
+                cb.updateProgress(stagingMsg);
+                FileOperations.copyUriToFile(
+                    uri,
+                    tempFile,
+                    context,
+                    (copiedBytes, totalBytes, pct) -> {
+                      String status =
+                          ProgressFormat.formatBytes(stagingMsg, copiedBytes, totalBytes);
+                      cb.updateProgress(status + " - " + fileName);
+                    });
               } catch (Exception ex) {
                 if (tempFile != null) tempFile.delete();
                 uiState.setTempFile(null);
@@ -453,8 +522,6 @@ public class FileOperationsController {
                         ex.getMessage()));
                 throw ex;
               }
-
-              String remotePath = buildRemotePath(fileName);
 
               final java.util.concurrent.CountDownLatch done =
                   new java.util.concurrent.CountDownLatch(1);
@@ -467,7 +534,9 @@ public class FileOperationsController {
                     @Override
                     public void onProgress(String status, int percentage) {
                       inner.onProgress(status, percentage);
-                      cb.updateProgress(status);
+                      cb.updateProgress(
+                          status
+                              + (fileName != null && !fileName.isEmpty() ? " - " + fileName : ""));
                     }
 
                     @Override
@@ -482,8 +551,8 @@ public class FileOperationsController {
                     }
                   };
 
-              operationsViewModel.uploadFile(
-                  tempFile, remotePath, wrapped, fileName, createFileExistsCallback());
+              // Upload without file-exists check since we already handled it above
+              operationsViewModel.performUpload(tempFile, remotePath, wrapped, fileName);
 
               done.await();
               return Boolean.TRUE;
@@ -837,6 +906,9 @@ public class FileOperationsController {
    * folder.
    */
   public void handleMultipleFileDownloadsWithTargetUri(@NonNull Uri folderUri) {
+    LogUtils.d(
+        "FileOperationsController",
+        "handleMultipleFileDownloadsWithTargetUri: folderUri=" + folderUri);
     java.util.List<SmbFileItem> pending = uiState.getPendingMultiDownloadItems();
     uiState.setMultiDownloadPending(false);
     uiState.setPendingMultiDownloadItems(null);
@@ -891,6 +963,20 @@ public class FileOperationsController {
             cb -> {
               try {
                 DocumentFile destDir = DocumentFile.fromTreeUri(context, folderUri);
+                LogUtils.d(
+                    "FileOperationsController",
+                    "Multi-download destDir: uri="
+                        + folderUri
+                        + ", destDir="
+                        + destDir
+                        + ", canWrite="
+                        + (destDir != null ? destDir.canWrite() : "null")
+                        + ", exists="
+                        + (destDir != null ? destDir.exists() : "null")
+                        + ", isDirectory="
+                        + (destDir != null ? destDir.isDirectory() : "null")
+                        + ", name="
+                        + (destDir != null ? destDir.getName() : "null"));
                 if (destDir == null || !destDir.canWrite()) {
                   if (progressCallback != null) {
                     progressCallback.showError(
@@ -985,11 +1071,9 @@ public class FileOperationsController {
                           int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
                           String status =
                               ProgressFormat.formatBytes(
-                                  context.getString(de.schliweb.sambalite.R.string.downloading),
-                                  currentBytes,
-                                  totalBytes);
+                                  ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
                           updateOperationProgress(OPERATION_DOWNLOAD, f, null, pct, status);
-                          cb.updateBytesProgress(currentBytes, totalBytes, curName);
+                          cb.updateBytesProgress(currentBytes, totalBytes, fileName);
                         }
 
                         @Override
@@ -1245,7 +1329,18 @@ public class FileOperationsController {
         }
 
         FINALIZING.set(true);
+        operationsViewModel.setFinalizing(true);
         updateFinalizingProgress(OPERATION_DOWNLOAD, file, null, false);
+
+        final String copyOpName = "Copying: " + (file != null ? file.getName() : "file");
+        backgroundSmbManager.startOperation(copyOpName);
+        operationsViewModel.incDownload();
+
+        // Emit initial copying progress so the transfer dialog stays visible
+        String copyingLabel =
+            context.getString(de.schliweb.sambalite.R.string.copying_to_destination);
+        operationsViewModel.emitProgress(
+            copyingLabel + ": 0%", SMB_CAP, file != null ? file.getName() : null);
 
         final java.util.function.IntUnaryOperator mapFinal =
             p ->
@@ -1256,6 +1351,7 @@ public class FileOperationsController {
                             FINALIZE_WINDOW_PCT,
                             (int) Math.round(p * (FINALIZE_WINDOW_PCT / 100.0))));
 
+        final String realName = file != null ? file.getName() : "file";
         FileOperations.copyFileToUriAsync(
             tempFile,
             uri,
@@ -1271,11 +1367,16 @@ public class FileOperationsController {
                 int mapped = mapFinal.applyAsInt(percent);
                 String normalized = normalizePercentInStatus(status, mapped);
                 updateOperationProgress(OPERATION_DOWNLOAD, file, null, mapped, normalized);
+                operationsViewModel.emitProgress(
+                    normalized, mapped, file != null ? file.getName() : null);
                 serviceCb.updateProgress(normalized);
               }
 
               @Override
               public void onDone() {
+                operationsViewModel.setFinalizing(false);
+                backgroundSmbManager.finishOperation(copyOpName, true);
+                operationsViewModel.decDownload();
                 serviceCb.updateProgress(
                     context.getString(de.schliweb.sambalite.R.string.finalizing_done));
                 updateOperationProgress(
@@ -1302,6 +1403,9 @@ public class FileOperationsController {
 
               @Override
               public void onError(Exception e) {
+                operationsViewModel.setFinalizing(false);
+                backgroundSmbManager.finishOperation(copyOpName, false);
+                operationsViewModel.decDownload();
                 String txt;
                 if (e instanceof FileOperations.OperationCancelledException) {
                   txt =
@@ -1341,7 +1445,8 @@ public class FileOperationsController {
                 }
                 serviceCb.updateProgress(txt);
               }
-            });
+            },
+            realName);
       }
     };
   }
@@ -1388,7 +1493,18 @@ public class FileOperationsController {
         }
 
         FINALIZING.set(true);
+        operationsViewModel.setFinalizing(true);
         updateFinalizingProgress(OPERATION_DOWNLOAD, folder, null, true);
+
+        final String copyOpName = "Copying: " + (folder != null ? folder.getName() : "folder");
+        backgroundSmbManager.startOperation(copyOpName);
+        operationsViewModel.incDownload();
+
+        // Emit initial copying progress so the transfer dialog stays visible
+        String copyingLabel =
+            context.getString(de.schliweb.sambalite.R.string.copying_to_destination);
+        operationsViewModel.emitProgress(
+            copyingLabel + ": 0%", SMB_CAP, folder != null ? folder.getName() : null);
 
         FileOperations.copyFolderAsync(
             tempFolder,
@@ -1413,6 +1529,8 @@ public class FileOperationsController {
                 int mapped = mapFinal.applyAsInt(percent);
                 String normalized = normalizePercentInStatus(status, mapped);
                 updateOperationProgress(OPERATION_DOWNLOAD, folder, null, mapped, normalized);
+                operationsViewModel.emitProgress(
+                    normalized, mapped, folder != null ? folder.getName() : null);
                 serviceCb.updateProgress(normalized);
               }
 
@@ -1423,6 +1541,9 @@ public class FileOperationsController {
 
               @Override
               public void onDone() {
+                operationsViewModel.setFinalizing(false);
+                backgroundSmbManager.finishOperation(copyOpName, true);
+                operationsViewModel.decDownload();
                 String txt =
                     context.getString(de.schliweb.sambalite.R.string.folder_download_success);
                 serviceCb.updateProgress(txt);
@@ -1449,6 +1570,9 @@ public class FileOperationsController {
 
               @Override
               public void onError(Exception e) {
+                operationsViewModel.setFinalizing(false);
+                backgroundSmbManager.finishOperation(copyOpName, false);
+                operationsViewModel.decDownload();
                 String txt;
                 if (e instanceof FileOperations.OperationCancelledException) {
                   txt =
@@ -1645,6 +1769,7 @@ public class FileOperationsController {
     notifyOperationCompleted(operationType, file, false, errorMessage);
     if (progressCallback != null) {
       progressCallback.hideLoadingIndicator();
+      progressCallback.hideDetailedProgressDialog();
       LogUtils.d("FileOperationsController", "Progress (short UI) cleaned up after error");
     }
   }
