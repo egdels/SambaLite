@@ -5,6 +5,42 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-03-27
+### Added
+- Biometric and device credential authentication: New `BiometricAuthHelper` enables optional biometric or PIN/pattern authentication before accessing shares and revealing saved passwords. Configurable via a new Security Settings dialog (`dialog_security_settings.xml`) accessible from the main menu.
+- Transfer Action Log (`TransferActionLog`): Persistent log of file transfer actions (cache hits, cache misses, downloads, uploads) stored in SharedPreferences for diagnostics and debugging.
+- Swipe-kill recovery: Active file operations are now persisted to SharedPreferences before process termination. On next launch, a Snackbar informs the user that a previous operation was cancelled.
+- Stale cache temp file cleanup: `SmbBackgroundService` automatically removes orphaned `download*.tmp` files older than 1 hour from the cache directory on startup.
+- Smart cache validation: Downloads now check for existing cache files with matching size and timestamp, skipping redundant re-downloads (cache hit/miss logging via `TransferActionLog`).
+- Remote file existence check before upload: Uploads now verify whether the file already exists on the server before starting the transfer, allowing the user to confirm or cancel.
+- `getRemoteFileSize()` method in `SmbRepository` for querying remote file sizes.
+- Staging progress callback (`StagingProgressCallback`) for URI-to-file copy operations with byte-level progress reporting.
+- New unit tests: `FileOperationsViewModelCacheTest`, `TransferActionLogTest`, `TimestampPreservationTest`, `SwipeKillBehaviorTest`.
+- Translations for all new security, swipe-kill recovery, and progress strings in all supported languages (DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- Progress dialog is now deferred until the activity reaches RESUMED state, preventing crashes when the activity is not yet fully visible. Pending dialog requests are cancelled to avoid duplicates.
+- Upload flow redesigned: Progress dialog is shown only after the remote existence check completes and the user confirms (or the file is new), providing clearer feedback.
+- Byte-level progress formatting for both download and upload operations using `ProgressFormat`.
+- "Finalizing" state added to `FileOperationsViewModel` to indicate post-transfer copy-to-destination phase in the UI.
+- Gradle: `versionCode` bumped to 10800, `versionName` updated to 1.8.0.
+
+### Fixed
+- `ProgressFormat.Op.DOWNLOAD` label corrected.
+- `BatteryOptimizationUtils` annotation fix.
+- `DialogHelper` minor layout adjustment.
+- Notification feature test updated for compatibility with new service behavior.
+
+### Developer Notes
+- `BiometricAuthHelper`: Wraps AndroidX Biometric API; checks availability via `BiometricManager` and triggers `BiometricPrompt` with `BIOMETRIC_WEAK | DEVICE_CREDENTIAL`.
+- `TransferActionLog`: SharedPreferences-backed circular log (max 200 entries) with timestamped action records and JSON serialization.
+- `PreferencesManager`: New preference keys for security settings (`auth_required_for_access`, `auth_required_for_password_reveal`).
+- `SmbBackgroundService.onCreate()`: Added `cleanupStaleCacheTempFiles()` call for orphaned temp file removal.
+- `ProgressController`: Lifecycle-aware dialog deferral via `LifecycleEventObserver` to avoid `IllegalStateException` on early dialog show.
+- `FileOperationsController`: Refactored upload and download flows with pre-checks, staging progress, and cancel support.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.7.0] - 2026-03-14
 
 ### Added

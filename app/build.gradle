@@ -20,7 +20,7 @@ android {
         minSdk 28
         targetSdk = 36
         
-        versionCode 10700
+        versionCode 10800
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -122,7 +122,11 @@ android {
                     'TimberTagLength', 'TimberExceptionLogging',
                     // BouncyCastle (transitive via SMBJ) references javax.naming.directory
                     // which is not available on Android – safe to ignore at lint level
-                    'InvalidPackage']
+                    'InvalidPackage',
+                    // Lombok requires both compileOnly and annotationProcessor – not actionable
+                    'AnnotationProcessorOnCompilePath',
+                    // Gradle wrapper version is managed separately
+                    'AndroidGradlePluginVersion']
 
         // Enable important lint check categories
         // Accessibility: contentDescription, touchTargetSize, etc.
@@ -210,6 +214,9 @@ dependencies {
 
     // Security libraries for credential storage
     implementation 'androidx.security:security-crypto:1.1.0'
+
+    // Biometric authentication
+    implementation 'androidx.biometric:biometric:1.1.0'
 
     // Timber for logging
     implementation 'com.jakewharton.timber:timber:5.0.1'

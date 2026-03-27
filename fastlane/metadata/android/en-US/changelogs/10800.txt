@@ -1,0 +1,8 @@
+• Biometric & device credential authentication for shares and passwords.
+• Smart cache validation skips redundant downloads.
+• Remote file existence check before upload with user confirmation.
+• Swipe-kill recovery: resume info shown on next launch.
+• Transfer Action Log for diagnostics.
+• Lifecycle-aware progress dialogs prevent crashes.
+• Stale temp file cleanup on service start.
+• Translations updated for all supported languages.
