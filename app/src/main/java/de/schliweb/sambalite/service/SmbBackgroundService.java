@@ -12,6 +12,7 @@ package de.schliweb.sambalite.service;
 import android.app.*;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
@@ -142,15 +143,82 @@ public class SmbBackgroundService extends Service {
     PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
     wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SambaLite:BackgroundOperations");
     wakeLock.setReferenceCounted(true);
+
+    // Clean up stale download temp files in cache directory (left over from swipe-kill
+    // during copy phase or other unexpected termination)
+    cleanupStaleCacheTempFiles();
   }
+
+  /**
+   * Removes stale download temp files from the cache directory. These files can be left behind when
+   * the app process is killed during the copy phase (cache → final destination). Only files older
+   * than 1 hour are removed to avoid interfering with active downloads.
+   */
+  private void cleanupStaleCacheTempFiles() {
+    try {
+      File cacheDir = getCacheDir();
+      File[] files = cacheDir != null ? cacheDir.listFiles() : null;
+      if (files == null) return;
+      long cutoff = System.currentTimeMillis() - 3_600_000L; // 1 hour
+      for (File f : files) {
+        if (f.isFile()
+            && f.getName().startsWith("download")
+            && f.getName().endsWith(".tmp")
+            && f.lastModified() < cutoff) {
+          long sizeMb = f.length() / (1024 * 1024);
+          if (f.delete()) {
+            LogUtils.i(
+                TAG, "Cleaned up stale cache temp file: " + f.getName() + " (" + sizeMb + " MB)");
+          }
+        }
+      }
+    } catch (Throwable t) {
+      LogUtils.w(TAG, "Error cleaning stale cache temp files: " + t.getMessage());
+    }
+  }
+
+  // SharedPreferences key for persisting cancelled operation state across process death
+  private static final String PREFS_NAME = "swipe_kill_state";
+  private static final String PREF_HAD_ACTIVE_OPS = "had_active_operations";
+  private static final String PREF_LAST_OPERATION = "last_operation";
+  private static final String PREF_ACTIVE_OP_COUNT = "active_operation_count";
+  private static final String PREF_TIMESTAMP = "timestamp";
 
   @Override
   public void onTaskRemoved(Intent rootIntent) {
     if (hasActiveOperations()) {
-      Intent i = new Intent(getApplicationContext(), SmbBackgroundService.class);
-      startForegroundService(i);
+      int count = getActiveOperationCount();
+      LogUtils.w(TAG, "Task removed with " + count + " active operations — persisting state");
+      persistCancelledOperationState();
+      cancelAllOperations("App was swiped away");
     }
+    try {
+      stopForeground(STOP_FOREGROUND_REMOVE);
+    } catch (Throwable ignored) {
+    }
+    stopSelf();
     super.onTaskRemoved(rootIntent);
+  }
+
+  /**
+   * Persists the current operation state to SharedPreferences so that the next app start can inform
+   * the user about cancelled operations.
+   */
+  private void persistCancelledOperationState() {
+    try {
+      SharedPreferences prefs =
+          getApplicationContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+      prefs
+          .edit()
+          .putBoolean(PREF_HAD_ACTIVE_OPS, true)
+          .putString(PREF_LAST_OPERATION, currentOperation)
+          .putInt(PREF_ACTIVE_OP_COUNT, getActiveOperationCount())
+          .putLong(PREF_TIMESTAMP, System.currentTimeMillis())
+          .apply();
+      LogUtils.d(TAG, "Cancelled operation state persisted: " + currentOperation);
+    } catch (Throwable t) {
+      LogUtils.w(TAG, "Failed to persist cancelled operation state: " + t.getMessage());
+    }
   }
 
   @Override
@@ -591,6 +659,14 @@ public class SmbBackgroundService extends Service {
         stopSelf();
         return START_NOT_STICKY;
       }
+    }
+
+    // If restarted by system after swipe-kill with no active operations, stop immediately
+    if (intent == null && !hasActiveOperations()) {
+      LogUtils.i(TAG, "Service restarted without active operations — stopping self");
+      stopForeground(STOP_FOREGROUND_REMOVE);
+      stopSelf();
+      return START_NOT_STICKY;
     }
 
     if (hasActiveOperations()) startWatchdog();

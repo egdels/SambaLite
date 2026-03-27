@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">Icône de type de fichier</string>
     <string name="content_desc_sync_indicator">Indicateur de synchronisation</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">Partage</string>
     <string name="content_desc_refresh_system_info">Actualiser les informations système</string>
 
     <!-- Menu Items -->
@@ -181,13 +180,16 @@
     <string name="share_needs_target_folder_message">Sélectionner le dossier cible</string>
     <string name="share_needs_target_folder_select">Sélectionner</string>
     <string name="share_upload_title">Partager des éléments</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="one">Partage %1$d élément vers %2$s</item>
+        <item quantity="many">Partage %1$d éléments vers %2$s</item>
+        <item quantity="other">Partage %1$d éléments vers %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Changer de dossier</string>
     <string name="share_change_folder_subtitle">Sélectionner une connexion à parcourir</string>
     <string name="share_change_folder_connections">Connexions disponibles</string>
     <string name="select_this_folder">Sélectionner ce dossier</string>
-    <string name="items_to">éléments vers</string>
     <string name="permission_title_notifications">Activer les notifications</string>
     <string name="permission_explain_notifications">SambaLite vous informe de l’avancement des transferts de fichiers, même lorsque l’application fonctionne en arrière-plan. Activez les notifications pour rester informé des envois et téléchargements.</string>
 
@@ -217,8 +219,10 @@
     <string name="uploading_colon">Envoi : %1$s</string>
     <string name="deleting_colon">Suppression : %1$s</string>
     <string name="renaming_colon">Renommage : %1$s</string>
+    <string name="finalizing">Finalisation…</string>
     <string name="finalizing_operation">Finalisation de %1$s %2$s…</string>
     <string name="finalizing_done">Finalisation… terminée</string>
+    <string name="copying_to_destination">Copie vers la destination</string>
     <string name="finalizing_scanning_files">Finalisation… analyse des fichiers</string>
     <string name="download_cancelled_local_copy">Téléchargement annulé par l’utilisateur pendant la copie locale</string>
     <string name="error_copying_file_to_destination">Erreur lors de la copie du fichier vers la destination : %1$s</string>
@@ -258,8 +262,9 @@
     <string name="leave_confirm_message">Un transfert de fichiers est encore en cours. Quitter annulera le transfert. Voulez-vous quitter quand même ?</string>
     <string name="leave_confirm_positive">Quitter</string>
     <string name="transfer_cancelled_toast">Le transfert actif a été annulé</string>
+    <string name="previous_operation_cancelled">Une opération précédente a été annulée car l\u2019application a été fermée.</string>
 
-    <string name="quit_app">Quitter</string>
+    <string name="quit_app">@string/leave_confirm_positive</string>
     <string name="quit_app_confirm_title">Opérations actives</string>
     <string name="quit_app_confirm_positive">Quitter quand même</string>
     <string name="sync_setup_title">@string/sync_folder_option</string>
@@ -355,4 +360,20 @@
     <string name="upload_complete_subtitle">Transfert terminé</string>
     <string name="file_exists_subtitle">Un conflit de noms a été détecté</string>
     <string name="progress_subtitle">Transfert en cours</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">Sécurité</string>
+    <string name="auth_required_for_access">Authentification avant l\'accès au partage</string>
+    <string name="auth_required_for_access_summary">Exiger la biométrie ou le code PIN avant d\'ouvrir une connexion</string>
+    <string name="auth_required_for_password_reveal">Authentification avant l\'affichage du mot de passe</string>
+    <string name="auth_required_for_password_reveal_summary">Exiger la biométrie ou le code PIN avant d\'afficher les mots de passe enregistrés</string>
+    <string name="auth_title_access">Authentification requise</string>
+    <string name="auth_subtitle_access">Vérifiez votre identité pour accéder à ce partage</string>
+    <string name="auth_title_password">Authentification requise</string>
+    <string name="auth_subtitle_password">Vérifiez votre identité pour afficher le mot de passe</string>
+    <string name="enter_password_title">Entrer le mot de passe</string>
+    <string name="enter_password_message">Entrez le mot de passe pour %s</string>
+    <string name="sync_skipped_password_required">Synchronisation ignorée pour %s – saisie du mot de passe requise</string>
+    <string name="auth_not_available">Aucune authentification configurée. Veuillez configurer un code PIN, un schéma ou la biométrie dans les paramètres système.</string>
+    <string name="auth_failed">Échec de l\'authentification : %s</string>
 </resources>

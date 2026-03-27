@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">Bestandstype icoon</string>
     <string name="content_desc_sync_indicator">Synchronisatie-indicator</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">Delen</string>
     <string name="content_desc_refresh_system_info">Systeeminformatie vernieuwen</string>
 
     <!-- Menu Items -->
@@ -180,13 +179,15 @@
     <string name="share_needs_target_folder_message">Selecteer doelmap</string>
     <string name="share_needs_target_folder_select">Selecteren</string>
     <string name="share_upload_title">Items delen</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="one">Delen %1$d item naar %2$s</item>
+        <item quantity="other">Delen %1$d items naar %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Map wijzigen</string>
     <string name="share_change_folder_subtitle">Selecteer een verbinding om te bladeren</string>
     <string name="share_change_folder_connections">Beschikbare verbindingen</string>
     <string name="select_this_folder">Deze map selecteren</string>
-    <string name="items_to">items naar</string>
     <string name="permission_title_notifications">Meldingen inschakelen</string>
     <string name="permission_explain_notifications">SambaLite houdt u op de hoogte van de voortgang van bestandsoverdrachten, zelfs wanneer de app op de achtergrond draait. Schakel meldingen in om altijd op de hoogte te blijven van uploads en downloads.</string>
 
@@ -216,8 +217,10 @@
     <string name="uploading_colon">Bezig met uploaden: %1$s</string>
     <string name="deleting_colon">Bezig met verwijderen: %1$s</string>
     <string name="renaming_colon">Bezig met hernoemen: %1$s</string>
+    <string name="finalizing">Bezig met voltooien…</string>
     <string name="finalizing_operation">Bezig met voltooien van %1$s %2$s…</string>
     <string name="finalizing_done">Voltooien… klaar</string>
+    <string name="copying_to_destination">Kopiëren naar bestemming</string>
     <string name="finalizing_scanning_files">Voltooien… bestanden scannen</string>
     <string name="download_cancelled_local_copy">Download geannuleerd door gebruiker tijdens lokale kopie</string>
     <string name="error_copying_file_to_destination">Fout bij het kopiëren van bestand naar doel: %1$s</string>
@@ -257,6 +260,7 @@
     <string name="leave_confirm_message">Er is nog een bestandsoverdracht bezig. Bij het verlaten wordt deze geannuleerd. Toch verlaten?</string>
     <string name="leave_confirm_positive">Verlaten</string>
     <string name="transfer_cancelled_toast">Actieve overdracht is geannuleerd</string>
+    <string name="previous_operation_cancelled">Een eerdere bewerking is geannuleerd omdat de app is gesloten.</string>
 
     <string name="quit_app">Afsluiten</string>
     <string name="quit_app_confirm_title">Actieve bewerkingen</string>
@@ -345,4 +349,20 @@
     <string name="upload_complete_subtitle">Overdracht voltooid</string>
     <string name="file_exists_subtitle">Er is een naamconflict gedetecteerd</string>
     <string name="progress_subtitle">Overdracht bezig</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">Beveiliging</string>
+    <string name="auth_required_for_access">Authenticatie vóór toegang tot share</string>
+    <string name="auth_required_for_access_summary">Biometrie of apparaat-PIN vereisen voordat een verbinding wordt geopend</string>
+    <string name="auth_required_for_password_reveal">Authenticatie vóór wachtwoord tonen</string>
+    <string name="auth_required_for_password_reveal_summary">Biometrie of apparaat-PIN vereisen voordat opgeslagen wachtwoorden worden getoond</string>
+    <string name="auth_title_access">Authenticatie vereist</string>
+    <string name="auth_subtitle_access">Verifieer uw identiteit om toegang te krijgen tot deze share</string>
+    <string name="auth_title_password">Authenticatie vereist</string>
+    <string name="auth_subtitle_password">Verifieer uw identiteit om het wachtwoord te bekijken</string>
+    <string name="enter_password_title">Wachtwoord invoeren</string>
+    <string name="enter_password_message">Voer het wachtwoord in voor %s</string>
+    <string name="sync_skipped_password_required">Synchronisatie overgeslagen voor %s – wachtwoordinvoer vereist</string>
+    <string name="auth_not_available">Geen apparaatauthenticatie geconfigureerd. Stel een PIN, patroon of biometrie in via de systeeminstellingen.</string>
+    <string name="auth_failed">Authenticatie mislukt: %s</string>
 </resources>

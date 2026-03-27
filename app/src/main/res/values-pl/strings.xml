@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">Ikona typu pliku</string>
     <string name="content_desc_sync_indicator">Wskaźnik synchronizacji</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">Udostępnij</string>
     <string name="content_desc_refresh_system_info">Odśwież informacje systemowe</string>
 
     <!-- Menu Items -->
@@ -180,13 +179,17 @@
     <string name="share_needs_target_folder_message">Wybierz folder docelowy</string>
     <string name="share_needs_target_folder_select">Wybierz</string>
     <string name="share_upload_title">Udostępnij elementy</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="one">Udostępnij %1$d element do %2$s</item>
+        <item quantity="few">Udostępnij %1$d elementy do %2$s</item>
+        <item quantity="many">Udostępnij %1$d elementów do %2$s</item>
+        <item quantity="other">Udostępnij %1$d elementów do %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Zmień folder</string>
     <string name="share_change_folder_subtitle">Wybierz połączenie do przeglądania</string>
     <string name="share_change_folder_connections">Dostępne połączenia</string>
     <string name="select_this_folder">Wybierz ten folder</string>
-    <string name="items_to">elementy do</string>
     <string name="permission_title_notifications">Włącz powiadomienia</string>
     <string name="permission_explain_notifications">SambaLite informuje o postępie przesyłania plików, nawet gdy aplikacja działa w tle. Włącz powiadomienia, aby być na bieżąco z przesyłaniem i pobieraniem plików.</string>
 
@@ -216,8 +219,10 @@
     <string name="uploading_colon">Wysyłanie: %1$s</string>
     <string name="deleting_colon">Usuwanie: %1$s</string>
     <string name="renaming_colon">Zmiana nazwy: %1$s</string>
+    <string name="finalizing">Kończenie…</string>
     <string name="finalizing_operation">Kończenie %1$s %2$s…</string>
     <string name="finalizing_done">Kończenie… gotowe</string>
+    <string name="copying_to_destination">Kopiowanie do miejsca docelowego</string>
     <string name="finalizing_scanning_files">Kończenie… skanowanie plików</string>
     <string name="download_cancelled_local_copy">Pobieranie anulowane przez użytkownika podczas lokalnego kopiowania</string>
     <string name="error_copying_file_to_destination">Błąd podczas kopiowania pliku do miejsca docelowego: %1$s</string>
@@ -257,6 +262,7 @@
     <string name="leave_confirm_message">Transfer plików jest nadal w toku. Opuszczenie spowoduje jego anulowanie. Czy chcesz opuścić?</string>
     <string name="leave_confirm_positive">Opuść</string>
     <string name="transfer_cancelled_toast">Aktywny transfer został anulowany</string>
+    <string name="previous_operation_cancelled">Poprzednia operacja została anulowana, ponieważ aplikacja została zamknięta.</string>
 
     <string name="quit_app">Zakończ</string>
     <string name="quit_app_confirm_title">Aktywne operacje</string>
@@ -364,4 +370,20 @@
     <string name="upload_complete_subtitle">Transfer zakończony</string>
     <string name="file_exists_subtitle">Wykryto konflikt nazw</string>
     <string name="progress_subtitle">Trwa przesyłanie</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">Bezpieczeństwo</string>
+    <string name="auth_required_for_access">Uwierzytelnianie przed dostępem do udziału</string>
+    <string name="auth_required_for_access_summary">Wymagaj biometrii lub kodu PIN urządzenia przed otwarciem połączenia</string>
+    <string name="auth_required_for_password_reveal">Uwierzytelnianie przed wyświetleniem hasła</string>
+    <string name="auth_required_for_password_reveal_summary">Wymagaj biometrii lub kodu PIN urządzenia przed wyświetleniem zapisanych haseł</string>
+    <string name="auth_title_access">Wymagane uwierzytelnienie</string>
+    <string name="auth_subtitle_access">Zweryfikuj swoją tożsamość, aby uzyskać dostęp do tego udziału</string>
+    <string name="auth_title_password">Wymagane uwierzytelnienie</string>
+    <string name="auth_subtitle_password">Zweryfikuj swoją tożsamość, aby wyświetlić hasło</string>
+    <string name="enter_password_title">Wprowadź hasło</string>
+    <string name="enter_password_message">Wprowadź hasło dla %s</string>
+    <string name="sync_skipped_password_required">Synchronizacja pominięta dla %s – wymagane wprowadzenie hasła</string>
+    <string name="auth_not_available">Brak skonfigurowanego uwierzytelniania urządzenia. Skonfiguruj kod PIN, wzór lub biometrię w ustawieniach systemu.</string>
+    <string name="auth_failed">Uwierzytelnianie nie powiodło się: %s</string>
 </resources>

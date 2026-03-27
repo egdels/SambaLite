@@ -29,6 +29,7 @@ import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.sync.SyncActionLog;
+import de.schliweb.sambalite.ui.operations.TransferActionLog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
@@ -230,7 +231,12 @@ public class SystemMonitorActivity extends AppCompatActivity {
               +
 
               // Update sync activity log
-              getSyncActivityLog();
+              getSyncActivityLog()
+              + "\n\n"
+              +
+
+              // Update transfer activity log
+              getTransferActivityLog();
 
       statusOverview.setText(fullStatus);
 
@@ -473,6 +479,11 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
   private String getSyncActivityLog() {
     SyncActionLog actionLog = new SyncActionLog(this);
+    return actionLog.getFormattedLog(25);
+  }
+
+  private String getTransferActivityLog() {
+    TransferActionLog actionLog = new TransferActionLog(this);
     return actionLog.getFormattedLog(25);
   }
 

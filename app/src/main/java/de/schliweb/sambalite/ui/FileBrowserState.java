@@ -27,6 +27,7 @@ import lombok.Getter;
  * shared between the specialized ViewModels: - FileListViewModel - FileOperationsViewModel -
  * SearchViewModel
  */
+@SuppressWarnings("KotlinPropertyAccess") // LiveData getters intentionally return wrapped types
 public class FileBrowserState {
   // Preferences manager for persisting UI preferences
   private final PreferencesManager preferencesManager;
@@ -102,6 +103,20 @@ public class FileBrowserState {
     pathStack.clear();
     currentPath = "";
     currentPathLiveData.setValue(connection.getShare());
+  }
+
+  /**
+   * Resets the navigation state to the share root. Call this when the activity is freshly created
+   * (not from a configuration change) to avoid stale paths surviving a swipe-kill while a
+   * foreground service keeps the process alive.
+   */
+  public void resetNavigation() {
+    pathStack.clear();
+    currentPath = "";
+    if (connection != null) {
+      currentPathLiveData.setValue(connection.getShare());
+    }
+    LogUtils.d("FileBrowserState", "Navigation reset to root");
   }
 
   /** Gets the current path. */

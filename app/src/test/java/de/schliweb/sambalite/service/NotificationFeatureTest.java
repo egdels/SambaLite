@@ -599,17 +599,21 @@ public class NotificationFeatureTest {
   // =========================================================================
 
   @Test
-  public void nullIntent_startsNormally() {
+  public void nullIntent_withoutActiveOperations_stopsImmediately() {
     int result = service.onStartCommand(null, 0, 1);
-    assertEquals(android.app.Service.START_STICKY, result);
+    // After swipe-kill restart with no active operations, service should stop itself
+    assertEquals(android.app.Service.START_NOT_STICKY, result);
   }
 
   @Test
-  public void nullIntent_postsNotification() {
+  public void nullIntent_withoutActiveOperations_removesNotification() {
+    // After swipe-kill restart with no active operations, service stops itself
+    // and removes the foreground notification
     service.onStartCommand(null, 0, 1);
-    Notification n = getPostedNotification();
-    assertNotNull(n);
-    assertEquals("SMB Service ready", n.extras.getString(Notification.EXTRA_TITLE));
+    List<Notification> notifications = shadowNotificationManager.getAllNotifications();
+    assertTrue(
+        "Null intent without active operations should not leave a notification",
+        notifications.isEmpty());
   }
 
   // =========================================================================

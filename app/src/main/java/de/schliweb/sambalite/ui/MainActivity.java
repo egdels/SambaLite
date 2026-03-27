@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -41,6 +42,7 @@ import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.di.AppComponent;
+import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.ui.adapters.DiscoveredServerAdapter;
 import de.schliweb.sambalite.ui.adapters.SharesAdapter;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity
   private LoadingIndicator loadingIndicator;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
   private NetworkScanner networkScanner;
+  private PreferencesManager preferencesManager;
 
   // Temporary flags for share discovery to honor per-connection security during discovery
   boolean discoverRequireEncrypt = false;
@@ -124,6 +127,7 @@ public class MainActivity extends AppCompatActivity
     }
   }
 
+  @android.annotation.SuppressLint("InlinedApi") // guarded by Build.VERSION.SDK_INT >= 33
   private void showNotifRationale() {
     new MaterialAlertDialogBuilder(this)
         .setTitle(R.string.permission_title_notifications)
@@ -162,6 +166,10 @@ public class MainActivity extends AppCompatActivity
     // Initialize network scanner
     networkScanner = new NetworkScanner(this);
     LogUtils.d("MainActivity", "Network scanner initialized");
+
+    // Initialize preferences manager
+    preferencesManager = new PreferencesManager(this);
+    LogUtils.d("MainActivity", "Preferences manager initialized");
 
     // Get the Dagger component and inject dependencies
     AppComponent appComponent = ((SambaLiteApp) getApplication()).getAppComponent();
@@ -296,16 +304,84 @@ public class MainActivity extends AppCompatActivity
     } else {
       LogUtils.d("MainActivity", "ViewModel connections are null at startup");
     }
+
+    // Check if a previous operation was cancelled due to swipe-kill
+    checkForCancelledOperations();
+  }
+
+  /**
+   * Checks SharedPreferences for persisted state from a previous swipe-kill and shows a Snackbar to
+   * inform the user about cancelled operations.
+   */
+  private void checkForCancelledOperations() {
+    try {
+      SharedPreferences prefs = getSharedPreferences("swipe_kill_state", MODE_PRIVATE);
+      boolean hadActiveOps = prefs.getBoolean("had_active_operations", false);
+      if (hadActiveOps) {
+        String lastOp = prefs.getString("last_operation", "");
+        LogUtils.i("MainActivity", "Previous operation was cancelled due to swipe-kill: " + lastOp);
+
+        // Clear the persisted state immediately
+        prefs.edit().clear().apply();
+
+        // Show Snackbar after a short delay to ensure the layout is ready
+        View rootView = findViewById(android.R.id.content);
+        if (rootView != null) {
+          rootView.postDelayed(
+              () ->
+                  com.google.android.material.snackbar.Snackbar.make(
+                          rootView,
+                          R.string.previous_operation_cancelled,
+                          com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+                      .show(),
+              500);
+        }
+      }
+    } catch (Throwable t) {
+      LogUtils.w("MainActivity", "Failed to check for cancelled operations: " + t.getMessage());
+    }
   }
 
   @Override
   public void onConnectionClick(@NonNull SmbConnection connection) {
     LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
 
-    // Open file browser activity for this connection
+    if (preferencesManager.isAuthRequiredForAccess()
+        && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      BiometricAuthHelper.authenticate(
+          this,
+          getString(R.string.auth_title_access),
+          getString(R.string.auth_subtitle_access),
+          new BiometricAuthHelper.AuthCallback() {
+            @Override
+            public void onAuthSuccess() {
+              proceedWithConnection(connection);
+            }
+
+            @Override
+            public void onAuthFailure(String errorMessage) {
+              EnhancedUIUtils.showError(
+                  MainActivity.this, getString(R.string.auth_failed, errorMessage));
+            }
+
+            @Override
+            public void onAuthCancelled() {
+              LogUtils.d("MainActivity", "Authentication cancelled by user");
+            }
+          });
+    } else {
+      proceedWithConnection(connection);
+    }
+  }
+
+  private void proceedWithConnection(@NonNull SmbConnection connection) {
+
+    openFileBrowser(connection);
+  }
+
+  private void openFileBrowser(@NonNull SmbConnection connection) {
     Intent intent = FileBrowserActivity.createIntent(this, connection.getId());
     startActivity(intent);
-
     EnhancedUIUtils.showInfo(this, "Opening " + connection.getName());
     LogUtils.i(
         "MainActivity",
@@ -676,6 +752,50 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.encrypt_switch);
     com.google.android.material.materialswitch.MaterialSwitch signingSwitchEdit =
         dialogView.findViewById(R.id.signing_switch);
+    com.google.android.material.textfield.TextInputLayout passwordLayoutEdit =
+        dialogView.findViewById(R.id.password_layout);
+
+    // Protect password reveal with biometric authentication if enabled
+    if (passwordLayoutEdit != null
+        && preferencesManager.isAuthRequiredForPasswordReveal()
+        && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      passwordLayoutEdit.setEndIconMode(
+          com.google.android.material.textfield.TextInputLayout.END_ICON_NONE);
+      passwordLayoutEdit.setEndIconMode(
+          com.google.android.material.textfield.TextInputLayout.END_ICON_PASSWORD_TOGGLE);
+      passwordLayoutEdit.setEndIconOnClickListener(
+          v -> {
+            if (passwordEditText.getTransformationMethod()
+                instanceof android.text.method.PasswordTransformationMethod) {
+              BiometricAuthHelper.authenticate(
+                  MainActivity.this,
+                  getString(R.string.auth_title_password),
+                  getString(R.string.auth_subtitle_password),
+                  new BiometricAuthHelper.AuthCallback() {
+                    @Override
+                    public void onAuthSuccess() {
+                      passwordEditText.setTransformationMethod(null);
+                      passwordEditText.setSelection(passwordEditText.getText().length());
+                    }
+
+                    @Override
+                    public void onAuthFailure(String errorMessage) {
+                      EnhancedUIUtils.showError(
+                          MainActivity.this, getString(R.string.auth_failed, errorMessage));
+                    }
+
+                    @Override
+                    public void onAuthCancelled() {
+                      LogUtils.d("MainActivity", "Password reveal auth cancelled");
+                    }
+                  });
+            } else {
+              passwordEditText.setTransformationMethod(
+                  android.text.method.PasswordTransformationMethod.getInstance());
+              passwordEditText.setSelection(passwordEditText.getText().length());
+            }
+          });
+    }
 
     // Get references to shares UI elements
     View sharesSection = dialogView.findViewById(R.id.shares_section);
@@ -934,6 +1054,11 @@ public class MainActivity extends AppCompatActivity
 
   @Override
   public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    if (item.getItemId() == R.id.action_security_settings) {
+      LogUtils.d("MainActivity", "Security settings menu item selected");
+      showSecuritySettingsDialog();
+      return true;
+    }
     if (item.getItemId() == R.id.action_system_monitor) {
       LogUtils.d("MainActivity", "System Monitor menu item selected");
       Intent intent = SystemMonitorActivity.createIntent(this);
@@ -968,6 +1093,51 @@ public class MainActivity extends AppCompatActivity
       backgroundSmbManager.requestStopService();
     }
     finishAffinity();
+  }
+
+  /** Shows a dialog for configuring security settings. */
+  private void showSecuritySettingsDialog() {
+    LogUtils.d("MainActivity", "Showing security settings dialog");
+
+    boolean deviceAuthAvailable = BiometricAuthHelper.isDeviceAuthAvailable(this);
+
+    View dialogView = getLayoutInflater().inflate(R.layout.dialog_security_settings, null);
+    com.google.android.material.materialswitch.MaterialSwitch authAccessSwitch =
+        dialogView.findViewById(R.id.auth_access_switch);
+    com.google.android.material.materialswitch.MaterialSwitch authPasswordSwitch =
+        dialogView.findViewById(R.id.auth_password_reveal_switch);
+    TextView authNotAvailableText = dialogView.findViewById(R.id.auth_not_available_text);
+
+    // Set current values
+    authAccessSwitch.setChecked(preferencesManager.isAuthRequiredForAccess());
+    authPasswordSwitch.setChecked(preferencesManager.isAuthRequiredForPasswordReveal());
+
+    // Disable switches if device auth is not available
+    if (!deviceAuthAvailable) {
+      authAccessSwitch.setEnabled(false);
+      authPasswordSwitch.setEnabled(false);
+      authNotAvailableText.setVisibility(View.VISIBLE);
+    } else {
+      authNotAvailableText.setVisibility(View.GONE);
+    }
+
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.security_settings_title)
+        .setView(dialogView)
+        .setPositiveButton(
+            R.string.save,
+            (dialog, which) -> {
+              preferencesManager.saveAuthRequiredForAccess(authAccessSwitch.isChecked());
+              preferencesManager.saveAuthRequiredForPasswordReveal(authPasswordSwitch.isChecked());
+              LogUtils.i(
+                  "MainActivity",
+                  "Security settings saved: access="
+                      + authAccessSwitch.isChecked()
+                      + ", passwordReveal="
+                      + authPasswordSwitch.isChecked());
+            })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   /** Shows the network scan dialog to discover SMB servers. */

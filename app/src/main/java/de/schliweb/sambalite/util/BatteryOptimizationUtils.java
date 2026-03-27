@@ -60,6 +60,8 @@ public class BatteryOptimizationUtils {
   }
 
   /** Opens the Battery Optimization settings */
+  @android.annotation.SuppressLint(
+      "BatteryLife") // intentional: app needs reliable background SMB transfers
   private static void openBatteryOptimizationSettings(Context context) {
     try {
       Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);

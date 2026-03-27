@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">文件类型图标</string>
     <string name="content_desc_sync_indicator">同步指示器</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">分享</string>
     <string name="content_desc_refresh_system_info">刷新系统信息</string>
 
     <!-- Menu Items -->
@@ -181,13 +180,14 @@
     <string name="share_needs_target_folder_message">选择目标文件夹</string>
     <string name="share_needs_target_folder_select">选择</string>
     <string name="share_upload_title">分享项目</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="other">分享 %1$d 项目到 %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">更改文件夹</string>
     <string name="share_change_folder_subtitle">选择要浏览的连接</string>
     <string name="share_change_folder_connections">可用连接</string>
     <string name="select_this_folder">选择此文件夹</string>
-    <string name="items_to">项目到</string>
     <string name="permission_title_notifications">启用通知</string>
     <string name="permission_explain_notifications">即使在后台运行，SambaLite 仍让你知道传输进度。开启通知了解上传和下载的最新情况。</string>
 
@@ -217,8 +217,10 @@
     <string name="uploading_colon">正在上传：%1$s</string>
     <string name="deleting_colon">正在删除：%1$s</string>
     <string name="renaming_colon">正在重命名：%1$s</string>
+    <string name="finalizing">正在完成…</string>
     <string name="finalizing_operation">正在完成 %1$s %2$s…</string>
     <string name="finalizing_done">正在完成… 完成</string>
+    <string name="copying_to_destination">正在复制到目标位置</string>
     <string name="finalizing_scanning_files">正在完成… 扫描文件</string>
     <string name="download_cancelled_local_copy">在本地复制过程中用户取消了下载</string>
     <string name="error_copying_file_to_destination">复制文件到目标位置时出错：%1$s</string>
@@ -258,6 +260,7 @@
     <string name="leave_confirm_message">文件传输仍在进行中。离开将取消传输。确定要离开吗？</string>
     <string name="leave_confirm_positive">离开</string>
     <string name="transfer_cancelled_toast">活动传输已取消</string>
+    <string name="previous_operation_cancelled">之前的操作已取消，因为应用已关闭。</string>
 
     <string name="quit_app">退出</string>
     <string name="quit_app_confirm_title">活动操作</string>
@@ -338,4 +341,20 @@
     <string name="upload_complete_subtitle">传输完成</string>
     <string name="file_exists_subtitle">检测到名称冲突</string>
     <string name="progress_subtitle">正在传输</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">安全</string>
+    <string name="auth_required_for_access">访问共享前需要身份验证</string>
+    <string name="auth_required_for_access_summary">在打开连接前要求生物识别或设备PIN</string>
+    <string name="auth_required_for_password_reveal">显示密码前需要身份验证</string>
+    <string name="auth_required_for_password_reveal_summary">在显示已保存的密码前要求生物识别或设备PIN</string>
+    <string name="auth_title_access">需要身份验证</string>
+    <string name="auth_subtitle_access">验证您的身份以访问此共享</string>
+    <string name="auth_title_password">需要身份验证</string>
+    <string name="auth_subtitle_password">验证您的身份以查看密码</string>
+    <string name="enter_password_title">输入密码</string>
+    <string name="enter_password_message">请输入 %s 的密码</string>
+    <string name="sync_skipped_password_required">已跳过 %s 的同步 – 需要输入密码</string>
+    <string name="auth_not_available">未配置设备身份验证。请在系统设置中设置PIN、图案或生物识别。</string>
+    <string name="auth_failed">身份验证失败：%s</string>
 </resources>

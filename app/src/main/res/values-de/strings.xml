@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">Dateityp-Symbol</string>
     <string name="content_desc_sync_indicator">Synchronisierungsanzeige</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">Freigabe</string>
     <string name="content_desc_refresh_system_info">Systeminformationen aktualisieren</string>
 
     <!-- Menu Items -->
@@ -180,13 +179,15 @@
     <string name="share_needs_target_folder_message">Zielordner auswählen</string>
     <string name="share_needs_target_folder_select">Auswählen</string>
     <string name="share_upload_title">Elemente teilen</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="one">Freigabe %1$d Element nach %2$s</item>
+        <item quantity="other">Freigabe %1$d Elemente nach %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Ordner ändern</string>
     <string name="share_change_folder_subtitle">Verbindung zum Durchsuchen auswählen</string>
     <string name="share_change_folder_connections">Verfügbare Verbindungen</string>
     <string name="select_this_folder">Diesen Ordner auswählen</string>
-    <string name="items_to">Elemente nach</string>
     <string name="permission_title_notifications">Benachrichtigungen aktivieren</string>
     <string name="permission_explain_notifications">SambaLite informiert Sie über den Fortschritt von Dateiübertragungen auch dann, wenn die App im Hintergrund läuft. Aktivieren Sie Benachrichtigungen, um stets über Uploads und Downloads auf dem Laufenden zu bleiben.</string>
 
@@ -216,8 +217,10 @@
     <string name="uploading_colon">Wird hochgeladen: %1$s</string>
     <string name="deleting_colon">Wird gelöscht: %1$s</string>
     <string name="renaming_colon">Wird umbenannt: %1$s</string>
+    <string name="finalizing">Wird abgeschlossen…</string>
     <string name="finalizing_operation">Wird abgeschlossen: %1$s %2$s…</string>
     <string name="finalizing_done">Abschließen… fertig</string>
+    <string name="copying_to_destination">Kopiere an Zielort</string>
     <string name="finalizing_scanning_files">Abschließen… Dateien werden gescannt</string>
     <string name="download_cancelled_local_copy">Download vom Benutzer während der lokalen Kopie abgebrochen</string>
     <string name="error_copying_file_to_destination">Fehler beim Kopieren der Datei zum Ziel: %1$s</string>
@@ -256,6 +259,7 @@
     <string name="leave_confirm_message">Eine Dateiübertragung läuft noch. Beim Verlassen wird sie abgebrochen. Trotzdem verlassen?</string>
     <string name="leave_confirm_positive">Verlassen</string>
     <string name="transfer_cancelled_toast">Aktive Übertragung wurde abgebrochen</string>
+    <string name="previous_operation_cancelled">Eine vorherige Operation wurde abgebrochen, weil die App geschlossen wurde.</string>
 
     <!-- Quit App -->
     <string name="quit_app">Beenden</string>
@@ -345,4 +349,20 @@
     <string name="upload_complete_subtitle">Übertragung abgeschlossen</string>
     <string name="file_exists_subtitle">Ein Namenskonflikt wurde erkannt</string>
     <string name="progress_subtitle">Übertragung läuft</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">Sicherheit</string>
+    <string name="auth_required_for_access">Authentifizierung vor Share-Zugriff</string>
+    <string name="auth_required_for_access_summary">Biometrie oder Geräte-PIN vor dem Öffnen einer Verbindung verlangen</string>
+    <string name="auth_required_for_password_reveal">Authentifizierung vor Passwort-Anzeige</string>
+    <string name="auth_required_for_password_reveal_summary">Biometrie oder Geräte-PIN vor dem Anzeigen gespeicherter Passwörter verlangen</string>
+    <string name="auth_title_access">Authentifizierung erforderlich</string>
+    <string name="auth_subtitle_access">Bestätigen Sie Ihre Identität, um auf diese Freigabe zuzugreifen</string>
+    <string name="auth_title_password">Authentifizierung erforderlich</string>
+    <string name="auth_subtitle_password">Bestätigen Sie Ihre Identität, um das Passwort anzuzeigen</string>
+    <string name="enter_password_title">Passwort eingeben</string>
+    <string name="enter_password_message">Passwort für %s eingeben</string>
+    <string name="sync_skipped_password_required">Synchronisierung für %s übersprungen – Passworteingabe erforderlich</string>
+    <string name="auth_not_available">Keine Geräte-Authentifizierung eingerichtet. Bitte richten Sie eine PIN, ein Muster oder Biometrie in den Systemeinstellungen ein.</string>
+    <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>
 </resources>

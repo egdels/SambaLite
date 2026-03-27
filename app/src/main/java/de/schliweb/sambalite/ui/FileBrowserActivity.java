@@ -30,6 +30,7 @@ import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.di.AppComponent;
+import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
@@ -37,6 +38,7 @@ import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.PreferencesManager;
 import java.util.Locale;
 import javax.inject.Inject;
 
@@ -69,6 +71,8 @@ public class FileBrowserActivity extends AppCompatActivity
   @Inject BackgroundSmbManager backgroundSmbManager;
 
   @Inject SyncManager syncManager;
+
+  @Inject PreferencesManager preferencesManager;
 
   // ViewModels
   FileListViewModel fileListViewModel;
@@ -230,6 +234,13 @@ public class FileBrowserActivity extends AppCompatActivity
 
     // Set up UI event listeners
     setupUIEventListeners();
+
+    // Reset navigation to root on fresh start to avoid stale paths surviving a swipe-kill
+    // while a foreground service keeps the process alive (singleton FileBrowserState persists).
+    // Skip reset on configuration changes (e.g. rotation) where savedInstanceState is non-null.
+    if (savedInstanceState == null) {
+      fileListViewModel.resetNavigation();
+    }
 
     // Load connection from intent
     loadConnectionFromIntent();
@@ -429,9 +440,11 @@ public class FileBrowserActivity extends AppCompatActivity
               if (Boolean.TRUE.equals(active)) {
                 if (!progressController.isTransferDialogShowing()) {
                   String title =
-                      Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
-                          ? getString(R.string.uploading)
-                          : getString(R.string.downloading);
+                      Boolean.TRUE.equals(fileOperationsViewModel.isFinalizing().getValue())
+                          ? getString(R.string.finalizing)
+                          : Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
+                              ? getString(R.string.uploading)
+                              : getString(R.string.downloading);
                   progressController.showTransferProgressDialog(title);
                   progressController.setDetailedProgressDialogCancelAction(
                       () -> {
@@ -459,9 +472,11 @@ public class FileBrowserActivity extends AppCompatActivity
                   && Boolean.TRUE.equals(
                       fileOperationsViewModel.isAnyOperationActive().getValue())) {
                 String title =
-                    Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
-                        ? getString(R.string.uploading)
-                        : getString(R.string.downloading);
+                    Boolean.TRUE.equals(fileOperationsViewModel.isFinalizing().getValue())
+                        ? getString(R.string.finalizing)
+                        : Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())
+                            ? getString(R.string.uploading)
+                            : getString(R.string.downloading);
                 progressController.showTransferProgressDialog(title);
                 progressController.setDetailedProgressDialogCancelAction(
                     () -> {
@@ -507,7 +522,11 @@ public class FileBrowserActivity extends AppCompatActivity
             || Boolean.TRUE.equals(fileOperationsViewModel.isAnyOperationActive().getValue());
 
     if (any) {
-      if (uploading) {
+      boolean finalizingActive =
+          Boolean.TRUE.equals(fileOperationsViewModel.isFinalizing().getValue());
+      if (finalizingActive) {
+        progressController.showTransferProgressDialog(getString(R.string.finalizing));
+      } else if (uploading) {
         progressController.showTransferProgressDialog(getString(R.string.uploading));
       } else if (downloading) {
         progressController.showTransferProgressDialog(getString(R.string.downloading));
@@ -623,6 +642,20 @@ public class FileBrowserActivity extends AppCompatActivity
 
           @Override
           public void onFolderDownloadResult(Uri uri) {
+            LogUtils.d(
+                "FileBrowserActivity",
+                "onFolderDownloadResult: uri="
+                    + uri
+                    + ", isMultiDownloadPending="
+                    + uiState.isMultiDownloadPending()
+                    + ", pendingItems="
+                    + (uiState.getPendingMultiDownloadItems() != null
+                        ? uiState.getPendingMultiDownloadItems().size()
+                        : "null")
+                    + ", selectedFile="
+                    + (uiState.getSelectedFile() != null
+                        ? uiState.getSelectedFile().getName()
+                        : "null"));
             if (uiState.isMultiDownloadPending()) {
               fileOperationsController.handleMultipleFileDownloadsWithTargetUri(uri);
             } else {
@@ -1323,6 +1356,10 @@ public class FileBrowserActivity extends AppCompatActivity
       // Already at top-level -> finish to return to connections
       confirmFinishIfBusy();
       return true;
+    } else if (item.getItemId() == R.id.action_security_settings) {
+      LogUtils.d("FileBrowserActivity", "Security settings menu item selected");
+      showSecuritySettingsDialog();
+      return true;
     } else if (item.getItemId() == R.id.action_system_monitor) {
       LogUtils.d("FileBrowserActivity", "System Monitor menu item selected");
       Intent intent = SystemMonitorActivity.createIntent(this);
@@ -1333,6 +1370,49 @@ public class FileBrowserActivity extends AppCompatActivity
       return true;
     }
     return super.onOptionsItemSelected(item);
+  }
+
+  /** Shows a dialog for configuring security settings. */
+  private void showSecuritySettingsDialog() {
+    LogUtils.d("FileBrowserActivity", "Showing security settings dialog");
+
+    boolean deviceAuthAvailable = BiometricAuthHelper.isDeviceAuthAvailable(this);
+
+    View dialogView = getLayoutInflater().inflate(R.layout.dialog_security_settings, null);
+    com.google.android.material.materialswitch.MaterialSwitch authAccessSwitch =
+        dialogView.findViewById(R.id.auth_access_switch);
+    com.google.android.material.materialswitch.MaterialSwitch authPasswordSwitch =
+        dialogView.findViewById(R.id.auth_password_reveal_switch);
+    TextView authNotAvailableText = dialogView.findViewById(R.id.auth_not_available_text);
+
+    authAccessSwitch.setChecked(preferencesManager.isAuthRequiredForAccess());
+    authPasswordSwitch.setChecked(preferencesManager.isAuthRequiredForPasswordReveal());
+
+    if (!deviceAuthAvailable) {
+      authAccessSwitch.setEnabled(false);
+      authPasswordSwitch.setEnabled(false);
+      authNotAvailableText.setVisibility(View.VISIBLE);
+    } else {
+      authNotAvailableText.setVisibility(View.GONE);
+    }
+
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.security_settings_title)
+        .setView(dialogView)
+        .setPositiveButton(
+            R.string.save,
+            (dialog, which) -> {
+              preferencesManager.saveAuthRequiredForAccess(authAccessSwitch.isChecked());
+              preferencesManager.saveAuthRequiredForPasswordReveal(authPasswordSwitch.isChecked());
+              LogUtils.i(
+                  "FileBrowserActivity",
+                  "Security settings saved: access="
+                      + authAccessSwitch.isChecked()
+                      + ", passwordReveal="
+                      + authPasswordSwitch.isChecked());
+            })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   /** Builds the full remote path for a folder item in the current directory. */
@@ -1609,7 +1689,7 @@ public class FileBrowserActivity extends AppCompatActivity
    * Checks whether a file transfer (upload/download) is active and, if so, shows a confirmation
    * dialog before finishing the activity. If no transfer is active, finishes immediately.
    */
-  private void confirmFinishIfBusy() {
+  void confirmFinishIfBusy() {
     Boolean active = fileOperationsViewModel.isAnyOperationActive().getValue();
     if (Boolean.TRUE.equals(active)) {
       new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)

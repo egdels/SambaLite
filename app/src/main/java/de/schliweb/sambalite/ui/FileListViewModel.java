@@ -30,6 +30,7 @@ import javax.inject.Inject;
  * ViewModel for handling file browsing, navigation, sorting, and filtering. This is part of the
  * refactored FileBrowserViewModel, focusing only on file list management.
  */
+@SuppressWarnings("KotlinPropertyAccess") // LiveData getters intentionally return wrapped types
 public class FileListViewModel extends ViewModel {
 
   private final SmbRepository smbRepository;
@@ -58,6 +59,11 @@ public class FileListViewModel extends ViewModel {
     LogUtils.d("FileListViewModel", "Setting connection: " + connection.getName());
     state.setConnection(connection);
     loadFiles();
+  }
+
+  /** Resets navigation state to the share root. */
+  public void resetNavigation() {
+    state.resetNavigation();
   }
 
   public @Nullable SmbConnection getConnection() {

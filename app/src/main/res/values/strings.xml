@@ -15,7 +15,6 @@
     <string name="content_desc_file_type_icon">File type icon</string>
     <string name="content_desc_sync_indicator">Sync indicator</string>
     <string name="content_desc_selected">@string/selected</string>
-    <string name="content_desc_share">Share</string>
     <string name="content_desc_refresh_system_info">Refresh system information</string>
 
     <!-- Menu Items -->
@@ -192,13 +191,15 @@
     <string name="share_needs_target_folder_message">Select target folder</string>
     <string name="share_needs_target_folder_select">Select</string>
     <string name="share_upload_title">Share items</string>
-    <string name="share_upload_message">@string/content_desc_share</string>
+    <plurals name="share_upload_full_message">
+        <item quantity="one">Share %1$d item to %2$s</item>
+        <item quantity="other">Share %1$d items to %2$s</item>
+    </plurals>
     <string name="share_upload_select">@string/share_needs_target_folder_select</string>
     <string name="share_change_folder">Change folder</string>
     <string name="share_change_folder_subtitle">Select a connection to browse</string>
     <string name="share_change_folder_connections">Available connections</string>
     <string name="select_this_folder">Select this folder</string>
-    <string name="items_to">items to</string>
     <string name="permission_title_notifications">Enable notifications</string>
     <string name="permission_explain_notifications">SambaLite keeps you informed about file transfer progress even when the app is running in the background. Enable notifications to stay up to date with uploads and downloads.</string>
 
@@ -227,8 +228,10 @@
     <string name="uploading_colon">Uploading: %1$s</string>
     <string name="deleting_colon">Deleting: %1$s</string>
     <string name="renaming_colon">Renaming: %1$s</string>
+    <string name="finalizing">Finalizing…</string>
     <string name="finalizing_operation">Finalizing %1$s %2$s…</string>
     <string name="finalizing_done">Finalizing… done</string>
+    <string name="copying_to_destination">Copying to destination</string>
     <string name="finalizing_scanning_files">Finalizing… scanning files</string>
     <string name="download_cancelled_local_copy">Download cancelled by user during local copy</string>
     <string name="error_copying_file_to_destination">Error copying file to destination: %1$s</string>
@@ -347,9 +350,28 @@
         <item quantity="other">%1$d / %2$d hosts scanned</item>
     </plurals>
 
+    <!-- Swipe-kill recovery -->
+    <string name="previous_operation_cancelled">A previous operation was cancelled because the app was closed.</string>
+
     <!-- File open feature -->
     <string name="open_file">Open</string>
     <string name="no_app_to_open_file">No app found to open this file</string>
     <string name="opening_file">Opening %s…</string>
+
+    <!-- Security / Biometric authentication -->
+    <string name="security_settings_title">Security</string>
+    <string name="auth_required_for_access">Authentication before share access</string>
+    <string name="auth_required_for_access_summary">Require biometrics or device PIN before opening a connection</string>
+    <string name="auth_required_for_password_reveal">Authentication before password reveal</string>
+    <string name="auth_required_for_password_reveal_summary">Require biometrics or device PIN before showing saved passwords</string>
+    <string name="auth_title_access">Authentication required</string>
+    <string name="auth_subtitle_access">Verify your identity to access this share</string>
+    <string name="auth_title_password">Authentication required</string>
+    <string name="auth_subtitle_password">Verify your identity to view the password</string>
+    <string name="enter_password_title">Enter Password</string>
+    <string name="enter_password_message">Enter the password for %s</string>
+    <string name="sync_skipped_password_required">Sync skipped for %s – password entry required</string>
+    <string name="auth_not_available">No device authentication configured. Please set up a PIN, pattern, or biometric in system settings.</string>
+    <string name="auth_failed">Authentication failed: %s</string>
 </resources>
 
