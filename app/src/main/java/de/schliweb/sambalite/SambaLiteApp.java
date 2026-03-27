@@ -19,6 +19,7 @@ import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SambaLiteLifecycleTracker;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import java.io.File;
 import lombok.Getter;
 
 /**
@@ -100,34 +101,15 @@ public class SambaLiteApp extends Application {
             }
           });
 
-      // Set up automatic cancellation of background operations when app goes to background
-      lifecycleTracker.setBackgroundOperationCanceller(
-          new SambaLiteLifecycleTracker.BackgroundOperationCanceller() {
-            @Override
-            public void cancelOngoingOperations() {
-              // Cancel ongoing SMB operations to prevent hanging
-              try {
-                // Get the repository from app component and cancel operations
-                if (appComponent != null) {
-                  // Cancel search operations specifically
-                  LogUtils.i(
-                      "SambaLiteApp",
-                      "Cancelling ongoing search operations due to background transition");
-                  // Note: Repository cancellation will be handled through the existing volatile
-                  // flags
-                }
-              } catch (Exception e) {
-                LogUtils.w(
-                    "SambaLiteApp", "Error cancelling background operations: " + e.getMessage());
-              }
-            }
-          });
-
       LogUtils.i("SambaLiteApp", "Background-aware connection management initialized");
 
       // Clean up expired open-file cache entries
       de.schliweb.sambalite.util.OpenFileCacheManager.cleanupOnAppStart(this);
       LogUtils.i("SambaLiteApp", "Open-file cache cleanup completed");
+
+      // Clean up stale temporary upload/download files left behind by swipe-kill
+      cleanupStaleTempFiles();
+      LogUtils.i("SambaLiteApp", "Stale temp file cleanup completed");
 
       LogUtils.i("SambaLiteApp", "SambaLite application fully initialized");
 
@@ -213,6 +195,32 @@ public class SambaLiteApp extends Application {
             && status.errorHandlerReady;
 
     return status;
+  }
+
+  /**
+   * Removes stale temporary files (upload*.tmp, download*.tmp) from the cache directory. These
+   * files can be left behind when the app process is killed (e.g. swipe-kill) before the normal
+   * cleanup in finally-blocks can run.
+   */
+  private void cleanupStaleTempFiles() {
+    try {
+      File cacheDir = getCacheDir();
+      File[] tempFiles =
+          cacheDir.listFiles(
+              f ->
+                  f.isFile()
+                      && f.getName().endsWith(".tmp")
+                      && (f.getName().startsWith("upload") || f.getName().startsWith("download")));
+      if (tempFiles != null) {
+        for (File f : tempFiles) {
+          if (f.delete()) {
+            LogUtils.d("SambaLiteApp", "Deleted stale temp file: " + f.getName());
+          }
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w("SambaLiteApp", "Error cleaning up stale temp files: " + e.getMessage());
+    }
   }
 
   /** Data class for application health monitoring. */
