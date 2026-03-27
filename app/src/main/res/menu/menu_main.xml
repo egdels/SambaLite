@@ -39,6 +39,13 @@
         android:orderInCategory="8" />
     -->
     <item
+        android:id="@+id/action_security_settings"
+        android:title="@string/security_settings_title"
+        android:icon="@drawable/ic_lock"
+        app:showAsAction="ifRoom"
+        android:orderInCategory="9" />
+
+    <item
         android:id="@+id/action_system_monitor"
         android:title="@string/system_monitor"
         android:icon="@android:drawable/ic_dialog_info"

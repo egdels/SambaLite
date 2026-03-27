@@ -23,6 +23,9 @@ public class PreferencesManager {
   private static final String KEY_SORT_OPTION = "sort_option";
   private static final String KEY_DIRECTORIES_FIRST = "directories_first";
   private static final String KEY_SHOW_HIDDEN_FILES = "show_hidden_files";
+  private static final String KEY_AUTH_REQUIRED_FOR_ACCESS = "auth_required_for_access";
+  private static final String KEY_AUTH_REQUIRED_FOR_PASSWORD_REVEAL =
+      "auth_required_for_password_reveal";
 
   private final SharedPreferences preferences;
 
@@ -104,5 +107,47 @@ public class PreferencesManager {
     boolean showHiddenFiles = preferences.getBoolean(KEY_SHOW_HIDDEN_FILES, false);
     LogUtils.d("PreferencesManager", "Retrieved show hidden files: " + showHiddenFiles);
     return showHiddenFiles;
+  }
+
+  /**
+   * Saves the auth-required-for-access flag.
+   *
+   * @param required Whether authentication is required before opening a share
+   */
+  public void saveAuthRequiredForAccess(boolean required) {
+    LogUtils.d("PreferencesManager", "Saving auth required for access: " + required);
+    preferences.edit().putBoolean(KEY_AUTH_REQUIRED_FOR_ACCESS, required).apply();
+  }
+
+  /**
+   * Gets the auth-required-for-access flag.
+   *
+   * @return true if authentication is required before opening a share, false by default
+   */
+  public boolean isAuthRequiredForAccess() {
+    boolean required = preferences.getBoolean(KEY_AUTH_REQUIRED_FOR_ACCESS, false);
+    LogUtils.d("PreferencesManager", "Retrieved auth required for access: " + required);
+    return required;
+  }
+
+  /**
+   * Saves the auth-required-for-password-reveal flag.
+   *
+   * @param required Whether authentication is required before revealing a saved password
+   */
+  public void saveAuthRequiredForPasswordReveal(boolean required) {
+    LogUtils.d("PreferencesManager", "Saving auth required for password reveal: " + required);
+    preferences.edit().putBoolean(KEY_AUTH_REQUIRED_FOR_PASSWORD_REVEAL, required).apply();
+  }
+
+  /**
+   * Gets the auth-required-for-password-reveal flag.
+   *
+   * @return true if authentication is required before revealing a saved password, false by default
+   */
+  public boolean isAuthRequiredForPasswordReveal() {
+    boolean required = preferences.getBoolean(KEY_AUTH_REQUIRED_FOR_PASSWORD_REVEAL, false);
+    LogUtils.d("PreferencesManager", "Retrieved auth required for password reveal: " + required);
+    return required;
   }
 }
