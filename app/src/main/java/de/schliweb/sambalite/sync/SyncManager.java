@@ -18,6 +18,7 @@ import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import de.schliweb.sambalite.util.LogUtils;
@@ -85,7 +86,8 @@ public class SyncManager {
     config.setRemotePath(remotePath);
     config.setLocalFolderDisplayName(localFolderDisplayName);
     config.setDirection(direction);
-    config.setIntervalMinutes(Math.max(intervalMinutes, MIN_INTERVAL_MINUTES));
+    config.setIntervalMinutes(
+        intervalMinutes <= 0 ? 0 : Math.max(intervalMinutes, MIN_INTERVAL_MINUTES));
 
     SyncConfig saved = syncRepository.saveSyncConfig(config);
     LogUtils.i(TAG, "Sync config added: " + saved.getId());
@@ -159,7 +161,10 @@ public class SyncManager {
         new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
 
     OneTimeWorkRequest request =
-        new OneTimeWorkRequest.Builder(FolderSyncWorker.class).setConstraints(constraints).build();
+        new OneTimeWorkRequest.Builder(FolderSyncWorker.class)
+            .setConstraints(constraints)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build();
 
     WorkManager.getInstance(context).enqueue(request);
   }
@@ -184,6 +189,7 @@ public class SyncManager {
         new OneTimeWorkRequest.Builder(FolderSyncWorker.class)
             .setConstraints(constraints)
             .setInputData(inputData)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build();
 
     WorkManager.getInstance(context).enqueue(request);
@@ -198,8 +204,17 @@ public class SyncManager {
     }
 
     int minInterval = Integer.MAX_VALUE;
+    boolean allManual = true;
     for (SyncConfig config : enabledConfigs) {
-      minInterval = Math.min(minInterval, config.getIntervalMinutes());
+      if (config.getIntervalMinutes() > 0) {
+        minInterval = Math.min(minInterval, config.getIntervalMinutes());
+        allManual = false;
+      }
+    }
+    if (allManual) {
+      LogUtils.d(TAG, "All enabled configs are manual-only, cancelling periodic sync");
+      cancelPeriodicSync();
+      return;
     }
     minInterval = Math.max(minInterval, MIN_INTERVAL_MINUTES);
 

@@ -374,7 +374,7 @@ public class MainActivity extends AppCompatActivity
     }
   }
 
-  private void proceedWithConnection(@NonNull SmbConnection connection) {
+  void proceedWithConnection(@NonNull SmbConnection connection) {
 
     openFileBrowser(connection);
   }

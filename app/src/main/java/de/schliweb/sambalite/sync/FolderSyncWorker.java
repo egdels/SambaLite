@@ -9,10 +9,17 @@
  */
 package de.schliweb.sambalite.sync;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
+import android.content.pm.ServiceInfo;
 import android.net.Uri;
+import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
 import androidx.documentfile.provider.DocumentFile;
+import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 import com.hierynomus.msdtyp.AccessMask;
@@ -23,6 +30,7 @@ import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
@@ -47,6 +55,8 @@ public class FolderSyncWorker extends Worker {
   private static final String TAG = "FolderSyncWorker";
   private static final int BUFFER_SIZE = 65536;
   public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
+  private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
+  private static final int SYNC_NOTIFICATION_ID = 2001;
   private SyncActionLog actionLog;
 
   public FolderSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
@@ -56,15 +66,61 @@ public class FolderSyncWorker extends Worker {
 
   @NonNull
   @Override
+  public ForegroundInfo getForegroundInfo() {
+    return createForegroundInfo();
+  }
+
+  private ForegroundInfo createForegroundInfo() {
+    Context context = getApplicationContext();
+
+    NotificationChannel channel =
+        new NotificationChannel(SYNC_CHANNEL_ID, "Folder Sync", NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription("Shows the status of folder sync operations");
+    channel.setShowBadge(false);
+    NotificationManager manager = context.getSystemService(NotificationManager.class);
+    if (manager != null) {
+      manager.createNotificationChannel(channel);
+    }
+
+    Notification notification =
+        new NotificationCompat.Builder(context, SYNC_CHANNEL_ID)
+            .setContentTitle("Synchronisierung läuft…")
+            .setSmallIcon(de.schliweb.sambalite.R.drawable.ic_notification)
+            .setOngoing(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build();
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      return new ForegroundInfo(
+          SYNC_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+    }
+    return new ForegroundInfo(SYNC_NOTIFICATION_ID, notification);
+  }
+
+  @NonNull
+  @Override
   public Result doWork() {
     LogUtils.i(TAG, "Starting folder sync work");
+
+    // Check if a specific config ID was requested
+    String specificConfigId = getInputData().getString(KEY_SYNC_CONFIG_ID);
+    boolean isManualSync = specificConfigId != null;
+    LogUtils.i(
+        TAG,
+        "Sync type: " + (isManualSync ? "manual (config=" + specificConfigId + ")" : "periodic"));
+
+    // Promote to foreground to show notification and survive app kill
+    try {
+      setForegroundAsync(createForegroundInfo());
+      LogUtils.i(TAG, "Successfully promoted to foreground service");
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not promote to foreground: " + e.getMessage());
+    }
 
     SyncRepository syncRepository = new SyncRepository(getApplicationContext());
     ConnectionRepositoryImpl connectionRepository =
         new ConnectionRepositoryImpl(getApplicationContext());
-
-    // Check if a specific config ID was requested
-    String specificConfigId = getInputData().getString(KEY_SYNC_CONFIG_ID);
 
     List<SyncConfig> configs;
     if (specificConfigId != null) {
@@ -91,11 +147,23 @@ public class FolderSyncWorker extends Worker {
     for (SyncConfig config : configs) {
       if (isStopped()) {
         LogUtils.i(TAG, "Worker stopped, aborting sync");
+        // For manual/immediate sync: retry so the job resumes after kill
+        // For periodic sync: success, next periodic run will catch up
+        if (specificConfigId != null) {
+          LogUtils.i(TAG, "Manual sync interrupted, requesting retry");
+          return Result.retry();
+        }
         return Result.success();
       }
 
       // For periodic sync (no specific config), respect individual intervals
       if (specificConfigId == null) {
+        // Skip manual-only configs during periodic sync
+        if (config.getIntervalMinutes() <= 0) {
+          LogUtils.d(
+              TAG, "Skipping manual-only config " + config.getId() + " during periodic sync");
+          continue;
+        }
         long lastSync = config.getLastSyncTimestamp();
         long intervalMs = config.getIntervalMinutes() * 60L * 1000L;
         long elapsed = System.currentTimeMillis() - lastSync;
@@ -146,7 +214,7 @@ public class FolderSyncWorker extends Worker {
       throw new Exception("Local folder not accessible: " + config.getLocalFolderUri());
     }
 
-    try (SMBClient client = new SMBClient();
+    try (SMBClient client = createSmbClient(connection);
         Connection conn = client.connect(connection.getServer())) {
 
       AuthenticationContext authContext = createAuthContext(connection);
@@ -447,6 +515,40 @@ public class FolderSyncWorker extends Worker {
         LogUtils.w(TAG, "Could not create remote directory " + dirPath + ": " + e.getMessage());
       }
     }
+  }
+
+  /**
+   * Creates an SMBClient configured based on the connection's encryption and signing settings.
+   * Mirrors the configuration logic from {@code SmbRepositoryImpl.getClientFor()}.
+   */
+  private SMBClient createSmbClient(SmbConnection connection) {
+    boolean encrypt = false;
+    boolean sign = false;
+    try {
+      encrypt = connection.isEncryptData();
+      sign = connection.isSigningRequired();
+    } catch (Throwable ignored) {
+    }
+
+    if (!encrypt && !sign) {
+      return new SMBClient();
+    }
+
+    SmbConfig.Builder builder =
+        SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+
+    try {
+      builder.withDialects(
+          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1,
+          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2,
+          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0,
+          com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1,
+          com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2);
+    } catch (Throwable ignored) {
+      /* older SMBJ versions do not support these dialects */
+    }
+
+    return new SMBClient(builder.build());
   }
 
   /** Creates an AuthenticationContext from the connection details. */

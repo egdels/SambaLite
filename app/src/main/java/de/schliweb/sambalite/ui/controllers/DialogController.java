@@ -684,6 +684,7 @@ public class DialogController {
 
     // Setup interval spinner
     String[] intervalLabels = {
+      context.getString(R.string.sync_interval_manual),
       context.getString(R.string.sync_interval_15min),
       context.getString(R.string.sync_interval_30min),
       context.getString(R.string.sync_interval_1h),
@@ -691,13 +692,13 @@ public class DialogController {
       context.getString(R.string.sync_interval_12h),
       context.getString(R.string.sync_interval_24h)
     };
-    int[] intervalValues = {15, 30, 60, 360, 720, 1440};
+    int[] intervalValues = {0, 15, 30, 60, 360, 720, 1440};
 
     ArrayAdapter<String> adapter =
         new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, intervalLabels);
     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     intervalSpinner.setAdapter(adapter);
-    intervalSpinner.setSelection(2); // Default: Every hour
+    intervalSpinner.setSelection(3); // Default: Every hour
 
     // Folder picker button
     selectFolderButton.setOnClickListener(
@@ -780,6 +781,7 @@ public class DialogController {
 
     // Setup interval spinner
     String[] intervalLabels = {
+      context.getString(R.string.sync_interval_manual),
       context.getString(R.string.sync_interval_15min),
       context.getString(R.string.sync_interval_30min),
       context.getString(R.string.sync_interval_1h),
@@ -787,7 +789,7 @@ public class DialogController {
       context.getString(R.string.sync_interval_12h),
       context.getString(R.string.sync_interval_24h)
     };
-    int[] intervalValues = {15, 30, 60, 360, 720, 1440};
+    int[] intervalValues = {0, 15, 30, 60, 360, 720, 1440};
 
     ArrayAdapter<String> adapter =
         new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, intervalLabels);
@@ -796,7 +798,7 @@ public class DialogController {
 
     // Pre-select interval
     int currentInterval = config.getIntervalMinutes();
-    int selectedIndex = 2; // default: 1h
+    int selectedIndex = 3; // default: 1h
     for (int i = 0; i < intervalValues.length; i++) {
       if (intervalValues[i] == currentInterval) {
         selectedIndex = i;

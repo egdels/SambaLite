@@ -72,6 +72,16 @@ public class SyncManagerTest {
   }
 
   @Test
+  public void addSyncConfig_manualIntervalIsZero() {
+    Uri uri = Uri.parse("content://test/tree/folder");
+
+    SyncConfig result =
+        syncManager.addSyncConfig("conn-1", uri, "/path", "Folder", SyncDirection.BIDIRECTIONAL, 0);
+
+    assertEquals(0, result.getIntervalMinutes());
+  }
+
+  @Test
   public void addSyncConfig_persistsConfig() {
     Uri uri = Uri.parse("content://test/tree/folder");
 
