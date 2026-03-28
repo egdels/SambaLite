@@ -1,0 +1,5 @@
+• File timestamps now preserved on download (manual & sync).
+• Smarter sync: size + timestamp tolerance prevents unnecessary re-transfers.
+• New metadata DB ensures reliable sync even when Android can't set file timestamps (SAF limitation).
+• Automatic DB cleanup when sync configs are removed.
+• Timestamp stats visible in System Monitor.

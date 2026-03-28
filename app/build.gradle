@@ -20,7 +20,7 @@ android {
         minSdk 28
         targetSdk = 36
         
-        versionCode 10801
+        versionCode 10802
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -194,8 +194,13 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-livedata:2.10.0'
 
     // WorkManager for periodic background synchronization
-    implementation 'androidx.work:work-runtime:2.11.1'
-    testImplementation 'androidx.work:work-testing:2.11.1'
+    implementation 'androidx.work:work-runtime:2.11.2'
+    testImplementation 'androidx.work:work-testing:2.11.2'
+
+    // Room for sync metadata persistence
+    implementation 'androidx.room:room-runtime:2.8.4'
+    annotationProcessor 'androidx.room:room-compiler:2.8.4'
+    testImplementation 'androidx.room:room-testing:2.8.4'
 
     // Dagger 2 for dependency injection
     implementation 'com.google.dagger:dagger:2.59.2'

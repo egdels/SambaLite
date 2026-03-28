@@ -5,6 +5,43 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-03-28
+### Added
+- Timestamp preservation on download: Remote file timestamps are now preserved when downloading files, both for manual downloads and folder sync. New `TimestampUtils` utility class with `setLastModified()` for `java.io.File` and `trySetLastModified()` as SAF best-effort via `Files.setLastModifiedTime()` over `/proc/self/fd/`.
+- Robust sync comparison logic: New `SyncComparator` class compares files using size + timestamp with configurable tolerance (default: 3 seconds), replacing strict timestamp comparison that caused unnecessary re-transfers.
+- Sync metadata database: New Room database (`SyncDatabase`) with `FileSyncState` entity and `SyncStateStore` wrapper for tracking remote file metadata (size, timestamp, sync time). Enables reliable sync decisions independent of unreliable SAF filesystem timestamps.
+- Storage capability detection: New `StorageCapabilityResolver` and `TimestampCapability` enum classify storage targets as `PRESERVE_SUPPORTED`, `BEST_EFFORT`, or `UNRELIABLE` based on URI scheme.
+- Timestamp statistics in System Monitor: New section showing tracked files count, timestamp preservation success rate, and SAF file percentage.
+- Sync action logging for timestamp operations: `SyncActionLog` and `TransferActionLog` extended with `TIMESTAMP_SET`, `TIMESTAMP_FAILED`, and `DELETED` actions with summary counting.
+- Comprehensive `[TIMESTAMP]`-prefixed logging across all download and sync paths for diagnostics via Logcat filtering.
+- DB cleanup: Sync state entries are automatically deleted when sync configurations are removed or when remote files no longer exist.
+
+### Changed
+- `FolderSyncWorker`: Both sync directions (`syncLocalToRemote`, `syncRemoteToLocal`) now use `SyncComparator` and `SyncStateStore` for comparison instead of direct timestamp comparison. DB state is checked first as a fast path before falling back to filesystem comparison.
+- `FileOperations`: All three copy methods (`copySingleFileWithProgress`, `copyFileToUriAsync`, `copyFileToUri`) now attempt to preserve the source file's timestamp on the destination URI after copying.
+- `SmbRepositoryImpl`: All download methods (`downloadFileWithRetry`, `downloadFileDirectly`, `downloadFileWithProgressCallback`) now read the remote timestamp and set it on the local file via `TimestampUtils.setLastModified()`.
+
+### Fixed
+- Timestamp lost during file copy: Downloaded files had the correct timestamp on the temp file but lost it when copied to the final destination URI. Now `trySetLastModified()` is called after every copy operation.
+- Unnecessary re-uploads in bidirectional sync with SAF: When SAF couldn't preserve timestamps, the local file's timestamp differed from the remote, causing re-uploads on every sync. Fixed by using DB-stored metadata as the primary comparison source.
+- Main thread database access crash: `SyncStateStore.deleteAllForRoot()` was called on the main thread when deleting sync configurations, causing `IllegalStateException`. Moved to background thread via `Executors.newSingleThreadExecutor()`.
+
+### Known Limitations
+- Setting the file timestamp on the device is not reliably possible for SAF (Storage Access Framework) destinations. Android's SAF API does not provide a `setLastModified()` method, and the best-effort workaround via `Files.setLastModifiedTime()` over `/proc/self/fd/` is blocked by `AccessDeniedException` on most devices (confirmed on GrapheneOS and stock Android). This is a platform limitation, not a bug. The app compensates by storing remote timestamps in a local metadata database (`SyncStateStore`), ensuring correct sync behavior regardless of the local file's timestamp.
+
+### Dependencies
+- Updated `androidx.room` from 2.7.1 to 2.8.4 (`room-runtime`, `room-compiler`, `room-testing`).
+
+### Developer Notes
+- `TimestampUtils`: New utility class in `util/` with `setLastModified(File, long)` for direct file timestamps and `trySetLastModified(Context, Uri, long)` for SAF best-effort via `/proc/self/fd/`. Includes `SmartErrorHandler` integration for repeated failures.
+- `SyncComparator`: New class in `sync/` with `isSame()`, `isRemoteNewer()`, `isLocalNewer()` methods using configurable timestamp tolerance.
+- `SyncStateStore`: High-level wrapper around `FileSyncStateDao` with logging and exception handling. Uses `SyncDatabase` Room singleton.
+- `FileSyncState`: Room entity with `UNIQUE(root_uri, relative_path)` constraint. Fields: `remote_size`, `remote_last_modified`, `synced_at`, `timestamp_preserved`.
+- `StorageCapabilityResolver`: Classifies URIs by storage type (file → SUPPORTED, external storage → BEST_EFFORT, other SAF → UNRELIABLE).
+- `SystemMonitorActivity.getTimestampStatus()`: Queries `SyncDatabase` for timestamp statistics displayed in the monitor.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.8.1] - 2026-03-28
 ### Added
 - "Manual only" sync interval option: Users can now disable periodic synchronization and trigger sync exclusively via "Sync now". New string resource `sync_interval_manual` added in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
