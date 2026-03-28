@@ -5,6 +5,29 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-03-28
+### Added
+- "Manual only" sync interval option: Users can now disable periodic synchronization and trigger sync exclusively via "Sync now". New string resource `sync_interval_manual` added in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Fixed
+- SMB timestamp preservation on upload: Original file timestamps are now correctly transferred to the remote file after both single-file and folder uploads. Previously, uploaded files showed the upload time instead of the original modification date.
+- `STATUS_ACCESS_DENIED` when setting remote file timestamps: Changed AccessMask from `GENERIC_WRITE` to `FILE_READ_ATTRIBUTES + FILE_WRITE_ATTRIBUTES` in both `SmbRepositoryImpl` and `FolderSyncWorker`, resolving the `QueryInfo failed` error on NAS systems that don't grant `FILE_READ_ATTRIBUTES` via `GENERIC_WRITE`.
+- SMB client configuration in `FolderSyncWorker`: The sync worker now uses the connection's encryption, signing, and dialect settings (via new `createSmbClient()` method) instead of an unconfigured default `SMBClient`.
+- Temporary file timestamp loss during upload: When copying a file from a content URI to a temp file for upload, the original `lastModified` timestamp from `DocumentFile` is now preserved on the temp file, ensuring the correct timestamp is passed to `setRemoteFileLastModified()`.
+- Manual sync swipe-kill resilience: "Sync now" operations now use Expedited Work with a Foreground Service notification, preventing Android from killing the sync when the app is swiped away. Added `foregroundServiceType="dataSync"` declaration for WorkManager's `SystemForegroundService` in `AndroidManifest.xml` to fix a `FATAL EXCEPTION` crash (`foregroundServiceType 0x00000001 is not a subset of 0x00000000`).
+
+### Developer Notes
+- `FolderSyncWorker.createSmbClient(SmbConnection)`: New method that mirrors `SmbRepositoryImpl.getClientFor()` to apply encryption, signing, and SMB dialect settings from the connection configuration.
+- `SmbRepositoryImpl.setRemoteFileLastModified()`: New private method for setting remote file timestamps after upload, using `FILE_READ_ATTRIBUTES + FILE_WRITE_ATTRIBUTES` AccessMask.
+- `FileOperations.getLastModifiedFromUri()`: New private method to extract the original last-modified timestamp from content URIs via `DocumentFile` or `DocumentsContract`.
+- `SyncManager.addSyncConfig()` now accepts interval 0 (manual); `schedulePeriodicSync()` cancels periodic sync when all configs are manual.
+- `FolderSyncWorker`: Skips configs with `intervalMinutes ≤ 0` during periodic sync execution.
+- `FolderSyncWorker.getForegroundInfo()`: New method providing a `ForegroundInfo` with notification channel `FOLDER_SYNC_OPERATIONS` and `FOREGROUND_SERVICE_TYPE_DATA_SYNC`. Worker calls `setForegroundAsync()` at start of `doWork()` for both manual and periodic syncs.
+- `SyncManager.triggerImmediateSync()`: Both overloads now use `setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)` for swipe-kill protection.
+- `FolderSyncWorker.isStopped()` handling: Manual syncs return `Result.retry()` (job resumes after kill), periodic syncs return `Result.success()` (next scheduled run catches up).
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.8.0] - 2026-03-27
 ### Added
 - Biometric and device credential authentication: New `BiometricAuthHelper` enables optional biometric or PIN/pattern authentication before accessing shares and revealing saved passwords. Configurable via a new Security Settings dialog (`dialog_security_settings.xml`) accessible from the main menu.

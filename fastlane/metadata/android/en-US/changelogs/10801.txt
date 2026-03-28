@@ -1,0 +1,5 @@
+• New "Manual only" sync interval – sync only when you tap "Sync now".
+• File timestamps are now preserved during upload.
+• Fixed STATUS_ACCESS_DENIED when setting remote timestamps.
+• Sync survives app swipe-kill via foreground service.
+• SMB client in sync worker now respects encryption & signing settings.
