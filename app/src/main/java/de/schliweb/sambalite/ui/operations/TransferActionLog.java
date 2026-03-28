@@ -40,7 +40,9 @@ public class TransferActionLog {
     UPLOAD_FAILED("✗ Upload failed"),
     CACHE_HIT("⊙ Cache hit"),
     CACHE_MISS("⊘ Cache miss"),
-    RETRY("↻ Retry");
+    RETRY("↻ Retry"),
+    TIMESTAMP_SET("🕐 Timestamp set"),
+    TIMESTAMP_FAILED("⚠ Timestamp failed");
 
     private final String symbol;
 
@@ -141,12 +143,15 @@ public class TransferActionLog {
 
     // Summary counts
     int uploaded = 0, downloaded = 0, uploadFailed = 0, downloadFailed = 0, cacheHits = 0;
+    int timestampsSet = 0, timestampsFailed = 0;
     for (String entry : getEntries()) {
       if (entry.contains(Action.UPLOAD_COMPLETED.getSymbol())) uploaded++;
       else if (entry.contains(Action.DOWNLOAD_COMPLETED.getSymbol())) downloaded++;
       else if (entry.contains(Action.UPLOAD_FAILED.getSymbol())) uploadFailed++;
       else if (entry.contains(Action.DOWNLOAD_FAILED.getSymbol())) downloadFailed++;
       else if (entry.contains(Action.CACHE_HIT.getSymbol())) cacheHits++;
+      else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
+      else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
     }
 
     sb.append("\nTotal: ")
@@ -157,7 +162,11 @@ public class TransferActionLog {
         .append(cacheHits)
         .append(" cache hits, ")
         .append(uploadFailed + downloadFailed)
-        .append(" errors\n");
+        .append(" errors, ")
+        .append(timestampsSet)
+        .append(" timestamps set, ")
+        .append(timestampsFailed)
+        .append(" timestamps failed\n");
 
     return sb.toString();
   }

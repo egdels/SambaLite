@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.*;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -210,6 +211,12 @@ public class FileOperations {
     }
 
     if (completedThisFile) {
+      // Preserve timestamp from source (temp) file to destination URI
+      long srcTimestamp = sourceFile.lastModified();
+      if (srcTimestamp > 0) {
+        TimestampUtils.trySetLastModified(context, target.getUri(), srcTimestamp);
+      }
+
       long fDone = filesCopied.incrementAndGet();
       int overallPct = computePercent(bytesCopied.get(), totalBytes, fDone, totalFiles);
       String baseDone =
@@ -260,6 +267,11 @@ public class FileOperations {
     } catch (IOException e) {
       LogUtils.e("FileOperations", "Error copying file to URI: " + e.getMessage());
       throw e;
+    }
+    // Preserve timestamp from source file to destination URI
+    long srcTimestamp = file.lastModified();
+    if (srcTimestamp > 0) {
+      TimestampUtils.trySetLastModified(context, uri, srcTimestamp);
     }
   }
 
@@ -336,6 +348,12 @@ public class FileOperations {
           }
 
           if (completedThisFile) {
+            // Preserve timestamp from source (temp) file to destination URI
+            long srcTimestamp = sourceFile.lastModified();
+            if (srcTimestamp > 0) {
+              TimestampUtils.trySetLastModified(context, destUri, srcTimestamp);
+            }
+
             try {
               callback.onProgress(100, "Copying • 100%");
             } catch (Throwable ignored) {

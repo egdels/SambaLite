@@ -29,6 +29,7 @@ import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.sync.SyncActionLog;
+import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.ui.operations.TransferActionLog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -236,7 +237,12 @@ public class SystemMonitorActivity extends AppCompatActivity {
               +
 
               // Update transfer activity log
-              getTransferActivityLog();
+              getTransferActivityLog()
+              + "\n\n"
+              +
+
+              // Update timestamp preservation status
+              getTimestampStatus();
 
       statusOverview.setText(fullStatus);
 
@@ -485,6 +491,33 @@ public class SystemMonitorActivity extends AppCompatActivity {
   private String getTransferActivityLog() {
     TransferActionLog actionLog = new TransferActionLog(this);
     return actionLog.getFormattedLog(25);
+  }
+
+  private String getTimestampStatus() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("=== Timestamp Preservation Status ===\n");
+
+    try {
+      SyncStateStore store = new SyncStateStore(this);
+      int total = store.getTotalCount();
+      int preserved = store.getTimestampPreservedCount();
+      int notPreserved = total - preserved;
+
+      sb.append("Tracked files: ").append(total).append("\n");
+      if (total > 0) {
+        double rate = (preserved * 100.0) / total;
+        sb.append(
+            String.format(
+                Locale.US, "Timestamp preserved: %d of %d (%.1f%%)\n", preserved, total, rate));
+        sb.append("Timestamp not preserved (SAF): ").append(notPreserved).append("\n");
+      } else {
+        sb.append("No sync state data available.\n");
+      }
+    } catch (Exception e) {
+      sb.append("Error loading timestamp status: ").append(e.getMessage()).append("\n");
+    }
+
+    return sb.toString();
   }
 
   private String getCurrentTimeString() {

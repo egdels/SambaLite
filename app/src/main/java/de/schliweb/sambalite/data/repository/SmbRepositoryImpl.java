@@ -31,6 +31,7 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -565,6 +566,23 @@ public class SmbRepositoryImpl implements SmbRepository {
               SMB2ShareAccess.ALL,
               SMB2CreateDisposition.FILE_OPEN,
               null)) {
+        // Read remote timestamp before downloading
+        long remoteTimestamp =
+            remoteFile
+                .getFileInformation()
+                .getBasicInformation()
+                .getLastWriteTime()
+                .toEpochMillis();
+        LogUtils.d(
+            "SmbRepositoryImpl",
+            "[TIMESTAMP] Remote lastWriteTime: "
+                + localFile.getName()
+                + " = "
+                + TimestampUtils.formatTimestamp(remoteTimestamp)
+                + " ("
+                + remoteTimestamp
+                + "ms)");
+
         long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
         try (InputStream is = remoteFile.getInputStream();
             java.io.FileOutputStream fos =
@@ -587,8 +605,11 @@ public class SmbRepositoryImpl implements SmbRepository {
                   + " ("
                   + totalBytes
                   + " bytes)");
-          return;
         }
+
+        // Set timestamp after download (outside stream try-with-resources, file is closed)
+        TimestampUtils.setLastModified(localFile, remoteTimestamp);
+        return;
       } catch (Exception e) {
         LogUtils.e(
             "SmbRepositoryImpl",
@@ -969,44 +990,68 @@ public class SmbRepositoryImpl implements SmbRepository {
           }
 
           try (File remoteFile =
-                  share.openFile(
-                      filePath,
-                      EnumSet.of(AccessMask.GENERIC_READ),
-                      null,
-                      SMB2ShareAccess.ALL,
-                      SMB2CreateDisposition.FILE_OPEN,
-                      null);
-              InputStream is = remoteFile.getInputStream();
-              java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
+              share.openFile(
+                  filePath,
+                  EnumSet.of(AccessMask.GENERIC_READ),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  SMB2CreateDisposition.FILE_OPEN,
+                  null)) {
 
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            long totalBytes = 0;
-            long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+            // Read remote timestamp before downloading
+            long remoteTimestamp =
+                remoteFile
+                    .getFileInformation()
+                    .getBasicInformation()
+                    .getLastWriteTime()
+                    .toEpochMillis();
+            LogUtils.d(
+                "SmbRepositoryImpl",
+                "[TIMESTAMP] Remote lastWriteTime: "
+                    + localFile.getName()
+                    + " = "
+                    + TimestampUtils.formatTimestamp(remoteTimestamp)
+                    + " ("
+                    + remoteTimestamp
+                    + "ms)");
 
-            while ((bytesRead = is.read(buffer)) != -1) {
-              // Check for cancellation during download
-              if (downloadCancelled) {
-                LogUtils.i("SmbRepositoryImpl", "Download cancelled during transfer: " + filePath);
-                throw new IOException("Download was cancelled by user");
+            try (InputStream is = remoteFile.getInputStream();
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
+
+              byte[] buffer = new byte[8192];
+              int bytesRead;
+              long totalBytes = 0;
+              long fileSize =
+                  remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+
+              while ((bytesRead = is.read(buffer)) != -1) {
+                // Check for cancellation during download
+                if (downloadCancelled) {
+                  LogUtils.i(
+                      "SmbRepositoryImpl", "Download cancelled during transfer: " + filePath);
+                  throw new IOException("Download was cancelled by user");
+                }
+
+                fos.write(buffer, 0, bytesRead);
+                totalBytes += bytesRead;
+
+                // Progress Update
+                if (progressCallback != null && fileSize > 0) {
+                  progressCallback.updateBytesProgress(totalBytes, fileSize, localFile.getName());
+                }
               }
 
-              fos.write(buffer, 0, bytesRead);
-              totalBytes += bytesRead;
-
-              // Progress Update
-              if (progressCallback != null && fileSize > 0) {
-                progressCallback.updateBytesProgress(totalBytes, fileSize, localFile.getName());
-              }
+              LogUtils.i(
+                  "SmbRepositoryImpl",
+                  "File downloaded successfully: "
+                      + localFile.getAbsolutePath()
+                      + " ("
+                      + totalBytes
+                      + " bytes)");
             }
 
-            LogUtils.i(
-                "SmbRepositoryImpl",
-                "File downloaded successfully: "
-                    + localFile.getAbsolutePath()
-                    + " ("
-                    + totalBytes
-                    + " bytes)");
+            // Set timestamp after download (file is closed)
+            TimestampUtils.setLastModified(localFile, remoteTimestamp);
           }
           return null;
         });
@@ -1634,6 +1679,23 @@ public class SmbRepositoryImpl implements SmbRepository {
               SMB2ShareAccess.ALL,
               SMB2CreateDisposition.FILE_OPEN,
               null)) {
+        // Read remote timestamp before downloading
+        long remoteTimestamp =
+            remoteFile
+                .getFileInformation()
+                .getBasicInformation()
+                .getLastWriteTime()
+                .toEpochMillis();
+        LogUtils.d(
+            "SmbRepositoryImpl",
+            "[TIMESTAMP] Remote lastWriteTime: "
+                + localFile.getName()
+                + " = "
+                + TimestampUtils.formatTimestamp(remoteTimestamp)
+                + " ("
+                + remoteTimestamp
+                + "ms)");
+
         long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
         try (InputStream is = remoteFile.getInputStream();
             java.io.FileOutputStream fos =
@@ -1708,8 +1770,11 @@ public class SmbRepositoryImpl implements SmbRepository {
                   + " ("
                   + totalBytes
                   + " bytes)");
-          return;
         }
+
+        // Set timestamp after download (file is closed)
+        TimestampUtils.setLastModified(localFile, remoteTimestamp);
+        return;
       } catch (Exception e) {
         LogUtils.e(
             "SmbRepositoryImpl",
