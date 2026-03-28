@@ -1484,6 +1484,44 @@ public class FileOperationsViewModel extends ViewModel {
         }
       }
 
+      // Preserve original file's last modified timestamp on the temp file
+      try {
+        long lastModified = task.file().lastModified();
+        LogUtils.d(
+            "FileOperationsViewModel",
+            "Original file lastModified from task.file(): "
+                + lastModified
+                + " ("
+                + (lastModified > 0 ? new java.util.Date(lastModified).toString() : "ZERO")
+                + ")"
+                + ", task.file().getUri()="
+                + task.file().getUri());
+        if (lastModified > 0) {
+          boolean success = tempFile.setLastModified(lastModified);
+          LogUtils.d(
+              "FileOperationsViewModel",
+              "setLastModified("
+                  + lastModified
+                  + ") on tempFile "
+                  + tempFile.getAbsolutePath()
+                  + " -> success="
+                  + success
+                  + ", verify: tempFile.lastModified()="
+                  + tempFile.lastModified()
+                  + " ("
+                  + new java.util.Date(tempFile.lastModified())
+                  + ")");
+        } else {
+          LogUtils.w(
+              "FileOperationsViewModel",
+              "task.file().lastModified() returned 0, tempFile keeps current timestamp");
+        }
+      } catch (Exception e) {
+        LogUtils.w(
+            "FileOperationsViewModel",
+            "Could not preserve lastModified on temp file: " + e.getMessage());
+      }
+
       if (currentFileIndex != null && totalFiles != null) {
         BackgroundSmbManager.ProgressCallback progressCallback =
             new BackgroundSmbManager.ProgressCallback() {

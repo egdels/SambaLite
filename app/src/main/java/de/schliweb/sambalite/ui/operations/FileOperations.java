@@ -423,6 +423,91 @@ public class FileOperations {
       LogUtils.e("FileOperations", "Error copying URI to file: " + e.getMessage());
       throw e;
     }
+
+    // Preserve the original file's last modified timestamp on the temp file
+    try {
+      long lastModified = getLastModifiedFromUri(context, uri);
+      LogUtils.d(
+          "FileOperations",
+          "getLastModifiedFromUri returned: "
+              + lastModified
+              + " ("
+              + (lastModified > 0 ? new java.util.Date(lastModified).toString() : "NONE")
+              + ")"
+              + " for URI: "
+              + uri);
+      if (lastModified > 0) {
+        boolean success = targetFile.setLastModified(lastModified);
+        LogUtils.d(
+            "FileOperations",
+            "setLastModified("
+                + lastModified
+                + ") on "
+                + targetFile.getAbsolutePath()
+                + " -> success="
+                + success
+                + ", verify: targetFile.lastModified()="
+                + targetFile.lastModified()
+                + " ("
+                + new java.util.Date(targetFile.lastModified())
+                + ")");
+      } else {
+        LogUtils.w(
+            "FileOperations",
+            "Could not retrieve original lastModified from URI, temp file keeps current timestamp: "
+                + targetFile.lastModified());
+      }
+    } catch (Exception e) {
+      LogUtils.w("FileOperations", "Could not preserve last modified time: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Retrieves the last modified timestamp from a content URI using DocumentFile or ContentResolver
+   * query.
+   */
+  private static long getLastModifiedFromUri(@NonNull Context context, @NonNull Uri uri) {
+    // Try DocumentFile first
+    try {
+      DocumentFile docFile = DocumentFile.fromSingleUri(context, uri);
+      if (docFile != null) {
+        long lastModified = docFile.lastModified();
+        LogUtils.d(
+            "FileOperations",
+            "DocumentFile.lastModified() for URI "
+                + uri
+                + " = "
+                + lastModified
+                + (lastModified > 0 ? " (" + new java.util.Date(lastModified) + ")" : " (ZERO)"));
+        if (lastModified > 0) return lastModified;
+      } else {
+        LogUtils.d("FileOperations", "DocumentFile.fromSingleUri returned null for: " + uri);
+      }
+    } catch (Exception e) {
+      LogUtils.w("FileOperations", "DocumentFile.lastModified() failed: " + e.getMessage());
+    }
+
+    // Fallback: query ContentResolver for LAST_MODIFIED column
+    try (Cursor cursor =
+        context
+            .getContentResolver()
+            .query(
+                uri,
+                new String[] {android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED},
+                null,
+                null,
+                null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        int idx =
+            cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED);
+        if (idx >= 0 && !cursor.isNull(idx)) {
+          return cursor.getLong(idx);
+        }
+      }
+    } catch (Exception ignored) {
+    }
+
+    return 0;
   }
 
   private static DocumentFile findOrCreateDirectory(DocumentFile parent, String name) {

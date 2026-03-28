@@ -364,7 +364,7 @@ public class FolderSyncWorker extends Worker {
     try (File remoteFile =
         share.openFile(
             remotePath,
-            EnumSet.of(AccessMask.GENERIC_WRITE),
+            EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES, AccessMask.FILE_WRITE_ATTRIBUTES),
             null,
             SMB2ShareAccess.ALL,
             SMB2CreateDisposition.FILE_OPEN,

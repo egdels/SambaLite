@@ -12,7 +12,9 @@ package de.schliweb.sambalite.data.repository;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msdtyp.FileTime;
 import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.msfscc.fileinformation.FileBasicInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
@@ -1183,9 +1185,69 @@ public class SmbRepositoryImpl implements SmbRepository {
                 "SmbRepositoryImpl",
                 "File uploaded successfully: " + remotePath + " (" + totalBytes + " bytes)");
           }
+
+          // Set the remote file's last modified time to match the local file
+          long localLastModified = localFile.lastModified();
+          LogUtils.d(
+              "SmbRepositoryImpl",
+              "Upload timestamp preservation: localFile="
+                  + localFile.getAbsolutePath()
+                  + ", localFile.lastModified()="
+                  + localLastModified
+                  + " ("
+                  + new java.util.Date(localLastModified)
+                  + ")"
+                  + ", remotePath="
+                  + filePath);
+          setRemoteFileLastModified(share, filePath, localLastModified);
+
           return null;
         });
     return null;
+  }
+
+  /**
+   * Sets the last modified time of a remote file to preserve the original timestamp after upload.
+   */
+  private void setRemoteFileLastModified(DiskShare share, String remotePath, long timeMillis) {
+    LogUtils.d(
+        "SmbRepositoryImpl",
+        "setRemoteFileLastModified: remotePath="
+            + remotePath
+            + ", timeMillis="
+            + timeMillis
+            + " ("
+            + new java.util.Date(timeMillis)
+            + ")");
+    try (File remoteFile =
+        share.openFile(
+            remotePath,
+            EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES, AccessMask.FILE_WRITE_ATTRIBUTES),
+            null,
+            SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OPEN,
+            null)) {
+      LogUtils.d("SmbRepositoryImpl", "Opened remote file for timestamp update: " + remotePath);
+      FileBasicInformation currentInfo = remoteFile.getFileInformation().getBasicInformation();
+      FileTime newTime = FileTime.ofEpochMillis(timeMillis);
+      LogUtils.d("SmbRepositoryImpl", "Setting new lastWriteTime to: " + newTime);
+      FileBasicInformation newInfo =
+          new FileBasicInformation(
+              currentInfo.getCreationTime(),
+              currentInfo.getLastAccessTime(),
+              newTime,
+              currentInfo.getChangeTime(),
+              currentInfo.getFileAttributes());
+      remoteFile.setFileInformation(newInfo);
+      LogUtils.d("SmbRepositoryImpl", "Successfully set remote lastWriteTime for: " + remotePath);
+    } catch (Exception e) {
+      LogUtils.w(
+          "SmbRepositoryImpl",
+          "Could not set last modified time for: " + remotePath + ": " + e.getMessage());
+      LogUtils.w(
+          "SmbRepositoryImpl",
+          "Exception type: " + e.getClass().getName() + ", full: " + e.toString());
+    }
   }
 
   @Override
