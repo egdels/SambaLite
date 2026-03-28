@@ -272,6 +272,7 @@
     <string name="sync_direction_remote_to_local">Remote → Local</string>
     <string name="sync_direction_bidirectional">Bidirectional</string>
     <string name="sync_interval">Sync Interval</string>
+    <string name="sync_interval_manual">Manual only</string>
     <string name="sync_interval_15min">Every 15 minutes</string>
     <string name="sync_interval_30min">Every 30 minutes</string>
     <string name="sync_interval_1h">Every hour</string>
@@ -368,9 +369,6 @@
     <string name="auth_subtitle_access">Verify your identity to access this share</string>
     <string name="auth_title_password">Authentication required</string>
     <string name="auth_subtitle_password">Verify your identity to view the password</string>
-    <string name="enter_password_title">Enter Password</string>
-    <string name="enter_password_message">Enter the password for %s</string>
-    <string name="sync_skipped_password_required">Sync skipped for %s – password entry required</string>
     <string name="auth_not_available">No device authentication configured. Please set up a PIN, pattern, or biometric in system settings.</string>
     <string name="auth_failed">Authentication failed: %s</string>
 </resources>

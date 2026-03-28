@@ -271,6 +271,7 @@
     <string name="sync_direction_remote_to_local">Extern → Lokaal</string>
     <string name="sync_direction_bidirectional">Bidirectioneel</string>
     <string name="sync_interval">Synchronisatie-interval</string>
+    <string name="sync_interval_manual">Alleen handmatig</string>
     <string name="sync_interval_15min">Elke 15 minuten</string>
     <string name="sync_interval_30min">Elke 30 minuten</string>
     <string name="sync_interval_1h">Elk uur</string>
@@ -360,9 +361,6 @@
     <string name="auth_subtitle_access">Verifieer uw identiteit om toegang te krijgen tot deze share</string>
     <string name="auth_title_password">Authenticatie vereist</string>
     <string name="auth_subtitle_password">Verifieer uw identiteit om het wachtwoord te bekijken</string>
-    <string name="enter_password_title">Wachtwoord invoeren</string>
-    <string name="enter_password_message">Voer het wachtwoord in voor %s</string>
-    <string name="sync_skipped_password_required">Synchronisatie overgeslagen voor %s – wachtwoordinvoer vereist</string>
     <string name="auth_not_available">Geen apparaatauthenticatie geconfigureerd. Stel een PIN, patroon of biometrie in via de systeeminstellingen.</string>
     <string name="auth_failed">Authenticatie mislukt: %s</string>
 </resources>

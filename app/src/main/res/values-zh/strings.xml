@@ -271,6 +271,7 @@
     <string name="sync_direction_remote_to_local">远程 → 本地</string>
     <string name="sync_direction_bidirectional">双向</string>
     <string name="sync_interval">同步间隔</string>
+    <string name="sync_interval_manual">仅手动</string>
     <string name="sync_interval_15min">每15分钟</string>
     <string name="sync_interval_30min">每30分钟</string>
     <string name="sync_interval_1h">每小时</string>
@@ -352,9 +353,6 @@
     <string name="auth_subtitle_access">验证您的身份以访问此共享</string>
     <string name="auth_title_password">需要身份验证</string>
     <string name="auth_subtitle_password">验证您的身份以查看密码</string>
-    <string name="enter_password_title">输入密码</string>
-    <string name="enter_password_message">请输入 %s 的密码</string>
-    <string name="sync_skipped_password_required">已跳过 %s 的同步 – 需要输入密码</string>
     <string name="auth_not_available">未配置设备身份验证。请在系统设置中设置PIN、图案或生物识别。</string>
     <string name="auth_failed">身份验证失败：%s</string>
 </resources>

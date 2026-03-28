@@ -272,6 +272,7 @@
     <string name="sync_direction_remote_to_local">Remoto → Local</string>
     <string name="sync_direction_bidirectional">Bidireccional</string>
     <string name="sync_interval">Intervalo de sincronización</string>
+    <string name="sync_interval_manual">Solo manual</string>
     <string name="sync_interval_15min">Cada 15 minutos</string>
     <string name="sync_interval_30min">Cada 30 minutos</string>
     <string name="sync_interval_1h">Cada hora</string>
@@ -371,9 +372,6 @@
     <string name="auth_subtitle_access">Verifique su identidad para acceder a este recurso compartido</string>
     <string name="auth_title_password">Autenticación requerida</string>
     <string name="auth_subtitle_password">Verifique su identidad para ver la contraseña</string>
-    <string name="enter_password_title">Introducir contraseña</string>
-    <string name="enter_password_message">Introduzca la contraseña para %s</string>
-    <string name="sync_skipped_password_required">Sincronización omitida para %s – se requiere introducir la contraseña</string>
     <string name="auth_not_available">No hay autenticación configurada. Configure un PIN, patrón o biometría en los ajustes del sistema.</string>
     <string name="auth_failed">Error de autenticación: %s</string>
 </resources>

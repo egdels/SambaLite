@@ -271,6 +271,7 @@
     <string name="sync_direction_remote_to_local">Remote → Lokal</string>
     <string name="sync_direction_bidirectional">Bidirektional</string>
     <string name="sync_interval">Sync-Intervall</string>
+    <string name="sync_interval_manual">Nur manuell</string>
     <string name="sync_interval_15min">Alle 15 Minuten</string>
     <string name="sync_interval_30min">Alle 30 Minuten</string>
     <string name="sync_interval_1h">Jede Stunde</string>
@@ -360,9 +361,6 @@
     <string name="auth_subtitle_access">Bestätigen Sie Ihre Identität, um auf diese Freigabe zuzugreifen</string>
     <string name="auth_title_password">Authentifizierung erforderlich</string>
     <string name="auth_subtitle_password">Bestätigen Sie Ihre Identität, um das Passwort anzuzeigen</string>
-    <string name="enter_password_title">Passwort eingeben</string>
-    <string name="enter_password_message">Passwort für %s eingeben</string>
-    <string name="sync_skipped_password_required">Synchronisierung für %s übersprungen – Passworteingabe erforderlich</string>
     <string name="auth_not_available">Keine Geräte-Authentifizierung eingerichtet. Bitte richten Sie eine PIN, ein Muster oder Biometrie in den Systemeinstellungen ein.</string>
     <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>
 </resources>

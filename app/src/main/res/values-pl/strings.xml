@@ -273,6 +273,7 @@
     <string name="sync_direction_remote_to_local">Zdalny → Lokalny</string>
     <string name="sync_direction_bidirectional">Dwukierunkowy</string>
     <string name="sync_interval">Interwał synchronizacji</string>
+    <string name="sync_interval_manual">Tylko ręcznie</string>
     <string name="sync_interval_15min">Co 15 minut</string>
     <string name="sync_interval_30min">Co 30 minut</string>
     <string name="sync_interval_1h">Co godzinę</string>
@@ -381,9 +382,6 @@
     <string name="auth_subtitle_access">Zweryfikuj swoją tożsamość, aby uzyskać dostęp do tego udziału</string>
     <string name="auth_title_password">Wymagane uwierzytelnienie</string>
     <string name="auth_subtitle_password">Zweryfikuj swoją tożsamość, aby wyświetlić hasło</string>
-    <string name="enter_password_title">Wprowadź hasło</string>
-    <string name="enter_password_message">Wprowadź hasło dla %s</string>
-    <string name="sync_skipped_password_required">Synchronizacja pominięta dla %s – wymagane wprowadzenie hasła</string>
     <string name="auth_not_available">Brak skonfigurowanego uwierzytelniania urządzenia. Skonfiguruj kod PIN, wzór lub biometrię w ustawieniach systemu.</string>
     <string name="auth_failed">Uwierzytelnianie nie powiodło się: %s</string>
 </resources>
