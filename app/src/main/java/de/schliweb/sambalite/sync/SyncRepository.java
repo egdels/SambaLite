@@ -12,6 +12,7 @@ package de.schliweb.sambalite.sync;
 import android.content.Context;
 import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
+import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +32,13 @@ public class SyncRepository {
   private static final String KEY_SYNC_CONFIGS = "sync_configs";
 
   private final SharedPreferences prefs;
+  private final SyncStateStore syncStateStore;
 
   @Inject
   public SyncRepository(@NonNull Context context) {
     LogUtils.d(TAG, "Initializing SyncRepository");
     this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    this.syncStateStore = new SyncStateStore(context);
   }
 
   /**
@@ -130,11 +133,32 @@ public class SyncRepository {
   public boolean deleteSyncConfig(@NonNull String configId) {
     LogUtils.d(TAG, "Deleting sync config with ID: " + configId);
     List<SyncConfig> configs = getAllSyncConfigs();
+
+    // Find config before removal to get localFolderUri for DB cleanup
+    String localFolderUri = null;
+    for (SyncConfig c : configs) {
+      if (c.getId().equals(configId)) {
+        localFolderUri = c.getLocalFolderUri();
+        break;
+      }
+    }
+
     boolean removed = configs.removeIf(c -> c.getId().equals(configId));
 
     if (removed) {
       LogUtils.i(TAG, "Sync config deleted successfully: " + configId);
       saveConfigsToPrefs(configs);
+
+      // Clean up sync state DB entries for this config's local folder (off main thread)
+      if (localFolderUri != null && !localFolderUri.isEmpty()) {
+        final String uri = localFolderUri;
+        new Thread(
+                () -> {
+                  syncStateStore.deleteAllForRoot(uri);
+                  LogUtils.i(TAG, "Cleaned up sync state DB for root: " + uri);
+                })
+            .start();
+      }
     } else {
       LogUtils.w(TAG, "Sync config not found for deletion: " + configId);
     }
@@ -151,6 +175,17 @@ public class SyncRepository {
   public int deleteConfigsForConnection(@NonNull String connectionId) {
     LogUtils.d(TAG, "Deleting sync configs for connection: " + connectionId);
     List<SyncConfig> configs = getAllSyncConfigs();
+
+    // Collect localFolderUris before removal for DB cleanup
+    List<String> rootUris = new ArrayList<>();
+    for (SyncConfig c : configs) {
+      if (connectionId.equals(c.getConnectionId())
+          && c.getLocalFolderUri() != null
+          && !c.getLocalFolderUri().isEmpty()) {
+        rootUris.add(c.getLocalFolderUri());
+      }
+    }
+
     int originalSize = configs.size();
     configs.removeIf(c -> connectionId.equals(c.getConnectionId()));
     int removed = originalSize - configs.size();
@@ -158,6 +193,16 @@ public class SyncRepository {
     if (removed > 0) {
       saveConfigsToPrefs(configs);
       LogUtils.i(TAG, "Deleted " + removed + " sync configs for connection: " + connectionId);
+
+      // Clean up sync state DB entries for all removed configs (off main thread)
+      new Thread(
+              () -> {
+                for (String rootUri : rootUris) {
+                  syncStateStore.deleteAllForRoot(rootUri);
+                }
+                LogUtils.i(TAG, "Cleaned up sync state DB for " + rootUris.size() + " root URIs");
+              })
+          .start();
     }
 
     return removed;

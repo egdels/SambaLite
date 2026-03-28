@@ -35,7 +35,10 @@ public class SyncActionLog {
     DOWNLOADED("↓ Downloaded"),
     SKIPPED("⊘ Skipped"),
     CREATED_DIR("📁 Created dir"),
-    ERROR("✗ Error");
+    ERROR("✗ Error"),
+    DELETED("🗑 Deleted"),
+    TIMESTAMP_SET("🕐 Timestamp set"),
+    TIMESTAMP_FAILED("⚠ Timestamp failed");
 
     private final String symbol;
 
@@ -135,13 +138,17 @@ public class SyncActionLog {
     }
 
     // Summary counts
-    int uploaded = 0, downloaded = 0, skipped = 0, errors = 0, dirs = 0;
+    int uploaded = 0, downloaded = 0, skipped = 0, errors = 0, dirs = 0, deleted = 0;
+    int timestampsSet = 0, timestampsFailed = 0;
     for (String entry : getEntries()) {
       if (entry.contains(Action.UPLOADED.getSymbol())) uploaded++;
       else if (entry.contains(Action.DOWNLOADED.getSymbol())) downloaded++;
       else if (entry.contains(Action.SKIPPED.getSymbol())) skipped++;
       else if (entry.contains(Action.ERROR.getSymbol())) errors++;
       else if (entry.contains(Action.CREATED_DIR.getSymbol())) dirs++;
+      else if (entry.contains(Action.DELETED.getSymbol())) deleted++;
+      else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
+      else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
     }
 
     sb.append("\nTotal: ")
@@ -153,8 +160,14 @@ public class SyncActionLog {
         .append(" skipped, ")
         .append(dirs)
         .append(" dirs created, ")
+        .append(deleted)
+        .append(" deleted, ")
         .append(errors)
-        .append(" errors\n");
+        .append(" errors, ")
+        .append(timestampsSet)
+        .append(" timestamps set, ")
+        .append(timestampsFailed)
+        .append(" timestamps failed\n");
 
     return sb.toString();
   }

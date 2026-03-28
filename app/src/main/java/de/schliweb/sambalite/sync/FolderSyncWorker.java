@@ -38,13 +38,20 @@ import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
+import de.schliweb.sambalite.sync.db.FileSyncState;
+import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.StorageCapabilityResolver;
+import de.schliweb.sambalite.util.TimestampCapability;
+import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * WorkManager Worker that performs folder synchronization in the background. Iterates over all
@@ -58,10 +65,13 @@ public class FolderSyncWorker extends Worker {
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
   private static final int SYNC_NOTIFICATION_ID = 2001;
   private SyncActionLog actionLog;
+  private final SyncComparator syncComparator = new SyncComparator();
+  private SyncStateStore syncStateStore;
 
   public FolderSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
     super(context, params);
     this.actionLog = new SyncActionLog(context);
+    this.syncStateStore = new SyncStateStore(context);
   }
 
   @NonNull
@@ -228,16 +238,18 @@ public class FolderSyncWorker extends Worker {
             ensureRemoteDirectoryExists(share, remotePath);
           }
 
+          String rootUri = config.getLocalFolderUri();
+
           switch (config.getDirection()) {
             case LOCAL_TO_REMOTE:
-              syncLocalToRemote(share, localFolder, remotePath);
+              syncLocalToRemote(share, localFolder, remotePath, rootUri, "");
               break;
             case REMOTE_TO_LOCAL:
-              syncRemoteToLocal(share, localFolder, remotePath);
+              syncRemoteToLocal(share, localFolder, remotePath, rootUri, "");
               break;
             case BIDIRECTIONAL:
-              syncLocalToRemote(share, localFolder, remotePath);
-              syncRemoteToLocal(share, localFolder, remotePath);
+              syncLocalToRemote(share, localFolder, remotePath, rootUri, "");
+              syncRemoteToLocal(share, localFolder, remotePath, rootUri, "");
               break;
           }
         }
@@ -246,7 +258,12 @@ public class FolderSyncWorker extends Worker {
   }
 
   /** Syncs local files to remote. Uploads files that are newer locally or don't exist remotely. */
-  private void syncLocalToRemote(DiskShare share, DocumentFile localFolder, String remotePath) {
+  private void syncLocalToRemote(
+      DiskShare share,
+      DocumentFile localFolder,
+      String remotePath,
+      String rootUri,
+      String relPath) {
     if (isStopped()) return;
 
     DocumentFile[] localFiles = localFolder.listFiles();
@@ -260,29 +277,51 @@ public class FolderSyncWorker extends Worker {
 
       if (localFile.isDirectory()) {
         ensureRemoteDirectoryExists(share, remoteFilePath);
-        syncLocalToRemote(share, localFile, remoteFilePath);
+        String childRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
+        syncLocalToRemote(share, localFile, remoteFilePath, rootUri, childRelPath);
       } else {
         try {
           long localModified = localFile.lastModified();
           boolean remoteExists = share.fileExists(remoteFilePath);
 
+          String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
+
           if (!remoteExists) {
             uploadFile(share, localFile, remoteFilePath);
             actionLog.log(SyncActionLog.Action.UPLOADED, name);
+            long remoteModified = getRemoteFileLastModified(share, remoteFilePath);
+            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            syncStateStore.saveRemoteState(
+                rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
           } else {
             long remoteModified = getRemoteFileLastModified(share, remoteFilePath);
-            if (localModified > remoteModified) {
-              // Also compare file sizes to avoid re-uploading when
-              // setRemoteFileLastModified failed (e.g. ACCESS_DENIED)
-              long remoteSize = getRemoteFileSize(share, remoteFilePath);
-              long localSize = localFile.length();
-              if (localSize != remoteSize) {
-                uploadFile(share, localFile, remoteFilePath);
-                actionLog.log(SyncActionLog.Action.UPLOADED, name);
-              } else {
-                LogUtils.d(TAG, "Skipping upload (same size): " + name);
-                actionLog.log(SyncActionLog.Action.SKIPPED, name, "same size");
-              }
+            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            long localSize = localFile.length();
+
+            // Check stored DB state first – SAF timestamps are unreliable
+            var storedState = syncStateStore.getRemoteState(rootUri, fileRelPath);
+            if (storedState != null
+                && storedState.remoteSize == remoteSize
+                && Math.abs(storedState.remoteLastModified - remoteModified)
+                    < SyncComparator.DEFAULT_TIMESTAMP_TOLERANCE_MS
+                && localSize == remoteSize) {
+              LogUtils.d(
+                  TAG, "Skipping upload (DB state matches remote, local size same): " + name);
+              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (DB state)");
+            } else if (syncComparator.isSame(
+                localSize, localModified, remoteSize, remoteModified)) {
+              LogUtils.d(TAG, "Skipping upload (same): " + name);
+              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+            } else if (syncComparator.isLocalNewer(localModified, remoteModified)) {
+              uploadFile(share, localFile, remoteFilePath);
+              actionLog.log(SyncActionLog.Action.UPLOADED, name);
+              remoteModified = getRemoteFileLastModified(share, remoteFilePath);
+              remoteSize = getRemoteFileSize(share, remoteFilePath);
+              syncStateStore.saveRemoteState(
+                  rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+            } else {
+              LogUtils.d(TAG, "Skipping upload (remote is newer or within tolerance): " + name);
+              actionLog.log(SyncActionLog.Action.SKIPPED, name, "remote newer or within tolerance");
             }
           }
         } catch (Exception e) {
@@ -296,7 +335,12 @@ public class FolderSyncWorker extends Worker {
   /**
    * Syncs remote files to local. Downloads files that are newer remotely or don't exist locally.
    */
-  private void syncRemoteToLocal(DiskShare share, DocumentFile localFolder, String remotePath) {
+  private void syncRemoteToLocal(
+      DiskShare share,
+      DocumentFile localFolder,
+      String remotePath,
+      String rootUri,
+      String relPath) {
     if (isStopped()) return;
 
     try {
@@ -320,11 +364,14 @@ public class FolderSyncWorker extends Worker {
             actionLog.log(SyncActionLog.Action.CREATED_DIR, name);
           }
           if (localSubDir != null) {
-            syncRemoteToLocal(share, localSubDir, remoteFilePath);
+            String childRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
+            syncRemoteToLocal(share, localSubDir, remoteFilePath, rootUri, childRelPath);
           }
         } else {
           try {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
+            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
             DocumentFile localFile = localFolder.findFile(name);
 
             if (localFile == null) {
@@ -333,27 +380,67 @@ public class FolderSyncWorker extends Worker {
               if (newFile != null) {
                 downloadFile(share, remoteFilePath, newFile);
                 actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                syncStateStore.saveRemoteState(
+                    rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
               }
             } else {
+              // Use stored metadata as fallback for SAF timestamp comparison
               long localModified = localFile.lastModified();
-              if (remoteModified > localModified) {
-                // Also compare file sizes to avoid re-downloading when
-                // setRemoteFileLastModified failed (e.g. ACCESS_DENIED)
-                long remoteSize = getRemoteFileSize(share, remoteFilePath);
-                long localSize = localFile.length();
-                if (localSize != remoteSize) {
-                  downloadFile(share, remoteFilePath, localFile);
-                  actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
-                } else {
-                  LogUtils.d(TAG, "Skipping download (same size): " + name);
-                  actionLog.log(SyncActionLog.Action.SKIPPED, name, "same size");
-                }
+              long localSize = localFile.length();
+
+              FileSyncState storedState = syncStateStore.getRemoteState(rootUri, fileRelPath);
+              if (storedState != null
+                  && storedState.remoteSize == remoteSize
+                  && storedState.remoteLastModified == remoteModified) {
+                LogUtils.d(TAG, "Skipping download (unchanged per stored metadata): " + name);
+                actionLog.log(SyncActionLog.Action.SKIPPED, name, "unchanged (stored metadata)");
+              } else if (syncComparator.isSame(
+                  localSize, localModified, remoteSize, remoteModified)) {
+                LogUtils.d(TAG, "Skipping download (same): " + name);
+                actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+              } else if (syncComparator.isRemoteNewer(localModified, remoteModified)) {
+                downloadFile(share, remoteFilePath, localFile);
+                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                syncStateStore.saveRemoteState(
+                    rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+              } else {
+                LogUtils.d(TAG, "Skipping download (local is newer or within tolerance): " + name);
+                actionLog.log(
+                    SyncActionLog.Action.SKIPPED, name, "local newer or within tolerance");
               }
             }
           } catch (Exception e) {
             LogUtils.e(TAG, "Error syncing remote file " + name + ": " + e.getMessage());
             actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
           }
+        }
+      }
+
+      // Cleanup: Remove DB entries for files that no longer exist remotely
+      Set<String> remoteFileNames = new HashSet<>();
+      for (FileIdBothDirectoryInformation rf : remoteFiles) {
+        String rfName = rf.getFileName();
+        if (!".".equals(rfName) && !"..".equals(rfName)) {
+          remoteFileNames.add(rfName);
+        }
+      }
+
+      List<FileSyncState> storedStates = syncStateStore.getAllForRoot(rootUri);
+      for (FileSyncState stored : storedStates) {
+        // Only check entries that belong to the current directory level
+        String storedRelPath = stored.relativePath;
+        String expectedPrefix = relPath.isEmpty() ? "" : relPath + "/";
+        if (!storedRelPath.startsWith(expectedPrefix)) continue;
+
+        String remainder = storedRelPath.substring(expectedPrefix.length());
+        // Only direct children (no further '/' in remainder)
+        if (remainder.contains("/")) continue;
+
+        if (!remoteFileNames.contains(remainder)) {
+          syncStateStore.deleteState(rootUri, storedRelPath);
+          LogUtils.i(
+              TAG, "[TIMESTAMP] Cleaned up DB entry for remotely deleted file: " + storedRelPath);
+          actionLog.log(SyncActionLog.Action.DELETED, remainder, "remote file no longer exists");
         }
       }
     } catch (Exception e) {
@@ -396,35 +483,86 @@ public class FolderSyncWorker extends Worker {
     LogUtils.d(TAG, "Upload completed: " + localFile.getName());
   }
 
-  /** Downloads a remote file to a local DocumentFile. */
+  /** Downloads a remote file to a local DocumentFile (SAF). */
   private void downloadFile(DiskShare share, String remotePath, DocumentFile localFile)
       throws Exception {
     LogUtils.d(TAG, "Downloading: " + remotePath + " -> " + localFile.getName());
 
+    long remoteTimestamp = 0;
     try (File remoteFile =
-            share.openFile(
-                remotePath,
-                EnumSet.of(AccessMask.GENERIC_READ),
-                null,
-                SMB2ShareAccess.ALL,
-                SMB2CreateDisposition.FILE_OPEN,
-                null);
-        InputStream is = remoteFile.getInputStream();
-        OutputStream os =
-            getApplicationContext().getContentResolver().openOutputStream(localFile.getUri())) {
+        share.openFile(
+            remotePath,
+            EnumSet.of(AccessMask.GENERIC_READ),
+            null,
+            SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OPEN,
+            null)) {
 
-      if (os == null) {
-        throw new Exception("Could not open output stream for: " + localFile.getUri());
-      }
+      // Read remote timestamp before downloading
+      remoteTimestamp =
+          remoteFile.getFileInformation().getBasicInformation().getLastWriteTime().toEpochMillis();
+      LogUtils.d(
+          TAG,
+          "[TIMESTAMP] Remote lastWriteTime: "
+              + localFile.getName()
+              + " = "
+              + TimestampUtils.formatTimestamp(remoteTimestamp)
+              + " ("
+              + remoteTimestamp
+              + "ms)");
 
-      byte[] buffer = new byte[BUFFER_SIZE];
-      int bytesRead;
-      while ((bytesRead = is.read(buffer)) != -1) {
-        os.write(buffer, 0, bytesRead);
+      try (InputStream is = remoteFile.getInputStream();
+          OutputStream os =
+              getApplicationContext().getContentResolver().openOutputStream(localFile.getUri())) {
+
+        if (os == null) {
+          throw new Exception("Could not open output stream for: " + localFile.getUri());
+        }
+
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int bytesRead;
+        while ((bytesRead = is.read(buffer)) != -1) {
+          os.write(buffer, 0, bytesRead);
+        }
       }
     }
 
-    LogUtils.d(TAG, "Download completed: " + localFile.getName());
+    // SAF/DocumentFile: attempt best-effort timestamp preservation via utimensat()
+    TimestampCapability capability = StorageCapabilityResolver.resolve(localFile.getUri());
+
+    if (remoteTimestamp > 0) {
+      boolean timestampSet =
+          TimestampUtils.trySetLastModified(
+              getApplicationContext(), localFile.getUri(), remoteTimestamp);
+      if (timestampSet) {
+        actionLog.log(
+            SyncActionLog.Action.TIMESTAMP_SET,
+            localFile.getName(),
+            "SAF best-effort succeeded (capability="
+                + capability
+                + ", remote="
+                + TimestampUtils.formatTimestamp(remoteTimestamp)
+                + ")");
+      } else {
+        actionLog.log(
+            SyncActionLog.Action.TIMESTAMP_FAILED,
+            localFile.getName(),
+            "SAF best-effort failed (capability="
+                + capability
+                + ", remote="
+                + TimestampUtils.formatTimestamp(remoteTimestamp)
+                + ")");
+      }
+    } else {
+      LogUtils.w(
+          TAG,
+          "[TIMESTAMP] SAF download completed without valid remote timestamp: "
+              + localFile.getName());
+      actionLog.log(
+          SyncActionLog.Action.TIMESTAMP_FAILED,
+          localFile.getName(),
+          "No valid remote timestamp available");
+    }
   }
 
   /** Sets the last modified time of a remote file. */
