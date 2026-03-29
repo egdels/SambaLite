@@ -1,0 +1,6 @@
+• Faster transfers: I/O buffer increased from 8 KB to 64 KB.
+• Smoother uploads: Progress updates throttled to reduce UI overhead.
+• Fixed: Keyboard staying visible after renaming on some devices.
+• Fixed: FAB buttons stuck in multi-selection state after batch operations.
+• Fixed: SAF folder picker missing "Use this folder" option.
+• Fixed: Duplicate progress dialogs and upload/download state race conditions.

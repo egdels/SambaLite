@@ -5,6 +5,20 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.3] - 2026-03-28
+### Improved
+- Transfer performance: Increased I/O buffer size from 8 KB to 64 KB for uploads and downloads.
+- Upload progress reporting: Throttled progress updates to reduce UI overhead during large file transfers.
+
+### Fixed
+- Keyboard remains visible after renaming: On some devices (e.g., Amazon Fire Tablet), the soft keyboard reappeared after dismissing the rename dialog due to a race condition with pending focus events. Fixed by clearing focus on the edit text and adding a delayed secondary `hideKeyboard()` call (100ms) in the dialog's `OnDismissListener`.
+- FAB buttons stuck in multi-selection state: After starting a batch download or delete via the floating action buttons, the selection UI (FAB icons, selection count) was not cleared. Added `clearSelection()` calls to both FAB click handlers to match the existing toolbar menu behavior.
+- SAF folder picker missing "Use this folder" option: When reopening the folder picker for downloads, the previously used folder was shown but the "Use this folder" button was absent. Fixed by storing the last used download folder URI and setting `EXTRA_INITIAL_URI` on the picker intent. The stored URI is converted from a tree URI to a document URI via `DocumentsContract.buildDocumentUriUsingTree()`, which is required for the SAF picker to recognize the folder and offer the selection button.
+- Duplicate progress dialogs: Prevented duplicate progress dialog creation when multiple operations start in quick succession by introducing a `dialogShowPending` guard flag.
+- Upload/download state race condition: Fixed a race condition where the uploading/downloading LiveData could reflect a stale count by reading the AtomicInteger inside the posted Runnable instead of capturing a local snapshot.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [1.8.2] - 2026-03-28
 ### Added
 - Timestamp preservation on download: Remote file timestamps are now preserved when downloading files, both for manual downloads and folder sync. New `TimestampUtils` utility class with `setLastModified()` for `java.io.File` and `trySetLastModified()` as SAF best-effort via `Files.setLastModifiedTime()` over `/proc/self/fd/`.
