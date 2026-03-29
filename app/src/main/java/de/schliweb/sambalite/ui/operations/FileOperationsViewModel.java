@@ -91,23 +91,23 @@ public class FileOperationsViewModel extends ViewModel {
   }
 
   void incUpload() {
-    int c = uploadCount.incrementAndGet();
-    mainHandler.post(() -> uploading.setValue(c > 0));
+    uploadCount.incrementAndGet();
+    mainHandler.post(() -> uploading.setValue(uploadCount.get() > 0));
   }
 
   void decUpload() {
-    int c = Math.max(0, uploadCount.decrementAndGet());
-    mainHandler.post(() -> uploading.setValue(c > 0));
+    uploadCount.updateAndGet(v -> Math.max(0, v - 1));
+    mainHandler.post(() -> uploading.setValue(uploadCount.get() > 0));
   }
 
   public void incDownload() {
-    int c = downloadCount.incrementAndGet();
-    mainHandler.post(() -> downloading.setValue(c > 0));
+    downloadCount.incrementAndGet();
+    mainHandler.post(() -> downloading.setValue(downloadCount.get() > 0));
   }
 
   public void decDownload() {
-    int c = Math.max(0, downloadCount.decrementAndGet());
-    mainHandler.post(() -> downloading.setValue(c > 0));
+    downloadCount.updateAndGet(v -> Math.max(0, v - 1));
+    mainHandler.post(() -> downloading.setValue(downloadCount.get() > 0));
   }
 
   public record TransferProgress(int percentage, String statusText, String fileName) {}
