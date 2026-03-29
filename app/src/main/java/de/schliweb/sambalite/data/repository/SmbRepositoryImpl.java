@@ -591,7 +591,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             long skipped = is.skip(resumeFrom);
             LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes for resume");
           }
-          byte[] buffer = new byte[8192];
+          byte[] buffer = new byte[65536];
           int bytesRead;
           long totalBytes = resumeFrom;
           while ((bytesRead = is.read(buffer)) != -1) {
@@ -1018,7 +1018,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             try (InputStream is = remoteFile.getInputStream();
                 java.io.FileOutputStream fos = new java.io.FileOutputStream(localFile)) {
 
-              byte[] buffer = new byte[8192];
+              byte[] buffer = new byte[65536];
               int bytesRead;
               long totalBytes = 0;
               long fileSize =
@@ -1203,10 +1203,17 @@ public class SmbRepositoryImpl implements SmbRepository {
               java.io.FileInputStream fis = new java.io.FileInputStream(localFile);
               OutputStream os = remoteFile.getOutputStream()) {
 
-            byte[] buffer = new byte[8192];
+            byte[] buffer = new byte[65536];
             int bytesRead;
             long totalBytes = 0;
             long fileSize = localFile.length();
+
+            // Progress throttling for uploads
+            long lastProgressUpdate = 0;
+            final long PROGRESS_UPDATE_INTERVAL = 500;
+            final int MAX_PROGRESS_UPDATES = 100;
+            final long updateThreshold = Math.max(fileSize / MAX_PROGRESS_UPDATES, 1);
+            long lastUpdateBytes = 0;
 
             while ((bytesRead = fis.read(buffer)) != -1) {
               // Check for cancellation during upload
@@ -1220,9 +1227,19 @@ public class SmbRepositoryImpl implements SmbRepository {
               os.write(buffer, 0, bytesRead);
               totalBytes += bytesRead;
 
-              // Progress Update
+              // Throttled progress update
               if (progressCallback != null && fileSize > 0) {
-                progressCallback.updateBytesProgress(totalBytes, fileSize, localFile.getName());
+                long currentTime = System.currentTimeMillis();
+                boolean shouldUpdate =
+                    (currentTime - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL)
+                        || (totalBytes - lastUpdateBytes >= updateThreshold)
+                        || (lastUpdateBytes == 0)
+                        || (totalBytes == fileSize);
+                if (shouldUpdate) {
+                  progressCallback.updateBytesProgress(totalBytes, fileSize, localFile.getName());
+                  lastProgressUpdate = currentTime;
+                  lastUpdateBytes = totalBytes;
+                }
               }
             }
 
@@ -1705,7 +1722,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             LogUtils.d("SmbRepositoryImpl", "Skipped " + skipped + " bytes for resume");
           }
 
-          byte[] buffer = new byte[8192];
+          byte[] buffer = new byte[65536];
           int bytesRead;
           long totalBytes = resumeFrom;
           long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();

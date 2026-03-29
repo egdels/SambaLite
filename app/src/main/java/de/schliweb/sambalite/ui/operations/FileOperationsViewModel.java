@@ -1476,7 +1476,7 @@ public class FileOperationsViewModel extends ViewModel {
               context.getContentResolver().openInputStream(task.file().getUri());
           java.io.FileOutputStream output = new java.io.FileOutputStream(tempFile)) {
         if (input == null) throw new Exception("Cannot read file: " + task.fileName());
-        byte[] buffer = new byte[8192];
+        byte[] buffer = new byte[65536];
         int bytesRead;
         while ((bytesRead = input.read(buffer)) != -1) {
           if (state.isUploadCancelled()) throw new Exception("Upload cancelled");
