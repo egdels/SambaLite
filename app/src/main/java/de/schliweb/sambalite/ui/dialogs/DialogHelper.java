@@ -143,6 +143,24 @@ public class DialogHelper {
                   });
         });
 
+    dialog.setOnDismissListener(
+        d -> {
+          fileNameEditText.clearFocus();
+          if (context instanceof Activity) {
+            Activity activity = (Activity) context;
+            KeyboardUtils.hideKeyboard(activity);
+            // Post a delayed hide to handle devices where keyboard reappears after dismiss
+            activity
+                .getWindow()
+                .getDecorView()
+                .postDelayed(
+                    () -> {
+                      KeyboardUtils.hideKeyboard(activity);
+                    },
+                    100);
+          }
+        });
+
     dialog.show();
     if (context instanceof Activity) {
       setupDialogFocus((Activity) context, fileNameEditText);
