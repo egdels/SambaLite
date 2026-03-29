@@ -60,6 +60,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
   private String pendingDialogTitle;
   private String pendingDialogMessage;
   private LifecycleEventObserver pendingDialogObserver;
+  private boolean dialogShowPending;
 
   private int lastOverall = -1;
   private int lastCur = -1;
@@ -132,6 +133,18 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     LogUtils.d(
         "ProgressController", "Showing detailed progress dialog: " + title + " - " + message);
 
+    // If a show is already pending (deferred or queued on UI thread), skip to avoid duplicates
+    if (dialogShowPending) {
+      LogUtils.d("ProgressController", "Dialog show already pending, skipping duplicate request");
+      return;
+    }
+
+    // If the dialog is already visible, skip
+    if (progressDialog != null && progressDialog.isShowing()) {
+      LogUtils.d("ProgressController", "Dialog already showing, skipping duplicate request");
+      return;
+    }
+
     // If activity is not yet RESUMED, defer the dialog show until it is
     if (!isActivitySafe()) {
       LogUtils.w("ProgressController", "Activity not safe, skipping progress dialog show");
@@ -139,9 +152,11 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     }
     if (!isLifecycleAtLeastResumed()) {
       LogUtils.d("ProgressController", "Activity not yet RESUMED, deferring progress dialog show");
+      dialogShowPending = true;
       deferDialogShowUntilResumed(title, message);
       return;
     }
+    dialogShowPending = true;
 
     final String finalTitle = title;
     final String finalMessage = message;
@@ -152,6 +167,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             if (!isActivitySafe() || !isLifecycleAtLeastResumed()) {
               LogUtils.w(
                   "ProgressController", "Activity not safe/resumed during dialog show, aborting");
+              dialogShowPending = false;
               return;
             }
 
@@ -207,6 +223,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
             progressDialog = builder.create();
             progressDialog.show();
+            dialogShowPending = false;
 
             // If a cancel action was set before the dialog was shown (lazy-open case),
             // apply it now to ensure the Cancel button works immediately.
@@ -219,6 +236,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
             LogUtils.d("ProgressController", "Detailed progress dialog shown");
           } catch (Exception e) {
+            dialogShowPending = false;
             LogUtils.e(
                 "ProgressController", "Error showing detailed progress dialog: " + e.getMessage());
           }
@@ -246,7 +264,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     if (!isActivitySafe()) return;
 
     // Lazily open the dialog if not already showing and the activity is safely RESUMED
-    if (progressDialog == null || !progressDialog.isShowing()) {
+    if (!dialogShowPending && (progressDialog == null || !progressDialog.isShowing())) {
       if (isLifecycleAtLeastResumed()) {
         String initialTitle = activity.getString(R.string.transfer_title);
         String initialMsg =
@@ -348,6 +366,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     // Ensure this runs on the UI thread
     activity.runOnUiThread(
         () -> {
+          dialogShowPending = false;
           if (progressDialog != null && progressDialog.isShowing()) {
             progressDialog.dismiss();
             progressDialog = null;
@@ -721,6 +740,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
     activity.runOnUiThread(
         () -> {
           try {
+            dialogShowPending = false;
             if (progressDialog != null && progressDialog.isShowing()) {
               LogUtils.d("ProgressController", "Closing progress dialog");
               progressDialog.dismiss();
@@ -743,7 +763,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
   }
 
   public boolean isTransferDialogShowing() {
-    return progressDialog != null && progressDialog.isShowing();
+    return dialogShowPending || (progressDialog != null && progressDialog.isShowing());
   }
 
   public void showTransferProgressDialog() {
@@ -802,6 +822,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             String m = pendingDialogMessage;
             pendingDialogTitle = null;
             pendingDialogMessage = null;
+            // Reset the pending flag so the deferred show is not blocked by the early-return guard
+            dialogShowPending = false;
             if (t != null) {
               showDetailedProgressDialog(t, m);
             }
