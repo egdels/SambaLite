@@ -299,6 +299,10 @@ public class FileOperationsController {
 
   public void handleFolderDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null || !uiState.getSelectedFile().isDirectory()) return;
+
+    // Remember the chosen folder so the picker opens here next time
+    de.schliweb.sambalite.ui.utils.PreferenceUtils.setLastDownloadFolderUri(context, uri);
+
     final String folderName = uiState.getSelectedFile().getName();
     final String opTitle = titleFor(OPERATION_DOWNLOAD, folderName);
 
@@ -947,6 +951,9 @@ public class FileOperationsController {
       } catch (Throwable ignored) {
       }
     }
+
+    // Remember the chosen folder so the picker opens here next time
+    de.schliweb.sambalite.ui.utils.PreferenceUtils.setLastDownloadFolderUri(context, folderUri);
 
     showProgressShell(
         OPERATION_DOWNLOAD,

@@ -10,7 +10,9 @@
 package de.schliweb.sambalite.ui.utils;
 
 import android.content.Context;
+import android.net.Uri;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Utility class for managing preferences related to the SambaLite application. Provides methods to
@@ -100,5 +102,46 @@ public class PreferenceUtils {
     return context
         .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         .getBoolean(Constants.NEEDS_REFRESH, false);
+  }
+
+  /**
+   * Stores the last used download folder URI so the folder picker can reopen it. The URI is
+   * converted to a document URI (via {@link android.provider.DocumentsContract}) so that the SAF
+   * picker recognises the folder and immediately offers the "Use this folder" option.
+   *
+   * @param context the application context
+   * @param uri the tree URI of the download folder (as returned by ACTION_OPEN_DOCUMENT_TREE)
+   */
+  public static void setLastDownloadFolderUri(@NonNull Context context, @NonNull Uri uri) {
+    // Convert tree URI → document URI so EXTRA_INITIAL_URI works correctly in the picker
+    String docUri;
+    try {
+      String treeDocId = android.provider.DocumentsContract.getTreeDocumentId(uri);
+      docUri =
+          android.provider.DocumentsContract.buildDocumentUriUsingTree(uri, treeDocId).toString();
+    } catch (Exception e) {
+      // Fallback: store the original URI
+      docUri = uri.toString();
+    }
+    context
+        .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(Constants.PREF_LAST_DOWNLOAD_FOLDER_URI, docUri)
+        .apply();
+  }
+
+  /**
+   * Returns the last used download folder URI, or null if none was stored.
+   *
+   * @param context the application context
+   * @return the last download folder URI, or null
+   */
+  @Nullable
+  public static Uri getLastDownloadFolderUri(@NonNull Context context) {
+    String uriString =
+        context
+            .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .getString(Constants.PREF_LAST_DOWNLOAD_FOLDER_URI, null);
+    return uriString != null ? Uri.parse(uriString) : null;
   }
 }

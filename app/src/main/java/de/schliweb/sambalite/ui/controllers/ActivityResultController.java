@@ -12,12 +12,14 @@ package de.schliweb.sambalite.ui.controllers;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import lombok.Setter;
 
@@ -262,6 +264,11 @@ public class ActivityResultController {
           Intent.FLAG_GRANT_READ_URI_PERMISSION
               | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
               | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+      // Set initial URI to the last used download folder so the picker opens there directly
+      Uri lastUri = PreferenceUtils.getLastDownloadFolderUri(activity);
+      if (lastUri != null) {
+        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, lastUri);
+      }
       LogUtils.d(
           "ActivityResultController", "Created folder picker intent for folder: " + file.getName());
 
@@ -320,6 +327,11 @@ public class ActivityResultController {
         Intent.FLAG_GRANT_READ_URI_PERMISSION
             | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+    // Set initial URI to the last used download folder so the picker opens there directly
+    Uri lastUri = PreferenceUtils.getLastDownloadFolderUri(activity);
+    if (lastUri != null) {
+      intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, lastUri);
+    }
     // Use createFolderLauncher so the result routes to onFolderDownloadResult
     createFolderLauncher.launch(intent);
   }
