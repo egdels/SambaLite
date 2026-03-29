@@ -193,6 +193,7 @@ public class FileOperationsController {
   // ---- File operations ----
   public void handleFileDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null) return;
+    final long downloadStartTime = System.currentTimeMillis();
     final String displayName = uiState.getSelectedFile().getName();
     final String opTitle = titleFor(OPERATION_DOWNLOAD, displayName);
 
@@ -263,7 +264,7 @@ public class FileOperationsController {
 
             FileOperationCallbacks.DownloadCallback inner =
                 createFileDownloadCallbackWithNotification(
-                    tempFile, uri, uiState.getSelectedFile(), cancelFinalize, cb);
+                    tempFile, uri, uiState.getSelectedFile(), cancelFinalize, cb, done);
 
             FileOperationCallbacks.DownloadCallback wrapped =
                 new FileOperationCallbacks.DownloadCallback() {
@@ -274,10 +275,31 @@ public class FileOperationsController {
 
                   @Override
                   public void onResult(boolean success, String message) {
-                    try {
+                    long durationMs = System.currentTimeMillis() - downloadStartTime;
+                    long fileSize = tempFile.exists() ? tempFile.length() : 0;
+                    LogUtils.i(
+                        "FileOperationsController",
+                        "Single file download completed: "
+                            + displayName
+                            + ", success="
+                            + success
+                            + ", duration="
+                            + durationMs
+                            + "ms"
+                            + ", size="
+                            + fileSize
+                            + " bytes");
+                    if (!success) {
+                      // On failure, inner.onResult handles the error and there is
+                      // no async copy phase, so we can release the latch immediately.
                       inner.onResult(success, message);
-                    } finally {
                       done.countDown();
+                    } else {
+                      // On success, inner.onResult starts the async copy phase.
+                      // Do NOT countDown here — the latch will be released by the
+                      // copy-phase onDone/onError callbacks so the outer service
+                      // operation stays alive and the progress dialog is not hidden.
+                      inner.onResult(success, message);
                     }
                   }
                 };
@@ -288,10 +310,10 @@ public class FileOperationsController {
             done.await();
           } finally {
             uiState.setTempFile(null);
-            try {
-              if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-            } catch (Throwable ignored) {
-            }
+            // Don't hide the progress dialog here — the isAnyOperationActive LiveData
+            // observer will hide it when all operations (including the copy/finalize
+            // phase) are complete. Hiding here caused a flicker: dialog hidden, then
+            // immediately re-shown by the observer because the copy was still active.
           }
           return Boolean.TRUE;
         });
@@ -430,6 +452,7 @@ public class FileOperationsController {
   }
 
   public void handleFileUpload(@NonNull Uri uri) {
+    final long uploadStartTime = System.currentTimeMillis();
     // Best-effort ensure the app holds read grant for the URI before background staging
     trySelfGrantRead(uri);
     final String fileNameFromUri = getFileNameFromUri(uri);
@@ -548,6 +571,23 @@ public class FileOperationsController {
                       try {
                         inner.onResult(success, message);
                       } finally {
+                        long durationMs = System.currentTimeMillis() - uploadStartTime;
+                        long fileSize =
+                            finalTempFile != null && finalTempFile.exists()
+                                ? finalTempFile.length()
+                                : 0;
+                        LogUtils.i(
+                            "FileOperationsController",
+                            "Single file upload completed: "
+                                + fileName
+                                + ", success="
+                                + success
+                                + ", duration="
+                                + durationMs
+                                + "ms"
+                                + ", size="
+                                + fileSize
+                                + " bytes");
                         if (finalTempFile != null) finalTempFile.delete();
                         uiState.setTempFile(null);
                         done.countDown();
@@ -1093,7 +1133,7 @@ public class FileOperationsController {
 
                   FileOperationCallbacks.DownloadCallback inner =
                       createFileDownloadCallbackWithNotification(
-                          tempFile, outDoc.getUri(), f, cancelFinalize, cb);
+                          tempFile, outDoc.getUri(), f, cancelFinalize, cb, null);
                   final boolean[] ok = new boolean[1];
                   FileOperationCallbacks.DownloadCallback wrapped =
                       new FileOperationCallbacks.DownloadCallback() {
@@ -1302,7 +1342,8 @@ public class FileOperationsController {
       Uri uri,
       SmbFileItem file,
       AtomicBoolean cancelFinalize,
-      BackgroundSmbManager.MultiFileProgressCallback serviceCb) {
+      BackgroundSmbManager.MultiFileProgressCallback serviceCb,
+      java.util.concurrent.CountDownLatch outerLatch) {
 
     final java.util.concurrent.atomic.AtomicBoolean FINALIZING =
         new java.util.concurrent.atomic.AtomicBoolean(false);
@@ -1406,6 +1447,7 @@ public class FileOperationsController {
                       } catch (Throwable ignored) {
                       }
                     });
+                if (outerLatch != null) outerLatch.countDown();
               }
 
               @Override
@@ -1451,6 +1493,7 @@ public class FileOperationsController {
                       });
                 }
                 serviceCb.updateProgress(txt);
+                if (outerLatch != null) outerLatch.countDown();
               }
             },
             realName);
