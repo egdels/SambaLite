@@ -863,6 +863,7 @@ public class FileBrowserActivity extends AppCompatActivity
                 "FileBrowserActivity", "FAB download selected clicked (" + selectionCount + ")");
             if (selectionCount > 0) {
               fileOperationsController.handleMultipleFileDownloads(selectedItems);
+              fileListController.clearSelection();
             }
           });
     }
@@ -873,6 +874,7 @@ public class FileBrowserActivity extends AppCompatActivity
                 "FileBrowserActivity", "FAB delete selected clicked (" + selectionCount + ")");
             if (selectionCount > 0) {
               fileOperationsController.handleMultipleFileDelete(selectedItems);
+              fileListController.clearSelection();
             }
           });
     }
