@@ -58,9 +58,6 @@ public class SmbRepositoryImpl implements SmbRepository {
    */
   private final ReentrantLock operationLock = new ReentrantLock();
 
-  private volatile boolean searchCancelled = false;
-  private final java.util.concurrent.atomic.AtomicInteger searchHitCount =
-      new java.util.concurrent.atomic.AtomicInteger(0);
   private volatile boolean downloadCancelled = false;
   private volatile boolean uploadCancelled = false;
 
@@ -126,17 +123,6 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public int getSearchHitCount() {
-    return searchHitCount.get();
-  }
-
-  @Override
-  public void cancelSearch() {
-    LogUtils.d("SmbRepositoryImpl", "Search cancellation requested");
-    searchCancelled = true;
-  }
-
-  @Override
   public void cancelDownload() {
     LogUtils.d("SmbRepositoryImpl", "Download cancellation requested");
     downloadCancelled = true;
@@ -149,109 +135,36 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
-  public @NonNull List<SmbFileItem> searchFiles(
+  public void searchFilesStreaming(
       @NonNull SmbConnection connection,
       @NonNull String path,
       @NonNull String query,
       int searchType,
-      boolean includeSubfolders)
+      boolean includeSubfolders,
+      @NonNull java.util.function.Consumer<SmbFileItem> onResult)
       throws Exception {
-    LogUtils.d(
-        "SmbRepositoryImpl",
-        "Searching for files matching query: '"
-            + query
-            + "' in path: "
-            + path
-            + ", searchType: "
-            + searchType
-            + ", includeSubfolders: "
-            + includeSubfolders);
+    LogUtils.i("SmbRepositoryImpl", "Starting streaming search: query=" + query + ", path=" + path);
 
-    // Use tryLock with timeout to prevent indefinite blocking
-    boolean lockAcquired = false;
-    try {
-      lockAcquired = operationLock.tryLock(5, java.util.concurrent.TimeUnit.SECONDS);
-      if (!lockAcquired) {
-        LogUtils.w(
-            "SmbRepositoryImpl",
-            "Could not acquire operation lock for search within 5 seconds - possible deadlock");
-        throw new Exception("Search operation timeout - another operation may be blocking");
-      }
+    List<SmbFileItem> result = new ArrayList<>();
+    String folderPath = path == null || path.isEmpty() ? "" : path;
 
-      // Reset cancellation flag and hit counter at the start of a new search
-      searchCancelled = false;
-      searchHitCount.set(0);
+    try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
+      AuthenticationContext authContext = createAuthContext(connection);
+      try (Session session = conn.authenticate(authContext)) {
+        enforceSecurityRequirements(connection, session);
 
-      List<SmbFileItem> result = new ArrayList<>();
-      String folderPath = path == null || path.isEmpty() ? "" : path;
+        String shareName = getShareName(connection.getShare());
+        try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+          searchFilesRecursive(
+              share, folderPath, query, result, searchType, includeSubfolders, onResult);
 
-      try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
-        LogUtils.d("SmbRepositoryImpl", "Connected to server: " + connection.getServer());
-
-        // Check if search was cancelled
-        if (searchCancelled) {
-          LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to server");
-          return result;
-        }
-
-        AuthenticationContext authContext = createAuthContext(connection);
-        try (Session session = conn.authenticate(authContext)) {
-          LogUtils.d("SmbRepositoryImpl", "Authentication successful");
-
-          // Enforce per-connection security requirements (encryption/signing)
-          enforceSecurityRequirements(connection, session);
-
-          // Check if search was cancelled
-          if (searchCancelled) {
-            LogUtils.i("SmbRepositoryImpl", "Search cancelled after authentication");
-            return result;
-          }
-
-          String shareName = getShareName(connection.getShare());
-          try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-            LogUtils.d("SmbRepositoryImpl", "Connected to share: " + shareName);
-
-            // Check if search was cancelled
-            if (searchCancelled) {
-              LogUtils.i("SmbRepositoryImpl", "Search cancelled after connecting to share");
-              return result;
-            }
-
-            // Perform search with options and lifecycle awareness
-            searchFilesRecursive(share, folderPath, query, result, searchType, includeSubfolders);
-
-            if (searchCancelled) {
-              LogUtils.i(
-                  "SmbRepositoryImpl",
-                  "Search was cancelled. Returning partial results: " + result.size() + " items");
-            } else {
-              LogUtils.i(
-                  "SmbRepositoryImpl",
-                  "Search completed. Found " + result.size() + " matching items");
-            }
-          }
-        }
-      } catch (Exception e) {
-        if (searchCancelled) {
           LogUtils.i(
-              "SmbRepositoryImpl", "Search was cancelled during exception: " + e.getMessage());
-          return result;
+              "SmbRepositoryImpl", "Streaming search completed. Found " + result.size() + " items");
         }
-        LogUtils.e("SmbRepositoryImpl", "Error searching files: " + e.getMessage());
-        errorHandler.recordError(
-            e, "SmbRepositoryImpl.searchFiles", SmartErrorHandler.ErrorSeverity.HIGH);
-        throw e;
       }
-
-      return result;
-    } catch (InterruptedException e) {
-      LogUtils.w("SmbRepositoryImpl", "Search operation interrupted while waiting for lock");
-      Thread.currentThread().interrupt();
-      throw new Exception("Search operation was interrupted");
-    } finally {
-      if (lockAcquired) {
-        operationLock.unlock();
-      }
+    } catch (Exception e) {
+      LogUtils.e("SmbRepositoryImpl", "Error in streaming search: " + e.getMessage());
+      throw e;
     }
   }
 
@@ -271,23 +184,12 @@ public class SmbRepositoryImpl implements SmbRepository {
       String query,
       List<SmbFileItem> result,
       int searchType,
-      boolean includeSubfolders) {
-    // Check for cancellation before processing this directory
-    if (searchCancelled) {
-      LogUtils.d("SmbRepositoryImpl", "Search cancelled before searching directory: " + path);
-      return;
-    }
-
+      boolean includeSubfolders,
+      java.util.function.Consumer<SmbFileItem> onResult) {
     LogUtils.d("SmbRepositoryImpl", "Searching in directory: " + path);
 
     try {
       for (FileIdBothDirectoryInformation info : share.list(path)) {
-        // Check for cancellation during each file iteration
-        if (searchCancelled) {
-          LogUtils.d("SmbRepositoryImpl", "Search cancelled while processing directory: " + path);
-          return;
-        }
-
         String name = info.getFileName();
         if (".".equals(name) || "..".equals(name)) continue;
 
@@ -298,12 +200,15 @@ public class SmbRepositoryImpl implements SmbRepository {
             (info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
 
         if (matchesSearchCriteria(name, query, searchType, isDirectory)) {
-          result.add(
-              createSmbFileItem(info, name, uiFullPath, isDirectory)); // UI-Pfad bleibt mit "/"
-          searchHitCount.incrementAndGet();
+          SmbFileItem item = createSmbFileItem(info, name, uiFullPath, isDirectory);
+          result.add(item);
+          if (onResult != null) {
+            onResult.accept(item);
+          }
         }
-        if (isDirectory && includeSubfolders && !searchCancelled) {
-          searchFilesRecursive(share, nextPath, query, result, searchType, includeSubfolders);
+        if (isDirectory && includeSubfolders) {
+          searchFilesRecursive(
+              share, nextPath, query, result, searchType, includeSubfolders, onResult);
         }
       }
     } catch (Exception e) {
@@ -329,16 +234,11 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   private void handleSearchException(String path, Exception e) {
-    if (searchCancelled) {
-      LogUtils.d("SmbRepositoryImpl", "Search cancelled during exception in directory: " + path);
-    } else {
-      LogUtils.e(
-          "SmbRepositoryImpl", "Error searching in directory " + path + ": " + e.getMessage());
-      errorHandler.recordError(
-          e,
-          "SmbRepositoryImpl.searchFiles.directory:" + path,
-          SmartErrorHandler.ErrorSeverity.MEDIUM);
-    }
+    LogUtils.e("SmbRepositoryImpl", "Error searching in directory " + path + ": " + e.getMessage());
+    errorHandler.recordError(
+        e,
+        "SmbRepositoryImpl.searchFiles.directory:" + path,
+        SmartErrorHandler.ErrorSeverity.MEDIUM);
   }
 
   /**
@@ -424,11 +324,14 @@ public class SmbRepositoryImpl implements SmbRepository {
       while (shareNorm.startsWith("/")) {
         shareNorm = shareNorm.substring(1);
       }
-      if (normalized.equalsIgnoreCase(shareNorm)) {
-        // Path equals the share itself -> becomes empty (root of share)
+      if (normalized.equalsIgnoreCase(shareNorm) && !normalized.contains("/")) {
+        // Single segment matching share name — ambiguous: could be the share root
+        // or a subfolder with the same name. Return as-is so callers operate on the
+        // subfolder rather than accidentally targeting the share root.
         LogUtils.d(
-            "SmbRepositoryImpl", "Path equals active share '" + activeShare + "' -> using root");
-        return "";
+            "SmbRepositoryImpl",
+            "Path '" + normalized + "' equals active share name — returning as-is");
+        return path;
       }
       if (normalized
           .toLowerCase(Locale.ROOT)

@@ -320,16 +320,6 @@ public class BackgroundSmbManager {
     }
   }
 
-  public void setSearchContext(
-      @NonNull String connectionId,
-      @NonNull String searchQuery,
-      int searchType,
-      boolean includeSubfolders) {
-    if (serviceConnected.get() && service != null) {
-      service.setSearchParameters(connectionId, searchQuery, searchType, includeSubfolders);
-    }
-  }
-
   public void setUploadContext(@NonNull String connectionId, @NonNull String uploadPath) {
     if (serviceConnected.get() && service != null) {
       service.setUploadParameters(connectionId, uploadPath);

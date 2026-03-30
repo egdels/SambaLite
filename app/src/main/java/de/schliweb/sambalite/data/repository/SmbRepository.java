@@ -16,43 +16,32 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import java.io.File;
 import java.util.List;
+import java.util.function.Consumer;
 
 /** Repository interface for SMB operations. */
 public interface SmbRepository {
 
   /**
-   * Searches for files and directories matching the query.
+   * Searches for files matching the query, calling the consumer for each result as it is found.
+   * This streaming variant is used by the SearchWorker to write results to the database
+   * incrementally.
    *
    * @param connection The SMB connection to use
-   * @param path The path to start the search from (null or empty for root)
-   * @param query The search query to match against file names
+   * @param path The path to search in
+   * @param query The search query (supports wildcards)
    * @param searchType The type of items to search for (0=all, 1=files only, 2=folders only)
    * @param includeSubfolders Whether to include subfolders in the search
-   * @return A list of SmbFileItem objects that match the query
+   * @param onResult Consumer called for each matching item
    * @throws Exception if an error occurs during the search
    */
-  @NonNull
-  List<SmbFileItem> searchFiles(
+  void searchFilesStreaming(
       @NonNull SmbConnection connection,
       @NonNull String path,
       @NonNull String query,
       int searchType,
-      boolean includeSubfolders)
+      boolean includeSubfolders,
+      @NonNull Consumer<SmbFileItem> onResult)
       throws Exception;
-
-  /**
-   * Cancels any ongoing search operation. This method should be called when a user wants to stop a
-   * search in progress.
-   */
-  void cancelSearch();
-
-  /**
-   * Returns the current number of search hits found so far during an ongoing search. This can be
-   * used to display live progress while the search is still running.
-   *
-   * @return the number of items found so far
-   */
-  int getSearchHitCount();
 
   /**
    * Cancels any ongoing download operation. This method should be called when a user wants to stop
