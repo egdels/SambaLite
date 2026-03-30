@@ -101,6 +101,8 @@
     <string name="transfer_actions_title">Akcje transferu</string>
     <plurals name="transfer_queue_count">
         <item quantity="one">%1$d transfer</item>
+        <item quantity="few">%1$d transfery</item>
+        <item quantity="many">%1$d transferów</item>
         <item quantity="other">%1$d transferów</item>
     </plurals>
     <string name="search_query_hint">Wprowadź termin wyszukiwania</string>

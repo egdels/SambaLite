@@ -1,0 +1,4 @@
+• Persistent transfer queue: Uploads & downloads survive app kills and restarts, with automatic resume.
+• New Transfer Queue screen to manage, retry, and cancel transfers.
+• Background search via WorkManager with live results.
+• Transfers no longer block the UI — all processing happens in the background.
