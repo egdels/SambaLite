@@ -59,8 +59,48 @@
     <string name="loading_files">Chargement des fichiers…</string>
     <string name="parent_directory">Répertoire parent</string>
     <string name="search_files">Rechercher des fichiers</string>
-    <string name="search_title">Recherche</string>
     <string name="searching_files">Recherche de fichiers…</string>
+    <string name="search_results_found">résultats trouvés</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">File de transfert</string>
+    <string name="transfer_queue_empty">Aucun transfert dans la file</string>
+    <string name="transfer_retry">Réessayer</string>
+    <string name="transfer_remove">Retirer</string>
+    <string name="transfer_retry_failed">Échec de la nouvelle tentative</string>
+    <string name="transfer_cancel_all">Tout annuler</string>
+    <string name="transfer_added_to_queue">Ajouté à la file de transfert</string>
+    <string name="transfer_upload_success">Téléversement terminé : %1$s</string>
+    <string name="transfer_download_success">Téléchargement terminé : %1$s</string>
+    <string name="transfer_status_pending">En attente</string>
+    <string name="transfer_status_active">Transfert en cours…</string>
+    <string name="transfer_status_completed">Terminé</string>
+    <string name="transfer_status_failed">Échoué</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d terminé</item>
+        <item quantity="many">%1$d / %2$d terminés</item>
+        <item quantity="other">%1$d / %2$d terminés</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d sélectionné</item>
+        <item quantity="many">%1$d sélectionnés</item>
+        <item quantity="other">%1$d sélectionnés</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Téléversement déjà en file</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; est déjà dans la file de transfert. Téléverser à nouveau ?</string>
+    <string name="transfer_already_queued_confirm">Téléverser à nouveau</string>
+    <string name="transfer_sort_by_name">Par nom</string>
+    <string name="transfer_sort_by_date">Par date</string>
+    <string name="transfer_sort_by_status">Par statut</string>
+    <string name="transfer_cancel">Annuler</string>
+    <string name="transfer_actions_title">Actions de transfert</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d transfert</item>
+        <item quantity="other">%1$d transferts</item>
+    </plurals>
     <string name="search_query_hint">Entrez le terme de recherche</string>
     <string name="search_wildcard_hint">Prend en charge les caractères génériques : * (tous caractères), ? (caractère unique)</string>
     <string name="search_type">Rechercher par</string>
@@ -79,7 +119,6 @@
     <!-- Upload -->
     <string name="upload">Téléverser</string>
     <string name="uploading">Téléversement…</string>
-    <string name="upload_success">Fichier téléversé avec succès</string>
     <string name="file_exists_title">Le fichier existe déjà</string>
     <string name="file_exists_message">Le fichier &#8220;%1$s&#8221; existe déjà. Voulez-vous le remplacer ?</string>
     <string name="overwrite">Remplacer</string>
@@ -119,7 +158,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Téléverser le contenu du dossier</string>
-    <string name="folder_contents_upload_success">Contenu du dossier téléversé avec succès</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -210,9 +248,7 @@
     <string name="multi_only_files_download">En mode multi-sélection, seuls les fichiers peuvent être téléchargés</string>
     <string name="preparing_ellipsis">Préparation…</string>
     <string name="deleting_ellipsis">Suppression…</string>
-    <string name="download_error_invalid_destination">Dossier de destination invalide</string>
     <string name="cancelled_suffix">annulé</string>
-    <string name="saf_persist_permission_failed">Impossible de conserver l’autorisation pour le dossier sélectionné. Vous pourriez être invité à nouveau la prochaine fois.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Téléchargement : %1$s</string>
@@ -235,25 +271,15 @@
     <string name="download_cancelled_by_user">Téléchargement annulé par l’utilisateur</string>
     <string name="download_failed_with_reason">Échec du téléchargement : %1$s</string>
     <string name="failed_to_download_file_with_reason">Impossible de télécharger le fichier : %1$s</string>
-    <string name="upload_cancelled_by_user">Envoi annulé par l’utilisateur</string>
-    <string name="upload_failed_with_reason">Échec de l’envoi : %1$s</string>
-    <string name="failed_to_upload_file_with_reason">Impossible d’envoyer le fichier : %1$s</string>
-    <string name="error_checking_file_exists">Erreur lors de la vérification de l’existence du fichier : %1$s</string>
     <string name="delete_failed_with_reason">Échec de la suppression : %1$s</string>
     <string name="failed_to_delete_file_with_reason">Impossible de supprimer le fichier : %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Préparation de l’envoi… mise en attente du fichier</string>
-    <string name="staging_failed_with_reason">Échec de la préparation : %1$s</string>
-    <string name="upload_interrupted_with_name">Envoi interrompu : %1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">plusieurs fichiers</string>
     <string name="download_error_cannot_open_folder_picker">Impossible d’ouvrir le sélecteur de dossiers</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">Impossible de créer le fichier de destination</string>
-    <string name="cannot_create_temp_file">Impossible de créer le fichier temporaire</string>
     <string name="interrupted_suffix">(interrompu)</string>
 
     <!-- Quit App -->
@@ -329,11 +355,6 @@
         <item quantity="many">%1$d fichiers sur %2$d supprimés</item>
         <item quantity="other">%1$d fichiers sur %2$d supprimés</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">%1$d fichier sur %2$d téléchargé</item>
-        <item quantity="many">%1$d fichiers sur %2$d téléchargés</item>
-        <item quantity="other">%1$d fichiers sur %2$d téléchargés</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d échoué</item>
         <item quantity="many">%1$d échoués</item>
@@ -363,15 +384,15 @@
     <string name="progress_subtitle">Transfert en cours</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Sécurité</string>
-    <string name="auth_required_for_access">Authentification avant l\'accès au partage</string>
-    <string name="auth_required_for_access_summary">Exiger la biométrie ou le code PIN avant d\'ouvrir une connexion</string>
-    <string name="auth_required_for_password_reveal">Authentification avant l\'affichage du mot de passe</string>
-    <string name="auth_required_for_password_reveal_summary">Exiger la biométrie ou le code PIN avant d\'afficher les mots de passe enregistrés</string>
+    <string name="security_settings_title">@string/security_options</string>
+    <string name="auth_required_for_access">Authentification avant l\u2019accès au partage</string>
+    <string name="auth_required_for_access_summary">Exiger la biométrie ou le code PIN avant d\u2019ouvrir une connexion</string>
+    <string name="auth_required_for_password_reveal">Authentification avant l\u2019affichage du mot de passe</string>
+    <string name="auth_required_for_password_reveal_summary">Exiger la biométrie ou le code PIN avant d\u2019afficher les mots de passe enregistrés</string>
     <string name="auth_title_access">Authentification requise</string>
     <string name="auth_subtitle_access">Vérifiez votre identité pour accéder à ce partage</string>
-    <string name="auth_title_password">Authentification requise</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Vérifiez votre identité pour afficher le mot de passe</string>
     <string name="auth_not_available">Aucune authentification configurée. Veuillez configurer un code PIN, un schéma ou la biométrie dans les paramètres système.</string>
-    <string name="auth_failed">Échec de l\'authentification : %s</string>
+    <string name="auth_failed">Échec de l\u2019authentification : %s</string>
 </resources>

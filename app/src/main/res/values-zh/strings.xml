@@ -59,8 +59,44 @@
     <string name="loading_files">加载文件中…</string>
     <string name="parent_directory">主目录</string>
     <string name="search_files">搜索文件</string>
-    <string name="search_title">@string/search</string>
     <string name="searching_files">正在搜索文件…</string>
+    <string name="search_results_found">个结果</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">传输队列</string>
+    <string name="transfer_queue_empty">队列中没有传输</string>
+    <string name="transfer_retry">重试</string>
+    <string name="transfer_remove">移除</string>
+    <string name="transfer_retry_failed">重试失败</string>
+    <string name="transfer_cancel_all">全部取消</string>
+    <string name="transfer_added_to_queue">已添加到传输队列</string>
+    <string name="transfer_upload_success">上传完成：%1$s</string>
+    <string name="transfer_download_success">下载完成：%1$s</string>
+    <string name="transfer_status_pending">等待中</string>
+    <string name="transfer_status_active">传输中…</string>
+    <string name="transfer_status_completed">已完成</string>
+    <string name="transfer_status_failed">失败</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="other">%1$d / %2$d 已完成</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="other">已选择 %1$d 项</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">上传已在队列中</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; 已在传输队列中。是否再次上传？</string>
+    <string name="transfer_already_queued_confirm">再次上传</string>
+    <string name="transfer_sort_by_name">按名称</string>
+    <string name="transfer_sort_by_date">按日期</string>
+    <string name="transfer_sort_by_status">按状态</string>
+    <string name="transfer_cancel">取消</string>
+    <string name="transfer_actions_title">传输操作</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d 个传输</item>
+        <item quantity="other">%1$d 个传输</item>
+    </plurals>
     <string name="search_query_hint">输入搜索词</string>
     <string name="search_wildcard_hint">支持通配符： * （任意字符）、 ? （单个字符）</string>
     <string name="search_type_all">所有项目</string>
@@ -78,7 +114,6 @@
     <!-- Upload -->
     <string name="upload">上传</string>
     <string name="uploading">上传中…</string>
-    <string name="upload_success">文件上传成功</string>
     <string name="file_exists_title">文件已存在</string>
     <string name="file_exists_message">&#8220;%1$s&#8221; 文件已存在。要覆盖它吗？</string>
     <string name="overwrite">覆盖</string>
@@ -118,7 +153,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">上传文件夹内容</string>
-    <string name="folder_contents_upload_success">成功上传了文件夹内容</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">好</string>
@@ -208,9 +242,7 @@
     <string name="multi_only_files_download">多选模式下只能下载文件</string>
     <string name="preparing_ellipsis">正在准备…</string>
     <string name="deleting_ellipsis">正在删除…</string>
-    <string name="download_error_invalid_destination">目标文件夹无效</string>
     <string name="cancelled_suffix">已取消</string>
-    <string name="saf_persist_permission_failed">无法保留所选文件夹的权限。下次可能会再次要求授权。</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">正在下载：%1$s</string>
@@ -233,25 +265,15 @@
     <string name="download_cancelled_by_user">下载被用户取消</string>
     <string name="download_failed_with_reason">下载失败：%1$s</string>
     <string name="failed_to_download_file_with_reason">文件下载失败：%1$s</string>
-    <string name="upload_cancelled_by_user">上传被用户取消</string>
-    <string name="upload_failed_with_reason">上传失败：%1$s</string>
-    <string name="failed_to_upload_file_with_reason">文件上传失败：%1$s</string>
-    <string name="error_checking_file_exists">检查文件是否存在时出错：%1$s</string>
     <string name="delete_failed_with_reason">删除失败：%1$s</string>
     <string name="failed_to_delete_file_with_reason">文件删除失败：%1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">准备上传… 正在暂存文件</string>
-    <string name="staging_failed_with_reason">暂存失败：%1$s</string>
-    <string name="upload_interrupted_with_name">上传中断：%1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">多个文件</string>
     <string name="download_error_cannot_open_folder_picker">无法打开文件夹选择器</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">无法创建目标文件</string>
-    <string name="cannot_create_temp_file">无法创建临时文件</string>
     <string name="interrupted_suffix">（已中断）</string>
 
     <!-- Quit App -->
@@ -317,9 +339,6 @@
     <plurals name="multi_delete_summary_success">
         <item quantity="other">已删除 %1$d / %2$d 个文件</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="other">已下载 %1$d / %2$d 个文件</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="other">%1$d 个失败</item>
     </plurals>
@@ -344,14 +363,14 @@
     <string name="progress_subtitle">正在传输</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">安全</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">访问共享前需要身份验证</string>
     <string name="auth_required_for_access_summary">在打开连接前要求生物识别或设备PIN</string>
     <string name="auth_required_for_password_reveal">显示密码前需要身份验证</string>
     <string name="auth_required_for_password_reveal_summary">在显示已保存的密码前要求生物识别或设备PIN</string>
     <string name="auth_title_access">需要身份验证</string>
     <string name="auth_subtitle_access">验证您的身份以访问此共享</string>
-    <string name="auth_title_password">需要身份验证</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">验证您的身份以查看密码</string>
     <string name="auth_not_available">未配置设备身份验证。请在系统设置中设置PIN、图案或生物识别。</string>
     <string name="auth_failed">身份验证失败：%s</string>

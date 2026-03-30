@@ -59,8 +59,50 @@
     <string name="loading_files">Ładowanie plików…</string>
     <string name="parent_directory">Katalog nadrzędny</string>
     <string name="search_files">Szukaj plików</string>
-    <string name="search_title">@string/search</string>
     <string name="searching_files">Szukanie plików…</string>
+    <string name="search_results_found">wyników znaleziono</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">Kolejka transferów</string>
+    <string name="transfer_queue_empty">Brak transferów w kolejce</string>
+    <string name="transfer_retry">Ponów</string>
+    <string name="transfer_remove">Usuń z kolejki</string>
+    <string name="transfer_retry_failed">Ponowienie nie powiodło się</string>
+    <string name="transfer_cancel_all">Anuluj wszystko</string>
+    <string name="transfer_added_to_queue">Dodano do kolejki transferów</string>
+    <string name="transfer_upload_success">Wysyłanie zakończone: %1$s</string>
+    <string name="transfer_download_success">Pobieranie zakończone: %1$s</string>
+    <string name="transfer_status_pending">Oczekujący</string>
+    <string name="transfer_status_active">Przesyłanie…</string>
+    <string name="transfer_status_completed">Zakończono</string>
+    <string name="transfer_status_failed">Niepowodzenie</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d zakończony</item>
+        <item quantity="few">%1$d / %2$d zakończonych</item>
+        <item quantity="many">%1$d / %2$d zakończonych</item>
+        <item quantity="other">%1$d / %2$d zakończonych</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d zaznaczony</item>
+        <item quantity="few">%1$d zaznaczonych</item>
+        <item quantity="many">%1$d zaznaczonych</item>
+        <item quantity="other">%1$d zaznaczonych</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Wysyłanie już w kolejce</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; jest już w kolejce transferów. Wysłać ponownie?</string>
+    <string name="transfer_already_queued_confirm">Wyślij ponownie</string>
+    <string name="transfer_sort_by_name">Według nazwy</string>
+    <string name="transfer_sort_by_date">Według daty</string>
+    <string name="transfer_sort_by_status">Według statusu</string>
+    <string name="transfer_cancel">Anuluj</string>
+    <string name="transfer_actions_title">Akcje transferu</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d transfer</item>
+        <item quantity="other">%1$d transferów</item>
+    </plurals>
     <string name="search_query_hint">Wprowadź termin wyszukiwania</string>
     <string name="search_wildcard_hint">Obsługuje wieloznaczniki: * (dowolne znaki), ? (pojedynczy znak)</string>
     <string name="search_type_all">Wszystkie elementy</string>
@@ -78,7 +120,6 @@
     <!-- Upload -->
     <string name="upload">Wyślij</string>
     <string name="uploading">Wysyłanie…</string>
-    <string name="upload_success">Plik wysłany pomyślnie</string>
     <string name="file_exists_title">Plik już istnieje</string>
     <string name="file_exists_message">Plik &#8220;%1$s&#8221; już istnieje. Czy chcesz go zastąpić?</string>
     <string name="overwrite">Zastąp</string>
@@ -118,7 +159,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Wyślij zawartość folderu</string>
-    <string name="folder_contents_upload_success">Zawartość folderu wysłana pomyślnie</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -210,9 +250,7 @@
     <string name="multi_only_files_download">W trybie wielokrotnego wyboru można pobierać tylko pliki</string>
     <string name="preparing_ellipsis">Przygotowywanie…</string>
     <string name="deleting_ellipsis">Usuwanie…</string>
-    <string name="download_error_invalid_destination">Nieprawidłowy folder docelowy</string>
     <string name="cancelled_suffix">anulowano</string>
-    <string name="saf_persist_permission_failed">Nie można zapisać uprawnień do wybranego folderu. Następnym razem możesz zostać ponownie poproszony o dostęp.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Pobieranie: %1$s</string>
@@ -235,25 +273,15 @@
     <string name="download_cancelled_by_user">Pobieranie anulowane przez użytkownika</string>
     <string name="download_failed_with_reason">Pobieranie nie powiodło się: %1$s</string>
     <string name="failed_to_download_file_with_reason">Nie udało się pobrać pliku: %1$s</string>
-    <string name="upload_cancelled_by_user">Wysyłanie anulowane przez użytkownika</string>
-    <string name="upload_failed_with_reason">Wysyłanie nie powiodło się: %1$s</string>
-    <string name="failed_to_upload_file_with_reason">Nie udało się wysłać pliku: %1$s</string>
-    <string name="error_checking_file_exists">Błąd podczas sprawdzania istnienia pliku: %1$s</string>
     <string name="delete_failed_with_reason">Usuwanie nie powiodło się: %1$s</string>
     <string name="failed_to_delete_file_with_reason">Nie udało się usunąć pliku: %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Przygotowywanie wysyłania… tymczasowe pliki</string>
-    <string name="staging_failed_with_reason">Etap przygotowania nie powiódł się: %1$s</string>
-    <string name="upload_interrupted_with_name">Wysyłanie przerwane: %1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">wiele plików</string>
     <string name="download_error_cannot_open_folder_picker">Nie można otworzyć selektora folderów</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">Nie udało się utworzyć pliku docelowego</string>
-    <string name="cannot_create_temp_file">Nie można utworzyć pliku tymczasowego</string>
     <string name="interrupted_suffix">(przerwano)</string>
 
     <!-- Quit App -->
@@ -334,12 +362,6 @@
         <item quantity="many">Usunięto %1$d z %2$d plików</item>
         <item quantity="other">Usunięto %1$d z %2$d plików</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">Pobrano %1$d z %2$d plik</item>
-        <item quantity="few">Pobrano %1$d z %2$d plików</item>
-        <item quantity="many">Pobrano %1$d z %2$d plików</item>
-        <item quantity="other">Pobrano %1$d z %2$d plików</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d nieudany</item>
         <item quantity="few">%1$d nieudanych</item>
@@ -373,14 +395,14 @@
     <string name="progress_subtitle">Trwa przesyłanie</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Bezpieczeństwo</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">Uwierzytelnianie przed dostępem do udziału</string>
     <string name="auth_required_for_access_summary">Wymagaj biometrii lub kodu PIN urządzenia przed otwarciem połączenia</string>
     <string name="auth_required_for_password_reveal">Uwierzytelnianie przed wyświetleniem hasła</string>
     <string name="auth_required_for_password_reveal_summary">Wymagaj biometrii lub kodu PIN urządzenia przed wyświetleniem zapisanych haseł</string>
     <string name="auth_title_access">Wymagane uwierzytelnienie</string>
     <string name="auth_subtitle_access">Zweryfikuj swoją tożsamość, aby uzyskać dostęp do tego udziału</string>
-    <string name="auth_title_password">Wymagane uwierzytelnienie</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Zweryfikuj swoją tożsamość, aby wyświetlić hasło</string>
     <string name="auth_not_available">Brak skonfigurowanego uwierzytelniania urządzenia. Skonfiguruj kod PIN, wzór lub biometrię w ustawieniach systemu.</string>
     <string name="auth_failed">Uwierzytelnianie nie powiodło się: %s</string>

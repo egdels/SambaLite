@@ -59,8 +59,48 @@
     <string name="loading_files">Cargando archivos…</string>
     <string name="parent_directory">Directorio padre</string>
     <string name="search_files">Buscar archivos</string>
-    <string name="search_title">@string/search</string>
     <string name="searching_files">Buscando archivos…</string>
+    <string name="search_results_found">resultados encontrados</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">Cola de transferencias</string>
+    <string name="transfer_queue_empty">No hay transferencias en la cola</string>
+    <string name="transfer_retry">Reintentar</string>
+    <string name="transfer_remove">Quitar</string>
+    <string name="transfer_retry_failed">Reintento fallido</string>
+    <string name="transfer_cancel_all">Cancelar todo</string>
+    <string name="transfer_added_to_queue">Añadido a la cola de transferencias</string>
+    <string name="transfer_upload_success">Subida completada: %1$s</string>
+    <string name="transfer_download_success">Descarga completada: %1$s</string>
+    <string name="transfer_status_pending">Pendiente</string>
+    <string name="transfer_status_active">Transfiriendo…</string>
+    <string name="transfer_status_completed">Completado</string>
+    <string name="transfer_status_failed">Fallido</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d completado</item>
+        <item quantity="many">%1$d / %2$d completados</item>
+        <item quantity="other">%1$d / %2$d completados</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d seleccionado</item>
+        <item quantity="many">%1$d seleccionados</item>
+        <item quantity="other">%1$d seleccionados</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Subida ya en cola</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; ya está en la cola de transferencias. ¿Subir de nuevo?</string>
+    <string name="transfer_already_queued_confirm">Subir de nuevo</string>
+    <string name="transfer_sort_by_name">Por nombre</string>
+    <string name="transfer_sort_by_date">Por fecha</string>
+    <string name="transfer_sort_by_status">Por estado</string>
+    <string name="transfer_cancel">Cancelar</string>
+    <string name="transfer_actions_title">Acciones de transferencia</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d transferencia</item>
+        <item quantity="other">%1$d transferencias</item>
+    </plurals>
     <string name="search_query_hint">Introduce el término de búsqueda</string>
     <string name="search_wildcard_hint">Admite comodines: * (cualquier carácter), ? (carácter único)</string>
     <string name="search_type_all">Todos los elementos</string>
@@ -78,7 +118,6 @@
     <!-- Upload -->
     <string name="upload">Subir</string>
     <string name="uploading">Subiendo…</string>
-    <string name="upload_success">Archivo subido exitosamente</string>
     <string name="file_exists_title">El archivo ya existe</string>
     <string name="file_exists_message">El archivo &#8220;%1$s&#8221; ya existe. ¿Quieres sobrescribirlo?</string>
     <string name="overwrite">Sobrescribir</string>
@@ -118,7 +157,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Subir contenido de carpeta</string>
-    <string name="folder_contents_upload_success">Contenido de carpeta subido exitosamente</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -209,9 +247,7 @@
     <string name="multi_only_files_download">En la selección múltiple solo se pueden descargar archivos</string>
     <string name="preparing_ellipsis">Preparando…</string>
     <string name="deleting_ellipsis">Eliminando…</string>
-    <string name="download_error_invalid_destination">Carpeta de destino no válida</string>
     <string name="cancelled_suffix">cancelado</string>
-    <string name="saf_persist_permission_failed">No se pudo conservar el permiso para la carpeta seleccionada. Es posible que se te solicite de nuevo la próxima vez.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Descargando: %1$s</string>
@@ -234,25 +270,15 @@
     <string name="download_cancelled_by_user">Descarga cancelada por el usuario</string>
     <string name="download_failed_with_reason">Error en la descarga: %1$s</string>
     <string name="failed_to_download_file_with_reason">No se pudo descargar el archivo: %1$s</string>
-    <string name="upload_cancelled_by_user">Subida cancelada por el usuario</string>
-    <string name="upload_failed_with_reason">Error en la subida: %1$s</string>
-    <string name="failed_to_upload_file_with_reason">No se pudo subir el archivo: %1$s</string>
-    <string name="error_checking_file_exists">Error al comprobar si el archivo existe: %1$s</string>
     <string name="delete_failed_with_reason">Error al eliminar: %1$s</string>
     <string name="failed_to_delete_file_with_reason">No se pudo eliminar el archivo: %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Preparando la subida… creando archivo temporal</string>
-    <string name="staging_failed_with_reason">Error en la preparación: %1$s</string>
-    <string name="upload_interrupted_with_name">Subida interrumpida: %1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">varios archivos</string>
     <string name="download_error_cannot_open_folder_picker">No se puede abrir el selector de carpetas</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">No se pudo crear el archivo de destino</string>
-    <string name="cannot_create_temp_file">No se puede crear el archivo temporal</string>
     <string name="interrupted_suffix">(interrumpido)</string>
 
     <!-- Quit App -->
@@ -328,11 +354,6 @@
         <item quantity="many">Se eliminaron %1$d de %2$d archivos</item>
         <item quantity="other">Se eliminaron %1$d de %2$d archivos</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">Se descargó %1$d de %2$d archivo</item>
-        <item quantity="many">Se descargaron %1$d de %2$d archivos</item>
-        <item quantity="other">Se descargaron %1$d de %2$d archivos</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d fallido</item>
         <item quantity="many">%1$d fallidos</item>
@@ -363,14 +384,14 @@
     <string name="progress_subtitle">Transferencia en curso</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Seguridad</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">Autenticación antes del acceso al recurso</string>
     <string name="auth_required_for_access_summary">Requerir biometría o PIN del dispositivo antes de abrir una conexión</string>
     <string name="auth_required_for_password_reveal">Autenticación antes de mostrar la contraseña</string>
     <string name="auth_required_for_password_reveal_summary">Requerir biometría o PIN del dispositivo antes de mostrar contraseñas guardadas</string>
     <string name="auth_title_access">Autenticación requerida</string>
     <string name="auth_subtitle_access">Verifique su identidad para acceder a este recurso compartido</string>
-    <string name="auth_title_password">Autenticación requerida</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verifique su identidad para ver la contraseña</string>
     <string name="auth_not_available">No hay autenticación configurada. Configure un PIN, patrón o biometría en los ajustes del sistema.</string>
     <string name="auth_failed">Error de autenticación: %s</string>

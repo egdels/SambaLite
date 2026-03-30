@@ -58,8 +58,46 @@
     <string name="loading_files">Bestanden laden…</string>
     <string name="parent_directory">Bovenliggende directory</string>
     <string name="search_files">Bestanden zoeken</string>
-    <string name="search_title">@string/search</string>
     <string name="searching_files">Bestanden zoeken…</string>
+    <string name="search_results_found">resultaten gevonden</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">Overdrachtswachtrij</string>
+    <string name="transfer_queue_empty">Geen overdrachten in de wachtrij</string>
+    <string name="transfer_retry">Opnieuw proberen</string>
+    <string name="transfer_remove">Verwijderen uit wachtrij</string>
+    <string name="transfer_retry_failed">Nieuwe poging mislukt</string>
+    <string name="transfer_cancel_all">Alles annuleren</string>
+    <string name="transfer_added_to_queue">Toegevoegd aan overdrachtswachtrij</string>
+    <string name="transfer_upload_success">Upload voltooid: %1$s</string>
+    <string name="transfer_download_success">Download voltooid: %1$s</string>
+    <string name="transfer_status_pending">Wachtend</string>
+    <string name="transfer_status_active">Bezig met overdracht…</string>
+    <string name="transfer_status_completed">Voltooid</string>
+    <string name="transfer_status_failed">Mislukt</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d voltooid</item>
+        <item quantity="other">%1$d / %2$d voltooid</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d geselecteerd</item>
+        <item quantity="other">%1$d geselecteerd</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Upload al in wachtrij</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; staat al in de overdrachtswachtrij. Toch opnieuw uploaden?</string>
+    <string name="transfer_already_queued_confirm">Opnieuw uploaden</string>
+    <string name="transfer_sort_by_name">Op naam</string>
+    <string name="transfer_sort_by_date">Op datum</string>
+    <string name="transfer_sort_by_status">Op status</string>
+    <string name="transfer_cancel">Annuleren</string>
+    <string name="transfer_actions_title">Overdrachtsacties</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d overdracht</item>
+        <item quantity="other">%1$d overdrachten</item>
+    </plurals>
     <string name="search_query_hint">Voer zoekterm in</string>
     <string name="search_wildcard_hint">Ondersteunt wildcards: * (alle tekens), ? (enkel teken)</string>
     <string name="search_type">Zoeken naar</string>
@@ -78,7 +116,6 @@
     <!-- Upload -->
     <string name="upload">Uploaden</string>
     <string name="uploading">Uploaden…</string>
-    <string name="upload_success">Bestand succesvol geüpload</string>
     <string name="file_exists_title">Bestand bestaat al</string>
     <string name="file_exists_message">Het bestand &#8220;%1$s&#8221; bestaat al. Wil je het overschrijven?</string>
     <string name="overwrite">Overschrijven</string>
@@ -118,7 +155,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Mapinhoud uploaden</string>
-    <string name="folder_contents_upload_success">Mapinhoud succesvol geüpload</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -208,9 +244,7 @@
     <string name="multi_only_files_download">Alleen bestanden kunnen worden gedownload in de multiselectie</string>
     <string name="preparing_ellipsis">Bezig met voorbereiden…</string>
     <string name="deleting_ellipsis">Bezig met verwijderen…</string>
-    <string name="download_error_invalid_destination">Ongeldige doelmap</string>
     <string name="cancelled_suffix">geannuleerd</string>
-    <string name="saf_persist_permission_failed">Kon de machtiging voor de geselecteerde map niet behouden. Mogelijk wordt de toestemming de volgende keer opnieuw gevraagd.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Bezig met downloaden: %1$s</string>
@@ -233,25 +267,15 @@
     <string name="download_cancelled_by_user">Download geannuleerd door gebruiker</string>
     <string name="download_failed_with_reason">Download mislukt: %1$s</string>
     <string name="failed_to_download_file_with_reason">Kan bestand niet downloaden: %1$s</string>
-    <string name="upload_cancelled_by_user">Upload geannuleerd door gebruiker</string>
-    <string name="upload_failed_with_reason">Upload mislukt: %1$s</string>
-    <string name="failed_to_upload_file_with_reason">Kan bestand niet uploaden: %1$s</string>
-    <string name="error_checking_file_exists">Fout bij het controleren of bestand bestaat: %1$s</string>
     <string name="delete_failed_with_reason">Verwijderen mislukt: %1$s</string>
     <string name="failed_to_delete_file_with_reason">Kan bestand niet verwijderen: %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Upload voorbereiden… tijdelijke bestanden</string>
-    <string name="staging_failed_with_reason">Voorbereiding mislukt: %1$s</string>
-    <string name="upload_interrupted_with_name">Upload onderbroken: %1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">meerdere bestanden</string>
     <string name="download_error_cannot_open_folder_picker">Kan de mapkiezer niet openen</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">Kan doelbestand niet maken</string>
-    <string name="cannot_create_temp_file">Kan tijdelijk bestand niet maken</string>
     <string name="interrupted_suffix">(onderbroken)</string>
 
     <!-- Quit App -->
@@ -322,10 +346,6 @@
         <item quantity="one">%1$d van %2$d bestand verwijderd</item>
         <item quantity="other">%1$d van %2$d bestanden verwijderd</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">%1$d van %2$d bestand gedownload</item>
-        <item quantity="other">%1$d van %2$d bestanden gedownload</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d mislukt</item>
         <item quantity="other">%1$d mislukt</item>
@@ -352,14 +372,14 @@
     <string name="progress_subtitle">Overdracht bezig</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Beveiliging</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">Authenticatie vóór toegang tot share</string>
     <string name="auth_required_for_access_summary">Biometrie of apparaat-PIN vereisen voordat een verbinding wordt geopend</string>
     <string name="auth_required_for_password_reveal">Authenticatie vóór wachtwoord tonen</string>
     <string name="auth_required_for_password_reveal_summary">Biometrie of apparaat-PIN vereisen voordat opgeslagen wachtwoorden worden getoond</string>
     <string name="auth_title_access">Authenticatie vereist</string>
     <string name="auth_subtitle_access">Verifieer uw identiteit om toegang te krijgen tot deze share</string>
-    <string name="auth_title_password">Authenticatie vereist</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verifieer uw identiteit om het wachtwoord te bekijken</string>
     <string name="auth_not_available">Geen apparaatauthenticatie geconfigureerd. Stel een PIN, patroon of biometrie in via de systeeminstellingen.</string>
     <string name="auth_failed">Authenticatie mislukt: %s</string>

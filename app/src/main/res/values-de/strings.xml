@@ -58,8 +58,46 @@
     <string name="loading_files">Lade Dateien…</string>
     <string name="parent_directory">Übergeordnetes Verzeichnis</string>
     <string name="search_files">Dateien suchen</string>
-    <string name="search_title">Suche</string>
     <string name="searching_files">Dateien werden durchsucht…</string>
+    <string name="search_results_found">Ergebnisse gefunden</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">Übertragungswarteschlange</string>
+    <string name="transfer_queue_empty">Keine Übertragungen in der Warteschlange</string>
+    <string name="transfer_retry">Wiederholen</string>
+    <string name="transfer_remove">Entfernen</string>
+    <string name="transfer_retry_failed">Wiederholung fehlgeschlagen</string>
+    <string name="transfer_cancel_all">Alle abbrechen</string>
+    <string name="transfer_added_to_queue">Zur Übertragungswarteschlange hinzugefügt</string>
+    <string name="transfer_upload_success">Upload abgeschlossen: %1$s</string>
+    <string name="transfer_download_success">Download abgeschlossen: %1$s</string>
+    <string name="transfer_status_pending">Ausstehend</string>
+    <string name="transfer_status_active">Wird übertragen…</string>
+    <string name="transfer_status_completed">Abgeschlossen</string>
+    <string name="transfer_status_failed">Fehlgeschlagen</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d abgeschlossen</item>
+        <item quantity="other">%1$d / %2$d abgeschlossen</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d ausgewählt</item>
+        <item quantity="other">%1$d ausgewählt</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Upload bereits in Warteschlange</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; befindet sich bereits in der Übertragungswarteschlange. Trotzdem erneut hochladen?</string>
+    <string name="transfer_already_queued_confirm">Erneut hochladen</string>
+    <string name="transfer_sort_by_name">Nach Name</string>
+    <string name="transfer_sort_by_date">Nach Datum</string>
+    <string name="transfer_sort_by_status">Nach Status</string>
+    <string name="transfer_cancel">Abbrechen</string>
+    <string name="transfer_actions_title">Übertragungsaktionen</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d Übertragung</item>
+        <item quantity="other">%1$d Übertragungen</item>
+    </plurals>
     <string name="search_query_hint">Suchbegriff eingeben</string>
     <string name="search_wildcard_hint">Unterstützt Wildcards: * (beliebige Zeichen), ? (einzelnes Zeichen)</string>
     <string name="search_type">Suchen nach</string>
@@ -78,7 +116,6 @@
     <!-- Upload -->
     <string name="upload">Hochladen</string>
     <string name="uploading">Hochladen…</string>
-    <string name="upload_success">Datei erfolgreich hochgeladen</string>
     <string name="file_exists_title">Datei existiert bereits</string>
     <string name="file_exists_message">Die Datei &#8220;%1$s&#8221; existiert bereits. Möchten Sie sie überschreiben?</string>
     <string name="overwrite">Überschreiben</string>
@@ -118,7 +155,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Ordnerinhalt hochladen</string>
-    <string name="folder_contents_upload_success">Ordnerinhalt erfolgreich hochgeladen</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -208,9 +244,7 @@
     <string name="multi_only_files_download">Im Mehrfachauswahlmodus können nur Dateien heruntergeladen werden</string>
     <string name="preparing_ellipsis">Wird vorbereitet…</string>
     <string name="deleting_ellipsis">Wird gelöscht…</string>
-    <string name="download_error_invalid_destination">Ungültiger Zielordner</string>
     <string name="cancelled_suffix">abgebrochen</string>
-    <string name="saf_persist_permission_failed">Berechtigung für den ausgewählten Ordner konnte nicht gespeichert werden. Möglicherweise wirst du beim nächsten Mal erneut gefragt.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Wird heruntergeladen: %1$s</string>
@@ -233,25 +267,15 @@
     <string name="download_cancelled_by_user">Download vom Benutzer abgebrochen</string>
     <string name="download_failed_with_reason">Download fehlgeschlagen: %1$s</string>
     <string name="failed_to_download_file_with_reason">Datei konnte nicht heruntergeladen werden: %1$s</string>
-    <string name="upload_cancelled_by_user">Upload vom Benutzer abgebrochen</string>
-    <string name="upload_failed_with_reason">Upload fehlgeschlagen: %1$s</string>
-    <string name="failed_to_upload_file_with_reason">Datei konnte nicht hochgeladen werden: %1$s</string>
-    <string name="error_checking_file_exists">Fehler beim Prüfen, ob die Datei existiert: %1$s</string>
     <string name="delete_failed_with_reason">Löschen fehlgeschlagen: %1$s</string>
     <string name="failed_to_delete_file_with_reason">Datei konnte nicht gelöscht werden: %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Upload wird vorbereitet… Datei wird zwischengespeichert</string>
-    <string name="staging_failed_with_reason">Vorbereitung fehlgeschlagen: %1$s</string>
-    <string name="upload_interrupted_with_name">Upload unterbrochen: %1$s</string>
 
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">mehrere Dateien</string>
     <string name="download_error_cannot_open_folder_picker">Ordnerauswahl kann nicht geöffnet werden</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">Zieldatei konnte nicht erstellt werden</string>
-    <string name="cannot_create_temp_file">Temporäre Datei kann nicht erstellt werden</string>
     <string name="interrupted_suffix">(unterbrochen)</string>
 
     <!-- Leave / Quit confirmation -->
@@ -322,10 +346,6 @@
         <item quantity="one">%1$d von %2$d Datei gelöscht</item>
         <item quantity="other">%1$d von %2$d Dateien gelöscht</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">%1$d von %2$d Datei heruntergeladen</item>
-        <item quantity="other">%1$d von %2$d Dateien heruntergeladen</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d fehlgeschlagen</item>
         <item quantity="other">%1$d fehlgeschlagen</item>
@@ -352,14 +372,14 @@
     <string name="progress_subtitle">Übertragung läuft</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Sicherheit</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">Authentifizierung vor Share-Zugriff</string>
     <string name="auth_required_for_access_summary">Biometrie oder Geräte-PIN vor dem Öffnen einer Verbindung verlangen</string>
     <string name="auth_required_for_password_reveal">Authentifizierung vor Passwort-Anzeige</string>
     <string name="auth_required_for_password_reveal_summary">Biometrie oder Geräte-PIN vor dem Anzeigen gespeicherter Passwörter verlangen</string>
     <string name="auth_title_access">Authentifizierung erforderlich</string>
     <string name="auth_subtitle_access">Bestätigen Sie Ihre Identität, um auf diese Freigabe zuzugreifen</string>
-    <string name="auth_title_password">Authentifizierung erforderlich</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Bestätigen Sie Ihre Identität, um das Passwort anzuzeigen</string>
     <string name="auth_not_available">Keine Geräte-Authentifizierung eingerichtet. Bitte richten Sie eine PIN, ein Muster oder Biometrie in den Systemeinstellungen ein.</string>
     <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>

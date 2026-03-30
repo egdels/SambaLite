@@ -58,8 +58,8 @@
     <string name="loading_files">Loading files…</string>
     <string name="parent_directory">Parent Directory</string>
     <string name="search_files">Search files</string>
-    <string name="search_title">@string/search</string>
     <string name="searching_files">Searching files…</string>
+    <string name="search_results_found">results found</string>
     <string name="search_query_hint">Enter search term</string>
     <string name="search_wildcard_hint">Supports wildcards: * (any characters), ? (single character)</string>
     <string name="search_type">Search for</string>
@@ -78,7 +78,6 @@
     <!-- Upload -->
     <string name="upload">Upload</string>
     <string name="uploading">Uploading…</string>
-    <string name="upload_success">File uploaded successfully</string>
     <string name="file_exists_title">File already exists</string>
     <string name="file_exists_message">The file &#8220;%1$s&#8221; already exists. Do you want to overwrite it?</string>
     <string name="overwrite">Overwrite</string>
@@ -118,7 +117,6 @@
 
     <!-- Folder Upload Options -->
     <string name="zip_download_folder">Upload folder contents</string>
-    <string name="folder_contents_upload_success">Folder contents uploaded successfully</string>
 
     <!-- Enhanced UI Strings -->
     <string name="ok">OK</string>
@@ -219,9 +217,7 @@
     <string name="multi_only_files_download">Only files can be downloaded in multi-select</string>
     <string name="preparing_ellipsis">Preparing…</string>
     <string name="deleting_ellipsis">Deleting…</string>
-    <string name="download_error_invalid_destination">Invalid destination folder</string>
     <string name="cancelled_suffix">cancelled</string>
-    <string name="saf_persist_permission_failed">Could not persist permission for the selected folder. You may be asked again next time.</string>
 
     <!-- i18n for operation labels and messages -->
     <string name="downloading_colon">Downloading: %1$s</string>
@@ -244,25 +240,15 @@
     <string name="download_cancelled_by_user">Download cancelled by user</string>
     <string name="download_failed_with_reason">Download failed: %1$s</string>
     <string name="failed_to_download_file_with_reason">Failed to download file: %1$s</string>
-    <string name="upload_cancelled_by_user">Upload cancelled by user</string>
-    <string name="upload_failed_with_reason">Upload failed: %1$s</string>
-    <string name="failed_to_upload_file_with_reason">Failed to upload file: %1$s</string>
-    <string name="error_checking_file_exists">Error checking if file exists: %1$s</string>
     <string name="delete_failed_with_reason">Delete failed: %1$s</string>
     <string name="failed_to_delete_file_with_reason">Failed to delete file: %1$s</string>
     
     <!-- Upload/Download staging and interruption i18n -->
-    <string name="preparing_upload_staging_file">Preparing upload… staging file</string>
-    <string name="staging_failed_with_reason">Staging failed: %1$s</string>
-    <string name="upload_interrupted_with_name">Upload interrupted: %1$s</string>
     
     <!-- Common label for multi-file operations -->
-    <string name="multiple_files">multiple files</string>
     <string name="download_error_cannot_open_folder_picker">Cannot open folder picker</string>
 
     <!-- i18n edge strings for batch operations -->
-    <string name="failed_to_create_target_file">Failed to create target file</string>
-    <string name="cannot_create_temp_file">Cannot create temp file</string>
     <string name="interrupted_suffix">(interrupted)</string>
 
     <!-- Folder Sync -->
@@ -334,10 +320,6 @@
         <item quantity="one">Deleted %1$d of %2$d file</item>
         <item quantity="other">Deleted %1$d of %2$d files</item>
     </plurals>
-    <plurals name="multi_download_summary">
-        <item quantity="one">Downloaded %1$d of %2$d file</item>
-        <item quantity="other">Downloaded %1$d of %2$d files</item>
-    </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d failed</item>
         <item quantity="other">%1$d failed</item>
@@ -360,16 +342,55 @@
     <string name="opening_file">Opening %s…</string>
 
     <!-- Security / Biometric authentication -->
-    <string name="security_settings_title">Security</string>
+    <string name="security_settings_title">@string/security_options</string>
     <string name="auth_required_for_access">Authentication before share access</string>
     <string name="auth_required_for_access_summary">Require biometrics or device PIN before opening a connection</string>
     <string name="auth_required_for_password_reveal">Authentication before password reveal</string>
     <string name="auth_required_for_password_reveal_summary">Require biometrics or device PIN before showing saved passwords</string>
     <string name="auth_title_access">Authentication required</string>
     <string name="auth_subtitle_access">Verify your identity to access this share</string>
-    <string name="auth_title_password">Authentication required</string>
+    <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verify your identity to view the password</string>
     <string name="auth_not_available">No device authentication configured. Please set up a PIN, pattern, or biometric in system settings.</string>
     <string name="auth_failed">Authentication failed: %s</string>
+
+    <!-- Transfer Queue -->
+    <string name="transfer_queue_title">Transfer Queue</string>
+    <string name="transfer_queue_empty">No transfers in queue</string>
+    <string name="transfer_retry">Retry</string>
+    <string name="transfer_remove">Remove</string>
+    <string name="transfer_retry_failed">Retry failed</string>
+    <string name="transfer_cancel_all">Cancel all</string>
+    <string name="transfer_added_to_queue">Added to transfer queue</string>
+    <string name="transfer_upload_success">Upload complete: %1$s</string>
+    <string name="transfer_download_success">Download complete: %1$s</string>
+    <string name="transfer_status_pending">Pending</string>
+    <string name="transfer_status_active">Transferring…</string>
+    <string name="transfer_progress_format" translatable="false">%1$s / %2$s</string>
+    <string name="transfer_status_completed">Completed</string>
+    <string name="transfer_status_failed">Failed</string>
+    <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
+    <plurals name="transfer_summary">
+        <item quantity="one">%1$d / %2$d completed</item>
+        <item quantity="other">%1$d / %2$d completed</item>
+    </plurals>
+    <plurals name="transfer_selection_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="transfer_delete_selected">@string/delete</string>
+    <string name="transfer_retry_selected">@string/transfer_retry</string>
+    <string name="transfer_already_queued_title">Upload already queued</string>
+    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; is already in the transfer queue. Upload again anyway?</string>
+    <string name="transfer_already_queued_confirm">Upload again</string>
+    <string name="transfer_sort_by_name">By name</string>
+    <string name="transfer_sort_by_date">By date</string>
+    <string name="transfer_sort_by_status">By status</string>
+    <string name="transfer_cancel">Cancel</string>
+    <string name="transfer_actions_title">Transfer actions</string>
+    <plurals name="transfer_queue_count">
+        <item quantity="one">%1$d transfer</item>
+        <item quantity="other">%1$d transfers</item>
+    </plurals>
 </resources>
 
