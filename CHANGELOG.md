@@ -5,6 +5,53 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-03-30
+
+### Fixed
+- Polish locale lint error (`MissingQuantity`): Added missing `few` and `many` plural quantity items to `transfer_queue_count` in `values-pl/strings.xml`. Polish requires four plural forms (`one`, `few`, `many`, `other`); the missing entries caused a lint error that failed the CI build.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
+## [2.0.0] - 2026-03-30
+
+### Added
+- **Persistent Transfer Queue**: Uploads and downloads are now queued persistently using Room DB and processed in the background via WorkManager (`TransferWorker`). Transfers survive app kills and device restarts, with automatic resume from the last saved byte offset. Includes foreground notification with live progress, connection reuse (one SMB session per connection), direct SAF→SMB streaming without temp copies, and disk space checks during downloads.
+- **Transfer Queue Activity**: New dedicated screen (`TransferQueueActivity`) to view, sort, retry, cancel, and remove queued transfers. Supports batch actions, status filtering (pending, active, completed, failed, cancelled), and sorting by name, date, or status. Accessible from the main menu.
+- **Background Search via WorkManager**: File search is now performed in the background using `SearchWorker` with a Room database (`SearchDatabase`). Results appear live in the UI via LiveData as they are found, replacing the previous blocking in-process search. Search survives activity recreation and runs as a foreground service with notification.
+- Transfer completion broadcast: `FileBrowserActivity` receives a local broadcast when a transfer finishes, showing a success message and refreshing the file list automatically.
+- Duplicate upload detection: When enqueuing a file that is already in the transfer queue, a confirmation dialog is shown before adding it again.
+- Translations for all new Transfer Queue and search strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+- New drawable resources: `ic_transfer_queue`, `ic_cancel_red`, `ic_check_circle_green`, `ic_power_off`, `ic_sync_active`.
+
+### Changed
+- Uploads and downloads no longer block the UI with progress dialogs. Instead, they are enqueued into the persistent transfer queue and processed in the background.
+- `SearchViewModel` fully rewritten: replaced in-memory executor-based search with WorkManager-backed `SearchWorker` and Room-based `SearchResultDao`. Removed search cache optimizer and in-memory throttle logic.
+- `FileOperationsController` and `FileOperationsViewModel` significantly refactored: removed inline upload/download logic (~700 lines) in favor of `enqueueUpload()`/`enqueueDownload()` methods that persist transfers to Room and trigger `TransferWorker`.
+- `SambaLiteApp` now implements `Configuration.Provider` for custom WorkManager initialization. On app start, pending transfers from a previous session are automatically resumed.
+- Search dialog (`dialog_search.xml`) wrapped in `ScrollView` for better keyboard handling; `SOFT_INPUT_ADJUST_RESIZE` applied to search dialog window.
+- `SmbRepository` / `SmbRepositoryImpl`: Removed `searchFiles()` and related search methods (now handled by `SearchWorker` directly). Removed unused `BackgroundSmbManager` search context methods.
+- `BiometricAuthHelper.AuthCallback.onAuthFailure` parameter annotated with `@NonNull`.
+
+### Removed
+- `FileUploadTask` class removed — upload logic is now handled entirely by `TransferWorker`.
+- Blocking progress dialogs for uploads and downloads removed from `FileOperationsController`.
+- In-memory search execution removed from `SmbRepository` and `BackgroundSmbManager`.
+- `FileSkippedException` and its test class removed.
+- Removed several obsolete test methods from `SmbRepositoryTest`, `SmbRepositoryNetworkIntegrityTest`, `SmbRepositoryPerformanceTest`, and `NotificationFeatureTest` that tested removed search/upload APIs.
+
+### Developer Notes
+- `TransferWorker`: WorkManager `Worker` with foreground service notification, connection pooling (`Map<Integer, Session>`), chunked I/O with 256 KB buffer, periodic progress persistence (every 2 MB), and disk space validation during downloads.
+- `PendingTransfer` / `PendingTransferDao` / `TransferDatabase`: Room-based persistence for the transfer queue with status tracking (PENDING, ACTIVE, COMPLETED, FAILED, CANCELLED), byte-level progress, retry count, and error messages.
+- `SearchWorker` / `SearchDatabase` / `SearchResult` / `SearchResultDao`: Room-based persistence for background search results with live observation via LiveData.
+- `TransferQueueViewModel`: ViewModel exposing LiveData from `PendingTransferDao` for the transfer queue UI.
+- `TransferItemAdapter`: RecyclerView adapter for transfer items with status icons, progress bars, and action callbacks (retry, cancel, remove).
+- `FileOperationsViewModelEnqueueTest`: New test class covering enqueue logic for uploads and downloads.
+- `PendingTransferTest`: New test class for `PendingTransfer` entity validation.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
+
+
 ## [1.8.3] - 2026-03-28
 ### Improved
 - Transfer performance: Increased I/O buffer size from 8 KB to 64 KB for uploads and downloads.
