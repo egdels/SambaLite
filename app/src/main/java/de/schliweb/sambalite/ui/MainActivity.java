@@ -1054,6 +1054,11 @@ public class MainActivity extends AppCompatActivity
 
   @Override
   public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    if (item.getItemId() == R.id.action_transfer_queue) {
+      LogUtils.d("MainActivity", "Transfer queue menu item selected");
+      startActivity(TransferQueueActivity.createIntent(this));
+      return true;
+    }
     if (item.getItemId() == R.id.action_security_settings) {
       LogUtils.d("MainActivity", "Security settings menu item selected");
       showSecuritySettingsDialog();

@@ -432,29 +432,6 @@ public class SmbBackgroundService extends Service {
     return activeOperations.get();
   }
 
-  // Parameters for deep links from notifications
-  public void setSearchParameters(
-      @NonNull String connectionId,
-      @NonNull String searchQuery,
-      int searchType,
-      boolean includeSubfolders) {
-    this.connectionId = connectionId;
-    this.searchQuery = searchQuery;
-    this.searchType = searchType;
-    this.includeSubfolders = includeSubfolders;
-    this.isSearchOperation = true;
-    this.isUploadOperation = false;
-    this.isDownloadOperation = false;
-    LogUtils.d(
-        TAG, "Search parameters set: connectionId=" + connectionId + ", query=" + searchQuery);
-
-    // Immediately refresh notification intent to point to Search context
-    ProgressFormat.Op op = ProgressFormat.Op.SEARCH;
-    String title = op.label() + "…";
-    currentOperation = title;
-    updateNotificationImmediate(title, initialContentForOp(op));
-  }
-
   public void setUploadParameters(@NonNull String connectionId, @NonNull String uploadPath) {
     this.connectionId = connectionId;
     this.uploadPath = uploadPath;
@@ -484,10 +461,6 @@ public class SmbBackgroundService extends Service {
     String title = op.label() + "…";
     currentOperation = title;
     updateNotificationImmediate(title, initialContentForOp(op));
-  }
-
-  public void clearSearchParameters() {
-    this.isSearchOperation = false;
   }
 
   public void clearUploadParameters() {

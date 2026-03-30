@@ -122,8 +122,9 @@ public class FileListViewModel extends ViewModel {
       // Re-sort search results
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
-        sortFiles(results);
-        state.setSearchResults(results);
+        List<SmbFileItem> sorted = new ArrayList<>(results);
+        sortFiles(sorted);
+        state.setSearchResults(sorted);
       }
     } else {
       // Reload files with new sorting
@@ -154,8 +155,9 @@ public class FileListViewModel extends ViewModel {
       // Re-sort search results
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
-        sortFiles(results);
-        state.setSearchResults(results);
+        List<SmbFileItem> sorted = new ArrayList<>(results);
+        sortFiles(sorted);
+        state.setSearchResults(sorted);
       }
     } else {
       // Reload files with new sorting

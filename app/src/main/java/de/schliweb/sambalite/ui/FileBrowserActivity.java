@@ -9,8 +9,10 @@
  */
 package de.schliweb.sambalite.ui;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.*;
@@ -34,9 +36,11 @@ import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
+import de.schliweb.sambalite.transfer.TransferWorker;
 import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
+import de.schliweb.sambalite.util.KeyboardUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.PreferencesManager;
 import java.util.Locale;
@@ -83,7 +87,10 @@ public class FileBrowserActivity extends AppCompatActivity
   FileListController fileListController;
   private DialogController dialogController;
   FileOperationsController fileOperationsController;
-  private ProgressController progressController;
+
+  @SuppressWarnings("WeakerAccess") /* accessed from anonymous inner class */
+  ProgressController progressController;
+
   ActivityResultController activityResultController;
   // ServiceController removed; using BackgroundSmbManager directly
   private InputController inputController;
@@ -106,6 +113,26 @@ public class FileBrowserActivity extends AppCompatActivity
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
       fabSelectFolder;
   private boolean folderPickerMode = false;
+
+  private final BroadcastReceiver transferCompletedReceiver =
+      new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+          String displayName = intent.getStringExtra(TransferWorker.EXTRA_DISPLAY_NAME);
+          String transferType = intent.getStringExtra(TransferWorker.EXTRA_TRANSFER_TYPE);
+          String label =
+              "UPLOAD".equals(transferType)
+                  ? getString(R.string.transfer_upload_success, displayName)
+                  : getString(R.string.transfer_download_success, displayName);
+          LogUtils.i("FileBrowserActivity", "Transfer completed broadcast: " + displayName);
+          if (progressController != null) {
+            progressController.showSuccess(label);
+          }
+          if (fileListViewModel != null) {
+            fileListViewModel.refreshCurrentDirectory();
+          }
+        }
+      };
 
   /**
    * Creates an intent to start this activity.
@@ -338,49 +365,31 @@ public class FileBrowserActivity extends AppCompatActivity
         .observe(
             this,
             isSearching -> {
-              final String query = searchViewModel.getCurrentSearchQuery();
-              final String opName = "Searching for: " + query;
-              final String connId = searchViewModel.getConnectionId();
-              final int type = searchViewModel.getCurrentSearchType();
-              final boolean includeSubs = searchViewModel.isIncludeSubfolders();
-
               if (isSearching) {
-                // 1) Prevent the getFiles() observer from overwriting search results
+                // Prevent the getFiles() observer from overwriting search results
                 fileListController.setSearchMode(true);
 
-                // 2) UI
-                progressController.showSearchProgressDialog();
-
-                // 2) Service: Set context for deep link in notification
-                backgroundSmbManager.setSearchContext(connId, query, type, includeSubs);
-
-                // 3) Service: Start search operation, that runs until the search is complete
-                backgroundSmbManager.executeBackgroundOperation(
-                    "search:" + query,
-                    opName,
-                    callback -> {
-                      // initial progress message
-                      callback.updateProgress("Searching...");
-
-                      // Update progress every 800 ms until the search is complete
-                      while (Boolean.TRUE.equals(searchViewModel.isSearching().getValue())) {
-                        // Read live hit count from the repository (updated during search)
-                        int hitCount = searchViewModel.getSearchHitCount();
-                        String progressMsg = "Found " + hitCount + " results";
-                        callback.updateProgress(progressMsg);
-                        progressController.updateSearchProgressMessage(progressMsg);
-                        try {
-                          Thread.sleep(800);
-                        } catch (InterruptedException ie) {
-                          throw ie;
-                        }
-                      }
-                      return true;
-                    });
-
+                // Update toolbar to show search is in progress
+                if (getSupportActionBar() != null) {
+                  getSupportActionBar()
+                      .setTitle("\uD83D\uDD0D " + searchViewModel.getCurrentSearchQuery());
+                  getSupportActionBar().setSubtitle(getString(R.string.searching_files));
+                }
               } else {
-                // Search is complete -> close progress dialog
-                progressController.hideSearchProgressDialog();
+                // Search is complete — update toolbar to show final result count
+                LogUtils.d(
+                    "FileBrowserActivity",
+                    "isSearching=false, isInSearchMode=" + searchViewModel.isInSearchMode());
+                if (searchViewModel.isInSearchMode() && getSupportActionBar() != null) {
+                  java.util.List<?> results = searchViewModel.getSearchResults().getValue();
+                  int count = results != null ? results.size() : 0;
+                  String msg = "✓ " + count + " " + getString(R.string.search_results_found);
+                  getSupportActionBar().setSubtitle(msg);
+                  android.widget.Toast.makeText(
+                          FileBrowserActivity.this, msg, android.widget.Toast.LENGTH_SHORT)
+                      .show();
+                  LogUtils.i("FileBrowserActivity", "Search complete: " + count + " results found");
+                }
                 // Keep searchMode true so results stay visible until user navigates away
               }
             });
@@ -397,7 +406,23 @@ public class FileBrowserActivity extends AppCompatActivity
                 if (getSupportActionBar() != null) {
                   getSupportActionBar()
                       .setTitle("\uD83D\uDD0D " + searchViewModel.getCurrentSearchQuery());
-                  getSupportActionBar().setSubtitle(searchResults.size() + " results");
+                  boolean stillSearching =
+                      Boolean.TRUE.equals(searchViewModel.isSearching().getValue());
+                  if (stillSearching) {
+                    getSupportActionBar()
+                        .setSubtitle(
+                            searchResults.size()
+                                + " "
+                                + getString(R.string.search_results_found)
+                                + "…");
+                  } else {
+                    getSupportActionBar()
+                        .setSubtitle(
+                            "✓ "
+                                + searchResults.size()
+                                + " "
+                                + getString(R.string.search_results_found));
+                  }
                 }
                 LogUtils.d(
                     "FileBrowserActivity",
@@ -510,9 +535,7 @@ public class FileBrowserActivity extends AppCompatActivity
    * operations based on user input.
    */
   private void restoreProgressDialogsIfNeeded() {
-    if (Boolean.TRUE.equals(searchViewModel.isSearching().getValue())) {
-      progressController.showSearchProgressDialog();
-    }
+    // Search progress is now shown inline via toolbar — no dialog needed
 
     boolean uploading = Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue());
     boolean downloading = Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue());
@@ -592,6 +615,7 @@ public class FileBrowserActivity extends AppCompatActivity
         });
     dialogController.setSearchCallback(
         (query, searchType, includeSubfolders) -> {
+          KeyboardUtils.hideKeyboard(this);
           searchViewModel.searchFiles(query, searchType, includeSubfolders);
         });
     dialogController.setFileOpenCallback(this::openFileFromServer);
@@ -618,13 +642,6 @@ public class FileBrowserActivity extends AppCompatActivity
     dialogController.setFileOperationRequester(
         fileOperationsController.getFileOperationRequester());
 
-    // Set up ProgressController search cancellation callback
-    progressController.setSearchCancellationCallback(
-        () -> {
-          LogUtils.d(
-              "FileBrowserActivity", "Search cancellation callback triggered, cancelling search");
-          searchViewModel.cancelSearch();
-        });
     fileOperationsController.addListener(this);
 
     // Set up ActivityResultController callbacks
@@ -633,6 +650,11 @@ public class FileBrowserActivity extends AppCompatActivity
           @Override
           public void onFileUploadResult(Uri uri) {
             fileOperationsController.handleFileUpload(uri);
+          }
+
+          @Override
+          public void onMultipleFileUploadResult(java.util.List<Uri> uris) {
+            fileOperationsController.handleMultipleFileUploads(uris);
           }
 
           @Override
@@ -1098,10 +1120,7 @@ public class FileBrowserActivity extends AppCompatActivity
         boolean alreadySearching = Boolean.TRUE.equals(searchViewModel.isSearching().getValue());
         if (alreadySearching) {
           LogUtils.i(
-              "FileBrowserActivity",
-              "Search already in progress – ensuring dialog is visible, not restarting search");
-          // Just make sure the dialog is visible; the observer will keep it updated
-          progressController.showSearchProgressDialog();
+              "FileBrowserActivity", "Search already in progress – results are updating live");
         } else {
           LogUtils.i("FileBrowserActivity", "Starting search from notification: " + searchQuery);
           // Start the search
@@ -1222,11 +1241,26 @@ public class FileBrowserActivity extends AppCompatActivity
     super.onResume();
     LogUtils.d("FileBrowserActivity", "onResume called");
 
+    // Register for transfer completion broadcasts
+    IntentFilter filter = new IntentFilter(TransferWorker.ACTION_TRANSFER_COMPLETED);
+    //noinspection InlinedApi – RECEIVER_NOT_EXPORTED is inlined; safe on API 28+ (no-op pre-33)
+    registerReceiver(transferCompletedReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+
     // Refresh the current directory when resuming
     if (PreferenceUtils.getNeedsRefresh(this)) {
       LogUtils.i("FileBrowserActivity", "Update needed, refreshing current directory");
       PreferenceUtils.setNeedsRefresh(this, false);
       fileListViewModel.refreshCurrentDirectory();
+    }
+  }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    try {
+      unregisterReceiver(transferCompletedReceiver);
+    } catch (IllegalArgumentException ignored) {
+      // Receiver was not registered
     }
   }
 
@@ -1357,6 +1391,9 @@ public class FileBrowserActivity extends AppCompatActivity
       }
       // Already at top-level -> finish to return to connections
       confirmFinishIfBusy();
+      return true;
+    } else if (item.getItemId() == R.id.action_transfer_queue) {
+      startActivity(TransferQueueActivity.createIntent(this));
       return true;
     } else if (item.getItemId() == R.id.action_security_settings) {
       LogUtils.d("FileBrowserActivity", "Security settings menu item selected");

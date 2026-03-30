@@ -59,6 +59,11 @@
         </activity>
 
         <activity
+            android:name=".ui.TransferQueueActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SambaLite"
+            android:parentActivityName=".ui.FileBrowserActivity" />
+        <activity
             android:name=".ui.SystemMonitorActivity"
             android:exported="false"
             android:theme="@style/Theme.SambaLite"
@@ -82,6 +87,18 @@
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
+
+        <!-- Disable default WorkManager initializer; SambaLiteApp provides custom config -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <!-- WorkManager foreground service for sync operations -->
         <service
