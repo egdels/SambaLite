@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.sync.db;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -25,10 +26,12 @@ public abstract class SyncDatabase extends RoomDatabase {
   private static volatile SyncDatabase instance;
 
   /** Returns the DAO for file sync state operations. */
+  @NonNull
   public abstract FileSyncStateDao fileSyncStateDao();
 
   /** Returns the singleton database instance. */
-  public static SyncDatabase getInstance(Context context) {
+  @NonNull
+  public static SyncDatabase getInstance(@NonNull Context context) {
     if (instance == null) {
       synchronized (SyncDatabase.class) {
         if (instance == null) {

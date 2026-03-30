@@ -9,6 +9,7 @@
  */
 package de.schliweb.sambalite.sync.db;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
@@ -33,15 +34,18 @@ public class FileSyncState {
 
   /** Root URI of the sync target (e.g., SAF tree URI). */
   @ColumnInfo(name = "root_uri")
-  public String rootUri;
+  @NonNull
+  public String rootUri = "";
 
   /** Relative path within the sync root. */
   @ColumnInfo(name = "relative_path")
-  public String relativePath;
+  @NonNull
+  public String relativePath = "";
 
   /** Full remote SMB path. */
   @ColumnInfo(name = "remote_path")
-  public String remotePath;
+  @NonNull
+  public String remotePath = "";
 
   /** Remote file size in bytes. */
   @ColumnInfo(name = "remote_size")

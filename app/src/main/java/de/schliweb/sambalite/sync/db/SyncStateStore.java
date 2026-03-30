@@ -10,6 +10,8 @@
 package de.schliweb.sambalite.sync.db;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.List;
 
@@ -22,12 +24,12 @@ public class SyncStateStore {
   private static final String TAG = "SyncStateStore";
   private final FileSyncStateDao dao;
 
-  public SyncStateStore(Context context) {
+  public SyncStateStore(@NonNull Context context) {
     this.dao = SyncDatabase.getInstance(context).fileSyncStateDao();
   }
 
   /** Constructor for testing with injected DAO. */
-  SyncStateStore(FileSyncStateDao dao) {
+  SyncStateStore(@NonNull FileSyncStateDao dao) {
     this.dao = dao;
   }
 
@@ -42,9 +44,9 @@ public class SyncStateStore {
    * @param timestampPreserved whether the local timestamp was successfully set
    */
   public void saveRemoteState(
-      String rootUri,
-      String relativePath,
-      String remotePath,
+      @NonNull String rootUri,
+      @NonNull String relativePath,
+      @NonNull String remotePath,
       long remoteSize,
       long remoteLastModified,
       boolean timestampPreserved) {
@@ -89,7 +91,8 @@ public class SyncStateStore {
    * @param relativePath the relative path within the sync root
    * @return the stored sync state, or null
    */
-  public FileSyncState getRemoteState(String rootUri, String relativePath) {
+  @Nullable
+  public FileSyncState getRemoteState(@NonNull String rootUri, @NonNull String relativePath) {
     try {
       return dao.findByPath(rootUri, relativePath);
     } catch (Exception e) {
@@ -105,7 +108,8 @@ public class SyncStateStore {
    * @param rootUri the root URI of the sync target
    * @return list of sync states
    */
-  public List<FileSyncState> getAllForRoot(String rootUri) {
+  @NonNull
+  public List<FileSyncState> getAllForRoot(@NonNull String rootUri) {
     try {
       return dao.findByRootUri(rootUri);
     } catch (Exception e) {
@@ -122,7 +126,7 @@ public class SyncStateStore {
    * @param rootUri the root URI of the sync target
    * @param relativePath the relative path within the sync root
    */
-  public void deleteState(String rootUri, String relativePath) {
+  public void deleteState(@NonNull String rootUri, @NonNull String relativePath) {
     try {
       dao.deleteByPath(rootUri, relativePath);
     } catch (Exception e) {
@@ -136,7 +140,7 @@ public class SyncStateStore {
    *
    * @param rootUri the root URI of the sync target
    */
-  public void deleteAllForRoot(String rootUri) {
+  public void deleteAllForRoot(@NonNull String rootUri) {
     try {
       int deleted = dao.deleteByRootUri(rootUri);
       LogUtils.i(TAG, "[TIMESTAMP] Deleted " + deleted + " sync states for root: " + rootUri);

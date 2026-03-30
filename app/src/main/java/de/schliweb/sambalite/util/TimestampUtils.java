@@ -163,6 +163,7 @@ public class TimestampUtils {
    * @param timestampMillis the timestamp in epoch milliseconds
    * @return a formatted date string in {@code yyyy-MM-dd HH:mm:ss} format
    */
+  @androidx.annotation.NonNull
   public static String formatTimestamp(long timestampMillis) {
     synchronized (DATE_FORMAT) {
       return DATE_FORMAT.format(new Date(timestampMillis));

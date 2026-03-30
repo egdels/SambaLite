@@ -292,7 +292,30 @@ public class DialogHelper {
                         });
               });
 
+          dialog.setOnDismissListener(
+              d -> {
+                searchQueryEditText.clearFocus();
+                if (context instanceof Activity) {
+                  Activity activity = (Activity) context;
+                  KeyboardUtils.hideKeyboard(activity);
+                  activity
+                      .getWindow()
+                      .getDecorView()
+                      .postDelayed(
+                          () -> {
+                            KeyboardUtils.hideKeyboard(activity);
+                          },
+                          100);
+                }
+              });
+
           dialog.show();
+          if (dialog.getWindow() != null) {
+            //noinspection deprecation
+            dialog
+                .getWindow()
+                .setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+          }
           if (context instanceof Activity && searchQueryEditText != null) {
             setupDialogFocus((Activity) context, searchQueryEditText);
           }

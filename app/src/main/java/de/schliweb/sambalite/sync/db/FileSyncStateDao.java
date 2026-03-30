@@ -9,6 +9,8 @@
  */
 package de.schliweb.sambalite.sync.db;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
@@ -21,24 +23,26 @@ public interface FileSyncStateDao {
 
   /** Inserts or replaces a sync state entry (upsert by unique index). */
   @Insert(onConflict = OnConflictStrategy.REPLACE)
-  long upsert(FileSyncState state);
+  long upsert(@NonNull FileSyncState state);
 
   /** Finds a sync state by root URI and relative path. */
   @Query(
       "SELECT * FROM file_sync_state WHERE root_uri = :rootUri AND relative_path = :relativePath LIMIT 1")
-  FileSyncState findByPath(String rootUri, String relativePath);
+  @Nullable
+  FileSyncState findByPath(@NonNull String rootUri, @NonNull String relativePath);
 
   /** Returns all sync states for a given root URI. */
   @Query("SELECT * FROM file_sync_state WHERE root_uri = :rootUri")
-  List<FileSyncState> findByRootUri(String rootUri);
+  @NonNull
+  List<FileSyncState> findByRootUri(@NonNull String rootUri);
 
   /** Deletes a sync state by root URI and relative path. */
   @Query("DELETE FROM file_sync_state WHERE root_uri = :rootUri AND relative_path = :relativePath")
-  int deleteByPath(String rootUri, String relativePath);
+  int deleteByPath(@NonNull String rootUri, @NonNull String relativePath);
 
   /** Deletes all sync states for a given root URI. */
   @Query("DELETE FROM file_sync_state WHERE root_uri = :rootUri")
-  int deleteByRootUri(String rootUri);
+  int deleteByRootUri(@NonNull String rootUri);
 
   /** Returns the count of entries where timestamp was preserved. */
   @Query("SELECT COUNT(*) FROM file_sync_state WHERE timestamp_preserved = 1")

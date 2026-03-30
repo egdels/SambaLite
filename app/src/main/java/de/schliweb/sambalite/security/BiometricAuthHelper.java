@@ -33,7 +33,7 @@ public class BiometricAuthHelper {
   public interface AuthCallback {
     void onAuthSuccess();
 
-    void onAuthFailure(String errorMessage);
+    void onAuthFailure(@androidx.annotation.NonNull String errorMessage);
 
     void onAuthCancelled();
   }
