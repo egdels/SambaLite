@@ -5,6 +5,13 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-03-30
+
+### Fixed
+- Polish locale lint error (`MissingQuantity`): Added missing `few` and `many` plural quantity items to `transfer_queue_count` in `values-pl/strings.xml`. Polish requires four plural forms (`one`, `few`, `many`, `other`); the missing entries caused a lint error that failed the CI build.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.0] - 2026-03-30
 
 ### Added
