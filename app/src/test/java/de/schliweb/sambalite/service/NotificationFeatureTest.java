@@ -360,17 +360,6 @@ public class NotificationFeatureTest {
   // =========================================================================
 
   @Test
-  public void setSearchParameters_updatesNotification() {
-    startServiceNormally();
-    service.setSearchParameters("conn1", "*.txt", 0, true);
-    Notification n = getPostedNotification();
-    String title = n.extras.getString(Notification.EXTRA_TITLE);
-    assertNotNull(title);
-    assertTrue(
-        "After setSearchParameters, title should contain 'Searching'", title.contains("Searching"));
-  }
-
-  @Test
   public void setUploadParameters_updatesNotification() {
     startServiceNormally();
     service.setUploadParameters("conn1", "/share/docs");
@@ -558,19 +547,6 @@ public class NotificationFeatureTest {
   // =========================================================================
 
   @Test
-  public void clearSearchParameters_afterSet_cancelActionAppearsForGenericOp() {
-    startServiceNormally();
-    service.setSearchParameters("conn1", "*.txt", 0, true);
-    service.clearSearchParameters();
-
-    // Now start a generic op — should be cancelable
-    service.startOperation("delete");
-    Notification n = getPostedNotification();
-    Notification.Action cancelAction = findAction(n, "Cancel");
-    assertNotNull("After clearing search params, generic op should have Cancel", cancelAction);
-  }
-
-  @Test
   public void clearUploadParameters_afterSet_cancelActionAppearsForGenericOp() {
     startServiceNormally();
     service.setUploadParameters("conn1", "/path");
@@ -671,15 +647,6 @@ public class NotificationFeatureTest {
     service.startOperation("delete");
     Notification n = getPostedNotification();
     assertNotNull("Active operation notification should have a content intent", n.contentIntent);
-  }
-
-  @Test
-  public void searchOp_withParams_hasContentIntent() {
-    startServiceNormally();
-    service.setSearchParameters("conn1", "*.txt", 0, true);
-    service.startOperation("search");
-    Notification n = getPostedNotification();
-    assertNotNull("Search operation with params should have a content intent", n.contentIntent);
   }
 
   @Test

@@ -239,14 +239,6 @@ public class SmbRepositoryBasicIntegrityTest {
       assertTrue("Test file should have content", testFile.length() > 0);
     }
 
-    // Verify search functionality exists (will fail without SMB server but tests API)
-    try {
-      List<SmbFileItem> results = smbRepository.searchFiles(testConnection, "", "*.txt", 0, false);
-      assertNotNull("Search results should not be null", results);
-    } catch (Exception e) {
-      // Expected without real SMB server
-      assertNotNull("Error should have message", e.getMessage());
-    }
   }
 
   /** Test file with extremely long content */
@@ -539,15 +531,13 @@ public class SmbRepositoryBasicIntegrityTest {
     String[] testMethods = {
       "testConnection",
       "listFiles",
-      "searchFiles",
       "downloadFile",
       "uploadFile",
       "deleteFile",
       "renameFile",
       "createDirectory",
       "fileExists",
-      "downloadFolder",
-      "cancelSearch"
+      "downloadFolder"
     };
 
     for (String methodName : testMethods) {
@@ -559,9 +549,6 @@ public class SmbRepositoryBasicIntegrityTest {
             break;
           case "listFiles":
             smbRepository.listFiles(testConnection, "/");
-            break;
-          case "searchFiles":
-            smbRepository.searchFiles(testConnection, "/", "*", 0, false);
             break;
           case "downloadFile":
             File tempDownload = new File(tempTestDir, "temp_download.txt");
@@ -587,11 +574,6 @@ public class SmbRepositoryBasicIntegrityTest {
             File tempFolderDownload = new File(tempTestDir, "temp_folder_download");
             smbRepository.downloadFolder(testConnection, "/testfolder", tempFolderDownload);
             // downloadFolder may handle errors internally without throwing
-            continue; // Skip the fail() call for this method
-          case "cancelSearch":
-            smbRepository.cancelSearch();
-            // cancelSearch doesn't throw exceptions - it's a void method that sets a flag
-            assertTrue("cancelSearch should complete successfully", true);
             continue; // Skip the fail() call for this method
         }
 

@@ -164,54 +164,6 @@ public class SmbRepositoryNetworkIntegrityTest {
     }
   }
 
-  /** Test search operation edge cases */
-  @Test
-  public void testSearchEdgeCases() throws Exception {
-    // Test search with various query patterns
-    String[] testQueries = {
-      "", // Empty query
-      "*", // Match all
-      "*.txt", // Extension filter
-      "non_existent_*", // No matches
-      "special-chars_123", // Special characters
-      "very_long_query_" + "x".repeat(100) // Very long query
-    };
-
-    for (String query : testQueries) {
-      try {
-        List<SmbFileItem> results = smbRepository.searchFiles(testConnection, "", query, 0, false);
-
-        // Should not throw exception, even if no results
-        assertNotNull("Search results should not be null for query: " + query, results);
-
-      } catch (Exception e) {
-        // Connection will fail, but should fail gracefully
-        assertNotNull("Error should have message for query: " + query, e.getMessage());
-      }
-    }
-  }
-
-  /** Test search cancellation functionality */
-  @Test
-  public void testSearchCancellation() throws Exception {
-    // Test that search can be cancelled
-    assertNotNull("Repository should support search cancellation", smbRepository);
-
-    // Cancel search before starting
-    smbRepository.cancelSearch();
-
-    try {
-      List<SmbFileItem> results = smbRepository.searchFiles(testConnection, "", "*", 0, true);
-
-      // Should return empty list or fail gracefully
-      assertNotNull("Cancelled search should return non-null result", results);
-
-    } catch (Exception e) {
-      // Expected - connection will fail, but cancellation should work
-      assertNotNull("Error should have message", e.getMessage());
-    }
-  }
-
   /** Test directory operations */
   @Test
   public void testDirectoryOperations() throws Exception {

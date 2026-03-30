@@ -200,12 +200,6 @@ public class SmbRepositoryAdvancedTest {
 
       assertTrue("Should find file in the deepest directory", foundFile);
 
-      // Try to search for files in the nested structure
-      List<SmbFileItem> searchResults =
-          smbRepository.searchFiles(testConnection, "", "file_at_level", 0, true);
-
-      assertEquals("Should find all files in the nested structure", depth, searchResults.size());
-
     } catch (Exception e) {
       System.out.println("[DEBUG_LOG] Nested directories test exception: " + e.getMessage());
     }
@@ -378,10 +372,10 @@ public class SmbRepositoryAdvancedTest {
                         }
                         break;
 
-                      case 4: // Search files
-                        List<SmbFileItem> searchResults =
-                            smbRepository.searchFiles(testConnection, "", "test", 0, true);
-                        if (searchResults != null) {
+                      case 4: // List files (alternative)
+                        List<SmbFileItem> altFiles =
+                            smbRepository.listFiles(testConnection, "");
+                        if (altFiles != null) {
                           successCount.incrementAndGet();
                         }
                         break;

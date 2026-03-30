@@ -351,54 +351,6 @@ public class SmbRepositoryPerformanceTest {
     }
   }
 
-  /** Test file operation cancellation performance */
-  @Test
-  public void testOperationCancellationSpeed() throws Exception {
-    final int NUM_CANCELLATION_TESTS = 20;
-    List<Long> cancellationTimes = new ArrayList<>();
-
-    for (int i = 0; i < NUM_CANCELLATION_TESTS; i++) {
-      // Start a search operation
-      CompletableFuture<Void> searchFuture =
-          CompletableFuture.runAsync(
-              () -> {
-                try {
-                  smbRepository.searchFiles(testConnection, "/", "*", 0, true);
-                } catch (Exception e) {
-                  // Expected - will fail due to no SMB server
-                }
-              });
-
-      // Wait a bit to let the operation start
-      Thread.sleep(10);
-
-      // Cancel the search
-      long startTime = System.currentTimeMillis();
-      smbRepository.cancelSearch();
-
-      // Wait for the operation to respond to cancellation
-      try {
-        searchFuture.get(2, TimeUnit.SECONDS);
-      } catch (TimeoutException e) {
-        // Operation might still be running, but cancellation should be noted
-      }
-
-      long cancellationTime = System.currentTimeMillis() - startTime;
-      cancellationTimes.add(cancellationTime);
-
-      // Cancellation should be immediate (< 100ms)
-      assertTrue(
-          "Cancellation should be immediate: " + cancellationTime + "ms", cancellationTime < 100);
-    }
-
-    // Average cancellation time should be very fast
-    double avgCancellationTime =
-        cancellationTimes.stream().mapToLong(Long::longValue).average().orElse(0.0);
-    assertTrue(
-        "Average cancellation time should be very fast: " + avgCancellationTime + "ms",
-        avgCancellationTime < 50);
-  }
-
   /** Test repository API consistency under load */
   @Test
   public void testAPIConsistencyUnderLoad() throws Exception {
