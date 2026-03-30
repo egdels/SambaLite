@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui.controllers;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.provider.DocumentsContract;
@@ -21,6 +22,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Setter;
 
 /**
@@ -118,7 +121,23 @@ public class ActivityResultController {
             + ", flags="
             + (result.getData() != null ? result.getData().getFlags() : "no-data"));
     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-      Uri uri = result.getData().getData();
+      Intent data = result.getData();
+
+      // Handle multi-file selection for upload
+      if ("pick_file".equals(operation)) {
+        List<Uri> uris = extractMultipleUris(data);
+        if (!uris.isEmpty()) {
+          if (uris.size() == 1) {
+            uiState.setSelectedUri(uris.get(0));
+            handlePickFileResult(uris.get(0));
+          } else {
+            handleMultiplePickFileResult(uris);
+          }
+          return;
+        }
+      }
+
+      Uri uri = data.getData();
       if (uri != null) {
         uiState.setSelectedUri(uri);
 
@@ -167,6 +186,18 @@ public class ActivityResultController {
     // Clean up UI state first
     inputController.hideKeyboardAndClearFocus();
 
+    // Persist write permission so the TransferWorker can access the URI after app restart/retry
+    try {
+      activity
+          .getContentResolver()
+          .takePersistableUriPermission(
+              uri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    } catch (Exception e) {
+      LogUtils.w(
+          "ActivityResultController",
+          "takePersistableUriPermission failed for download target: " + e.getMessage());
+    }
+
     // Delegate to the file operation callback
     if (fileOperationCallback != null) {
       fileOperationCallback.onFileDownloadResult(uri);
@@ -189,6 +220,19 @@ public class ActivityResultController {
             + (uiState.getPendingMultiDownloadItems() != null
                 ? uiState.getPendingMultiDownloadItems().size()
                 : "null"));
+
+    // Persist read/write permission so the TransferWorker can access child URIs after restart
+    try {
+      activity
+          .getContentResolver()
+          .takePersistableUriPermission(
+              uri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    } catch (Exception e) {
+      LogUtils.w(
+          "ActivityResultController",
+          "takePersistableUriPermission failed for folder download target: " + e.getMessage());
+    }
+
     // Clean up UI state first
     inputController.hideKeyboardAndClearFocus();
 
@@ -281,6 +325,11 @@ public class ActivityResultController {
       intent.addCategory(Intent.CATEGORY_OPENABLE);
       intent.setType("*/*"); // Allow any file type
       intent.putExtra(Intent.EXTRA_TITLE, file.getName()); // Suggest the file name
+      // Request persistable permission so the Worker can access the URI after app restart
+      intent.addFlags(
+          Intent.FLAG_GRANT_READ_URI_PERMISSION
+              | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+              | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
       LogUtils.d(
           "ActivityResultController",
           "Created file picker intent with suggested name: " + file.getName());
@@ -291,12 +340,14 @@ public class ActivityResultController {
     }
   }
 
-  /** Initiates the file selection process for uploading. */
+  /** Initiates the file selection process for uploading (supports multi-selection). */
   public void selectFileToUpload() {
-    LogUtils.d("ActivityResultController", "Initiating file selection for upload");
+    LogUtils.d(
+        "ActivityResultController", "Initiating file selection for upload (multi-select enabled)");
     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("*/*"); // Allow any file type
+    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
     LogUtils.d("ActivityResultController", "Starting file picker activity for upload");
     pickFileLauncher.launch(intent);
   }
@@ -336,6 +387,35 @@ public class ActivityResultController {
     createFolderLauncher.launch(intent);
   }
 
+  /** Extracts multiple URIs from an Intent (ClipData for multi-select, or single getData()). */
+  private List<Uri> extractMultipleUris(@NonNull Intent data) {
+    List<Uri> uris = new ArrayList<>();
+    ClipData clipData = data.getClipData();
+    if (clipData != null) {
+      for (int i = 0; i < clipData.getItemCount(); i++) {
+        Uri uri = clipData.getItemAt(i).getUri();
+        if (uri != null) {
+          uris.add(uri);
+        }
+      }
+    } else if (data.getData() != null) {
+      uris.add(data.getData());
+    }
+    return uris;
+  }
+
+  /**
+   * Handles multiple file pick results for upload.
+   *
+   * @param uris The URIs of the picked files
+   */
+  private void handleMultiplePickFileResult(@NonNull List<Uri> uris) {
+    inputController.hideKeyboardAndClearFocus();
+    if (fileOperationCallback != null) {
+      fileOperationCallback.onMultipleFileUploadResult(uris);
+    }
+  }
+
   /** Callback for file operations. */
   public interface FileOperationCallback {
     /**
@@ -344,6 +424,13 @@ public class ActivityResultController {
      * @param uri The URI of the file to upload
      */
     void onFileUploadResult(@NonNull Uri uri);
+
+    /**
+     * Called when multiple files are selected for upload.
+     *
+     * @param uris The URIs of the files to upload
+     */
+    void onMultipleFileUploadResult(@NonNull List<Uri> uris);
 
     /**
      * Called when a file download result is received.

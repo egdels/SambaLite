@@ -9,6 +9,7 @@
  */
 package de.schliweb.sambalite.ui.operations;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import androidx.annotation.NonNull;
@@ -18,10 +19,19 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
+import de.schliweb.sambalite.transfer.TransferWorker;
+import de.schliweb.sambalite.transfer.db.PendingTransfer;
+import de.schliweb.sambalite.transfer.db.PendingTransferDao;
+import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileBrowserState;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
@@ -684,209 +694,6 @@ public class FileOperationsViewModel extends ViewModel {
     }
   }
 
-  public void uploadFile(
-      @NonNull File localFile,
-      @NonNull String remotePath,
-      @Nullable FileOperationCallbacks.UploadCallback callback,
-      @NonNull String displayFileName,
-      @Nullable FileOperationCallbacks.FileExistsCallback fileExistsCallback) {
-    if (state.getConnection() == null || localFile == null || !localFile.exists()) {
-      LogUtils.w("FileOperationsViewModel", "Cannot upload: invalid file or connection");
-      if (callback != null) {
-        String msg = context.getString(de.schliweb.sambalite.R.string.invalid_file_or_connection);
-        mainHandler.post(() -> callback.onResult(false, msg));
-      }
-      return;
-    }
-
-    LogUtils.d(
-        "FileOperationsViewModel", "Checking if file exists before uploading: " + remotePath);
-    backgroundSmbManager.ensureServiceRunning();
-    state.setLoading(true);
-
-    executor.execute(
-        () -> {
-          try {
-            boolean fileExists = smbRepository.fileExists(state.getConnection(), remotePath);
-
-            if (fileExists && fileExistsCallback != null) {
-              LogUtils.d(
-                  "FileOperationsViewModel",
-                  "File already exists, asking for confirmation: " + remotePath);
-              state.setLoading(false);
-
-              Runnable confirmAction =
-                  () -> {
-                    LogUtils.d(
-                        "FileOperationsViewModel",
-                        "User confirmed overwrite, uploading file: " + localFile.getName());
-                    performUpload(localFile, remotePath, callback, displayFileName);
-                  };
-
-              Runnable cancelAction =
-                  () -> {
-                    LogUtils.d(
-                        "FileOperationsViewModel",
-                        "User cancelled file upload for: " + localFile.getName());
-                    if (callback != null) {
-                      String msg =
-                          context.getString(
-                              de.schliweb.sambalite.R.string.upload_cancelled_by_user);
-                      mainHandler.post(() -> callback.onResult(false, msg));
-                    }
-                  };
-
-              mainHandler.post(
-                  () -> {
-                    String nameToDisplay =
-                        displayFileName != null ? displayFileName : localFile.getName();
-                    fileExistsCallback.onFileExists(nameToDisplay, confirmAction, cancelAction);
-                  });
-            } else {
-              LogUtils.d(
-                  "FileOperationsViewModel",
-                  "File doesn't exist or no callback provided, proceeding with upload");
-              performUpload(localFile, remotePath, callback, displayFileName);
-            }
-          } catch (Exception e) {
-            LogUtils.e(
-                "FileOperationsViewModel", "Error checking if file exists: " + e.getMessage());
-            state.setLoading(false);
-            if (callback != null) {
-              String msg =
-                  context.getString(
-                      de.schliweb.sambalite.R.string.error_checking_file_exists, e.getMessage());
-              mainHandler.post(() -> callback.onResult(false, msg));
-            }
-            state.setErrorMessage(
-                context.getString(
-                    de.schliweb.sambalite.R.string.error_checking_file_exists, e.getMessage()));
-          }
-        });
-  }
-
-  public void performUpload(
-      @NonNull File localFile,
-      @NonNull String remotePath,
-      @NonNull FileOperationCallbacks.UploadCallback callback) {
-    performUpload(localFile, remotePath, callback, null);
-  }
-
-  public void performUpload(
-      @NonNull File localFile,
-      @NonNull String remotePath,
-      @NonNull FileOperationCallbacks.UploadCallback callback,
-      @Nullable String displayFileName) {
-    String logFileName =
-        (displayFileName != null && !displayFileName.isEmpty())
-            ? displayFileName
-            : localFile.getName();
-    transferActionLog.log(TransferActionLog.Action.UPLOAD_STARTED, logFileName);
-    LogUtils.d(
-        "FileOperationsViewModel", "Uploading file: " + localFile.getName() + " to " + remotePath);
-    String uploadOpName = "Uploading: " + localFile.getName();
-    backgroundSmbManager.startOperation(uploadOpName);
-    state.setLoading(true);
-
-    incUpload();
-    executor.execute(
-        () -> {
-          try {
-            state.setUploadCancelled(false);
-
-            smbRepository.uploadFileWithProgress(
-                state.getConnection(),
-                localFile,
-                remotePath,
-                new BackgroundSmbManager.ProgressCallback() {
-                  @Override
-                  public void updateProgress(String progressInfo) {
-                    if (callback != null) {
-                      int percentage = ProgressFormat.parsePercent(progressInfo);
-                      emitProgress(progressInfo, percentage, logFileName);
-                      mainHandler.post(() -> callback.onProgress(progressInfo, percentage));
-                    }
-                  }
-
-                  @Override
-                  public void updateBytesProgress(
-                      long currentBytes, long totalBytes, String fileName) {
-                    if (callback != null) {
-                      String status =
-                          ProgressFormat.formatBytes(
-                              ProgressFormat.Op.UPLOAD.label(), currentBytes, totalBytes);
-                      int p = calculateAccuratePercentage(currentBytes, totalBytes);
-                      emitProgress(status, p, logFileName);
-                      mainHandler.post(() -> callback.onProgress(status, p));
-                    }
-                  }
-                });
-
-            // Integrity check: verify uploaded file size matches local size
-            long localSize = localFile.length();
-            long remoteSize = smbRepository.getRemoteFileSize(state.getConnection(), remotePath);
-            if (remoteSize >= 0 && remoteSize != localSize) {
-              LogUtils.w(
-                  "FileOperationsViewModel",
-                  "Upload integrity check failed: local="
-                      + localSize
-                      + " bytes, remote="
-                      + remoteSize
-                      + " bytes for "
-                      + localFile.getName());
-              throw new java.io.IOException(
-                  "Upload incomplete: local="
-                      + localSize
-                      + " bytes, remote="
-                      + remoteSize
-                      + " bytes");
-            }
-
-            LogUtils.i(
-                "FileOperationsViewModel", "File uploaded successfully: " + localFile.getName());
-            transferActionLog.log(TransferActionLog.Action.UPLOAD_COMPLETED, logFileName);
-            state.setLoading(false);
-            backgroundSmbManager.finishOperation(uploadOpName, true);
-            if (callback != null) {
-              String ok = context.getString(de.schliweb.sambalite.R.string.upload_success);
-              mainHandler.post(() -> callback.onResult(true, ok));
-            }
-
-            invalidateCacheAndRefreshUI();
-          } catch (Exception e) {
-            LogUtils.e("FileOperationsViewModel", "Upload failed: " + e.getMessage());
-            transferActionLog.log(
-                TransferActionLog.Action.UPLOAD_FAILED, logFileName, e.getMessage());
-            state.setLoading(false);
-            backgroundSmbManager.finishOperation(uploadOpName, false);
-
-            if (state.isUploadCancelled()
-                || (e.getMessage() != null && e.getMessage().contains("cancelled by user"))) {
-              LogUtils.i("FileOperationsViewModel", "Upload was cancelled by user");
-              if (callback != null) {
-                String msg =
-                    context.getString(de.schliweb.sambalite.R.string.upload_cancelled_by_user);
-                mainHandler.post(() -> callback.onResult(false, msg));
-              }
-              fileListViewModel.refreshCurrentDirectory();
-            } else {
-              if (callback != null) {
-                String msg =
-                    context.getString(
-                        de.schliweb.sambalite.R.string.upload_failed_with_reason, e.getMessage());
-                mainHandler.post(() -> callback.onResult(false, msg));
-              }
-              state.setErrorMessage(
-                  context.getString(
-                      de.schliweb.sambalite.R.string.failed_to_upload_file_with_reason,
-                      e.getMessage()));
-            }
-          } finally {
-            decUpload();
-          }
-        });
-  }
-
   public void createFolder(
       @NonNull String folderName, @Nullable FileOperationCallbacks.CreateFolderCallback callback) {
     if (state.getConnection() == null || folderName == null || folderName.isEmpty()) {
@@ -1057,258 +864,6 @@ public class FileOperationsViewModel extends ViewModel {
         });
   }
 
-  public void uploadFolderContentsFromUri(
-      @NonNull android.net.Uri localFolderUri,
-      @Nullable FileOperationCallbacks.UploadCallback callback,
-      @Nullable BackgroundSmbManager.MultiFileProgressCallback serviceProgress,
-      @Nullable FileOperationCallbacks.FileExistsCallback fileExistsCallback) {
-    LogUtils.d(
-        "FileOperationsViewModel",
-        "Starting folder contents upload from URI (with service bridge): " + localFolderUri);
-
-    backgroundSmbManager.ensureServiceRunning();
-    String folderUploadOpName = "Uploading folder";
-    backgroundSmbManager.startOperation(folderUploadOpName);
-    incUpload();
-    executor.execute(
-        () -> {
-          List<FileUploadTask> uploadTasks = new ArrayList<>();
-          List<String> uploadedServerPaths = new ArrayList<>();
-          List<String> createdFolders = new ArrayList<>();
-          int totalFiles = 0;
-          int successfulUploads = 0;
-          int skippedFiles = 0;
-          int finalTotalFiles = 0;
-
-          try {
-            state.setUploadCancelled(false);
-
-            mainHandler.post(
-                () -> {
-                  if (callback != null) callback.onProgress("Analyzing folder structure...", 0);
-                });
-            emitProgress("Analyzing folder structure...", 0, null);
-            if (serviceProgress != null)
-              serviceProgress.updateProgress("Analyzing folder structure...");
-
-            DocumentFile sourceFolder = DocumentFile.fromTreeUri(context, localFolderUri);
-            if (sourceFolder == null || !sourceFolder.isDirectory())
-              throw new Exception("Invalid folder selected");
-
-            uploadTasks = scanFolderForUpload(sourceFolder, "", uploadTasks);
-            totalFiles = uploadTasks.size();
-            finalTotalFiles = totalFiles;
-            final int finalTotalFilesForLambda = finalTotalFiles;
-
-            if (totalFiles == 0) {
-              if (callback != null)
-                mainHandler.post(
-                    () -> callback.onResult(true, "Folder is empty - nothing to upload"));
-              if (serviceProgress != null)
-                serviceProgress.updateProgress("Folder empty – nothing to upload");
-              return;
-            }
-
-            LogUtils.d("FileOperationsViewModel", "Found " + totalFiles + " files to upload");
-            mainHandler.post(
-                () -> {
-                  if (callback != null) callback.onProgress("Creating folder structure...", 5);
-                });
-            emitProgress("Creating folder structure...", 5, null);
-            if (serviceProgress != null)
-              serviceProgress.updateProgress("Creating folder structure...");
-
-            createFolderStructure(uploadTasks, createdFolders);
-
-            for (int i = 0; i < uploadTasks.size(); i++) {
-              if (state.isUploadCancelled()) {
-                LogUtils.d(
-                    "FileOperationsViewModel",
-                    "Upload cancelled by user at file "
-                        + (i + 1)
-                        + " of "
-                        + finalTotalFilesForLambda);
-                throw new Exception("Upload cancelled by user");
-              }
-
-              FileUploadTask task = uploadTasks.get(i);
-              final int currentFileIndex = i + 1;
-
-              if (serviceProgress != null) {
-                serviceProgress.updateFileProgress(
-                    currentFileIndex, finalTotalFiles, task.fileName());
-              }
-
-              try {
-                uploadSingleFileFromTask(
-                    task,
-                    fileExistsCallback,
-                    callback,
-                    currentFileIndex,
-                    finalTotalFilesForLambda,
-                    serviceProgress);
-                successfulUploads++;
-                uploadedServerPaths.add(task.serverPath());
-                LogUtils.d(
-                    "FileOperationsViewModel",
-                    "Successfully uploaded file " + currentFileIndex + ": " + task.fileName());
-              } catch (FileSkippedException e) {
-                LogUtils.d("FileOperationsViewModel", "File skipped by user: " + task.fileName());
-                skippedFiles++;
-              } catch (Exception e) {
-                LogUtils.e(
-                    "FileOperationsViewModel",
-                    "Failed to upload file " + task.fileName() + ": " + e.getMessage());
-              }
-            }
-
-            mainHandler.post(
-                () -> {
-                  if (callback != null) callback.onProgress("Verifying upload integrity...", 95);
-                });
-            if (serviceProgress != null)
-              serviceProgress.updateProgress("Verifying upload integrity...");
-
-            int failedFiles = totalFiles - successfulUploads - skippedFiles;
-
-            if (successfulUploads < totalFiles) {
-              StringBuilder message = new StringBuilder();
-              message
-                  .append("Upload incomplete: ")
-                  .append(successfulUploads)
-                  .append(" of ")
-                  .append(finalTotalFiles)
-                  .append(" files uploaded successfully");
-              if (skippedFiles > 0)
-                message.append(", ").append(skippedFiles).append(" file(s) skipped");
-              if (failedFiles > 0)
-                message.append(", ").append(failedFiles).append(" file(s) failed");
-
-              String text = message + ". Check the server and retry if needed.";
-              LogUtils.w("FileOperationsViewModel", text);
-
-              final String finalText = text;
-              mainHandler.post(
-                  () -> {
-                    if (callback != null) callback.onResult(false, finalText);
-                  });
-              if (serviceProgress != null) serviceProgress.updateProgress("Upload incomplete");
-              backgroundSmbManager.finishOperation(folderUploadOpName, false);
-            } else {
-              LogUtils.i(
-                  "FileOperationsViewModel",
-                  "All " + finalTotalFiles + " files uploaded successfully");
-
-              IntelligentCacheManager.getInstance()
-                  .invalidateSearchCache(state.getConnection(), state.getCurrentPathString());
-              String cachePattern =
-                  "conn_"
-                      + state.getConnection().getId()
-                      + "_path_"
-                      + state.getCurrentPathString().hashCode();
-              IntelligentCacheManager.getInstance().invalidateSync(cachePattern);
-
-              String successMessage =
-                  "All " + finalTotalFilesForLambda + " files uploaded successfully";
-              if (skippedFiles > 0)
-                successMessage =
-                    successfulUploads
-                        + " files uploaded successfully, "
-                        + skippedFiles
-                        + " files skipped";
-              final String finalSuccessMessage = successMessage;
-
-              final String uiMsg = "Upload completed successfully!";
-              mainHandler.post(
-                  () -> {
-                    if (callback != null) {
-                      callback.onProgress(uiMsg, 100);
-                      callback.onResult(true, finalSuccessMessage);
-                    }
-                    fileListViewModel.refreshCurrentDirectory();
-                  });
-              if (serviceProgress != null) serviceProgress.updateProgress(uiMsg);
-              backgroundSmbManager.finishOperation(folderUploadOpName, true);
-            }
-
-          } catch (Exception e) {
-            LogUtils.e(
-                "FileOperationsViewModel", "Error uploading folder contents: " + e.getMessage());
-            mainHandler.post(
-                () -> {
-                  if (callback != null) callback.onProgress("Cleaning up incomplete upload...", 95);
-                });
-            if (serviceProgress != null)
-              serviceProgress.updateProgress("Cleaning up incomplete upload...");
-
-            cleanupIncompleteUpload(createdFolders, uploadedServerPaths);
-            String errorMessage = "Folder upload failed: " + e.getMessage();
-            if (successfulUploads > 0)
-              errorMessage +=
-                  " (" + successfulUploads + " of " + finalTotalFiles + " files were uploaded)";
-            final String finalErrorMessage = errorMessage;
-
-            mainHandler.post(
-                () -> {
-                  if (callback != null) {
-                    callback.onResult(false, finalErrorMessage);
-                    fileListViewModel.refreshCurrentDirectory();
-                  }
-                });
-            if (serviceProgress != null) serviceProgress.updateProgress("Upload failed");
-            backgroundSmbManager.finishOperation(folderUploadOpName, false);
-          } finally {
-            decUpload();
-          }
-        });
-  }
-
-  public void uploadFolderContentsFromUri(
-      @NonNull android.net.Uri localFolderUri,
-      @Nullable FileOperationCallbacks.UploadCallback callback,
-      @Nullable FileOperationCallbacks.FileExistsCallback fileExistsCallback) {
-    // Backwards-compat: keine Service-Bridge
-    uploadFolderContentsFromUri(localFolderUri, callback, null, fileExistsCallback);
-  }
-
-  private void invalidateCacheAndRefreshUI() {
-    String cachePattern =
-        "conn_"
-            + state.getConnection().getId()
-            + "_path_"
-            + state.getCurrentPathString().hashCode();
-    IntelligentCacheManager.getInstance().invalidateSync(cachePattern);
-    IntelligentCacheManager.getInstance()
-        .invalidateSearchCache(state.getConnection(), state.getCurrentPathString());
-    fileListViewModel.refreshCurrentDirectory();
-  }
-
-  private void cleanupLocalTempFile(File tempFile, String operationContext) {
-    if (tempFile != null && tempFile.exists()) {
-      try {
-        boolean deleted = tempFile.delete();
-        if (deleted) {
-          LogUtils.d(
-              "FileOperationsViewModel",
-              "Cleaned up temp file for " + operationContext + ": " + tempFile.getAbsolutePath());
-        } else {
-          LogUtils.w(
-              "FileOperationsViewModel",
-              "Failed to clean up temp file for "
-                  + operationContext
-                  + ": "
-                  + tempFile.getAbsolutePath());
-          tempFile.deleteOnExit();
-        }
-      } catch (Exception e) {
-        LogUtils.w(
-            "FileOperationsViewModel",
-            "Error cleaning up temp file for " + operationContext + ": " + e.getMessage());
-        tempFile.deleteOnExit();
-      }
-    }
-  }
-
   private void cleanupDownloadFiles(File localFile, String operationContext) {
     if (localFile != null && localFile.exists()) {
       try {
@@ -1353,285 +908,399 @@ public class FileOperationsViewModel extends ViewModel {
     return (int) Math.round((currentBytes * 100.0) / totalBytes);
   }
 
-  List<FileUploadTask> scanFolderForUpload(
-      DocumentFile folder, String relativePath, List<FileUploadTask> tasks) {
+  // ── Phase 2: Queue-based upload integration ──────────────────────────────────
+
+  /**
+   * Enqueues a single file upload into the persistent transfer queue and starts the TransferWorker.
+   * Returns immediately — no blocking dialog.
+   *
+   * @param sourceUri SAF URI of the local file
+   * @param remotePath full remote SMB path
+   * @param displayName human-readable file name for the queue UI
+   * @param fileSize file size in bytes (0 if unknown)
+   * @param batchId batch identifier grouping related transfers
+   */
+  public void enqueueUpload(
+      @NonNull Uri sourceUri,
+      @NonNull String remotePath,
+      @NonNull String displayName,
+      long fileSize,
+      @NonNull String batchId) {
+    executor.execute(
+        () -> {
+          if (state.getConnection() == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue upload: no connection");
+            return;
+          }
+
+          PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+
+          PendingTransfer transfer = new PendingTransfer();
+          transfer.transferType = "UPLOAD";
+          transfer.localUri = sourceUri.toString();
+          transfer.remotePath = remotePath;
+          transfer.connectionId = state.getConnection().getId();
+          transfer.displayName = displayName;
+          transfer.fileSize = fileSize;
+          transfer.bytesTransferred = 0;
+          transfer.status = "PENDING";
+          transfer.createdAt = System.currentTimeMillis();
+          transfer.updatedAt = System.currentTimeMillis();
+          transfer.batchId = batchId;
+
+          long id = dao.insert(transfer);
+          LogUtils.i(
+              "FileOperationsViewModel",
+              "Enqueued upload #" + id + ": " + displayName + " (" + fileSize + " bytes)");
+
+          startTransferWorker();
+        });
+  }
+
+  /**
+   * Scans a folder (via SAF DocumentFile) and enqueues all contained files as a batch upload.
+   * Folder structure is preserved via the remote path hierarchy; the TransferWorker creates
+   * directories automatically.
+   *
+   * @param folderUri SAF URI of the local folder
+   * @return the generated batch ID for observing progress
+   */
+  public @NonNull String enqueueFolderUpload(@NonNull Uri folderUri) {
+    String batchId = UUID.randomUUID().toString();
+
+    executor.execute(
+        () -> {
+          if (state.getConnection() == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue folder: no connection");
+            return;
+          }
+
+          DocumentFile folder = DocumentFile.fromTreeUri(context, folderUri);
+          if (folder == null || !folder.isDirectory()) {
+            LogUtils.w("FileOperationsViewModel", "Invalid folder URI: " + folderUri);
+            return;
+          }
+
+          List<PendingTransfer> transfers = new ArrayList<>();
+          scanFolderForQueue(folder, state.getCurrentPathString(), "", transfers, batchId, 0);
+
+          if (transfers.isEmpty()) {
+            LogUtils.i("FileOperationsViewModel", "No files found in folder for upload");
+            return;
+          }
+
+          PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+          dao.insertAll(transfers);
+          LogUtils.i(
+              "FileOperationsViewModel",
+              "Enqueued " + transfers.size() + " files from folder (batch=" + batchId + ")");
+
+          startTransferWorker();
+        });
+
+    return batchId;
+  }
+
+  /** Recursively scans a DocumentFile folder and builds PendingTransfer entries for each file. */
+  private void scanFolderForQueue(
+      DocumentFile folder,
+      String remoteBasePath,
+      String relativePath,
+      List<PendingTransfer> transfers,
+      String batchId,
+      int sortOrderStart) {
     DocumentFile[] files = folder.listFiles();
-    if (files == null) return tasks;
+    if (files == null) return;
 
+    int sortOrder = sortOrderStart;
     for (DocumentFile file : files) {
-      if (state.isUploadCancelled()) break;
-
       String fileName = file.getName();
       if (fileName == null) continue;
 
-      String currentRelativePath =
-          relativePath.isEmpty() ? fileName : relativePath + "/" + fileName;
-      String serverPath = state.getCurrentPathString() + "/" + currentRelativePath;
+      String currentRelative = relativePath.isEmpty() ? fileName : relativePath + "/" + fileName;
 
       if (file.isDirectory()) {
-        scanFolderForUpload(file, currentRelativePath, tasks);
+        scanFolderForQueue(file, remoteBasePath, currentRelative, transfers, batchId, sortOrder);
       } else if (file.isFile()) {
-        tasks.add(new FileUploadTask(file, relativePath, fileName, serverPath));
-      }
-    }
-    return tasks;
-  }
-
-  void createFolderStructure(List<FileUploadTask> tasks, List<String> createdFolders)
-      throws Exception {
-    Set<String> relativeFoldersToCreate = new HashSet<>();
-
-    for (FileUploadTask task : tasks) {
-      String relativeFolderPath = task.relativePath();
-      if (!relativeFolderPath.isEmpty()) {
-        String[] pathParts = relativeFolderPath.split("/", -1);
-        String pathSoFar = "";
-        for (String part : pathParts) {
-          pathSoFar = pathSoFar.isEmpty() ? part : pathSoFar + "/" + part;
-          relativeFoldersToCreate.add(pathSoFar);
-        }
-      }
-    }
-
-    List<String> sortedRelativeFolders = new ArrayList<>(relativeFoldersToCreate);
-    sortedRelativeFolders.sort(
-        (a, b) -> Integer.compare(a.split("/", -1).length, b.split("/", -1).length));
-
-    for (String relativeFolder : sortedRelativeFolders) {
-      if (state.isUploadCancelled()) break;
-
-      String[] pathParts = relativeFolder.split("/", -1);
-      String folderName = pathParts[pathParts.length - 1];
-      String relativeParentPath =
-          pathParts.length > 1 ? relativeFolder.substring(0, relativeFolder.lastIndexOf("/")) : "";
-
-      String fullParentPath =
-          relativeParentPath.isEmpty()
-              ? state.getCurrentPathString()
-              : state.getCurrentPathString() + "/" + relativeParentPath;
-
-      String fullFolderPath = state.getCurrentPathString() + "/" + relativeFolder;
-
-      try {
-        smbRepository.createDirectory(state.getConnection(), fullParentPath, folderName);
-        createdFolders.add(fullFolderPath);
-        LogUtils.d("FileOperationsViewModel", "Created folder: " + fullFolderPath);
-      } catch (Exception e) {
-        LogUtils.d(
-            "FileOperationsViewModel",
-            "Folder creation skipped (may already exist): "
-                + fullFolderPath
-                + " - "
-                + e.getMessage());
+        PendingTransfer t = new PendingTransfer();
+        t.transferType = "UPLOAD";
+        t.localUri = file.getUri().toString();
+        t.remotePath = remoteBasePath + "/" + currentRelative;
+        t.connectionId = state.getConnection().getId();
+        t.displayName = fileName;
+        t.mimeType = file.getType();
+        t.fileSize = file.length();
+        t.bytesTransferred = 0;
+        t.status = "PENDING";
+        t.createdAt = System.currentTimeMillis();
+        t.updatedAt = System.currentTimeMillis();
+        t.batchId = batchId;
+        t.sortOrder = sortOrder++;
+        transfers.add(t);
       }
     }
   }
 
-  private void uploadSingleFileFromTask(
-      FileUploadTask task,
-      FileOperationCallbacks.FileExistsCallback fileExistsCallback,
-      FileOperationCallbacks.UploadCallback callback,
-      Integer currentFileIndex,
-      Integer totalFiles,
-      BackgroundSmbManager.MultiFileProgressCallback serviceProgress)
-      throws Exception {
-    boolean fileExists = smbRepository.fileExists(state.getConnection(), task.serverPath());
+  /**
+   * Enqueues all files from a remote SMB folder as individual downloads into the persistent
+   * transfer queue. Creates the local folder structure via SAF DocumentFile and enqueues each file
+   * as a separate DOWNLOAD transfer. Returns immediately — no blocking dialog.
+   *
+   * @param remoteFolderPath internal SMB path of the remote folder (without share name)
+   * @param destFolderUri SAF URI of the local destination folder
+   * @param folderName display name of the remote folder
+   * @return the generated batch ID for observing progress
+   */
+  public @NonNull String enqueueFolderDownload(
+      @NonNull String remoteFolderPath, @NonNull Uri destFolderUri, @NonNull String folderName) {
+    String batchId = UUID.randomUUID().toString();
 
-    if (fileExists && fileExistsCallback != null) {
-      LogUtils.d("FileOperationsViewModel", "File already exists on server: " + task.serverPath());
+    executor.execute(
+        () -> {
+          if (state.getConnection() == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue folder download: no connection");
+            return;
+          }
 
-      final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
-      final java.util.concurrent.atomic.AtomicBoolean shouldOverwrite =
-          new java.util.concurrent.atomic.AtomicBoolean(false);
-      final java.util.concurrent.atomic.AtomicBoolean userCancelled =
-          new java.util.concurrent.atomic.AtomicBoolean(false);
+          List<PendingTransfer> transfers = new ArrayList<>();
+          DocumentFile destDir = DocumentFile.fromTreeUri(context, destFolderUri);
+          if (destDir == null || !destDir.isDirectory()) {
+            LogUtils.w("FileOperationsViewModel", "Invalid destination folder: " + destFolderUri);
+            return;
+          }
 
-      Runnable confirmAction =
-          () -> {
-            shouldOverwrite.set(true);
-            latch.countDown();
-          };
-      Runnable cancelAction =
-          () -> {
-            userCancelled.set(true);
-            latch.countDown();
-          };
+          // Create subfolder in destination
+          DocumentFile subFolder = destDir.createDirectory(folderName);
+          if (subFolder == null) {
+            // Folder may already exist
+            subFolder = destDir.findFile(folderName);
+          }
+          if (subFolder == null) {
+            LogUtils.e(
+                "FileOperationsViewModel", "Cannot create destination subfolder: " + folderName);
+            return;
+          }
 
-      mainHandler.post(
-          () -> fileExistsCallback.onFileExists(task.fileName(), confirmAction, cancelAction));
+          scanRemoteFolderForDownloadQueue(remoteFolderPath, subFolder, transfers, batchId, 0);
 
-      boolean decisionMade = latch.await(60, java.util.concurrent.TimeUnit.SECONDS);
-      if (!decisionMade) throw new Exception("User decision timeout for file: " + task.fileName());
-      if (userCancelled.get())
-        throw new FileSkippedException("User chose to skip file: " + task.fileName());
-      if (!shouldOverwrite.get())
-        throw new Exception("Unexpected decision state for file: " + task.fileName());
+          if (transfers.isEmpty()) {
+            LogUtils.i("FileOperationsViewModel", "No files found in remote folder for download");
+            return;
+          }
 
-      smbRepository.deleteFile(state.getConnection(), task.serverPath());
-    }
-
-    File tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
-    try {
-      try (java.io.InputStream input =
-              context.getContentResolver().openInputStream(task.file().getUri());
-          java.io.FileOutputStream output = new java.io.FileOutputStream(tempFile)) {
-        if (input == null) throw new Exception("Cannot read file: " + task.fileName());
-        byte[] buffer = new byte[65536];
-        int bytesRead;
-        while ((bytesRead = input.read(buffer)) != -1) {
-          if (state.isUploadCancelled()) throw new Exception("Upload cancelled");
-          output.write(buffer, 0, bytesRead);
-        }
-      }
-
-      // Preserve original file's last modified timestamp on the temp file
-      try {
-        long lastModified = task.file().lastModified();
-        LogUtils.d(
-            "FileOperationsViewModel",
-            "Original file lastModified from task.file(): "
-                + lastModified
-                + " ("
-                + (lastModified > 0 ? new java.util.Date(lastModified).toString() : "ZERO")
-                + ")"
-                + ", task.file().getUri()="
-                + task.file().getUri());
-        if (lastModified > 0) {
-          boolean success = tempFile.setLastModified(lastModified);
-          LogUtils.d(
+          PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+          dao.insertAll(transfers);
+          LogUtils.i(
               "FileOperationsViewModel",
-              "setLastModified("
-                  + lastModified
-                  + ") on tempFile "
-                  + tempFile.getAbsolutePath()
-                  + " -> success="
-                  + success
-                  + ", verify: tempFile.lastModified()="
-                  + tempFile.lastModified()
-                  + " ("
-                  + new java.util.Date(tempFile.lastModified())
+              "Enqueued "
+                  + transfers.size()
+                  + " files for folder download (batch="
+                  + batchId
                   + ")");
-        } else {
-          LogUtils.w(
-              "FileOperationsViewModel",
-              "task.file().lastModified() returned 0, tempFile keeps current timestamp");
-        }
-      } catch (Exception e) {
-        LogUtils.w(
-            "FileOperationsViewModel",
-            "Could not preserve lastModified on temp file: " + e.getMessage());
-      }
 
-      if (currentFileIndex != null && totalFiles != null) {
-        BackgroundSmbManager.ProgressCallback progressCallback =
-            new BackgroundSmbManager.ProgressCallback() {
-              @Override
-              public void updateProgress(String progressInfo) {
-                int filePercentage = ProgressFormat.parsePercent(progressInfo);
-                final int overallPercentage =
-                    10
-                        + (int) ((currentFileIndex - 1) * (80.0 / totalFiles))
-                        + (int) ((filePercentage * (80.0 / totalFiles)) / 100);
+          startTransferWorker();
+        });
 
-                String progressMessage =
-                    ProgressFormat.formatIdx(
-                            "Uploading", currentFileIndex, totalFiles, task.fileName())
-                        + " • "
-                        + filePercentage
-                        + "%";
-
-                emitProgress(progressMessage, overallPercentage, task.fileName());
-                mainHandler.post(() -> callback.onProgress(progressMessage, overallPercentage));
-
-                if (serviceProgress != null) {
-                  serviceProgress.updateProgress(progressMessage);
-                }
-              }
-
-              @Override
-              public void updateBytesProgress(long currentBytes, long totalBytes, String fileName) {
-                if (callback != null) {
-                  String displayName = task.fileName();
-                  String status =
-                      ProgressFormat.formatIdx(
-                              "Uploading", currentFileIndex, totalFiles, displayName)
-                          + " • "
-                          + ProgressFormat.percentOfBytes(currentBytes, totalBytes)
-                          + "% ("
-                          + ProgressFormat.formatBytesOnly(currentBytes, totalBytes)
-                          + ")";
-
-                  int overallRaw =
-                      (int)
-                          Math.floor(
-                              ((currentFileIndex - 1) * 100.0
-                                      + ProgressFormat.percentOfBytes(currentBytes, totalBytes))
-                                  / totalFiles);
-
-                  emitProgress(status, overallRaw, displayName);
-
-                  mainHandler.post(() -> callback.onProgress(status, overallRaw));
-                }
-
-                if (serviceProgress != null) {
-                  serviceProgress.updateBytesProgress(currentBytes, totalBytes, task.fileName());
-                }
-              }
-            };
-
-        if (serviceProgress != null) {
-          serviceProgress.updateFileProgress(currentFileIndex, totalFiles, task.fileName());
-        }
-
-        smbRepository.uploadFileWithProgress(
-            state.getConnection(), tempFile, task.serverPath(), progressCallback);
-      } else {
-        smbRepository.uploadFile(state.getConnection(), tempFile, task.serverPath());
-      }
-    } finally {
-      cleanupLocalTempFile(tempFile, "individual file upload completion");
-    }
+    return batchId;
   }
 
-  private void cleanupIncompleteUpload(
-      List<String> createdFolders, List<String> uploadedServerPaths) {
+  /**
+   * Recursively scans a remote SMB folder and builds PendingTransfer entries for each file. Creates
+   * local SAF directories and documents as needed.
+   */
+  private void scanRemoteFolderForDownloadQueue(
+      String remotePath,
+      DocumentFile localDir,
+      List<PendingTransfer> transfers,
+      String batchId,
+      int sortOrderStart) {
     try {
-      LogUtils.d("FileOperationsViewModel", "Starting cleanup of incomplete upload");
+      List<SmbFileItem> items = smbRepository.listFiles(state.getConnection(), remotePath);
+      if (items == null) return;
 
-      for (String path : uploadedServerPaths) {
-        try {
-          smbRepository.deleteFile(state.getConnection(), path);
-          LogUtils.d("FileOperationsViewModel", "Cleaned up uploaded file: " + path);
-        } catch (Exception e) {
-          LogUtils.w(
-              "FileOperationsViewModel", "Could not clean up file " + path + ": " + e.getMessage());
+      int sortOrder = sortOrderStart;
+      for (SmbFileItem item : items) {
+        if (item.getName() == null) continue;
+
+        if (item.isDirectory()) {
+          // Create local subdirectory
+          DocumentFile subDir = localDir.createDirectory(item.getName());
+          if (subDir == null) {
+            subDir = localDir.findFile(item.getName());
+          }
+          if (subDir != null) {
+            scanRemoteFolderForDownloadQueue(item.getPath(), subDir, transfers, batchId, sortOrder);
+          }
+        } else {
+          // Create local file via SAF
+          String mimeType = "application/octet-stream";
+          DocumentFile localFile = localDir.createFile(mimeType, item.getName());
+          if (localFile == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot create local file: " + item.getName());
+            continue;
+          }
+
+          PendingTransfer t = new PendingTransfer();
+          t.transferType = "DOWNLOAD";
+          t.localUri = localFile.getUri().toString();
+          t.remotePath = item.getPath();
+          t.connectionId = state.getConnection().getId();
+          t.displayName = item.getName();
+          t.mimeType = mimeType;
+          t.fileSize = item.getSize();
+          t.bytesTransferred = 0;
+          t.status = "PENDING";
+          t.createdAt = System.currentTimeMillis();
+          t.updatedAt = System.currentTimeMillis();
+          t.batchId = batchId;
+          t.sortOrder = sortOrder++;
+          transfers.add(t);
         }
       }
-
-      Collections.reverse(createdFolders);
-      for (String folderPath : createdFolders) {
-        try {
-          smbRepository.deleteFile(state.getConnection(), folderPath);
-          LogUtils.d("FileOperationsViewModel", "Cleaned up created folder: " + folderPath);
-        } catch (Exception e) {
-          LogUtils.w(
-              "FileOperationsViewModel",
-              "Could not clean up folder " + folderPath + ": " + e.getMessage());
-        }
-      }
-
     } catch (Exception e) {
-      LogUtils.e("FileOperationsViewModel", "Error during cleanup: " + e.getMessage());
+      LogUtils.e(
+          "FileOperationsViewModel",
+          "Error scanning remote folder " + remotePath + ": " + e.getMessage());
     }
   }
 
-  record FileUploadTask(
-      DocumentFile file, String relativePath, String fileName, String serverPath) {}
+  /**
+   * Enqueues multiple files for download into the persistent transfer queue. Creates local SAF
+   * documents for each file in the destination folder. Returns immediately — no blocking dialog.
+   *
+   * @param files list of remote SMB files to download
+   * @param destFolderUri SAF URI of the local destination folder
+   * @return the generated batch ID for observing progress
+   */
+  public @NonNull String enqueueMultiFileDownload(
+      @NonNull List<SmbFileItem> files, @NonNull Uri destFolderUri) {
+    String batchId = UUID.randomUUID().toString();
 
-  private static class FileSkippedException extends Exception {
-    FileSkippedException(String message) {
-      super(message);
-    }
+    executor.execute(
+        () -> {
+          if (state.getConnection() == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue multi-download: no connection");
+            return;
+          }
+
+          DocumentFile destDir = DocumentFile.fromTreeUri(context, destFolderUri);
+          if (destDir == null || !destDir.isDirectory()) {
+            LogUtils.w("FileOperationsViewModel", "Invalid destination folder: " + destFolderUri);
+            return;
+          }
+
+          PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+          List<PendingTransfer> transfers = new ArrayList<>();
+          int sortOrder = 0;
+
+          for (SmbFileItem file : files) {
+            if (file == null || file.getName() == null || !file.isFile()) continue;
+
+            String mimeType = "application/octet-stream";
+            DocumentFile localFile = destDir.createFile(mimeType, file.getName());
+            if (localFile == null) {
+              LogUtils.w("FileOperationsViewModel", "Cannot create local file: " + file.getName());
+              continue;
+            }
+
+            PendingTransfer t = new PendingTransfer();
+            t.transferType = "DOWNLOAD";
+            t.localUri = localFile.getUri().toString();
+            t.remotePath = file.getPath();
+            t.connectionId = state.getConnection().getId();
+            t.displayName = file.getName();
+            t.mimeType = mimeType;
+            t.fileSize = file.getSize();
+            t.bytesTransferred = 0;
+            t.status = "PENDING";
+            t.createdAt = System.currentTimeMillis();
+            t.updatedAt = System.currentTimeMillis();
+            t.batchId = batchId;
+            t.sortOrder = sortOrder++;
+            transfers.add(t);
+          }
+
+          if (transfers.isEmpty()) {
+            LogUtils.i("FileOperationsViewModel", "No files to enqueue for multi-download");
+            return;
+          }
+
+          dao.insertAll(transfers);
+          LogUtils.i(
+              "FileOperationsViewModel",
+              "Enqueued " + transfers.size() + " files for multi-download (batch=" + batchId + ")");
+
+          startTransferWorker();
+        });
+
+    return batchId;
+  }
+
+  /**
+   * Enqueues a single file download into the persistent transfer queue and starts the
+   * TransferWorker. Returns immediately — no blocking dialog.
+   *
+   * <p>The caller must create the target SAF document before calling this method (e.g. via {@code
+   * DocumentsContract.createDocument()}) and pass the resulting URI as {@code targetUri}.
+   *
+   * @param targetUri SAF URI of the local target file (already created)
+   * @param remotePath internal SMB path (without share name)
+   * @param displayName human-readable file name for the queue UI
+   * @param fileSize file size in bytes (0 if unknown)
+   * @param batchId batch identifier grouping related transfers
+   */
+  public void enqueueDownload(
+      @NonNull Uri targetUri,
+      @NonNull String remotePath,
+      @NonNull String displayName,
+      long fileSize,
+      @NonNull String batchId) {
+    executor.execute(
+        () -> {
+          if (state.getConnection() == null) {
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue download: no connection");
+            return;
+          }
+
+          PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+
+          PendingTransfer transfer = new PendingTransfer();
+          transfer.transferType = "DOWNLOAD";
+          transfer.localUri = targetUri.toString();
+          transfer.remotePath = remotePath;
+          transfer.connectionId = state.getConnection().getId();
+          transfer.displayName = displayName;
+          transfer.fileSize = fileSize;
+          transfer.bytesTransferred = 0;
+          transfer.status = "PENDING";
+          transfer.createdAt = System.currentTimeMillis();
+          transfer.updatedAt = System.currentTimeMillis();
+          transfer.batchId = batchId;
+
+          long id = dao.insert(transfer);
+          LogUtils.i(
+              "FileOperationsViewModel",
+              "Enqueued download #" + id + ": " + displayName + " (" + fileSize + " bytes)");
+
+          startTransferWorker();
+        });
+  }
+
+  /**
+   * Starts the TransferWorker via WorkManager. Uses KEEP policy so that a running worker is NOT
+   * cancelled when new transfers are enqueued. The worker loops internally to pick up newly added
+   * transfers from the DB.
+   */
+  void startTransferWorker() {
+    OneTimeWorkRequest request =
+        new OneTimeWorkRequest.Builder(TransferWorker.class)
+            .setConstraints(
+                new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build();
+
+    WorkManager.getInstance(context)
+        .enqueueUniqueWork("transfer_queue", ExistingWorkPolicy.KEEP, request);
+    LogUtils.d("FileOperationsViewModel", "TransferWorker enqueued (KEEP policy)");
   }
 
   @Override

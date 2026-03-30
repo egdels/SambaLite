@@ -28,7 +28,6 @@ import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.ui.utils.UIHelper;
 import de.schliweb.sambalite.util.LogUtils;
-import lombok.Setter;
 
 /**
  * Controller for managing progress dialogs, indicators, and progress tracking. This controller
@@ -42,15 +41,12 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
 
   private final Activity activity;
   private final LoadingIndicator loadingIndicator;
-  @Setter private SearchCancellationCallback searchCancellationCallback;
   // Progress dialog for detailed download/upload progress
   private AlertDialog progressDialog;
   private ProgressBar progressBar;
   private TextView progressMessage;
   private TextView progressPercentage;
   private TextView progressDetails;
-  // Search progress dialog
-  private AlertDialog searchProgressDialog;
 
   // If a cancel action is provided before the dialog is visible (lazy-open case),
   // cache it here and apply as soon as the dialog is shown.
@@ -479,13 +475,11 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
                 .setPositiveButton(
                     R.string.overwrite,
                     (dialog, which) -> {
-                      // User confirmed overwrite — re-show progress dialog for the upload
+                      // User confirmed overwrite — run the confirm action (queue-based, no dialog
+                      // needed)
                       LogUtils.d(
                           "ProgressController",
                           "User confirmed overwrite for file: " + finalFileName);
-                      showDetailedProgressDialog(
-                          activity.getString(R.string.uploading),
-                          activity.getString(R.string.please_wait));
                       finalConfirmAction.run();
                     })
                 .setNegativeButton(
@@ -636,101 +630,6 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
         });
   }
 
-  /** Shows a search progress dialog. */
-  public void showSearchProgressDialog() {
-    LogUtils.d("ProgressController", "Showing search progress dialog");
-
-    if (!isActivitySafe()) return;
-
-    // Ensure this runs on the UI thread
-    activity.runOnUiThread(
-        () -> {
-          try {
-            if (searchProgressDialog != null && searchProgressDialog.isShowing()) {
-              searchProgressDialog.dismiss();
-            }
-
-            // Inflate custom progress dialog layout
-            View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
-
-            TextView titleView = dialogView.findViewById(R.id.progress_title);
-            TextView progressMessage = dialogView.findViewById(R.id.progress_message);
-            TextView progressPercentage = dialogView.findViewById(R.id.progress_percentage);
-            TextView progressDetails = dialogView.findViewById(R.id.progress_details);
-            ProgressBar searchProgressBar = dialogView.findViewById(R.id.progress_bar);
-
-            titleView.setText(activity.getString(R.string.search_title));
-            progressMessage.setText(activity.getString(R.string.searching_files));
-            progressPercentage.setText("");
-            progressDetails.setText("");
-
-            // Hide the progress bar for search – only text progress is shown
-            searchProgressBar.setVisibility(View.GONE);
-
-            MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(activity);
-            builder.setView(dialogView).setCancelable(false);
-
-            // Add cancel button for search
-            builder.setNegativeButton(
-                R.string.cancel,
-                (dialog, which) -> {
-                  LogUtils.d(
-                      "ProgressController",
-                      "User requested search cancellation from progress dialog");
-                  // Call the search cancellation callback if it's set
-                  if (searchCancellationCallback != null) {
-                    searchCancellationCallback.onSearchCancelled();
-                    LogUtils.d("ProgressController", "Search cancellation callback invoked");
-                  } else {
-                    LogUtils.w("ProgressController", "Search cancellation callback not set");
-                  }
-                });
-
-            searchProgressDialog = builder.create();
-            searchProgressDialog.show();
-
-            LogUtils.d("ProgressController", "Search progress dialog shown");
-          } catch (Exception e) {
-            LogUtils.e(
-                "ProgressController", "Error showing search progress dialog: " + e.getMessage());
-          }
-        });
-  }
-
-  /**
-   * Updates the message displayed in the search progress dialog.
-   *
-   * @param message the progress message to display
-   */
-  public void updateSearchProgressMessage(@NonNull String message) {
-    if (!isActivitySafe()) return;
-
-    activity.runOnUiThread(
-        () -> {
-          if (searchProgressDialog != null && searchProgressDialog.isShowing()) {
-            TextView progressDetails = searchProgressDialog.findViewById(R.id.progress_details);
-            if (progressDetails != null) {
-              progressDetails.setText(message);
-            }
-          }
-        });
-  }
-
-  /** Hides the search progress dialog. */
-  public void hideSearchProgressDialog() {
-    if (!isActivitySafe()) return;
-
-    // Ensure this runs on the UI thread
-    activity.runOnUiThread(
-        () -> {
-          if (searchProgressDialog != null && searchProgressDialog.isShowing()) {
-            searchProgressDialog.dismiss();
-            searchProgressDialog = null;
-            LogUtils.d("ProgressController", "Search progress dialog hidden");
-          }
-        });
-  }
-
   /**
    * Closes all active dialogs to prevent window leaks. This should be called in the activity's
    * onDestroy method.
@@ -746,12 +645,6 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
               progressDialog.dismiss();
               resetUiProgressCache();
               progressDialog = null;
-            }
-
-            if (searchProgressDialog != null && searchProgressDialog.isShowing()) {
-              LogUtils.d("ProgressController", "Closing search progress dialog");
-              searchProgressDialog.dismiss();
-              searchProgressDialog = null;
             }
 
             // Also hide loading indicator
@@ -845,11 +738,5 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
       }
     }
     return true;
-  }
-
-  /** Callback interface for search cancellation. */
-  public interface SearchCancellationCallback {
-    /** Called when the user cancels a search operation. */
-    void onSearchCancelled();
   }
 }

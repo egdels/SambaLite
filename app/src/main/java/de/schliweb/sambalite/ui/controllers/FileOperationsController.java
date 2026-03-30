@@ -18,11 +18,12 @@ import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.transfer.db.PendingTransferDao;
+import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationCallbacks;
 import de.schliweb.sambalite.ui.operations.FileOperations;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
-import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.File;
 import java.util.ArrayList;
@@ -193,565 +194,393 @@ public class FileOperationsController {
   // ---- File operations ----
   public void handleFileDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null) return;
-    final long downloadStartTime = System.currentTimeMillis();
-    final String displayName = uiState.getSelectedFile().getName();
-    final String opTitle = titleFor(OPERATION_DOWNLOAD, displayName);
+    SmbFileItem file = uiState.getSelectedFile();
+    String displayName = file.getName();
+    String remotePath = file.getPath();
+    long fileSize = file.getSize();
 
-    final AtomicBoolean cancelFinalize = new AtomicBoolean(false);
+    // Enqueue into persistent transfer queue — no blocking dialog
+    operationsViewModel.enqueueDownload(
+        uri, remotePath, displayName, fileSize, java.util.UUID.randomUUID().toString());
 
-    showProgressShell(
-        OPERATION_DOWNLOAD,
-        opTitle,
-        () -> {
-          cancelFinalize.set(true);
-          operationsViewModel.cancelDownload();
-        });
-
-    backgroundSmbManager.executeMultiFileOperation(
-        "fileDownload:" + System.currentTimeMillis(),
-        opTitle,
-        cb -> {
-          try {
-            cb.updateFileProgress(1, 1, displayName);
-
-            File tempFile;
-            try {
-              tempFile = File.createTempFile("download", ".tmp", context.getCacheDir());
-              uiState.setTempFile(tempFile);
-            } catch (Exception e) {
-              // Early failure creating temp file: report and bail out gracefully
-              if (progressCallback != null) {
-                progressCallback.showError(
-                    context.getString(de.schliweb.sambalite.R.string.download_error),
-                    context.getString(
-                        de.schliweb.sambalite.R.string.failed_to_download_file_with_reason,
-                        e.getMessage()));
-              }
-              return Boolean.TRUE;
-            }
-
-            final java.util.concurrent.CountDownLatch done =
-                new java.util.concurrent.CountDownLatch(1);
-
-            FileOperationCallbacks.ProgressCallback fileProgress =
-                new FileOperationCallbacks.ProgressCallback() {
-                  @Override
-                  public void updateFileProgress(
-                      int currentFile, int totalFiles, String currentFileName) {
-                    /* single file */
-                  }
-
-                  @Override
-                  public void updateBytesProgress(
-                      long currentBytes, long totalBytes, String fileName) {
-                    int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
-                    String status =
-                        ProgressFormat.formatBytes(
-                            ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
-                    updateOperationProgress(
-                        OPERATION_DOWNLOAD, uiState.getSelectedFile(), null, pct, status);
-                    cb.updateBytesProgress(currentBytes, totalBytes, displayName);
-                  }
-
-                  @Override
-                  public void updateProgress(String progressInfo) {
-                    int p = ProgressFormat.parsePercent(progressInfo);
-                    updateOperationProgress(
-                        OPERATION_DOWNLOAD, uiState.getSelectedFile(), null, p, progressInfo);
-                    cb.updateProgress(progressInfo);
-                  }
-                };
-
-            FileOperationCallbacks.DownloadCallback inner =
-                createFileDownloadCallbackWithNotification(
-                    tempFile, uri, uiState.getSelectedFile(), cancelFinalize, cb, done);
-
-            FileOperationCallbacks.DownloadCallback wrapped =
-                new FileOperationCallbacks.DownloadCallback() {
-                  @Override
-                  public void onProgress(String status, int percentage) {
-                    inner.onProgress(status, percentage);
-                  }
-
-                  @Override
-                  public void onResult(boolean success, String message) {
-                    long durationMs = System.currentTimeMillis() - downloadStartTime;
-                    long fileSize = tempFile.exists() ? tempFile.length() : 0;
-                    LogUtils.i(
-                        "FileOperationsController",
-                        "Single file download completed: "
-                            + displayName
-                            + ", success="
-                            + success
-                            + ", duration="
-                            + durationMs
-                            + "ms"
-                            + ", size="
-                            + fileSize
-                            + " bytes");
-                    if (!success) {
-                      // On failure, inner.onResult handles the error and there is
-                      // no async copy phase, so we can release the latch immediately.
-                      inner.onResult(success, message);
-                      done.countDown();
-                    } else {
-                      // On success, inner.onResult starts the async copy phase.
-                      // Do NOT countDown here — the latch will be released by the
-                      // copy-phase onDone/onError callbacks so the outer service
-                      // operation stays alive and the progress dialog is not hidden.
-                      inner.onResult(success, message);
-                    }
-                  }
-                };
-
-            operationsViewModel.downloadFile(
-                uiState.getSelectedFile(), tempFile, wrapped, fileProgress);
-
-            done.await();
-          } finally {
-            uiState.setTempFile(null);
-            // Don't hide the progress dialog here — the isAnyOperationActive LiveData
-            // observer will hide it when all operations (including the copy/finalize
-            // phase) are complete. Hiding here caused a flicker: dialog hidden, then
-            // immediately re-shown by the observer because the copy was still active.
-          }
-          return Boolean.TRUE;
-        });
+    if (progressCallback != null) {
+      progressCallback.showSuccess(
+          context.getString(de.schliweb.sambalite.R.string.transfer_added_to_queue));
+    }
+    LogUtils.i("FileOperationsController", "Enqueued single file download: " + displayName);
   }
 
   public void handleFolderDownload(@NonNull Uri uri) {
     if (uiState.getSelectedFile() == null || !uiState.getSelectedFile().isDirectory()) return;
 
+    // Best-effort: persist read/write permission to the chosen destination folder
+    try {
+      final int flags =
+          android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+              | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+      context.getContentResolver().takePersistableUriPermission(uri, flags);
+    } catch (Exception e) {
+      de.schliweb.sambalite.util.LogUtils.w(
+          "FileOperationsController", "Persistable URI permission failed: " + e.getMessage());
+    }
+
     // Remember the chosen folder so the picker opens here next time
     de.schliweb.sambalite.ui.utils.PreferenceUtils.setLastDownloadFolderUri(context, uri);
 
-    final String folderName = uiState.getSelectedFile().getName();
-    final String opTitle = titleFor(OPERATION_DOWNLOAD, folderName);
+    SmbFileItem folder = uiState.getSelectedFile();
+    String folderName = folder.getName();
+    String remotePath = folder.getPath();
 
-    final AtomicBoolean cancelFinalize = new AtomicBoolean(false);
+    // Enqueue into persistent transfer queue — no blocking dialog
+    operationsViewModel.enqueueFolderDownload(remotePath, uri, folderName);
 
-    showProgressShell(
-        OPERATION_DOWNLOAD,
-        opTitle,
-        () -> {
-          cancelFinalize.set(true);
-          operationsViewModel.cancelDownload();
-        });
-
-    final DocumentFile destFolder;
-    final File tempFolder;
-    try {
-      destFolder = createDestinationFolder(uri);
-      tempFolder = createTempFolder();
-      uiState.setTempFile(tempFolder);
-    } catch (Exception e) {
-      showError(
-          context.getString(de.schliweb.sambalite.R.string.download_error),
-          e.getMessage() != null
-              ? e.getMessage()
-              : context.getString(
-                  de.schliweb.sambalite.R.string.download_error_invalid_destination));
-      try {
-        if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-      } catch (Throwable ignored) {
-      }
-      return;
+    if (progressCallback != null) {
+      progressCallback.showSuccess(
+          context.getString(de.schliweb.sambalite.R.string.transfer_added_to_queue));
     }
-
-    var unused =
-        backgroundSmbManager.executeMultiFileOperation(
-            "folderDownload:" + System.currentTimeMillis(),
-            opTitle,
-            cb -> {
-              final java.util.concurrent.CountDownLatch done =
-                  new java.util.concurrent.CountDownLatch(1);
-
-              FileOperationCallbacks.ProgressCallback folderProgress =
-                  new FileOperationCallbacks.ProgressCallback() {
-                    @Override
-                    public void updateFileProgress(
-                        int currentFile, int totalFiles, String currentFileName) {
-                      int pct = totalFiles > 0 ? (currentFile * 100) / totalFiles : 0;
-                      String status =
-                          ProgressFormat.formatIdx(
-                              ProgressFormat.Op.DOWNLOAD.label(),
-                              currentFile,
-                              totalFiles,
-                              currentFileName);
-                      updateOperationProgress(
-                          OPERATION_DOWNLOAD,
-                          uiState.getSelectedFile(),
-                          currentFileName,
-                          pct,
-                          status);
-                      cb.updateFileProgress(
-                          currentFile, totalFiles, currentFileName); // <-- 3 Parameter
-                    }
-
-                    @Override
-                    public void updateBytesProgress(
-                        long currentBytes, long totalBytes, String fileName) {
-                      int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
-                      String status =
-                          ProgressFormat.formatBytes(
-                              ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
-                      updateOperationProgress(
-                          OPERATION_DOWNLOAD, uiState.getSelectedFile(), fileName, pct, status);
-                      cb.updateBytesProgress(currentBytes, totalBytes, fileName);
-                    }
-
-                    @Override
-                    public void updateProgress(String progressInfo) {
-                      updateOperationProgress(
-                          OPERATION_DOWNLOAD,
-                          uiState.getSelectedFile(),
-                          null,
-                          ProgressFormat.parsePercent(progressInfo),
-                          progressInfo);
-                      cb.updateProgress(progressInfo);
-                    }
-                  };
-
-              FileOperationCallbacks.DownloadCallback inner =
-                  createFolderDownloadCallbackWithNotification(
-                      tempFolder, destFolder, uiState.getSelectedFile(), cancelFinalize, cb);
-              FileOperationCallbacks.DownloadCallback wrapped =
-                  new FileOperationCallbacks.DownloadCallback() {
-                    @Override
-                    public void onProgress(String status, int percentage) {
-                      inner.onProgress(status, percentage);
-                    }
-
-                    @Override
-                    public void onResult(boolean success, String message) {
-                      try {
-                        inner.onResult(success, message);
-                      } finally {
-                        done.countDown();
-                      }
-                    }
-                  };
-
-              operationsViewModel.downloadFolder(
-                  uiState.getSelectedFile(), tempFolder, wrapped, folderProgress);
-
-              done.await();
-              // Clear temp reference after operation completes; deletion handled in callbacks
-              try {
-                uiState.setTempFile(null);
-              } catch (Throwable ignored) {
-              }
-              // As a safety net, ensure the progress dialog is hidden after folder download
-              // completes
-              try {
-                if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-              } catch (Throwable ignored) {
-              }
-              return Boolean.TRUE;
-            });
+    LogUtils.i("FileOperationsController", "Enqueued folder download: " + folderName);
   }
 
   public void handleFileUpload(@NonNull Uri uri) {
-    final long uploadStartTime = System.currentTimeMillis();
-    // Best-effort ensure the app holds read grant for the URI before background staging
     trySelfGrantRead(uri);
     final String fileNameFromUri = getFileNameFromUri(uri);
     final String fileName =
         fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
-    final String opTitle = titleFor(OPERATION_UPLOAD, fileName);
+    String remotePath = buildRemotePath(fileName);
+    long fileSize = getFileSizeFromUri(uri);
+    String batchId = java.util.UUID.randomUUID().toString();
 
-    // Do NOT show progress dialog yet — first check if the file already exists on the server.
-    // The progress dialog will be shown only after the user confirms (or if the file is new).
+    // Check for duplicate in queue and file existence on server before enqueuing
+    new Thread(
+            () -> {
+              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+              boolean alreadyQueued = dao.countActiveForPath(remotePath) > 0;
+              boolean existsOnServer = operationsViewModel.checkFileExists(remotePath);
 
-    var unused =
-        backgroundSmbManager.executeMultiFileOperation(
-            "fileUpload:" + System.currentTimeMillis(),
-            opTitle,
-            cb -> {
-              cb.updateFileProgress(1, 1, fileName);
-
-              // Check if the remote file already exists BEFORE copying the file to cache
-              String remotePath = buildRemotePath(fileName);
-              backgroundSmbManager.ensureServiceRunning();
-              boolean fileExists = operationsViewModel.checkFileExists(remotePath);
-
-              if (fileExists) {
-                // Ask the user for confirmation on the main thread and wait for the answer
-                final java.util.concurrent.CountDownLatch confirmLatch =
-                    new java.util.concurrent.CountDownLatch(1);
-                final java.util.concurrent.atomic.AtomicBoolean userConfirmed =
-                    new java.util.concurrent.atomic.AtomicBoolean(false);
-
-                android.os.Handler mainHandler =
-                    new android.os.Handler(android.os.Looper.getMainLooper());
-                mainHandler.post(
-                    () -> {
-                      FileOperationCallbacks.FileExistsCallback feCallback =
-                          createFileExistsCallback();
-                      feCallback.onFileExists(
-                          fileName,
-                          () -> {
-                            userConfirmed.set(true);
-                            confirmLatch.countDown();
-                          },
-                          () -> {
-                            userConfirmed.set(false);
-                            confirmLatch.countDown();
-                          });
-                    });
-
-                confirmLatch.await();
-
-                if (!userConfirmed.get()) {
-                  // User cancelled — report cancellation
-                  LogUtils.d(
-                      "FileOperationsController",
-                      "User cancelled upload of existing file: " + fileName);
-                  String msg =
-                      context.getString(de.schliweb.sambalite.R.string.upload_cancelled_by_user);
-                  android.os.Handler handler =
-                      new android.os.Handler(android.os.Looper.getMainLooper());
-                  handler.post(
+              new android.os.Handler(android.os.Looper.getMainLooper())
+                  .post(
                       () -> {
-                        handleOperationError(OPERATION_UPLOAD, null, msg, null, false, null);
+                        if (alreadyQueued) {
+                          // Show duplicate confirmation dialog
+                          showDuplicateQueueDialog(
+                              fileName,
+                              () -> {
+                                if (existsOnServer) {
+                                  showOverwriteDialog(
+                                      fileName,
+                                      () ->
+                                          enqueueAndNotify(
+                                              uri,
+                                              remotePath,
+                                              fileName,
+                                              fileSize,
+                                              batchId,
+                                              "overwrite+duplicate"));
+                                } else {
+                                  enqueueAndNotify(
+                                      uri,
+                                      remotePath,
+                                      fileName,
+                                      fileSize,
+                                      batchId,
+                                      "duplicate-confirmed");
+                                }
+                              });
+                        } else if (existsOnServer) {
+                          showOverwriteDialog(
+                              fileName,
+                              () ->
+                                  enqueueAndNotify(
+                                      uri, remotePath, fileName, fileSize, batchId, "overwrite"));
+                        } else {
+                          enqueueAndNotify(uri, remotePath, fileName, fileSize, batchId, null);
+                        }
                       });
-                  return Boolean.TRUE;
-                }
-              }
+            })
+        .start();
+  }
 
-              // Now show the progress dialog (file is new or user confirmed overwrite)
-              showProgressShell(
-                  OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+  /** Enqueues an upload and shows a success notification. */
+  private void enqueueAndNotify(
+      Uri uri,
+      String remotePath,
+      String fileName,
+      long fileSize,
+      String batchId,
+      @Nullable String reason) {
+    operationsViewModel.enqueueUpload(uri, remotePath, fileName, fileSize, batchId);
+    showSuccess(context.getString(de.schliweb.sambalite.R.string.transfer_added_to_queue));
+    String suffix = reason != null ? " (" + reason + ")" : "";
+    LogUtils.i(
+        "FileOperationsController", "Enqueued single file upload" + suffix + ": " + fileName);
+  }
 
-              File tempFile = null;
-              try {
-                tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
-                uiState.setTempFile(tempFile);
-                String stagingMsg =
-                    context.getString(de.schliweb.sambalite.R.string.preparing_upload_staging_file);
-                cb.updateProgress(stagingMsg);
-                FileOperations.copyUriToFile(
-                    uri,
-                    tempFile,
-                    context,
-                    (copiedBytes, totalBytes, pct) -> {
-                      String status =
-                          ProgressFormat.formatBytes(stagingMsg, copiedBytes, totalBytes);
-                      cb.updateProgress(status + " - " + fileName);
-                    });
-              } catch (Exception ex) {
-                if (tempFile != null) tempFile.delete();
-                uiState.setTempFile(null);
+  /** Shows a dialog asking the user to confirm re-uploading a file already in the queue. */
+  private void showDuplicateQueueDialog(String fileName, Runnable confirmAction) {
+    if (progressCallback == null) return;
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+        .setTitle(de.schliweb.sambalite.R.string.transfer_already_queued_title)
+        .setMessage(
+            context.getString(
+                de.schliweb.sambalite.R.string.transfer_already_queued_message, fileName))
+        .setPositiveButton(
+            de.schliweb.sambalite.R.string.transfer_already_queued_confirm,
+            (dialog, which) -> confirmAction.run())
+        .setNegativeButton(
+            de.schliweb.sambalite.R.string.cancel,
+            (dialog, which) ->
+                LogUtils.i(
+                    "FileOperationsController",
+                    "Upload cancelled by user (already queued): " + fileName))
+        .setCancelable(false)
+        .show();
+  }
 
-                cb.updateProgress(
-                    context.getString(
-                        de.schliweb.sambalite.R.string.staging_failed_with_reason,
-                        ex.getMessage()));
-                throw ex;
-              }
-
-              final java.util.concurrent.CountDownLatch done =
-                  new java.util.concurrent.CountDownLatch(1);
-
-              FileOperationCallbacks.UploadCallback inner =
-                  createUploadCallbackWithNotification(null, fileName);
-              File finalTempFile = tempFile;
-              FileOperationCallbacks.UploadCallback wrapped =
-                  new FileOperationCallbacks.UploadCallback() {
-                    @Override
-                    public void onProgress(String status, int percentage) {
-                      inner.onProgress(status, percentage);
-                      cb.updateProgress(
-                          status
-                              + (fileName != null && !fileName.isEmpty() ? " - " + fileName : ""));
-                    }
-
-                    @Override
-                    public void onResult(boolean success, String message) {
-                      try {
-                        inner.onResult(success, message);
-                      } finally {
-                        long durationMs = System.currentTimeMillis() - uploadStartTime;
-                        long fileSize =
-                            finalTempFile != null && finalTempFile.exists()
-                                ? finalTempFile.length()
-                                : 0;
-                        LogUtils.i(
-                            "FileOperationsController",
-                            "Single file upload completed: "
-                                + fileName
-                                + ", success="
-                                + success
-                                + ", duration="
-                                + durationMs
-                                + "ms"
-                                + ", size="
-                                + fileSize
-                                + " bytes");
-                        if (finalTempFile != null) finalTempFile.delete();
-                        uiState.setTempFile(null);
-                        done.countDown();
-                      }
-                    }
-                  };
-
-              // Upload without file-exists check since we already handled it above
-              operationsViewModel.performUpload(tempFile, remotePath, wrapped, fileName);
-
-              done.await();
-              return Boolean.TRUE;
-            });
+  /** Shows the file-exists overwrite confirmation dialog. */
+  private void showOverwriteDialog(String fileName, Runnable confirmAction) {
+    if (progressCallback != null) {
+      progressCallback.showFileExistsDialog(
+          fileName,
+          confirmAction,
+          () ->
+              LogUtils.i(
+                  "FileOperationsController",
+                  "Upload cancelled by user (file exists): " + fileName));
+    }
   }
 
   public void handleFolderContentsUpload(@NonNull Uri folderUri) {
     DocumentFile docFolder = DocumentFile.fromTreeUri(context, folderUri);
     String folderName = getDocumentFileName(docFolder, "folder");
-    final String opTitle = titleFor(OPERATION_UPLOAD, folderName);
-    LogUtils.d("FileOperationsController", "Starting folder contents upload: " + folderName);
 
-    if (progressCallback != null) progressCallback.setZipButtonsEnabled(false);
-    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+    // Scan folder and check for existing files on a background thread
+    new Thread(
+            () -> {
+              if (docFolder == null || !docFolder.isDirectory()) {
+                LogUtils.w("FileOperationsController", "Invalid folder URI: " + folderUri);
+                return;
+              }
 
-    var unused =
-        backgroundSmbManager.executeMultiFileOperation(
-            "folderContentsUpload:" + System.currentTimeMillis(),
-            opTitle,
-            cb -> {
-              final java.util.concurrent.CountDownLatch done =
-                  new java.util.concurrent.CountDownLatch(1);
+              // Collect all files from the folder recursively
+              String basePath = fileListViewModel.getCurrentPathInternal();
+              if (basePath == null) basePath = "";
+              java.util.List<FileToUpload> allFiles = new java.util.ArrayList<>();
+              scanFolderFiles(docFolder, basePath, "", allFiles);
 
-              FileOperationCallbacks.UploadCallback inner =
-                  createFolderContentsUploadCallbackWithNotification(folderName);
+              if (allFiles.isEmpty()) {
+                new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(
+                        () ->
+                            showSuccess(
+                                context.getString(
+                                    de.schliweb.sambalite.R.string.transfer_added_to_queue)));
+                return;
+              }
 
-              FileOperationCallbacks.UploadCallback wrapped =
-                  new FileOperationCallbacks.UploadCallback() {
-                    @Override
-                    public void onProgress(String status, int percentage) {
-                      inner.onProgress(status, percentage);
-                    }
+              // Check which files already exist on the server or are already queued
+              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+              java.util.List<FileToUpload> existingFiles = new java.util.ArrayList<>();
+              java.util.List<FileToUpload> queuedFiles = new java.util.ArrayList<>();
+              for (FileToUpload f : allFiles) {
+                if (dao.countActiveForPath(f.remotePath) > 0) {
+                  queuedFiles.add(f);
+                }
+                if (operationsViewModel.checkFileExists(f.remotePath)) {
+                  existingFiles.add(f);
+                }
+              }
 
-                    @Override
-                    public void onResult(boolean success, String message) {
-                      try {
-                        inner.onResult(success, message);
-                      } finally {
-                        done.countDown();
-                      }
-                    }
-                  };
+              new android.os.Handler(android.os.Looper.getMainLooper())
+                  .post(
+                      () -> {
+                        // Determine which conflicts to show
+                        boolean hasQueued = !queuedFiles.isEmpty();
+                        boolean hasExisting = !existingFiles.isEmpty();
 
-              operationsViewModel.uploadFolderContentsFromUri(
-                  folderUri, wrapped, cb, createFileExistsCallback());
+                        Runnable doEnqueue =
+                            () -> {
+                              String batchId = operationsViewModel.enqueueFolderUpload(folderUri);
+                              showSuccess(
+                                  context.getString(
+                                      de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                              LogUtils.i(
+                                  "FileOperationsController",
+                                  "Enqueued folder upload: "
+                                      + folderName
+                                      + " (batch="
+                                      + batchId
+                                      + ")");
+                            };
 
-              done.await();
-              return Boolean.TRUE;
-            });
+                        if (hasQueued) {
+                          String queuedNames = buildConflictNames(queuedFiles);
+                          showDuplicateQueueDialog(
+                              queuedNames,
+                              () -> {
+                                if (hasExisting) {
+                                  String existNames = buildConflictNames(existingFiles);
+                                  showOverwriteDialog(existNames, doEnqueue);
+                                } else {
+                                  doEnqueue.run();
+                                }
+                              });
+                        } else if (hasExisting) {
+                          String existNames = buildConflictNames(existingFiles);
+                          showOverwriteDialog(existNames, doEnqueue);
+                        } else {
+                          doEnqueue.run();
+                        }
+                      });
+            })
+        .start();
   }
 
-  /** Batch upload multiple URIs within one service operation. Files are processed sequentially. */
+  /** Builds a display string of conflicting file names (max 3 + count). */
+  private static String buildConflictNames(java.util.List<FileToUpload> files) {
+    StringBuilder names = new StringBuilder();
+    for (int i = 0; i < files.size(); i++) {
+      if (i > 0) names.append(", ");
+      if (i >= 3) {
+        names.append("… (+").append(files.size() - 3).append(")");
+        break;
+      }
+      names.append(files.get(i).displayName);
+    }
+    return files.size() == 1 ? files.get(0).displayName : names.toString();
+  }
+
+  /** Helper class to hold file info during folder scan for existence check. */
+  private static class FileToUpload {
+    final Uri uri;
+    final String remotePath;
+    final String displayName;
+    final long fileSize;
+
+    FileToUpload(Uri uri, String remotePath, String displayName, long fileSize) {
+      this.uri = uri;
+      this.remotePath = remotePath;
+      this.displayName = displayName;
+      this.fileSize = fileSize;
+    }
+  }
+
+  /** Recursively scans a DocumentFile folder and collects file info for existence checking. */
+  private void scanFolderFiles(
+      DocumentFile folder,
+      String remoteBasePath,
+      String relativePath,
+      java.util.List<FileToUpload> result) {
+    DocumentFile[] files = folder.listFiles();
+    if (files == null) return;
+
+    for (DocumentFile file : files) {
+      String fileName = file.getName();
+      if (fileName == null) continue;
+
+      String currentRelative = relativePath.isEmpty() ? fileName : relativePath + "/" + fileName;
+
+      if (file.isDirectory()) {
+        scanFolderFiles(file, remoteBasePath, currentRelative, result);
+      } else if (file.isFile()) {
+        String remotePath =
+            remoteBasePath.isEmpty() ? currentRelative : remoteBasePath + "/" + currentRelative;
+        result.add(new FileToUpload(file.getUri(), remotePath, fileName, file.length()));
+      }
+    }
+  }
+
+  /** Batch upload multiple URIs. Files are enqueued into the persistent transfer queue. */
   public void handleMultipleFileUploads(@NonNull java.util.List<Uri> uris) {
     handleMultipleFileUploads(uris, null);
   }
 
   /**
    * Batch upload multiple URIs to a specific target directory. If {@code targetDirectoryPath} is
-   * non-null it overrides the ViewModel's current path.
+   * non-null it overrides the ViewModel's current path for building remote paths. Checks for
+   * existing files on the server and duplicates in the queue before enqueuing.
    */
   public void handleMultipleFileUploads(
-      @NonNull java.util.List<Uri> uris, @NonNull String targetDirectoryPath) {
+      @NonNull java.util.List<Uri> uris, @Nullable String targetDirectoryPath) {
     if (uris == null || uris.isEmpty()) return;
-    final int total = uris.size();
-    final String opTitle = titleFor(OPERATION_UPLOAD, "multiple files");
 
-    showProgressShell(OPERATION_UPLOAD, opTitle, () -> operationsViewModel.cancelUpload());
+    // Collect file info on the calling thread (URIs are lightweight)
+    java.util.List<FileToUpload> filesToUpload = new java.util.ArrayList<>();
+    for (Uri uri : uris) {
+      trySelfGrantRead(uri);
+      final String fileNameFromUri = getFileNameFromUri(uri);
+      final String fileName =
+          fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
+      String remotePath =
+          targetDirectoryPath != null && !targetDirectoryPath.isEmpty()
+              ? targetDirectoryPath + "/" + fileName
+              : buildRemotePath(fileName);
+      long fileSize = getFileSizeFromUri(uri);
+      filesToUpload.add(new FileToUpload(uri, remotePath, fileName, fileSize));
+    }
 
-    var unused =
-        backgroundSmbManager.executeMultiFileOperation(
-            "batchUpload:" + System.currentTimeMillis(),
-            opTitle,
-            cb -> {
-              // Keep consolidated upload state active across the entire batch
-              operationsViewModel.beginBatchUpload();
-              try {
-                int index = 0;
-                for (Uri uri : uris) {
-                  // Best-effort ensure the app holds read grant for the URI before background
-                  // staging
-                  trySelfGrantRead(uri);
-                  final String fileNameFromUri = getFileNameFromUri(uri);
-                  final String fileName =
-                      fileNameFromUri != null
-                          ? fileNameFromUri
-                          : "uploaded_file_" + System.currentTimeMillis();
-                  final int current = ++index;
-                  cb.updateFileProgress(current, total, fileName);
+    // Check for conflicts on a background thread
+    new Thread(
+            () -> {
+              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+              java.util.List<FileToUpload> existingFiles = new java.util.ArrayList<>();
+              java.util.List<FileToUpload> queuedFiles = new java.util.ArrayList<>();
 
-                  File tempFile = null;
-                  try {
-                    tempFile = File.createTempFile("upload", ".tmp", context.getCacheDir());
-                    uiState.setTempFile(tempFile);
-                    cb.updateProgress("Preparing upload… staging file");
-                    FileOperations.copyUriToFile(uri, tempFile, context);
-                    // Clean up source file if it was a temporary shared-text cache file
-                    cleanupSharedTextSourceFile(uri);
-                  } catch (Exception ex) {
-                    if (tempFile != null) tempFile.delete();
-                    uiState.setTempFile(null);
-                    cb.updateProgress("Staging failed for " + fileName + ": " + ex.getMessage());
-                    LogUtils.e(
-                        "FileOperationsController",
-                        "Staging failed for " + fileName + ": " + ex.getMessage());
-                    continue; // skip to next file
-                  }
-
-                  String remotePath =
-                      targetDirectoryPath != null && !targetDirectoryPath.isEmpty()
-                          ? targetDirectoryPath + "/" + fileName
-                          : buildRemotePath(fileName);
-                  final java.util.concurrent.CountDownLatch done =
-                      new java.util.concurrent.CountDownLatch(1);
-
-                  FileOperationCallbacks.UploadCallback inner =
-                      createUploadCallbackWithNotification(null, fileName);
-                  File finalTempFile = tempFile;
-                  FileOperationCallbacks.UploadCallback wrapped =
-                      new FileOperationCallbacks.UploadCallback() {
-                        @Override
-                        public void onProgress(String status, int percentage) {
-                          inner.onProgress(status, percentage);
-                          cb.updateProgress(status);
-                        }
-
-                        @Override
-                        public void onResult(boolean success, String message) {
-                          try {
-                            inner.onResult(success, message);
-                          } finally {
-                            if (finalTempFile != null) finalTempFile.delete();
-                            uiState.setTempFile(null);
-                            done.countDown();
-                          }
-                        }
-                      };
-
-                  operationsViewModel.uploadFile(
-                      tempFile, remotePath, wrapped, fileName, createFileExistsCallback());
-
-                  try {
-                    done.await();
-                  } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    cb.updateProgress(
-                        context.getString(
-                            de.schliweb.sambalite.R.string.upload_interrupted_with_name, fileName));
-                    break;
-                  }
+              for (FileToUpload f : filesToUpload) {
+                if (dao.countActiveForPath(f.remotePath) > 0) {
+                  queuedFiles.add(f);
                 }
-              } finally {
-                operationsViewModel.endBatchUpload();
+                if (operationsViewModel.checkFileExists(f.remotePath)) {
+                  existingFiles.add(f);
+                }
               }
-              return Boolean.TRUE;
-            });
+
+              new android.os.Handler(android.os.Looper.getMainLooper())
+                  .post(
+                      () -> {
+                        boolean hasQueued = !queuedFiles.isEmpty();
+                        boolean hasExisting = !existingFiles.isEmpty();
+
+                        Runnable doEnqueue =
+                            () -> {
+                              String batchId = java.util.UUID.randomUUID().toString();
+                              for (FileToUpload f : filesToUpload) {
+                                operationsViewModel.enqueueUpload(
+                                    f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
+                                cleanupSharedTextSourceFile(f.uri);
+                              }
+                              showSuccess(
+                                  context.getString(
+                                      de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                              LogUtils.i(
+                                  "FileOperationsController",
+                                  "Enqueued "
+                                      + filesToUpload.size()
+                                      + " files for upload (batch="
+                                      + batchId
+                                      + ")");
+                            };
+
+                        if (hasQueued) {
+                          String queuedNames = buildConflictNames(queuedFiles);
+                          showDuplicateQueueDialog(
+                              queuedNames,
+                              () -> {
+                                if (hasExisting) {
+                                  String existNames = buildConflictNames(existingFiles);
+                                  showOverwriteDialog(existNames, doEnqueue);
+                                } else {
+                                  doEnqueue.run();
+                                }
+                              });
+                        } else if (hasExisting) {
+                          String existNames = buildConflictNames(existingFiles);
+                          showOverwriteDialog(existNames, doEnqueue);
+                        } else {
+                          doEnqueue.run();
+                        }
+                      });
+            })
+        .start();
   }
 
   /**
@@ -947,7 +776,7 @@ public class FileOperationsController {
 
   /**
    * Continues a previously initiated multi-file download after the user picked a destination
-   * folder.
+   * folder. Enqueues all pending files into the persistent transfer queue.
    */
   public void handleMultipleFileDownloadsWithTargetUri(@NonNull Uri folderUri) {
     LogUtils.d(
@@ -962,17 +791,6 @@ public class FileOperationsController {
             context.getString(de.schliweb.sambalite.R.string.multi_no_files_selected));
       return;
     }
-    final int total = pending.size();
-    final String opTitle =
-        titleFor(
-            OPERATION_DOWNLOAD, context.getString(de.schliweb.sambalite.R.string.multiple_files));
-    final AtomicBoolean cancelFinalize = new AtomicBoolean(false);
-
-    // Notify listeners that the operation is starting (to allow immediate UI reset of selection)
-    try {
-      notifyOperationStarted(OPERATION_DOWNLOAD, null);
-    } catch (Throwable ignored) {
-    }
 
     // Best-effort: persist read/write permission to the chosen destination folder
     try {
@@ -983,260 +801,20 @@ public class FileOperationsController {
     } catch (Exception e) {
       de.schliweb.sambalite.util.LogUtils.w(
           "FileOperationsController", "Persistable URI permission failed: " + e.getMessage());
-      try {
-        if (progressCallback != null) {
-          progressCallback.showInfo(
-              context.getString(de.schliweb.sambalite.R.string.saf_persist_permission_failed));
-        }
-      } catch (Throwable ignored) {
-      }
     }
 
     // Remember the chosen folder so the picker opens here next time
     de.schliweb.sambalite.ui.utils.PreferenceUtils.setLastDownloadFolderUri(context, folderUri);
 
-    showProgressShell(
-        OPERATION_DOWNLOAD,
-        opTitle,
-        () -> {
-          cancelFinalize.set(true);
-          operationsViewModel.cancelDownload();
-        });
+    // Enqueue into persistent transfer queue — no blocking dialog
+    operationsViewModel.enqueueMultiFileDownload(pending, folderUri);
 
-    var unused =
-        backgroundSmbManager.executeMultiFileOperation(
-            "batchDownload:" + System.currentTimeMillis(),
-            opTitle,
-            cb -> {
-              try {
-                DocumentFile destDir = DocumentFile.fromTreeUri(context, folderUri);
-                LogUtils.d(
-                    "FileOperationsController",
-                    "Multi-download destDir: uri="
-                        + folderUri
-                        + ", destDir="
-                        + destDir
-                        + ", canWrite="
-                        + (destDir != null ? destDir.canWrite() : "null")
-                        + ", exists="
-                        + (destDir != null ? destDir.exists() : "null")
-                        + ", isDirectory="
-                        + (destDir != null ? destDir.isDirectory() : "null")
-                        + ", name="
-                        + (destDir != null ? destDir.getName() : "null"));
-                if (destDir == null || !destDir.canWrite()) {
-                  if (progressCallback != null) {
-                    progressCallback.showError(
-                        context.getString(de.schliweb.sambalite.R.string.download_error),
-                        context.getString(
-                            de.schliweb.sambalite.R.string.download_error_invalid_destination));
-                    // Ensure any detailed progress UI is dismissed even if we didn't explicitly
-                    // show it
-                    // here
-                    try {
-                      progressCallback.hideDetailedProgressDialog();
-                    } catch (Throwable ignored) {
-                    }
-                  }
-                  // Notify completion (failure) so UI can reset selection
-                  try {
-                    notifyOperationCompleted(
-                        OPERATION_DOWNLOAD,
-                        null,
-                        false,
-                        context.getString(
-                            de.schliweb.sambalite.R.string.download_error_invalid_destination));
-                  } catch (Throwable ignored) {
-                  }
-                  return Boolean.TRUE;
-                }
-                int index = 0;
-                int success = 0;
-                java.util.ArrayList<String> failed = new java.util.ArrayList<>();
-
-                for (SmbFileItem f : pending) {
-                  if (cancelFinalize.get()) break;
-                  index++;
-                  String fileName = f.getName();
-                  cb.updateFileProgress(index, total, fileName);
-                  // Choose a unique destination file name
-                  String targetName = generateUniqueName(destDir, fileName);
-                  // Re-check cancellation before creating target file to avoid unnecessary work
-                  if (cancelFinalize.get()) break;
-                  DocumentFile outDoc = null;
-                  try {
-                    outDoc = destDir.createFile("*/*", targetName);
-                    if (outDoc == null)
-                      throw new Exception(
-                          context.getString(
-                              de.schliweb.sambalite.R.string.failed_to_create_target_file));
-                  } catch (Exception e) {
-                    failed.add(fileName + ": " + e.getMessage());
-                    continue;
-                  }
-
-                  File tempFile = null;
-                  final java.util.concurrent.CountDownLatch done =
-                      new java.util.concurrent.CountDownLatch(1);
-
-                  try {
-                    tempFile = File.createTempFile("download", ".tmp", context.getCacheDir());
-                    uiState.setTempFile(tempFile);
-                    // Re-check cancellation after creating temp file; clean up immediately if
-                    // cancelled
-                    if (cancelFinalize.get()) {
-                      try {
-                        if (tempFile != null && tempFile.exists()) tempFile.delete();
-                      } catch (Throwable ignored) {
-                      }
-                      try {
-                        uiState.setTempFile(null);
-                      } catch (Throwable ignored) {
-                      }
-                      break;
-                    }
-                  } catch (Exception e) {
-                    failed.add(
-                        fileName
-                            + ": "
-                            + context.getString(
-                                de.schliweb.sambalite.R.string.cannot_create_temp_file));
-                    continue;
-                  }
-
-                  FileOperationCallbacks.ProgressCallback fileProgress =
-                      new FileOperationCallbacks.ProgressCallback() {
-                        @Override
-                        public void updateFileProgress(
-                            int currentFile, int totalFiles, String currentFileName) {
-                          /* aggregated by service */
-                        }
-
-                        @Override
-                        public void updateBytesProgress(
-                            long currentBytes, long totalBytes, String curName) {
-                          int pct = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
-                          String status =
-                              ProgressFormat.formatBytes(
-                                  ProgressFormat.Op.DOWNLOAD.label(), currentBytes, totalBytes);
-                          updateOperationProgress(OPERATION_DOWNLOAD, f, null, pct, status);
-                          cb.updateBytesProgress(currentBytes, totalBytes, fileName);
-                        }
-
-                        @Override
-                        public void updateProgress(String progressInfo) {
-                          int p = ProgressFormat.parsePercent(progressInfo);
-                          updateOperationProgress(OPERATION_DOWNLOAD, f, null, p, progressInfo);
-                          cb.updateProgress(progressInfo);
-                        }
-                      };
-
-                  FileOperationCallbacks.DownloadCallback inner =
-                      createFileDownloadCallbackWithNotification(
-                          tempFile, outDoc.getUri(), f, cancelFinalize, cb, null);
-                  final boolean[] ok = new boolean[1];
-                  FileOperationCallbacks.DownloadCallback wrapped =
-                      new FileOperationCallbacks.DownloadCallback() {
-                        @Override
-                        public void onProgress(String status, int percentage) {
-                          inner.onProgress(status, percentage);
-                        }
-
-                        @Override
-                        public void onResult(boolean s, String message) {
-                          try {
-                            ok[0] = s;
-                            inner.onResult(s, message);
-                          } finally {
-                            done.countDown();
-                          }
-                        }
-                      };
-
-                  operationsViewModel.downloadFile(f, tempFile, wrapped, fileProgress);
-
-                  try {
-                    done.await();
-                    // If user cancelled during this file, stop processing further files.
-                    if (cancelFinalize.get() || operationsViewModel.isDownloadCancelled()) {
-                      break;
-                    }
-                    if (ok[0]) {
-                      success++;
-                    } else {
-                      failed.add(fileName);
-                    }
-                  } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    failed.add(
-                        fileName
-                            + " "
-                            + context.getString(de.schliweb.sambalite.R.string.interrupted_suffix));
-                    break;
-                  }
-                }
-
-                String base =
-                    context
-                        .getResources()
-                        .getQuantityString(
-                            de.schliweb.sambalite.R.plurals.multi_download_summary,
-                            success,
-                            success,
-                            total);
-                String summary = summarizeBatch(base, cancelFinalize.get(), failed.size());
-                if (progressCallback != null) {
-                  progressCallback.showInfo(summary);
-                  // Close any detailed progress dialog to ensure clean UX after batch completes
-                  try {
-                    progressCallback.hideDetailedProgressDialog();
-                  } catch (Throwable ignored) {
-                  }
-                }
-                // Notify listeners about completion to reset selection
-                try {
-                  boolean opSuccess = failed.isEmpty() && !cancelFinalize.get();
-                  notifyOperationCompleted(OPERATION_DOWNLOAD, null, opSuccess, summary);
-                } catch (Throwable ignored) {
-                }
-                return Boolean.TRUE;
-              } catch (Exception e) {
-                try {
-                  if (progressCallback != null) {
-                    progressCallback.showError(
-                        context.getString(de.schliweb.sambalite.R.string.download_error),
-                        context.getString(
-                            de.schliweb.sambalite.R.string.download_failed_with_reason,
-                            e.getMessage()));
-                    try {
-                      progressCallback.hideDetailedProgressDialog();
-                    } catch (Throwable ignored) {
-                    }
-                  }
-                } catch (Throwable ignored) {
-                }
-                // Notify completion (failure) so UI can reset selection
-                try {
-                  String err =
-                      context.getString(
-                          de.schliweb.sambalite.R.string.download_failed_with_reason,
-                          e.getMessage());
-                  notifyOperationCompleted(OPERATION_DOWNLOAD, null, false, err);
-                } catch (Throwable ignored) {
-                }
-                return Boolean.TRUE;
-              } finally {
-                // Final safety: clear temp ref and ensure dialog is hidden
-                try {
-                  uiState.setTempFile(null);
-                } catch (Throwable ignored) {
-                }
-                try {
-                  if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignored) {
-                }
-              }
-            });
+    if (progressCallback != null) {
+      progressCallback.showSuccess(
+          context.getString(de.schliweb.sambalite.R.string.transfer_added_to_queue));
+    }
+    LogUtils.i(
+        "FileOperationsController", "Enqueued multi-file download: " + pending.size() + " files");
   }
 
   void trySelfGrantRead(Uri uri) {
@@ -1301,11 +879,25 @@ public class FileOperationsController {
     return docFile != null ? docFile.getName() : fallback;
   }
 
+  private long getFileSizeFromUri(Uri uri) {
+    if (uri == null) return 0;
+    try (android.database.Cursor cursor =
+        context.getContentResolver().query(uri, null, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+        if (sizeIndex != -1 && !cursor.isNull(sizeIndex)) {
+          return cursor.getLong(sizeIndex);
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w("FileOperationsController", "Could not determine file size: " + e.getMessage());
+    }
+    return 0;
+  }
+
   private String buildRemotePath(String fileName) {
-    String currentPath = fileListViewModel.getCurrentPath().getValue();
-    return (currentPath == null || currentPath.equals("root"))
-        ? fileName
-        : currentPath + "/" + fileName;
+    String currentPath = fileListViewModel.getCurrentPathInternal();
+    return (currentPath == null || currentPath.isEmpty()) ? fileName : currentPath + "/" + fileName;
   }
 
   // ---- Name conflict helpers for SAF ----
@@ -1656,88 +1248,6 @@ public class FileOperationsController {
                 }
               }
             });
-      }
-    };
-  }
-
-  private FileOperationCallbacks.UploadCallback createUploadCallbackWithNotification(
-      SmbFileItem file, String fileName) {
-    return new FileOperationCallbacks.UploadCallback() {
-      @Override
-      public void onProgress(String status, int percentage) {
-        updateOperationProgress(OPERATION_UPLOAD, file, fileName, percentage, status);
-      }
-
-      @Override
-      public void onResult(boolean success, String message) {
-        if (success) {
-          updateFinalizingProgress(OPERATION_UPLOAD, file, fileName, false);
-          handleOperationSuccess(
-              OPERATION_UPLOAD,
-              file,
-              fileName,
-              false,
-              context.getString(de.schliweb.sambalite.R.string.upload_success),
-              true,
-              null);
-        } else {
-          handleOperationError(OPERATION_UPLOAD, file, message, null, false, null);
-        }
-      }
-    };
-  }
-
-  private FileOperationCallbacks.UploadCallback createFolderContentsUploadCallbackWithNotification(
-      String folderName) {
-    return new FileOperationCallbacks.UploadCallback() {
-      @Override
-      public void onProgress(String status, int percentage) {
-        updateOperationProgress(OPERATION_FOLDER_UPLOAD, null, folderName, percentage, status);
-      }
-
-      @Override
-      public void onResult(boolean success, String message) {
-        if (progressCallback != null) progressCallback.setZipButtonsEnabled(true);
-        if (success) {
-          updateFinalizingProgress(OPERATION_FOLDER_UPLOAD, null, folderName, true);
-          handleOperationSuccess(
-              OPERATION_FOLDER_UPLOAD,
-              null,
-              folderName,
-              true,
-              context.getString(de.schliweb.sambalite.R.string.folder_contents_upload_success),
-              true,
-              null);
-        } else {
-          if (message != null && (message.contains("incomplete") || message.contains("of"))) {
-            String enhanced =
-                message
-                    + "\n\nSome files were uploaded successfully. Check the server and retry if needed.";
-            handleOperationError(
-                OPERATION_FOLDER_UPLOAD, null, enhanced, "Upload incomplete", true, null);
-          } else {
-            handleOperationError(
-                OPERATION_FOLDER_UPLOAD,
-                null,
-                message,
-                "Folder contents upload error",
-                false,
-                null);
-          }
-        }
-      }
-    };
-  }
-
-  // ---- File exists dialog ----
-  private FileOperationCallbacks.FileExistsCallback createFileExistsCallback() {
-    return (fileName, confirmAction, cancelAction) -> {
-      if (userFeedbackProvider != null) {
-        userFeedbackProvider.showFileExistsDialog(fileName, confirmAction, cancelAction);
-      } else if (progressCallback != null) {
-        progressCallback.showFileExistsDialog(fileName, confirmAction, cancelAction);
-      } else {
-        cancelAction.run();
       }
     };
   }
