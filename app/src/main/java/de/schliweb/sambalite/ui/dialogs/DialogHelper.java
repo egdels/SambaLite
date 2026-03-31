@@ -223,6 +223,24 @@ public class DialogHelper {
                   });
         });
 
+    dialog.setOnDismissListener(
+        d -> {
+          input.clearFocus();
+          if (context instanceof Activity) {
+            Activity activity = (Activity) context;
+            KeyboardUtils.hideKeyboard(activity);
+            // Post a delayed hide to handle devices where keyboard reappears after dismiss
+            activity
+                .getWindow()
+                .getDecorView()
+                .postDelayed(
+                    () -> {
+                      KeyboardUtils.hideKeyboard(activity);
+                    },
+                    100);
+          }
+        });
+
     // Show the dialog
     dialog.show();
 
@@ -495,12 +513,23 @@ public class DialogHelper {
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_file_exists, null);
     android.widget.TextView messageView = dialogView.findViewById(R.id.file_exists_message);
     messageView.setText(context.getString(R.string.file_exists_message, fileName));
-    new MaterialAlertDialogBuilder(context)
-        .setView(dialogView)
-        .setPositiveButton(R.string.overwrite, (dialog, which) -> onOverwrite.run())
-        .setNegativeButton(R.string.cancel, (dialog, which) -> onCancel.run())
-        .setCancelable(false)
-        .show();
+    AlertDialog dialog =
+        new MaterialAlertDialogBuilder(context).setView(dialogView).setCancelable(false).create();
+    dialogView
+        .findViewById(R.id.file_exists_overwrite_button)
+        .setOnClickListener(
+            v -> {
+              dialog.dismiss();
+              if (onOverwrite != null) onOverwrite.run();
+            });
+    dialogView
+        .findViewById(R.id.file_exists_cancel_button)
+        .setOnClickListener(
+            v -> {
+              dialog.dismiss();
+              if (onCancel != null) onCancel.run();
+            });
+    dialog.show();
   }
 
   /**
@@ -574,22 +603,10 @@ public class DialogHelper {
     }
 
     AlertDialog dialog =
-        new MaterialAlertDialogBuilder(context)
-            .setView(dialogView)
-            .setPositiveButton(R.string.files_exist_overwrite_selected, null)
-            .setNegativeButton(
-                R.string.files_exist_skip_all,
-                (d, which) -> {
-                  if (onCancel != null) onCancel.run();
-                })
-            .setCancelable(false)
-            .create();
+        new MaterialAlertDialogBuilder(context).setView(dialogView).setCancelable(false).create();
 
-    dialog.show();
-
-    // Override positive button to collect selected files
-    dialog
-        .getButton(DialogInterface.BUTTON_POSITIVE)
+    dialogView
+        .findViewById(R.id.files_exist_overwrite_button)
         .setOnClickListener(
             v -> {
               java.util.List<String> selected = new java.util.ArrayList<>();
@@ -601,6 +618,16 @@ public class DialogHelper {
               dialog.dismiss();
               onConfirm.accept(selected);
             });
+
+    dialogView
+        .findViewById(R.id.files_exist_skip_button)
+        .setOnClickListener(
+            v -> {
+              dialog.dismiss();
+              if (onCancel != null) onCancel.run();
+            });
+
+    dialog.show();
   }
 
   /** Callback for rename operations. */

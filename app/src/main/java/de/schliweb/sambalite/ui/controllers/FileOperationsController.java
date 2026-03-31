@@ -389,12 +389,24 @@ public class FileOperationsController {
                         boolean hasQueued = !queuedFiles.isEmpty();
                         boolean hasExisting = !existingFiles.isEmpty();
 
-                        Runnable doEnqueue =
-                            () -> {
-                              String batchId = operationsViewModel.enqueueFolderUpload(folderUri);
-                              showSuccess(
-                                  context.getString(
-                                      de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                        java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
+                            (excludedNames) -> {
+                              String batchId = java.util.UUID.randomUUID().toString();
+                              int count = 0;
+                              for (FileToUpload f : allFiles) {
+                                if (excludedNames != null
+                                    && excludedNames.contains(f.displayName)) {
+                                  continue;
+                                }
+                                operationsViewModel.enqueueUpload(
+                                    f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
+                                count++;
+                              }
+                              if (count > 0) {
+                                showSuccess(
+                                    context.getString(
+                                        de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                              }
                               LogUtils.i(
                                   "FileOperationsController",
                                   "Enqueued folder upload: "
@@ -402,7 +414,16 @@ public class FileOperationsController {
                                       + " (batch="
                                       + batchId
                                       + ")");
+                              LogUtils.i(
+                                  "FileOperationsController",
+                                  "Folder upload: user selected "
+                                      + count
+                                      + " of "
+                                      + allFiles.size()
+                                      + " existing files to overwrite");
                             };
+
+                        Runnable doEnqueue = () -> doEnqueueFiltered.accept(null);
 
                         if (hasQueued) {
                           String queuedNames = buildConflictNames(queuedFiles);
@@ -410,53 +431,19 @@ public class FileOperationsController {
                               queuedNames,
                               () -> {
                                 if (hasExisting) {
-                                  showMultiFileExistsOrSingle(existingFiles, doEnqueue);
+                                  showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
                                 } else {
                                   doEnqueue.run();
                                 }
                               });
                         } else if (hasExisting) {
-                          showMultiFileExistsOrSingle(existingFiles, doEnqueue);
+                          showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
                         } else {
                           doEnqueue.run();
                         }
                       });
             })
         .start();
-  }
-
-  /**
-   * Shows the appropriate file-exists dialog: single-file dialog for one file, multi-file checkbox
-   * dialog for multiple files. Used by folder upload where the enqueue action is all-or-nothing.
-   */
-  private void showMultiFileExistsOrSingle(
-      java.util.List<FileToUpload> existingFiles, Runnable doEnqueue) {
-    if (existingFiles.size() == 1) {
-      showOverwriteDialog(existingFiles.get(0).displayName, doEnqueue);
-    } else {
-      java.util.List<String> names = new java.util.ArrayList<>();
-      for (FileToUpload f : existingFiles) {
-        names.add(f.displayName);
-      }
-      de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
-          context,
-          names,
-          selectedNames -> {
-            if (!selectedNames.isEmpty()) {
-              doEnqueue.run();
-            }
-            LogUtils.i(
-                "FileOperationsController",
-                "Folder upload: user selected "
-                    + selectedNames.size()
-                    + " of "
-                    + existingFiles.size()
-                    + " existing files to overwrite");
-          },
-          () ->
-              LogUtils.i(
-                  "FileOperationsController", "Folder upload cancelled by user (files exist)"));
-    }
   }
 
   /**
