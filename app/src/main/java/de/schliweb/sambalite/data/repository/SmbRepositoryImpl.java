@@ -26,6 +26,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -70,18 +71,25 @@ public class SmbRepositoryImpl implements SmbRepository {
   private SMBClient getClientFor(SmbConnection connection) {
     boolean encrypt = false;
     boolean sign = false;
+    boolean async = false;
     try {
       encrypt = connection.isEncryptData();
       sign = connection.isSigningRequired();
+      async = connection.isAsyncTransport();
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign) {
+    if (!encrypt && !sign && !async) {
       return this.smbClient; // shared default client
     }
 
     SmbConfig.Builder builder =
         SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+
+    if (async) {
+      builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());
+      LogUtils.i("SmbRepositoryImpl", "Using AsyncDirectTcpTransport for improved performance");
+    }
 
     // Optional, prevents fallback to NT1:
     try {
@@ -95,6 +103,9 @@ public class SmbRepositoryImpl implements SmbRepository {
       /* older SMBJ versions do not support these dialects */
     }
 
+    LogUtils.d(
+        "SmbRepositoryImpl",
+        "SMB client config: encrypt=" + encrypt + ", sign=" + sign + ", async=" + async);
     return new SMBClient(builder.build());
   }
 

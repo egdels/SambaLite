@@ -214,6 +214,7 @@
     <string name="security_options">Security</string>
     <string name="require_encryption">Require encryption (SMB3)</string>
     <string name="require_signing">Require signing</string>
+    <string name="use_async_transport">Use async transport (faster)</string>
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Delete files</string>
 

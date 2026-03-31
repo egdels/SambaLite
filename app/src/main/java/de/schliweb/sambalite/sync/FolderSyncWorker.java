@@ -36,6 +36,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.sync.db.FileSyncState;
@@ -720,18 +721,25 @@ public class FolderSyncWorker extends Worker {
   private SMBClient createSmbClient(SmbConnection connection) {
     boolean encrypt = false;
     boolean sign = false;
+    boolean async = false;
     try {
       encrypt = connection.isEncryptData();
       sign = connection.isSigningRequired();
+      async = connection.isAsyncTransport();
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign) {
+    if (!encrypt && !sign && !async) {
       return new SMBClient();
     }
 
     SmbConfig.Builder builder =
         SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+
+    if (async) {
+      builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());
+      LogUtils.i(TAG, "Using AsyncDirectTcpTransport for improved sync performance");
+    }
 
     try {
       builder.withDialects(
@@ -744,6 +752,8 @@ public class FolderSyncWorker extends Worker {
       /* older SMBJ versions do not support these dialects */
     }
 
+    LogUtils.d(
+        TAG, "SMB client config: encrypt=" + encrypt + ", sign=" + sign + ", async=" + async);
     return new SMBClient(builder.build());
   }
 

@@ -450,6 +450,8 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.encrypt_switch);
     com.google.android.material.materialswitch.MaterialSwitch signingSwitch =
         dialogView.findViewById(R.id.signing_switch);
+    com.google.android.material.materialswitch.MaterialSwitch asyncTransportSwitch =
+        dialogView.findViewById(R.id.async_transport_switch);
 
     // Get references to shares UI elements
     View sharesSection = dialogView.findViewById(R.id.shares_section);
@@ -604,6 +606,8 @@ public class MainActivity extends AppCompatActivity
             connection.setDomain(domainEditText.getText().toString().trim());
             if (encryptSwitch != null) connection.setEncryptData(encryptSwitch.isChecked());
             if (signingSwitch != null) connection.setSigningRequired(signingSwitch.isChecked());
+            if (asyncTransportSwitch != null)
+              connection.setAsyncTransport(asyncTransportSwitch.isChecked());
 
             LogUtils.i("MainActivity", "Saving new connection: " + name);
             viewModel.saveConnection(connection);
@@ -648,6 +652,8 @@ public class MainActivity extends AppCompatActivity
             testConnection.setDomain(domainEditText.getText().toString().trim());
             if (encryptSwitch != null) testConnection.setEncryptData(encryptSwitch.isChecked());
             if (signingSwitch != null) testConnection.setSigningRequired(signingSwitch.isChecked());
+            if (asyncTransportSwitch != null)
+              testConnection.setAsyncTransport(asyncTransportSwitch.isChecked());
 
             LogUtils.i("MainActivity", "Testing connection to server: " + server);
             testConnection(testConnection);
@@ -752,6 +758,8 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.encrypt_switch);
     com.google.android.material.materialswitch.MaterialSwitch signingSwitchEdit =
         dialogView.findViewById(R.id.signing_switch);
+    com.google.android.material.materialswitch.MaterialSwitch asyncTransportSwitchEdit =
+        dialogView.findViewById(R.id.async_transport_switch);
     com.google.android.material.textfield.TextInputLayout passwordLayoutEdit =
         dialogView.findViewById(R.id.password_layout);
 
@@ -884,6 +892,8 @@ public class MainActivity extends AppCompatActivity
     domainEditText.setText(connection.getDomain());
     if (encryptSwitchEdit != null) encryptSwitchEdit.setChecked(connection.isEncryptData());
     if (signingSwitchEdit != null) signingSwitchEdit.setChecked(connection.isSigningRequired());
+    if (asyncTransportSwitchEdit != null)
+      asyncTransportSwitchEdit.setChecked(connection.isAsyncTransport());
 
     // Get references to custom buttons
     Button btnSave = dialogView.findViewById(R.id.btn_save);
@@ -967,6 +977,8 @@ public class MainActivity extends AppCompatActivity
               updatedConnection.setEncryptData(encryptSwitchEdit.isChecked());
             if (signingSwitchEdit != null)
               updatedConnection.setSigningRequired(signingSwitchEdit.isChecked());
+            if (asyncTransportSwitchEdit != null)
+              updatedConnection.setAsyncTransport(asyncTransportSwitchEdit.isChecked());
 
             LogUtils.i("MainActivity", "Updating connection: " + name);
             viewModel.saveConnection(updatedConnection);
@@ -1017,6 +1029,8 @@ public class MainActivity extends AppCompatActivity
               testConnection.setEncryptData(encryptSwitchEdit.isChecked());
             if (signingSwitchEdit != null)
               testConnection.setSigningRequired(signingSwitchEdit.isChecked());
+            if (asyncTransportSwitchEdit != null)
+              testConnection.setAsyncTransport(asyncTransportSwitchEdit.isChecked());
             testConnection(testConnection);
           }
         });

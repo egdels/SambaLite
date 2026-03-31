@@ -33,6 +33,8 @@ public class SmbConnection implements Serializable {
   private boolean encryptData = false;
   // If true, require SMB signing
   private boolean signingRequired = false;
+  // If true, use async transport for improved transfer performance
+  private boolean asyncTransport = false;
 
   /** Default constructor for SmbConnection. */
   public SmbConnection() {}
@@ -63,6 +65,8 @@ public class SmbConnection implements Serializable {
         + encryptData
         + ", signingRequired="
         + signingRequired
+        + ", asyncTransport="
+        + asyncTransport
         + '}';
   }
 }

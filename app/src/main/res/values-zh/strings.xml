@@ -232,6 +232,7 @@
     <string name="security_options">安全</string>
     <string name="require_encryption">要求加密（SMB3）</string>
     <string name="require_signing">要求签名</string>
+    <string name="use_async_transport">使用异步传输（更快）</string>
 
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">@string/delete_file_dialog_title</string>

@@ -234,6 +234,7 @@
     <string name="security_options">Beveiliging</string>
     <string name="require_encryption">Versleuteling vereist (SMB3)</string>
     <string name="require_signing">Ondertekening vereist</string>
+    <string name="use_async_transport">Async transport gebruiken (sneller)</string>
 
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Bestanden verwijderen</string>

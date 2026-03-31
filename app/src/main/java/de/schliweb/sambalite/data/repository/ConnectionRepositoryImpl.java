@@ -173,6 +173,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     // Persist security flags (defaults false if absent)
     jsonObject.put("encryptData", connection.isEncryptData());
     jsonObject.put("signingRequired", connection.isSigningRequired());
+    jsonObject.put("asyncTransport", connection.isAsyncTransport());
     return jsonObject;
   }
 
@@ -189,6 +190,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     // Read security flags with defaults for backward compatibility
     connection.setEncryptData(jsonObject.optBoolean("encryptData", false));
     connection.setSigningRequired(jsonObject.optBoolean("signingRequired", false));
+    connection.setAsyncTransport(jsonObject.optBoolean("asyncTransport", false));
     return connection;
   }
 }

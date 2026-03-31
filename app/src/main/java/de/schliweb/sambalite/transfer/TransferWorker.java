@@ -38,6 +38,7 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
@@ -376,6 +377,8 @@ public class TransferWorker extends Worker {
             + ", localFileSize="
             + localSize);
 
+    long uploadStartTime = System.currentTimeMillis();
+
     try (InputStream rawIn = resolver.openInputStream(sourceUri)) {
       if (rawIn == null) {
         throw new IOException("Cannot open input stream for: " + transfer.displayName);
@@ -479,12 +482,23 @@ public class TransferWorker extends Worker {
         }
 
         out.flush();
+        long uploadDurationMs = System.currentTimeMillis() - uploadStartTime;
+        double uploadDurationSec = uploadDurationMs / 1000.0;
+        double throughputMBs =
+            uploadDurationSec > 0
+                ? (transfer.bytesTransferred / (1024.0 * 1024.0)) / uploadDurationSec
+                : 0;
         LogUtils.i(
             TAG,
             "Upload stream completed: bytesTransferred="
                 + transfer.bytesTransferred
                 + ", file="
-                + transfer.displayName);
+                + transfer.displayName
+                + ", duration="
+                + String.format("%.1f", uploadDurationSec)
+                + "s, throughput="
+                + String.format("%.2f", throughputMBs)
+                + " MB/s");
       }
     }
 
@@ -626,6 +640,7 @@ public class TransferWorker extends Worker {
 
     // Always start fresh
     transfer.bytesTransferred = 0;
+    long downloadStartTime = System.currentTimeMillis();
 
     try (File remoteFile =
         share.openFile(
@@ -721,9 +736,23 @@ public class TransferWorker extends Worker {
       }
     }
 
+    long downloadDurationMs = System.currentTimeMillis() - downloadStartTime;
+    double downloadDurationSec = downloadDurationMs / 1000.0;
+    double throughputMBs =
+        downloadDurationSec > 0
+            ? (transfer.bytesTransferred / (1024.0 * 1024.0)) / downloadDurationSec
+            : 0;
     LogUtils.i(
         TAG,
-        "Download complete: " + transfer.bytesTransferred + " bytes, file=" + transfer.displayName);
+        "Download complete: "
+            + transfer.bytesTransferred
+            + " bytes, file="
+            + transfer.displayName
+            + ", duration="
+            + String.format("%.1f", downloadDurationSec)
+            + "s, throughput="
+            + String.format("%.2f", throughputMBs)
+            + " MB/s");
 
     // Integrity check: compare actual local file size against remote file size
     long localSize = getLocalFileSize(resolver, targetUri);
@@ -874,18 +903,26 @@ public class TransferWorker extends Worker {
   private SMBClient createSmbClient(SmbConnection connection) {
     boolean encrypt = false;
     boolean sign = false;
+    boolean async = false;
     try {
       encrypt = connection.isEncryptData();
       sign = connection.isSigningRequired();
+      async = connection.isAsyncTransport();
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign) {
+    if (!encrypt && !sign && !async) {
       return new SMBClient();
     }
 
     SmbConfig.Builder builder =
         SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+
+    if (async) {
+      builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());
+      LogUtils.i(TAG, "Using AsyncDirectTcpTransport for improved transfer performance");
+    }
+
     try {
       builder.withDialects(
           com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1,
@@ -896,6 +933,8 @@ public class TransferWorker extends Worker {
     } catch (Throwable ignored) {
     }
 
+    LogUtils.d(
+        TAG, "SMB client config: encrypt=" + encrypt + ", sign=" + sign + ", async=" + async);
     return new SMBClient(builder.build());
   }
 

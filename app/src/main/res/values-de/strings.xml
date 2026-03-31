@@ -234,6 +234,7 @@
     <string name="security_options">Sicherheit</string>
     <string name="require_encryption">Verschlüsselung erforderlich (SMB3)</string>
     <string name="require_signing">Signierung erforderlich</string>
+    <string name="use_async_transport">Async-Transport verwenden (schneller)</string>
 
     <!-- Multi-Select Delete -->
     <string name="delete_multiple_title">Dateien löschen</string>
