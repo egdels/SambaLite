@@ -221,7 +221,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
               +
 
               // Update network status
-              getNetworkStatus(app)
+              getNetworkStatus()
               + "\n\n"
               +
 
@@ -403,7 +403,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
     return stats.toString();
   }
 
-  private String getNetworkStatus(SambaLiteApp app) {
+  private String getNetworkStatus() {
     StringBuilder status = new StringBuilder();
 
     status.append("=== Network Status ===\n");
