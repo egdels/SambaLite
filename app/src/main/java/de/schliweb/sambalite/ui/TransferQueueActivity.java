@@ -26,6 +26,7 @@ import de.schliweb.sambalite.ui.adapters.TransferItemAdapter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 /** Activity displaying the persistent transfer queue matching the FileBrowser design. */
 public class TransferQueueActivity extends AppCompatActivity
@@ -113,7 +114,7 @@ public class TransferQueueActivity extends AppCompatActivity
     List<PendingTransfer> sorted = new ArrayList<>(transfers);
     switch (currentSort) {
       case 0: // by name
-        sorted.sort(Comparator.comparing(t -> t.displayName.toLowerCase()));
+        sorted.sort(Comparator.comparing(t -> t.displayName.toLowerCase(Locale.ROOT)));
         break;
       case 1: // by date (newest first)
         sorted.sort(Comparator.comparingLong((PendingTransfer t) -> t.updatedAt).reversed());
