@@ -29,8 +29,8 @@ import java.util.Locale;
 public class TimestampUtils {
 
   private static final String TAG = "TimestampUtils";
-  private static final SimpleDateFormat DATE_FORMAT =
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
+  private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
+      ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US));
 
   /** Private constructor to prevent instantiation. */
   private TimestampUtils() {
@@ -165,8 +165,6 @@ public class TimestampUtils {
    */
   @androidx.annotation.NonNull
   public static String formatTimestamp(long timestampMillis) {
-    synchronized (DATE_FORMAT) {
-      return DATE_FORMAT.format(new Date(timestampMillis));
-    }
+    return DATE_FORMAT.get().format(new Date(timestampMillis));
   }
 }
