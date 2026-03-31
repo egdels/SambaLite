@@ -138,7 +138,10 @@ public interface PendingTransferDao {
 
   /**
    * Resets ACTIVE transfers back to PENDING with retry count and progress reset (crash recovery on
-   * app start).
+   * app start). Setting bytes_transferred to 0 is intentional for the current phase — it ensures
+   * that uploads and downloads always restart from the beginning after an unclean interruption
+   * (crash/reboot). This effectively disables the resume logic in {@code
+   * TransferWorker.processUpload()}.
    */
   @Query(
       "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0, updated_at = :now"
@@ -146,8 +149,10 @@ public interface PendingTransferDao {
   int resetActiveToRetry(long now);
 
   /**
-   * Resets FAILED transfers back to PENDING with retry count and progress reset (for resume after
-   * reboot).
+   * Resets FAILED transfers back to PENDING with retry count and progress reset (for retry after
+   * reboot). Setting bytes_transferred to 0 is intentional for the current phase — it ensures that
+   * uploads and downloads always restart from the beginning. This effectively disables the resume
+   * logic in {@code TransferWorker.processUpload()}.
    */
   @Query(
       "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0, updated_at = :now"
