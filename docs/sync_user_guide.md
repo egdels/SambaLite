@@ -1,6 +1,6 @@
 # User Guide: Folder Synchronization in SambaLite
 
-Last updated: 2026-03-09
+Last updated: 2026-03-31
 
 This guide explains how to set up and manage automatic folder synchronization between your Android device and an SMB network share.
 
@@ -51,6 +51,7 @@ You will see a confirmation toast: *"Sync configuration saved"*.
 
 You can choose from the following intervals:
 
+- Manual only (sync runs only when you tap "Sync Now")
 - Every 15 minutes
 - Every 30 minutes
 - Every hour
@@ -78,7 +79,8 @@ To manage an existing sync configuration:
 - Sync is powered by Android **WorkManager**, which handles scheduling, retries, and battery optimization.
 - Sync only runs when a **network connection** is available. If the network is lost, the sync is retried automatically with exponential backoff.
 - The sync processes files **recursively**, including all subfolders.
-- Only **new or modified** files are transferred — unchanged files (same size) are skipped.
+- Only **new or modified** files are transferred — unchanged files (same size and modification time) are skipped.
+- **Timestamp preservation**: After uploading a file, SambaLite sets the remote file's modification time to match the local file. After downloading, it attempts to set the local file's modification time to match the remote file (best-effort via Android's Storage Access Framework — may not succeed on all storage types).
 - Files are **never deleted** by the sync. If you delete a file on one side, it will be re-synced from the other side on the next run.
 
 ## Sync Behavior After App Exit and Device Restart
@@ -132,8 +134,11 @@ SambaLite records all sync actions with timestamps. You can view the log in the 
 
 - **↑ Uploaded**: Files sent from your device to the SMB share.
 - **↓ Downloaded**: Files received from the SMB share to your device.
-- **⊘ Skipped**: Files that were unchanged (same size) and not transferred.
+- **⊘ Skipped**: Files that were unchanged (same size and modification time) and not transferred.
 - **📁 Created dir**: New directories created during sync.
+- **🗑 Deleted**: Files or directories removed during sync.
+- **🕐 Timestamp set**: File modification timestamps successfully synchronized.
+- **⚠ Timestamp failed**: File modification timestamps could not be set (e.g. due to filesystem limitations).
 - **✗ Error**: Files that failed to sync, with an error description.
 
 The log displays the 25 most recent entries (newest first) along with a summary of total actions. Up to 100 entries are stored persistently across app restarts.

@@ -34,6 +34,7 @@ Or download the latest APK from the [Releases Section](https://github.com/egdels
 | Multiple Connections   | ✅     | Manage multiple shares with custom names        |
 | Security/Privacy       | ✅     | Encrypted credential storage, no telemetry      |
 | Folder Sync            | ✅     | Automatic background sync between device and share ([User Guide](docs/sync_user_guide.md)) |
+| Transfer Queue         | ✅     | Background queuing for uploads and downloads ([User Guide](docs/transfer_queue_user_guide.md)) |
 
 ## Mobile Document Pipeline
 
