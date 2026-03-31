@@ -1,3 +1,6 @@
-• Fixed: Keyboard now properly dismissed when closing dialogs.
+• New: Async transport option for faster SMB transfers.
+• New: Transfer throughput logging (MB/s).
+• Fixed: Keyboard dismissed on dialog close.
 • Fixed: Folder upload respects per-file overwrite selection.
-• Improved: File-exists dialogs redesigned with custom buttons for better consistency.
+• Improved: File-exists dialogs with custom buttons.
+• Removed: AdvancedNetworkOptimizer (now handled by system).
