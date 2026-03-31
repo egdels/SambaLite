@@ -73,7 +73,7 @@
     <string name="transfer_upload_success">上传完成：%1$s</string>
     <string name="transfer_download_success">下载完成：%1$s</string>
     <string name="transfer_status_pending">等待中</string>
-    <string name="transfer_status_active">传输中…</string>
+    <string name="transfer_status_active">传输中</string>
     <string name="transfer_status_completed">已完成</string>
     <string name="transfer_status_failed">失败</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
@@ -360,6 +360,12 @@
     <string name="share_needs_target_subtitle">您的文件需要一个目标位置</string>
     <string name="upload_complete_subtitle">传输完成</string>
     <string name="file_exists_subtitle">检测到名称冲突</string>
+    <string name="files_exist_title">文件已存在</string>
+    <string name="files_exist_subtitle">选择要覆盖的文件</string>
+    <string name="files_exist_summary">%1$d 个文件中的 %2$d 个已存在于服务器上。取消选择不想覆盖的文件。</string>
+    <string name="files_exist_select_all">全选</string>
+    <string name="files_exist_overwrite_selected">覆盖所选</string>
+    <string name="files_exist_skip_all">全部跳过</string>
     <string name="progress_subtitle">正在传输</string>
 
     <!-- Security / Biometric authentication -->

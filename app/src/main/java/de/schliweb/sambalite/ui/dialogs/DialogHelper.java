@@ -503,6 +503,106 @@ public class DialogHelper {
         .show();
   }
 
+  /**
+   * Shows a dialog listing files that already exist on the server, allowing the user to
+   * individually deselect files they do not want to overwrite.
+   *
+   * @param context The context
+   * @param fileNames List of file names that already exist
+   * @param onConfirm Callback with the list of selected (to-overwrite) file names
+   * @param onCancel Callback when user cancels or skips all
+   */
+  public static void showMultiFileExistsDialog(
+      @NonNull Context context,
+      @NonNull java.util.List<String> fileNames,
+      @NonNull java.util.function.Consumer<java.util.List<String>> onConfirm,
+      @Nullable Runnable onCancel) {
+    LogUtils.d(
+        "DialogHelper", "Showing multi file exists dialog for " + fileNames.size() + " files");
+    View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_file_exists_multi, null);
+
+    android.widget.TextView summaryView = dialogView.findViewById(R.id.files_exist_summary);
+    summaryView.setText(
+        context.getString(R.string.files_exist_summary, fileNames.size(), fileNames.size()));
+
+    android.widget.LinearLayout listContainer = dialogView.findViewById(R.id.files_exist_list);
+    android.widget.CheckBox selectAllCheckBox =
+        dialogView.findViewById(R.id.files_exist_select_all);
+
+    // Create checkboxes for each file
+    java.util.List<android.widget.CheckBox> checkBoxes = new java.util.ArrayList<>();
+    for (String name : fileNames) {
+      com.google.android.material.checkbox.MaterialCheckBox cb =
+          new com.google.android.material.checkbox.MaterialCheckBox(context);
+      cb.setText(name);
+      cb.setChecked(true);
+      cb.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+      cb.setPadding(0, 4, 0, 4);
+      listContainer.addView(cb);
+      checkBoxes.add(cb);
+    }
+
+    // Select-all toggle logic
+    selectAllCheckBox.setOnCheckedChangeListener(
+        (buttonView, isChecked) -> {
+          for (android.widget.CheckBox cb : checkBoxes) {
+            cb.setChecked(isChecked);
+          }
+        });
+
+    // Update select-all state when individual checkboxes change
+    for (android.widget.CheckBox cb : checkBoxes) {
+      cb.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> {
+            boolean allChecked = true;
+            for (android.widget.CheckBox c : checkBoxes) {
+              if (!c.isChecked()) {
+                allChecked = false;
+                break;
+              }
+            }
+            // Temporarily remove listener to avoid recursion
+            selectAllCheckBox.setOnCheckedChangeListener(null);
+            selectAllCheckBox.setChecked(allChecked);
+            selectAllCheckBox.setOnCheckedChangeListener(
+                (bv, ic) -> {
+                  for (android.widget.CheckBox c2 : checkBoxes) {
+                    c2.setChecked(ic);
+                  }
+                });
+          });
+    }
+
+    AlertDialog dialog =
+        new MaterialAlertDialogBuilder(context)
+            .setView(dialogView)
+            .setPositiveButton(R.string.files_exist_overwrite_selected, null)
+            .setNegativeButton(
+                R.string.files_exist_skip_all,
+                (d, which) -> {
+                  if (onCancel != null) onCancel.run();
+                })
+            .setCancelable(false)
+            .create();
+
+    dialog.show();
+
+    // Override positive button to collect selected files
+    dialog
+        .getButton(DialogInterface.BUTTON_POSITIVE)
+        .setOnClickListener(
+            v -> {
+              java.util.List<String> selected = new java.util.ArrayList<>();
+              for (int i = 0; i < checkBoxes.size(); i++) {
+                if (checkBoxes.get(i).isChecked()) {
+                  selected.add(fileNames.get(i));
+                }
+              }
+              dialog.dismiss();
+              onConfirm.accept(selected);
+            });
+  }
+
   /** Callback for rename operations. */
   public interface RenameCallback {
     /**

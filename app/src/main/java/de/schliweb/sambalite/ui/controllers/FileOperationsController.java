@@ -9,8 +9,6 @@
  */
 package de.schliweb.sambalite.ui.controllers;
 
-import static de.schliweb.sambalite.ui.utils.ProgressFormat.normalizePercentInStatus;
-
 import android.content.Context;
 import android.net.Uri;
 import androidx.annotation.NonNull;
@@ -21,14 +19,11 @@ import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileListViewModel;
-import de.schliweb.sambalite.ui.operations.FileOperationCallbacks;
-import de.schliweb.sambalite.ui.operations.FileOperations;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Setter;
 
 /**
@@ -38,9 +33,6 @@ import lombok.Setter;
  * operability and user interactivity.
  */
 public class FileOperationsController {
-
-  private static final int FINALIZE_WINDOW_PCT = 10; // for SAF copy operation
-  private static final int SMB_CAP = 100 - FINALIZE_WINDOW_PCT;
 
   // Operation type constants
   private static final String OPERATION_DOWNLOAD = "download";
@@ -418,21 +410,103 @@ public class FileOperationsController {
                               queuedNames,
                               () -> {
                                 if (hasExisting) {
-                                  String existNames = buildConflictNames(existingFiles);
-                                  showOverwriteDialog(existNames, doEnqueue);
+                                  showMultiFileExistsOrSingle(existingFiles, doEnqueue);
                                 } else {
                                   doEnqueue.run();
                                 }
                               });
                         } else if (hasExisting) {
-                          String existNames = buildConflictNames(existingFiles);
-                          showOverwriteDialog(existNames, doEnqueue);
+                          showMultiFileExistsOrSingle(existingFiles, doEnqueue);
                         } else {
                           doEnqueue.run();
                         }
                       });
             })
         .start();
+  }
+
+  /**
+   * Shows the appropriate file-exists dialog: single-file dialog for one file, multi-file checkbox
+   * dialog for multiple files. Used by folder upload where the enqueue action is all-or-nothing.
+   */
+  private void showMultiFileExistsOrSingle(
+      java.util.List<FileToUpload> existingFiles, Runnable doEnqueue) {
+    if (existingFiles.size() == 1) {
+      showOverwriteDialog(existingFiles.get(0).displayName, doEnqueue);
+    } else {
+      java.util.List<String> names = new java.util.ArrayList<>();
+      for (FileToUpload f : existingFiles) {
+        names.add(f.displayName);
+      }
+      de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
+          context,
+          names,
+          selectedNames -> {
+            if (!selectedNames.isEmpty()) {
+              doEnqueue.run();
+            }
+            LogUtils.i(
+                "FileOperationsController",
+                "Folder upload: user selected "
+                    + selectedNames.size()
+                    + " of "
+                    + existingFiles.size()
+                    + " existing files to overwrite");
+          },
+          () ->
+              LogUtils.i(
+                  "FileOperationsController", "Folder upload cancelled by user (files exist)"));
+    }
+  }
+
+  /**
+   * Shows the multi-file exists dialog for batch uploads, allowing the user to deselect individual
+   * files. Unselected existing files are excluded from the upload.
+   */
+  private void showMultiFileExistsDialog(
+      java.util.List<FileToUpload> existingFiles,
+      java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered) {
+    if (existingFiles.size() == 1) {
+      showOverwriteDialog(existingFiles.get(0).displayName, () -> doEnqueueFiltered.accept(null));
+    } else {
+      java.util.List<String> names = new java.util.ArrayList<>();
+      for (FileToUpload f : existingFiles) {
+        names.add(f.displayName);
+      }
+      de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
+          context,
+          names,
+          selectedNames -> {
+            // Build set of existing file names that were NOT selected (to exclude)
+            java.util.Set<String> selectedSet = new java.util.HashSet<>(selectedNames);
+            java.util.Set<String> excludedNames = new java.util.HashSet<>();
+            for (FileToUpload f : existingFiles) {
+              if (!selectedSet.contains(f.displayName)) {
+                excludedNames.add(f.displayName);
+              }
+            }
+            doEnqueueFiltered.accept(excludedNames);
+            LogUtils.i(
+                "FileOperationsController",
+                "Multi upload: user selected "
+                    + selectedNames.size()
+                    + " of "
+                    + existingFiles.size()
+                    + " existing files to overwrite, excluded "
+                    + excludedNames.size());
+          },
+          () -> {
+            // Skip all existing files, but still upload non-existing ones
+            java.util.Set<String> allExistingNames = new java.util.HashSet<>();
+            for (FileToUpload f : existingFiles) {
+              allExistingNames.add(f.displayName);
+            }
+            doEnqueueFiltered.accept(allExistingNames);
+            LogUtils.i(
+                "FileOperationsController",
+                "Multi upload: user skipped all " + existingFiles.size() + " existing files");
+          });
+    }
   }
 
   /** Builds a display string of conflicting file names (max 3 + count). */
@@ -540,25 +614,35 @@ public class FileOperationsController {
                         boolean hasQueued = !queuedFiles.isEmpty();
                         boolean hasExisting = !existingFiles.isEmpty();
 
-                        Runnable doEnqueue =
-                            () -> {
+                        java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
+                            (excludedNames) -> {
                               String batchId = java.util.UUID.randomUUID().toString();
+                              int count = 0;
                               for (FileToUpload f : filesToUpload) {
+                                if (excludedNames != null
+                                    && excludedNames.contains(f.displayName)) {
+                                  continue;
+                                }
                                 operationsViewModel.enqueueUpload(
                                     f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
                                 cleanupSharedTextSourceFile(f.uri);
+                                count++;
                               }
-                              showSuccess(
-                                  context.getString(
-                                      de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                              if (count > 0) {
+                                showSuccess(
+                                    context.getString(
+                                        de.schliweb.sambalite.R.string.transfer_added_to_queue));
+                              }
                               LogUtils.i(
                                   "FileOperationsController",
                                   "Enqueued "
-                                      + filesToUpload.size()
+                                      + count
                                       + " files for upload (batch="
                                       + batchId
                                       + ")");
                             };
+
+                        Runnable doEnqueue = () -> doEnqueueFiltered.accept(null);
 
                         if (hasQueued) {
                           String queuedNames = buildConflictNames(queuedFiles);
@@ -566,15 +650,13 @@ public class FileOperationsController {
                               queuedNames,
                               () -> {
                                 if (hasExisting) {
-                                  String existNames = buildConflictNames(existingFiles);
-                                  showOverwriteDialog(existNames, doEnqueue);
+                                  showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
                                 } else {
                                   doEnqueue.run();
                                 }
                               });
                         } else if (hasExisting) {
-                          String existNames = buildConflictNames(existingFiles);
-                          showOverwriteDialog(existNames, doEnqueue);
+                          showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
                         } else {
                           doEnqueue.run();
                         }
@@ -898,358 +980,6 @@ public class FileOperationsController {
   private String buildRemotePath(String fileName) {
     String currentPath = fileListViewModel.getCurrentPathInternal();
     return (currentPath == null || currentPath.isEmpty()) ? fileName : currentPath + "/" + fileName;
-  }
-
-  // ---- Name conflict helpers for SAF ----
-  private boolean documentChildExists(DocumentFile dir, String name) {
-    if (dir == null) return false;
-    DocumentFile[] children = dir.listFiles();
-    if (children == null) return false;
-    for (DocumentFile child : children) {
-      if (child != null && name.equals(child.getName())) return true;
-    }
-    return false;
-  }
-
-  private String generateUniqueName(DocumentFile dir, String original) {
-    if (original == null || original.isEmpty()) original = "file";
-    if (!documentChildExists(dir, original)) return original;
-    String base = original;
-    String ext = "";
-    int dot = original.lastIndexOf('.');
-    if (dot > 0 && dot < original.length() - 1) {
-      base = original.substring(0, dot);
-      ext = original.substring(dot); // includes the dot
-    }
-    int idx = 1;
-    while (documentChildExists(dir, base + " (" + idx + ")" + ext)) {
-      idx++;
-    }
-    return base + " (" + idx + ")" + ext;
-  }
-
-  // ---- Callbacks ----
-  private FileOperationCallbacks.DownloadCallback createFileDownloadCallbackWithNotification(
-      File tempFile,
-      Uri uri,
-      SmbFileItem file,
-      AtomicBoolean cancelFinalize,
-      BackgroundSmbManager.MultiFileProgressCallback serviceCb,
-      java.util.concurrent.CountDownLatch outerLatch) {
-
-    final java.util.concurrent.atomic.AtomicBoolean FINALIZING =
-        new java.util.concurrent.atomic.AtomicBoolean(false);
-
-    return new FileOperationCallbacks.DownloadCallback() {
-      @Override
-      public void onProgress(String status, int percentage) {
-        if (FINALIZING.get()) return;
-        int mapped = Math.max(0, Math.min(SMB_CAP, percentage));
-        String normalized = normalizePercentInStatus(status, mapped);
-        updateOperationProgress(OPERATION_DOWNLOAD, file, null, mapped, normalized);
-      }
-
-      @Override
-      public void onResult(boolean success, String message) {
-        if (!success) {
-          handleOperationError(
-              OPERATION_DOWNLOAD,
-              file,
-              message,
-              null,
-              false,
-              () -> {
-                if (tempFile != null) tempFile.delete();
-                try {
-                  uiState.setTempFile(null);
-                } catch (Throwable ignored) {
-                }
-              });
-          return;
-        }
-
-        FINALIZING.set(true);
-        operationsViewModel.setFinalizing(true);
-        updateFinalizingProgress(OPERATION_DOWNLOAD, file, null, false);
-
-        final String copyOpName = "Copying: " + (file != null ? file.getName() : "file");
-        backgroundSmbManager.startOperation(copyOpName);
-        operationsViewModel.incDownload();
-
-        // Emit initial copying progress so the transfer dialog stays visible
-        String copyingLabel =
-            context.getString(de.schliweb.sambalite.R.string.copying_to_destination);
-        operationsViewModel.emitProgress(
-            copyingLabel + ": 0%", SMB_CAP, file != null ? file.getName() : null);
-
-        final java.util.function.IntUnaryOperator mapFinal =
-            p ->
-                SMB_CAP
-                    + Math.max(
-                        0,
-                        Math.min(
-                            FINALIZE_WINDOW_PCT,
-                            (int) Math.round(p * (FINALIZE_WINDOW_PCT / 100.0))));
-
-        final String realName = file != null ? file.getName() : "file";
-        FileOperations.copyFileToUriAsync(
-            tempFile,
-            uri,
-            context,
-            new FileOperations.Callback() {
-              @Override
-              public boolean isCancelled() {
-                return cancelFinalize.get();
-              }
-
-              @Override
-              public void onProgress(int percent, String status) {
-                int mapped = mapFinal.applyAsInt(percent);
-                String normalized = normalizePercentInStatus(status, mapped);
-                updateOperationProgress(OPERATION_DOWNLOAD, file, null, mapped, normalized);
-                operationsViewModel.emitProgress(
-                    normalized, mapped, file != null ? file.getName() : null);
-                serviceCb.updateProgress(normalized);
-              }
-
-              @Override
-              public void onDone() {
-                operationsViewModel.setFinalizing(false);
-                backgroundSmbManager.finishOperation(copyOpName, true);
-                operationsViewModel.decDownload();
-                serviceCb.updateProgress(
-                    context.getString(de.schliweb.sambalite.R.string.finalizing_done));
-                updateOperationProgress(
-                    OPERATION_DOWNLOAD,
-                    file,
-                    null,
-                    100,
-                    context.getString(de.schliweb.sambalite.R.string.finalizing_done));
-                handleOperationSuccess(
-                    OPERATION_DOWNLOAD,
-                    file,
-                    file != null ? file.getName() : null,
-                    false,
-                    context.getString(de.schliweb.sambalite.R.string.download_success),
-                    false,
-                    () -> {
-                      if (tempFile != null) tempFile.delete();
-                      try {
-                        uiState.setTempFile(null);
-                      } catch (Throwable ignored) {
-                      }
-                    });
-                if (outerLatch != null) outerLatch.countDown();
-              }
-
-              @Override
-              public void onError(Exception e) {
-                operationsViewModel.setFinalizing(false);
-                backgroundSmbManager.finishOperation(copyOpName, false);
-                operationsViewModel.decDownload();
-                String txt;
-                if (e instanceof FileOperations.OperationCancelledException) {
-                  txt =
-                      context.getString(
-                          de.schliweb.sambalite.R.string.download_cancelled_local_copy);
-                  handleOperationError(
-                      OPERATION_DOWNLOAD,
-                      file,
-                      txt,
-                      "Cancelled",
-                      false,
-                      () -> {
-                        if (tempFile != null) tempFile.delete();
-                        try {
-                          uiState.setTempFile(null);
-                        } catch (Throwable ignored) {
-                        }
-                      });
-                } else {
-                  txt =
-                      context.getString(
-                          de.schliweb.sambalite.R.string.error_copying_file_to_destination,
-                          e.getMessage());
-                  handleOperationError(
-                      OPERATION_DOWNLOAD,
-                      file,
-                      txt,
-                      "Finalize error",
-                      false,
-                      () -> {
-                        if (tempFile != null) tempFile.delete();
-                        try {
-                          uiState.setTempFile(null);
-                        } catch (Throwable ignored) {
-                        }
-                      });
-                }
-                serviceCb.updateProgress(txt);
-                if (outerLatch != null) outerLatch.countDown();
-              }
-            },
-            realName);
-      }
-    };
-  }
-
-  private FileOperationCallbacks.DownloadCallback createFolderDownloadCallbackWithNotification(
-      File tempFolder,
-      DocumentFile destFolder,
-      SmbFileItem folder,
-      AtomicBoolean cancelFinalize,
-      BackgroundSmbManager.MultiFileProgressCallback serviceCb) {
-
-    final java.util.concurrent.atomic.AtomicBoolean FINALIZING =
-        new java.util.concurrent.atomic.AtomicBoolean(false);
-
-    final java.util.function.IntUnaryOperator mapSmb =
-        p -> Math.max(0, Math.min(SMB_CAP, p)); // 0..SMB_CAP
-    final java.util.function.IntUnaryOperator mapFinal =
-        p ->
-            SMB_CAP
-                + Math.max(
-                    0,
-                    Math.min(
-                        FINALIZE_WINDOW_PCT, (int) Math.round(p * (FINALIZE_WINDOW_PCT / 100.0))));
-    return new FileOperationCallbacks.DownloadCallback() {
-      @Override
-      public void onProgress(String status, int percentage) {
-        if (FINALIZING.get()) return;
-        int mapped = mapSmb.applyAsInt(percentage);
-        String normalized = normalizePercentInStatus(status, mapped);
-        updateOperationProgress(OPERATION_DOWNLOAD, folder, null, mapped, normalized);
-      }
-
-      @Override
-      public void onResult(boolean success, String message) {
-        if (!success) {
-          handleOperationError(
-              OPERATION_DOWNLOAD,
-              folder,
-              message,
-              null,
-              false,
-              () -> FileOperations.deleteRecursive(tempFolder));
-          return;
-        }
-
-        FINALIZING.set(true);
-        operationsViewModel.setFinalizing(true);
-        updateFinalizingProgress(OPERATION_DOWNLOAD, folder, null, true);
-
-        final String copyOpName = "Copying: " + (folder != null ? folder.getName() : "folder");
-        backgroundSmbManager.startOperation(copyOpName);
-        operationsViewModel.incDownload();
-
-        // Emit initial copying progress so the transfer dialog stays visible
-        String copyingLabel =
-            context.getString(de.schliweb.sambalite.R.string.copying_to_destination);
-        operationsViewModel.emitProgress(
-            copyingLabel + ": 0%", SMB_CAP, folder != null ? folder.getName() : null);
-
-        FileOperations.copyFolderAsync(
-            tempFolder,
-            destFolder,
-            context,
-            new FileOperations.Callback() {
-              @Override
-              public boolean isCancelled() {
-                return cancelFinalize.get();
-              }
-
-              @Override
-              public void onStart() {
-                String txt =
-                    context.getString(de.schliweb.sambalite.R.string.finalizing_scanning_files);
-                updateOperationProgress(OPERATION_DOWNLOAD, folder, null, SMB_CAP, txt);
-                serviceCb.updateProgress(txt);
-              }
-
-              @Override
-              public void onProgress(int percent, String status) {
-                int mapped = mapFinal.applyAsInt(percent);
-                String normalized = normalizePercentInStatus(status, mapped);
-                updateOperationProgress(OPERATION_DOWNLOAD, folder, null, mapped, normalized);
-                operationsViewModel.emitProgress(
-                    normalized, mapped, folder != null ? folder.getName() : null);
-                serviceCb.updateProgress(normalized);
-              }
-
-              @Override
-              public void onFileCopied(String name, long bytes) {
-                /* no-op */
-              }
-
-              @Override
-              public void onDone() {
-                operationsViewModel.setFinalizing(false);
-                backgroundSmbManager.finishOperation(copyOpName, true);
-                operationsViewModel.decDownload();
-                String txt =
-                    context.getString(de.schliweb.sambalite.R.string.folder_download_success);
-                serviceCb.updateProgress(txt);
-                updateOperationProgress(
-                    OPERATION_DOWNLOAD,
-                    folder,
-                    null,
-                    100,
-                    context.getString(de.schliweb.sambalite.R.string.finalizing_done));
-                handleOperationSuccess(
-                    OPERATION_DOWNLOAD,
-                    folder,
-                    folder != null ? folder.getName() : null,
-                    true,
-                    txt,
-                    true,
-                    () -> FileOperations.deleteRecursive(tempFolder));
-                // Ensure the progress dialog is closed after successful folder download
-                try {
-                  if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignored) {
-                }
-              }
-
-              @Override
-              public void onError(Exception e) {
-                operationsViewModel.setFinalizing(false);
-                backgroundSmbManager.finishOperation(copyOpName, false);
-                operationsViewModel.decDownload();
-                String txt;
-                if (e instanceof FileOperations.OperationCancelledException) {
-                  txt =
-                      context.getString(
-                          de.schliweb.sambalite.R.string.download_cancelled_local_copy);
-                  handleOperationError(
-                      OPERATION_DOWNLOAD,
-                      folder,
-                      txt,
-                      "Cancelled",
-                      false,
-                      () -> FileOperations.deleteRecursive(tempFolder));
-                } else {
-                  txt =
-                      context.getString(
-                          de.schliweb.sambalite.R.string.error_copying_folder_to_destination,
-                          e.getMessage());
-                  handleOperationError(
-                      OPERATION_DOWNLOAD,
-                      folder,
-                      txt,
-                      "Finalize error",
-                      false,
-                      () -> FileOperations.deleteRecursive(tempFolder));
-                }
-                serviceCb.updateProgress(txt);
-                // Ensure the progress dialog is closed after error/cancel in folder download
-                try {
-                  if (progressCallback != null) progressCallback.hideDetailedProgressDialog();
-                } catch (Throwable ignored) {
-                }
-              }
-            });
-      }
-    };
   }
 
   // ---- Feedback shims ----

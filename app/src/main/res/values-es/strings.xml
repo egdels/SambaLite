@@ -73,7 +73,7 @@
     <string name="transfer_upload_success">Subida completada: %1$s</string>
     <string name="transfer_download_success">Descarga completada: %1$s</string>
     <string name="transfer_status_pending">Pendiente</string>
-    <string name="transfer_status_active">Transfiriendo…</string>
+    <string name="transfer_status_active">Transfiriendo</string>
     <string name="transfer_status_completed">Completado</string>
     <string name="transfer_status_failed">Fallido</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
@@ -381,6 +381,12 @@
     <string name="share_needs_target_subtitle">Se necesita un destino para sus archivos</string>
     <string name="upload_complete_subtitle">Transferencia finalizada</string>
     <string name="file_exists_subtitle">Se detectó un conflicto de nombres</string>
+    <string name="files_exist_title">Los archivos ya existen</string>
+    <string name="files_exist_subtitle">Selecciona qué archivos deseas sobrescribir</string>
+    <string name="files_exist_summary">%1$d de %2$d archivos ya existen en el servidor. Deselecciona los archivos que no quieras sobrescribir.</string>
+    <string name="files_exist_select_all">Seleccionar todo</string>
+    <string name="files_exist_overwrite_selected">Sobrescribir seleccionados</string>
+    <string name="files_exist_skip_all">Omitir todos</string>
     <string name="progress_subtitle">Transferencia en curso</string>
 
     <!-- Security / Biometric authentication -->

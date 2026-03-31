@@ -157,6 +157,12 @@
     <string name="share_needs_target_subtitle">A destination is needed for your files</string>
     <string name="upload_complete_subtitle">Transfer finished</string>
     <string name="file_exists_subtitle">A naming conflict was detected</string>
+    <string name="files_exist_title">Files already exist</string>
+    <string name="files_exist_subtitle">Select which files to overwrite</string>
+    <string name="files_exist_summary">%1$d of %2$d files already exist on the server. Deselect files you do not want to overwrite.</string>
+    <string name="files_exist_select_all">Select all</string>
+    <string name="files_exist_overwrite_selected">Overwrite selected</string>
+    <string name="files_exist_skip_all">Skip all</string>
     <string name="progress_subtitle">Transfer in progress</string>
 
     <!-- Upload Completion -->
@@ -365,7 +371,7 @@
     <string name="transfer_upload_success">Upload complete: %1$s</string>
     <string name="transfer_download_success">Download complete: %1$s</string>
     <string name="transfer_status_pending">Pending</string>
-    <string name="transfer_status_active">Transferring…</string>
+    <string name="transfer_status_active">Transferring</string>
     <string name="transfer_progress_format" translatable="false">%1$s / %2$s</string>
     <string name="transfer_status_completed">Completed</string>
     <string name="transfer_status_failed">Failed</string>

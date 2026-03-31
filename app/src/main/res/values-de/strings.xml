@@ -72,7 +72,7 @@
     <string name="transfer_upload_success">Upload abgeschlossen: %1$s</string>
     <string name="transfer_download_success">Download abgeschlossen: %1$s</string>
     <string name="transfer_status_pending">Ausstehend</string>
-    <string name="transfer_status_active">Wird übertragen…</string>
+    <string name="transfer_status_active">Wird übertragen</string>
     <string name="transfer_status_completed">Abgeschlossen</string>
     <string name="transfer_status_failed">Fehlgeschlagen</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
@@ -369,6 +369,12 @@
     <string name="share_needs_target_subtitle">Ein Zielordner wird für Ihre Dateien benötigt</string>
     <string name="upload_complete_subtitle">Übertragung abgeschlossen</string>
     <string name="file_exists_subtitle">Ein Namenskonflikt wurde erkannt</string>
+    <string name="files_exist_title">Dateien existieren bereits</string>
+    <string name="files_exist_subtitle">Wählen Sie aus, welche Dateien überschrieben werden sollen</string>
+    <string name="files_exist_summary">%1$d von %2$d Dateien existieren bereits auf dem Server. Wählen Sie die Dateien ab, die nicht überschrieben werden sollen.</string>
+    <string name="files_exist_select_all">Alle auswählen</string>
+    <string name="files_exist_overwrite_selected">Ausgewählte überschreiben</string>
+    <string name="files_exist_skip_all">Alle überspringen</string>
     <string name="progress_subtitle">Übertragung läuft</string>
 
     <!-- Security / Biometric authentication -->

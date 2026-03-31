@@ -73,7 +73,7 @@
     <string name="transfer_upload_success">Téléversement terminé : %1$s</string>
     <string name="transfer_download_success">Téléchargement terminé : %1$s</string>
     <string name="transfer_status_pending">En attente</string>
-    <string name="transfer_status_active">Transfert en cours…</string>
+    <string name="transfer_status_active">Transfert en cours</string>
     <string name="transfer_status_completed">Terminé</string>
     <string name="transfer_status_failed">Échoué</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
@@ -381,6 +381,12 @@
     <string name="share_needs_target_subtitle">Un dossier de destination est requis pour vos fichiers</string>
     <string name="upload_complete_subtitle">Transfert terminé</string>
     <string name="file_exists_subtitle">Un conflit de noms a été détecté</string>
+    <string name="files_exist_title">Les fichiers existent déjà</string>
+    <string name="files_exist_subtitle">Sélectionnez les fichiers à écraser</string>
+    <string name="files_exist_summary">%1$d sur %2$d fichiers existent déjà sur le serveur. Désélectionnez les fichiers que vous ne souhaitez pas écraser.</string>
+    <string name="files_exist_select_all">Tout sélectionner</string>
+    <string name="files_exist_overwrite_selected">Écraser la sélection</string>
+    <string name="files_exist_skip_all">Tout ignorer</string>
     <string name="progress_subtitle">Transfert en cours</string>
 
     <!-- Security / Biometric authentication -->

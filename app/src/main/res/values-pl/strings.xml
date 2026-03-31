@@ -73,7 +73,7 @@
     <string name="transfer_upload_success">Wysyłanie zakończone: %1$s</string>
     <string name="transfer_download_success">Pobieranie zakończone: %1$s</string>
     <string name="transfer_status_pending">Oczekujący</string>
-    <string name="transfer_status_active">Przesyłanie…</string>
+    <string name="transfer_status_active">Przesyłanie</string>
     <string name="transfer_status_completed">Zakończono</string>
     <string name="transfer_status_failed">Niepowodzenie</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>
@@ -394,6 +394,12 @@
     <string name="share_needs_target_subtitle">Wymagany jest folder docelowy dla plików</string>
     <string name="upload_complete_subtitle">Transfer zakończony</string>
     <string name="file_exists_subtitle">Wykryto konflikt nazw</string>
+    <string name="files_exist_title">Pliki już istnieją</string>
+    <string name="files_exist_subtitle">Wybierz, które pliki chcesz nadpisać</string>
+    <string name="files_exist_summary">%1$d z %2$d plików już istnieje na serwerze. Odznacz pliki, których nie chcesz nadpisywać.</string>
+    <string name="files_exist_select_all">Zaznacz wszystkie</string>
+    <string name="files_exist_overwrite_selected">Nadpisz wybrane</string>
+    <string name="files_exist_skip_all">Pomiń wszystkie</string>
     <string name="progress_subtitle">Trwa przesyłanie</string>
 
     <!-- Security / Biometric authentication -->
