@@ -16,9 +16,11 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.StatFs;
+import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.ForegroundInfo;
@@ -358,6 +360,7 @@ public class TransferWorker extends Worker {
     ContentResolver resolver = getApplicationContext().getContentResolver();
     Uri sourceUri = Uri.parse(transfer.localUri);
 
+    long localSize = getLocalFileSize(resolver, sourceUri);
     LogUtils.i(
         TAG,
         "Upload starting: file="
@@ -369,7 +372,9 @@ public class TransferWorker extends Worker {
             + ", connectionId="
             + transfer.connectionId
             + ", fileSize="
-            + transfer.fileSize);
+            + transfer.fileSize
+            + ", localFileSize="
+            + localSize);
 
     try (InputStream rawIn = resolver.openInputStream(sourceUri)) {
       if (rawIn == null) {
@@ -384,6 +389,10 @@ public class TransferWorker extends Worker {
 
       // Determine resume offset from actual remote file size (not DB progress)
       // to avoid gaps when progress was not saved before interruption.
+      // NOTE: Resume does not take effect after a crash or device reboot because
+      // resetActiveToRetry() in PendingTransferDao resets bytes_transferred to 0.
+      // This is intentional for the current phase — uploads always restart from the
+      // beginning after an unclean interruption.
       long resumeOffset = 0;
       if (transfer.bytesTransferred > 0) {
         long remoteSize = getRemoteFileSize(share, transfer.remotePath);
@@ -479,25 +488,26 @@ public class TransferWorker extends Worker {
       }
     }
 
-    // Integrity check
-    if (transfer.fileSize > 0) {
-      long remoteSize = getRemoteFileSize(share, transfer.remotePath);
-      LogUtils.i(
-          TAG,
-          "Upload integrity check: remotePath="
-              + transfer.remotePath
-              + ", expectedSize="
-              + transfer.fileSize
-              + ", remoteSize="
-              + remoteSize);
-      if (remoteSize >= 0 && remoteSize != transfer.fileSize) {
-        throw new IOException(
-            "Integrity check failed: expected="
-                + transfer.fileSize
-                + " actual="
-                + remoteSize
-                + " bytes");
-      }
+    // Integrity check: compare actual remote file size against expected local file size
+    long remoteSize = getRemoteFileSize(share, transfer.remotePath);
+    localSize = getLocalFileSize(resolver, sourceUri);
+    LogUtils.i(
+        TAG,
+        "Upload integrity check: remoteSize="
+            + remoteSize
+            + ", localSize="
+            + localSize
+            + ", expectedFileSize="
+            + transfer.fileSize
+            + ", file="
+            + transfer.displayName);
+    if (remoteSize >= 0 && localSize >= 0 && remoteSize != localSize) {
+      throw new IOException(
+          "Integrity check failed: remoteSize="
+              + remoteSize
+              + " localSize="
+              + localSize
+              + " bytes");
     }
 
     // Preserve local file timestamp on remote file
@@ -599,12 +609,19 @@ public class TransferWorker extends Worker {
             + transfer.fileSize);
 
     // Get remote file size if not already known
-    if (transfer.fileSize <= 0) {
-      long remoteSize = getRemoteFileSize(share, transfer.remotePath);
-      if (remoteSize > 0) {
-        transfer.fileSize = remoteSize;
-        dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
-      }
+    long remoteSize = getRemoteFileSize(share, transfer.remotePath);
+    LogUtils.i(
+        TAG,
+        "Remote file size for "
+            + transfer.displayName
+            + ": "
+            + remoteSize
+            + " bytes (known fileSize="
+            + transfer.fileSize
+            + ")");
+    if (transfer.fileSize <= 0 && remoteSize > 0) {
+      transfer.fileSize = remoteSize;
+      dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
     }
 
     // Always start fresh
@@ -708,20 +725,34 @@ public class TransferWorker extends Worker {
         TAG,
         "Download complete: " + transfer.bytesTransferred + " bytes, file=" + transfer.displayName);
 
-    // Integrity check
-    if (transfer.fileSize > 0 && transfer.bytesTransferred != transfer.fileSize) {
-      LogUtils.e(
-          TAG,
-          "Download integrity check: expected="
-              + transfer.fileSize
-              + ", downloaded="
-              + transfer.bytesTransferred);
+    // Integrity check: compare actual local file size against remote file size
+    long localSize = getLocalFileSize(resolver, targetUri);
+    remoteSize = getRemoteFileSize(share, transfer.remotePath);
+    LogUtils.i(
+        TAG,
+        "Download integrity check: localSize="
+            + localSize
+            + ", remoteSize="
+            + remoteSize
+            + ", file="
+            + transfer.displayName);
+    if (localSize >= 0 && remoteSize >= 0 && localSize != remoteSize) {
       throw new IOException(
-          "Integrity check failed: expected="
-              + transfer.fileSize
-              + " actual="
-              + transfer.bytesTransferred
+          "Integrity check failed: localSize="
+              + localSize
+              + " remoteSize="
+              + remoteSize
               + " bytes");
+    }
+    if (localSize < 0 || remoteSize < 0) {
+      LogUtils.w(
+          TAG,
+          "Download integrity check skipped: localSize="
+              + localSize
+              + ", remoteSize="
+              + remoteSize
+              + ", file="
+              + transfer.displayName);
     }
 
     // Final progress update
@@ -781,6 +812,21 @@ public class TransferWorker extends Worker {
         LogUtils.w(TAG, "Could not create remote directory " + dirPath + ": " + e.getMessage());
       }
     }
+  }
+
+  /** Returns the local file size via SAF ContentResolver, or -1 on error. */
+  private long getLocalFileSize(ContentResolver resolver, Uri uri) {
+    try (Cursor cursor = resolver.query(uri, null, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        int idx = cursor.getColumnIndex(OpenableColumns.SIZE);
+        if (idx >= 0 && !cursor.isNull(idx)) {
+          return cursor.getLong(idx);
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not query local file size: " + e.getMessage());
+    }
+    return -1;
   }
 
   /** Returns the remote file size, or -1 on error. */

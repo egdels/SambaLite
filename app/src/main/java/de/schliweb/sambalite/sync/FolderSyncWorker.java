@@ -476,6 +476,35 @@ public class FolderSyncWorker extends Worker {
       }
     }
 
+    // Integrity check: compare actual remote file size against local file size
+    long remoteSize = getRemoteFileSize(share, remotePath);
+    long localSize = localFile.length();
+    LogUtils.i(
+        TAG,
+        "Sync upload integrity check: remoteSize="
+            + remoteSize
+            + ", localSize="
+            + localSize
+            + ", file="
+            + localFile.getName());
+    if (remoteSize >= 0 && localSize >= 0 && remoteSize != localSize) {
+      throw new Exception(
+          "Sync upload integrity check failed: remoteSize="
+              + remoteSize
+              + " localSize="
+              + localSize);
+    }
+    if (remoteSize < 0 || localSize < 0) {
+      LogUtils.w(
+          TAG,
+          "Sync upload integrity check skipped: remoteSize="
+              + remoteSize
+              + ", localSize="
+              + localSize
+              + ", file="
+              + localFile.getName());
+    }
+
     // Set remote file's lastWriteTime to match local file's lastModified
     // to prevent re-uploading on next sync cycle
     setRemoteFileLastModified(share, remotePath, localFile.lastModified());
@@ -525,6 +554,35 @@ public class FolderSyncWorker extends Worker {
           os.write(buffer, 0, bytesRead);
         }
       }
+    }
+
+    // Integrity check: compare actual local file size against remote file size
+    long localSize = localFile.length();
+    long remoteSize = getRemoteFileSize(share, remotePath);
+    LogUtils.i(
+        TAG,
+        "Sync download integrity check: localSize="
+            + localSize
+            + ", remoteSize="
+            + remoteSize
+            + ", file="
+            + localFile.getName());
+    if (localSize >= 0 && remoteSize >= 0 && localSize != remoteSize) {
+      throw new Exception(
+          "Sync download integrity check failed: localSize="
+              + localSize
+              + " remoteSize="
+              + remoteSize);
+    }
+    if (localSize < 0 || remoteSize < 0) {
+      LogUtils.w(
+          TAG,
+          "Sync download integrity check skipped: localSize="
+              + localSize
+              + ", remoteSize="
+              + remoteSize
+              + ", file="
+              + localFile.getName());
     }
 
     // SAF/DocumentFile: attempt best-effort timestamp preservation via utimensat()
