@@ -1,0 +1,3 @@
+• Fixed: Keyboard now properly dismissed when closing dialogs.
+• Fixed: Folder upload respects per-file overwrite selection.
+• Improved: File-exists dialogs redesigned with custom buttons for better consistency.

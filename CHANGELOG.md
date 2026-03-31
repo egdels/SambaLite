@@ -5,6 +5,18 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2026-03-31
+
+### Fixed
+- **Keyboard not dismissed on dialog close**: Added `OnDismissListener` to the rename dialog in `DialogHelper` that clears focus and hides the keyboard, including a delayed secondary hide (100 ms) to handle devices where the keyboard reappears after dismiss.
+- **Folder upload ignores per-file overwrite selection**: `FileOperationsController` folder upload now respects the user's individual file selection from the multi-file exists dialog. Previously, confirming the dialog always uploaded all files; now unselected files are excluded via a `Set<String>` filter passed to the enqueue logic.
+
+### Changed
+- **File-exists dialogs refactored to custom button views**: `showFileExistsDialog` and `showMultiFileExistsDialog` in `DialogHelper` now use in-layout buttons (`file_exists_overwrite_button`, `file_exists_cancel_button`, `files_exist_overwrite_button`, `files_exist_skip_button`) instead of `MaterialAlertDialogBuilder` positive/negative buttons, improving layout control and consistency.
+- `FileOperationsController`: Removed `showMultiFileExistsOrSingle` helper; folder upload now calls `showMultiFileExistsDialog` directly with a `Consumer<Set<String>>` callback for selective file exclusion.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.2] - 2026-03-31
 
 ### Added
