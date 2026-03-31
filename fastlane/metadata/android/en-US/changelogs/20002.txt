@@ -1,0 +1,4 @@
+• New: Multi-file overwrite dialog – select which files to overwrite when uploading duplicates.
+• Fixed: Transfer integrity now checks actual file sizes instead of stale DB values.
+• Fixed: Thread-safe date formatting and locale-independent sorting.
+• Code cleanup and improved documentation.

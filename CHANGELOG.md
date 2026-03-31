@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-03-31
+
+### Added
+- **Multi-file overwrite dialog**: When uploading multiple files that already exist on the server, a new checkbox dialog (`showMultiFileExistsDialog`) allows the user to individually select which files to overwrite. Includes a "Select all" toggle and "Skip all" option. New layout `dialog_file_exists_multi` and translations for all 7 languages.
+
+### Fixed
+- **Transfer integrity check**: Upload and download integrity checks in `TransferWorker` and `FolderSyncWorker` now compare the actual local file size (queried via SAF `ContentResolver`) against the actual remote file size, instead of relying on the potentially stale `fileSize` value stored in the database. This prevents false positives when the DB value is zero or outdated.
+- **Thread-safe date formatting**: `TimestampUtils.DATE_FORMAT` changed from a shared `SimpleDateFormat` with `synchronized` block to a `ThreadLocal<SimpleDateFormat>`, eliminating potential contention in multi-threaded transfer scenarios.
+- **Locale-independent sorting**: `TransferQueueActivity` sort-by-name now uses `Locale.ROOT` instead of the default locale for consistent case-insensitive ordering.
+
+### Changed
+- `FileOperationsController`: Extracted multi-file and single-file overwrite dialog logic into dedicated methods (`showMultiFileExistsOrSingle`, `showMultiFileExistsDialog`). Removed ~350 lines of unused legacy upload/download code and related imports.
+- `PendingTransferDao`: Clarified documentation for `resetActiveToRetry()` and `resetFailedToRetry()` — resetting `bytes_transferred` to 0 is intentional; resume after crash/reboot is not yet supported.
+- `TransferWorker`: Added documentation note that upload resume does not take effect after crash/reboot due to the `resetActiveToRetry()` reset. Added `getLocalFileSize()` helper method for SAF-based file size queries. Improved logging for download remote file size lookup.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.1] - 2026-03-30
 
 ### Fixed
