@@ -27,7 +27,6 @@ import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
-import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.sync.SyncActionLog;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.ui.operations.TransferActionLog;
@@ -296,10 +295,6 @@ public class SystemMonitorActivity extends AppCompatActivity {
         .append(health.performanceMonitoringReady ? "✓" : "✗")
         .append("\n");
     overview.append("- Cache System: ").append(health.cacheSystemReady ? "✓" : "✗").append("\n");
-    overview
-        .append("- Network Optimizer: ")
-        .append(health.networkOptimizerReady ? "✓" : "✗")
-        .append("\n");
     overview.append("- Error Handler: ").append(health.errorHandlerReady ? "✓" : "✗").append("\n");
 
     return overview.toString();
@@ -412,42 +407,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
     StringBuilder status = new StringBuilder();
 
     status.append("=== Network Status ===\n");
-
-    AdvancedNetworkOptimizer networkOptimizer = app.getNetworkOptimizer();
-    if (networkOptimizer != null) {
-      AdvancedNetworkOptimizer.NetworkStatus netStatus = networkOptimizer.getCurrentNetworkStatus();
-      status
-          .append("Network Available: ")
-          .append(netStatus.isConnected ? "✓ Yes" : "✗ No")
-          .append("\n");
-      status.append("Network Type: ").append(netStatus.connectionType).append("\n");
-      status.append("Quality: ").append(netStatus.networkQuality).append("\n");
-      status
-          .append("Bandwidth: ")
-          .append(EnhancedFileUtils.formatFileSize(netStatus.estimatedBandwidth))
-          .append("/s\n");
-      status.append("Metered Network: ").append(netStatus.isMetered ? "Yes" : "No").append("\n");
-
-      AdvancedNetworkOptimizer.OptimalSettings settings = networkOptimizer.getOptimalSettings();
-      status.append("\nOptimal Settings:\n");
-      status.append("- Connection Timeout: ").append(settings.connectionTimeoutMs).append("ms\n");
-      status.append("- Read Timeout: ").append(settings.readTimeoutMs).append("ms\n");
-      status.append("- Max Connections: ").append(settings.maxConcurrentConnections).append("\n");
-      status
-          .append("- Chunk Size: ")
-          .append(EnhancedFileUtils.formatFileSize(settings.chunkSize))
-          .append("\n");
-      status
-          .append("- Use Compression: ")
-          .append(settings.useCompression ? "Yes" : "No")
-          .append("\n");
-      status
-          .append("- Aggressive Caching: ")
-          .append(settings.aggressiveCaching ? "Yes" : "No")
-          .append("\n");
-    } else {
-      status.append("Network optimizer not available\n");
-    }
+    status.append("Network monitoring handled by system ConnectivityManager\n");
 
     return status.toString();
   }

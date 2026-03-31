@@ -21,7 +21,6 @@ import androidx.work.WorkManager;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.di.DaggerAppComponent;
-import de.schliweb.sambalite.network.AdvancedNetworkOptimizer;
 import de.schliweb.sambalite.transfer.TransferWorker;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
@@ -44,9 +43,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
 
   /** -- GETTER -- Gets the cache manager instance. */
   @Getter private IntelligentCacheManager cacheManager;
-
-  /** -- GETTER -- Gets the network optimizer instance. */
-  @Getter private AdvancedNetworkOptimizer networkOptimizer;
 
   /** -- GETTER -- Gets the error handler instance. */
   @Getter private SmartErrorHandler errorHandler;
@@ -151,8 +147,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
       // Initialize advanced systems
       IntelligentCacheManager.initialize(this);
       cacheManager = IntelligentCacheManager.getInstance();
-      AdvancedNetworkOptimizer.initialize(this);
-      networkOptimizer = AdvancedNetworkOptimizer.getInstance();
       errorHandler = SmartErrorHandler.getInstance();
 
       // Setup global error handling
@@ -236,9 +230,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
       if (cacheManager != null) {
         cacheManager.shutdown();
       }
-      if (networkOptimizer != null) {
-        networkOptimizer.shutdown();
-      }
       if (errorHandler != null) {
         errorHandler.saveErrorStats(this);
       }
@@ -286,13 +277,11 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
     status.dependencyInjectionReady = (appComponent != null);
     status.performanceMonitoringReady = true; // Performance monitoring is now static
     status.cacheSystemReady = (cacheManager != null);
-    status.networkOptimizerReady = (networkOptimizer != null);
     status.errorHandlerReady = (errorHandler != null);
     status.overallHealthy =
         status.dependencyInjectionReady
             && status.performanceMonitoringReady
             && status.cacheSystemReady
-            && status.networkOptimizerReady
             && status.errorHandlerReady;
 
     return status;
@@ -330,7 +319,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
     public boolean dependencyInjectionReady;
     public boolean performanceMonitoringReady;
     public boolean cacheSystemReady;
-    public boolean networkOptimizerReady;
     public boolean errorHandlerReady;
 
     @Override
@@ -342,8 +330,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
           + performanceMonitoringReady
           + ", cacheSystem="
           + cacheSystemReady
-          + ", networkOptimizer="
-          + networkOptimizerReady
           + ", errorHandler="
           + errorHandlerReady
           + ", overall="
