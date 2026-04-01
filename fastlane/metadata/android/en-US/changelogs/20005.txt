@@ -1,0 +1,5 @@
+• New: Batch file deletion — delete multiple files efficiently in one go.
+• New: "Hide completed" filter in Transfer Queue.
+• Improved: Smarter retry logic skips unreachable servers during transfers.
+• Improved: Long file names now wrap properly in dialogs and lists.
+• Fixed: Delete verification with retry for SMB oplock delays.

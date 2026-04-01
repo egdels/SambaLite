@@ -5,6 +5,26 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.5] - 2026-04-01
+
+### Added
+- **Batch file deletion**: New `deleteFiles()` method in `SmbRepository` / `SmbRepositoryImpl` deletes multiple files in a single SMB session, avoiding repeated session creation and SMB oplock/caching issues. Includes per-file retry logic with 200 ms delay for servers that delay deletion due to oplocks.
+- **"Hide completed" filter in Transfer Queue**: `TransferQueueActivity` now offers a toggle to hide completed transfers. The sort dialog has been redesigned as a custom dialog (`dialog_sort_transfers.xml`) with radio buttons and a checkbox.
+- **Transfer Worker connection failure tracking**: `TransferWorker` now tracks connections that fail with connectivity errors within a single worker run and skips them for the remainder of that run, avoiding tight retry loops on unreachable servers.
+- Translations for `transfer_sort_subtitle` and `transfer_hide_completed` in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+- New drawable `ic_system_monitor` for the System Monitor menu entry.
+
+### Changed
+- **Batch delete in FileOperationsController**: Multi-file deletion now uses `FileOperationsViewModel.deleteFilesBatch()` instead of deleting files one by one. Directory refresh and cache invalidation happen once after the entire batch completes, improving performance for large selections.
+- **`deleteFile()` overload with `skipRefresh` parameter**: Allows callers to suppress the automatic directory refresh after a single deletion, enabling efficient batch workflows.
+- **Layout improvements**: `dialog_progress.xml`, `item_file.xml`, and `item_transfer.xml` updated — file name text views now use `match_parent` width with `maxLines="2"` and `ellipsize="end"` for better readability of long file names. Removed redundant `layout_constraintBottom` attributes.
+- System Monitor menu icon changed from generic `ic_dialog_info` to dedicated `ic_system_monitor` drawable.
+
+### Fixed
+- **Single-file delete verification**: `SmbRepositoryImpl.deleteFile()` now verifies that the file was actually removed after `share.rm()` and retries once with a 200 ms delay if the file still exists due to SMB server-side oplock delays.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.4] - 2026-04-01
 
 ### Changed
