@@ -1,34 +1,42 @@
-SambaLite is a lightweight, modern, and open-source Android client for SMB/CIFS shares (Samba). The goal is to provide a minimalist, reliable, and secure tool that allows users to access SMB shares on their local network - without any unnecessary features, ads, or bloat.
+SambaLite is a lightweight, modern, and open-source Android client for SMB/CIFS shares (Samba).
+It is designed as a minimalist, reliable, and secure tool for accessing SMB shares on your local network – without ads, tracking, or unnecessary features.
 
-The app is designed for tech-savvy users who are looking for a lean, transparent solution and value privacy and open source.
+SambaLite is a file client, not a system-level filesystem. It focuses on accessing and transferring files, not on providing a mounted network drive.
+
+The app is intended for tech-savvy users who prefer a lean, transparent solution and value privacy and open source.
 
 Main features:
 
-• Network Discovery: Automatically scan for SMB servers on your local network
-• Manage connections: Enter SMB server (hostname or IP) and share/path, username, password, optional domain (workgroup)
-• Manage multiple connections with individual names
+• Manage connections: SMB server (hostname/IP), share/path, username, password, optional domain
+• Multiple connections with custom names
 • Connection testing with clear error messages
-• Automatic, secure storage of credentials (Android Keystore)
-• File browser: Navigate through the share directory tree, display of name, type, size, and modification date
-• Folder operations: Upload and download entire folders using ZIP compression
-• Multi-file operations: Select and transfer multiple files with progress tracking
-• Background transfers: Large file operations continue in the background
-• Enhanced search: Find files and folders with progress indicator and cancel option
-• Refresh view ("Pull-to-Refresh")
-• Sorting options (name, date, size)
-• File operations: Download, upload, delete, rename
-• Open files directly from the share
-• Share files and text to SMB shares
-• Automatic folder sync between device and share
-• Display file properties
-• Modern Material Design 3 interface with app logo colors
-• Dark/Light Mode (system default)
+• Secure credential storage (Android Keystore)
+• File browser with name, type, size, and modification date
+• Pull-to-refresh
+• Sorting (name, date, size)
+• File operations: download, upload, delete, rename
+• File properties
+• Dark/Light mode (system default)
+
+Compatibility:
+
+• Supports modern SMB2/SMB3 servers
+• SMB1 is not supported (deprecated and insecure)
 
 Security & Privacy:
+
 • No telemetry or third-party connections
 • No unencrypted storage of sensitive data
-• Minimal permissions (only network and access to user-selected storage locations)
+• Credentials stored securely using the Android Keystore
 
-SambaLite is the open-source Samba client for Android that many have wanted for years: Modern, lean, secure, without unnecessary features, but with everything needed for practical access to SMB shares.
+Permissions:
 
-SambaLite is free and open source. If you find it useful, please consider supporting development: https://ko-fi.com/egdels
+SambaLite only requests the permissions required for its functionality:
+
+• Network access (SMB communication)
+• Access to user-selected storage locations (via Android system file picker)
+• Foreground service and notifications (for reliable background transfers and progress display)
+
+No data is collected or transmitted to third parties.
+
+SambaLite provides a modern, minimal, and privacy-friendly way to access SMB shares on Android – focused on reliability and transparency.
