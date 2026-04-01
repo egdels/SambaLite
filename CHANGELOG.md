@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.4] - 2026-04-01
+
+### Changed
+- **Unified user feedback**: All user-facing messages now consistently use Snackbar (via `UIHelper`) instead of a mix of Toast and Snackbar. Toast is completely removed from the codebase.
+- **Consistent Snackbar color strategy**: Success messages (delete, rename, folder created) now correctly show green instead of blue. Color semantics: green = success, red = error, blue = informational.
+- **Removed "Opening ..." message**: The redundant "Opening ..." Snackbar after navigating to a share was removed, as the navigation itself provides sufficient feedback.
+
+### Added
+- **Transfer status badges in file browser**: Files with active uploads or downloads now display a transfer badge (sync icon) on their file icon, matching the transfer queue visual style.
+- **Blocked actions during transfer**: Files currently being uploaded or downloaded cannot be edited (rename, delete, options menu) or multi-selected. A blue info Snackbar explains the restriction.
+- Translations for `file_upload_in_progress` and `file_download_in_progress` in all 7 languages (EN, DE, FR, PL, ES, NL, ZH).
+
+### Removed
+- **Toast completely removed**: `DialogHelper.showToast()`, `EnhancedUIUtils.showEnhancedToast()`, and the unreachable Toast in `FileBrowserActivity.onDestroy()` have been removed. All user feedback now uses Snackbar exclusively.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.3] - 2026-03-31
 
 ### Added

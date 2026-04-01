@@ -1,0 +1,5 @@
+• Unified notifications: All feedback now uses Material Snackbar.
+• Consistent color scheme: Green (success), red (error), blue (info).
+• New: Transfer badges show active uploads/downloads in file browser.
+• New: File actions blocked during active transfers with info message.
+• Removed: All legacy Toast notifications.
