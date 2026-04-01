@@ -719,9 +719,15 @@ public class MainActivity extends AppCompatActivity
           runOnUiThread(
               () -> {
                 if (success) {
-                  de.schliweb.sambalite.ui.utils.UIHelper.with(this).message(message).success().show();
+                  de.schliweb.sambalite.ui.utils.UIHelper.with(this)
+                      .message(message)
+                      .success()
+                      .show();
                 } else {
-                  de.schliweb.sambalite.ui.utils.UIHelper.with(this).message(message).error().show();
+                  de.schliweb.sambalite.ui.utils.UIHelper.with(this)
+                      .message(message)
+                      .error()
+                      .show();
                 }
               });
         });
