@@ -17,7 +17,6 @@ import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RadioGroup;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -53,16 +52,6 @@ public class DialogHelper {
     }
     editText.requestFocus();
     KeyboardUtils.showKeyboard(activity, editText);
-  }
-
-  /**
-   * Shows a toast message.
-   *
-   * @param context The context
-   * @param message The message to show
-   */
-  public static void showToast(@NonNull Context context, @NonNull String message) {
-    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
   }
 
   /**

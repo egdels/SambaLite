@@ -11,11 +11,11 @@ package de.schliweb.sambalite.util;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.content.Context;
+import android.app.Activity;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
+import de.schliweb.sambalite.ui.utils.UIHelper;
 
 /**
  * Enhanced UI utilities for SambaLite. Provides better user experience with animations and
@@ -26,28 +26,14 @@ public class EnhancedUIUtils {
   private static final String TAG = "EnhancedUIUtils";
   private static final int ANIMATION_DURATION_MEDIUM = 400;
 
-  /** Shows a toast with enhanced styling and positioning. */
-  public static void showEnhancedToast(
-      @NonNull Context context, @NonNull String message, int duration) {
-    if (context == null || message == null) return;
-
-    try {
-      Toast toast = Toast.makeText(context, message, duration);
-      toast.show();
-      LogUtils.d(TAG, "Showed toast: " + message);
-    } catch (Exception e) {
-      LogUtils.e(TAG, "Failed to show toast: " + e.getMessage());
-    }
-  }
-
   /** Shows error message to user. */
-  public static void showError(@NonNull Context context, @NonNull String message) {
-    showEnhancedToast(context, "✗ " + message, Toast.LENGTH_LONG);
+  public static void showError(@NonNull Activity activity, @NonNull String message) {
+    UIHelper.with(activity).message("✗ " + message).error().show();
   }
 
   /** Shows info message to user. */
-  public static void showInfo(@NonNull Context context, @NonNull String message) {
-    showEnhancedToast(context, "ℹ " + message, Toast.LENGTH_SHORT);
+  public static void showInfo(@NonNull Activity activity, @NonNull String message) {
+    UIHelper.showInfo(activity, "ℹ " + message);
   }
 
   /** Animates view scale up (pop-in effect). */

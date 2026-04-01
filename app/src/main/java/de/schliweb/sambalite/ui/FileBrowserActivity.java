@@ -385,9 +385,7 @@ public class FileBrowserActivity extends AppCompatActivity
                   int count = results != null ? results.size() : 0;
                   String msg = "✓ " + count + " " + getString(R.string.search_results_found);
                   getSupportActionBar().setSubtitle(msg);
-                  android.widget.Toast.makeText(
-                          FileBrowserActivity.this, msg, android.widget.Toast.LENGTH_SHORT)
-                      .show();
+                  de.schliweb.sambalite.ui.utils.UIHelper.showInfo(FileBrowserActivity.this, msg);
                   LogUtils.i("FileBrowserActivity", "Search complete: " + count + " results found");
                 }
                 // Keep searchMode true so results stay visible until user navigates away
@@ -1803,14 +1801,6 @@ public class FileBrowserActivity extends AppCompatActivity
     boolean shouldCancelOps = isFinishing() && !isChangingConfigurations();
     if (shouldCancelOps) {
       LogUtils.d("FileBrowserActivity", "Activity finishing – requesting operation cancellations");
-      Boolean active = fileOperationsViewModel.isAnyOperationActive().getValue();
-      if (Boolean.TRUE.equals(active)) {
-        android.widget.Toast.makeText(
-                getApplicationContext(),
-                R.string.transfer_cancelled_toast,
-                android.widget.Toast.LENGTH_LONG)
-            .show();
-      }
       fileOperationsViewModel.cancelUpload();
       fileOperationsViewModel.cancelDownload();
       searchViewModel.cancelSearch();

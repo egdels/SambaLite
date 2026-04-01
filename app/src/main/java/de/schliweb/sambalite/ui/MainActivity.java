@@ -324,16 +324,13 @@ public class MainActivity extends AppCompatActivity
         // Clear the persisted state immediately
         prefs.edit().clear().apply();
 
-        // Show Snackbar after a short delay to ensure the layout is ready
+        // Show info message after a short delay to ensure the layout is ready
         View rootView = findViewById(android.R.id.content);
         if (rootView != null) {
           rootView.postDelayed(
               () ->
-                  com.google.android.material.snackbar.Snackbar.make(
-                          rootView,
-                          R.string.previous_operation_cancelled,
-                          com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
-                      .show(),
+                  de.schliweb.sambalite.ui.utils.UIHelper.showInfo(
+                      this, getString(R.string.previous_operation_cancelled)),
               500);
         }
       }
@@ -382,7 +379,6 @@ public class MainActivity extends AppCompatActivity
   private void openFileBrowser(@NonNull SmbConnection connection) {
     Intent intent = FileBrowserActivity.createIntent(this, connection.getId());
     startActivity(intent);
-    EnhancedUIUtils.showInfo(this, "Opening " + connection.getName());
     LogUtils.i(
         "MainActivity",
         "Opening RefactoredFileBrowserActivity for connection: " + connection.getName());
@@ -722,7 +718,11 @@ public class MainActivity extends AppCompatActivity
               "Connection test result: " + (success ? "success" : "failure") + " - " + message);
           runOnUiThread(
               () -> {
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                if (success) {
+                  de.schliweb.sambalite.ui.utils.UIHelper.with(this).message(message).success().show();
+                } else {
+                  de.schliweb.sambalite.ui.utils.UIHelper.with(this).message(message).error().show();
+                }
               });
         });
   }

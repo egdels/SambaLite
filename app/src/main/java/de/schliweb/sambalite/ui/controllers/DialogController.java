@@ -277,7 +277,7 @@ public class DialogController {
             if (userFeedbackProvider != null) {
               userFeedbackProvider.showSuccess(context.getString(R.string.delete_success));
             } else {
-              DialogHelper.showToast(context, context.getString(R.string.delete_success));
+              de.schliweb.sambalite.ui.utils.UIHelper.with((Activity) context).message(context.getString(R.string.delete_success)).success().show();
             }
           } else {
             if (userFeedbackProvider != null) {
@@ -439,7 +439,7 @@ public class DialogController {
         if (userFeedbackProvider != null) {
           userFeedbackProvider.showSuccess(context.getString(R.string.rename_success));
         } else {
-          DialogHelper.showToast(context, context.getString(R.string.rename_success));
+          de.schliweb.sambalite.ui.utils.UIHelper.with((Activity) context).message(context.getString(R.string.rename_success)).success().show();
         }
       } else {
         if (userFeedbackProvider != null) {
@@ -466,7 +466,7 @@ public class DialogController {
         if (userFeedbackProvider != null) {
           userFeedbackProvider.showSuccess(context.getString(R.string.folder_created));
         } else {
-          DialogHelper.showToast(context, context.getString(R.string.folder_created));
+          de.schliweb.sambalite.ui.utils.UIHelper.with((Activity) context).message(context.getString(R.string.folder_created)).success().show();
         }
       } else {
         if (userFeedbackProvider != null) {
