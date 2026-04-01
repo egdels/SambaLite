@@ -666,6 +666,21 @@ public class SmbRepositoryImpl implements SmbRepository {
           String filePath = getPathWithoutShare(path);
           if (share.fileExists(filePath)) {
             share.rm(filePath);
+            // Verify deletion — SMB server may delay due to oplocks on large files
+            if (share.fileExists(filePath)) {
+              LogUtils.w("SmbRepositoryImpl", "File still exists after rm, retrying: " + filePath);
+              try {
+                Thread.sleep(200);
+              } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+              }
+              if (share.fileExists(filePath)) {
+                share.rm(filePath);
+                if (share.fileExists(filePath)) {
+                  throw new IOException("File still exists after delete retry: " + filePath);
+                }
+              }
+            }
             LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
           } else if (share.folderExists(filePath)) {
             share.rmdir(filePath, true);
