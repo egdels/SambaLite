@@ -54,7 +54,7 @@
     <item
         android:id="@+id/action_system_monitor"
         android:title="@string/system_monitor"
-        android:icon="@android:drawable/ic_dialog_info"
+        android:icon="@drawable/ic_system_monitor"
         app:showAsAction="always"
         android:orderInCategory="10" />
 
