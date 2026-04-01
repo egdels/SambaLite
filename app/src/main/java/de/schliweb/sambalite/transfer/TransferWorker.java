@@ -52,8 +52,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -189,6 +191,10 @@ public class TransferWorker extends Worker {
     // Loop: process all pending transfers, then re-check for newly added ones.
     // This is needed because we use KEEP policy — the worker is NOT replaced when
     // new transfers are enqueued while it's already running.
+    // Track connections that failed with a connectivity error so we don't
+    // tight-loop retrying them within the same worker run.
+    Set<String> failedConnectionIds = new HashSet<>();
+
     while (true) {
       if (isStopped()) {
         LogUtils.i(TAG, "Worker stopped, will resume on next run");
@@ -198,6 +204,10 @@ public class TransferWorker extends Worker {
       // Group pending work by connection for Connection-Reuse
       Map<String, SmbConnection> connectionCache = new HashMap<>();
       List<String> connectionIds = dao.getConnectionsWithPendingWork();
+
+      // Remove connections that already failed with a connectivity error
+      // in this worker run — they will be retried on the next WorkManager run.
+      connectionIds.removeAll(failedConnectionIds);
 
       if (connectionIds.isEmpty()) {
         break; // No more work — exit loop
@@ -226,7 +236,13 @@ public class TransferWorker extends Worker {
           continue;
         }
 
-        anyFailure |= !processConnectionBatch(dao, connection);
+        boolean batchOk = processConnectionBatch(dao, connection);
+        if (!batchOk) {
+          anyFailure = true;
+          // Remember this connection so we don't retry it in the same
+          // worker run — avoids tight-looping on network errors.
+          failedConnectionIds.add(connectionId);
+        }
       }
     }
 
