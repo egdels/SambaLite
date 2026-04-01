@@ -88,9 +88,11 @@
     <string name="transfer_already_queued_title">上传已在队列中</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; 已在传输队列中。是否再次上传？</string>
     <string name="transfer_already_queued_confirm">再次上传</string>
+    <string name="transfer_sort_subtitle">选择如何排序传输</string>
     <string name="transfer_sort_by_name">按名称</string>
     <string name="transfer_sort_by_date">按日期</string>
     <string name="transfer_sort_by_status">按状态</string>
+    <string name="transfer_hide_completed">隐藏已完成</string>
     <string name="transfer_cancel">取消</string>
     <string name="transfer_actions_title">传输操作</string>
     <plurals name="transfer_queue_count">

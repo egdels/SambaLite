@@ -89,9 +89,11 @@
     <string name="transfer_already_queued_title">Upload al in wachtrij</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; staat al in de overdrachtswachtrij. Toch opnieuw uploaden?</string>
     <string name="transfer_already_queued_confirm">Opnieuw uploaden</string>
+    <string name="transfer_sort_subtitle">Kies hoe je overdrachten wilt sorteren</string>
     <string name="transfer_sort_by_name">Op naam</string>
     <string name="transfer_sort_by_date">Op datum</string>
     <string name="transfer_sort_by_status">Op status</string>
+    <string name="transfer_hide_completed">Voltooide verbergen</string>
     <string name="transfer_cancel">Annuleren</string>
     <string name="transfer_actions_title">Overdrachtsacties</string>
     <plurals name="transfer_queue_count">

@@ -92,9 +92,11 @@
     <string name="transfer_already_queued_title">Téléversement déjà en file</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; est déjà dans la file de transfert. Téléverser à nouveau ?</string>
     <string name="transfer_already_queued_confirm">Téléverser à nouveau</string>
+    <string name="transfer_sort_subtitle">Choisissez comment organiser vos transferts</string>
     <string name="transfer_sort_by_name">Par nom</string>
     <string name="transfer_sort_by_date">Par date</string>
     <string name="transfer_sort_by_status">Par statut</string>
+    <string name="transfer_hide_completed">Masquer les terminés</string>
     <string name="transfer_cancel">Annuler</string>
     <string name="transfer_actions_title">Actions de transfert</string>
     <plurals name="transfer_queue_count">

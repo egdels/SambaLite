@@ -94,9 +94,11 @@
     <string name="transfer_already_queued_title">Wysyłanie już w kolejce</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; jest już w kolejce transferów. Wysłać ponownie?</string>
     <string name="transfer_already_queued_confirm">Wyślij ponownie</string>
+    <string name="transfer_sort_subtitle">Wybierz sposób sortowania transferów</string>
     <string name="transfer_sort_by_name">Według nazwy</string>
     <string name="transfer_sort_by_date">Według daty</string>
     <string name="transfer_sort_by_status">Według statusu</string>
+    <string name="transfer_hide_completed">Ukryj ukończone</string>
     <string name="transfer_cancel">Anuluj</string>
     <string name="transfer_actions_title">Akcje transferu</string>
     <plurals name="transfer_queue_count">

@@ -92,9 +92,11 @@
     <string name="transfer_already_queued_title">Subida ya en cola</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; ya está en la cola de transferencias. ¿Subir de nuevo?</string>
     <string name="transfer_already_queued_confirm">Subir de nuevo</string>
+    <string name="transfer_sort_subtitle">Elige cómo organizar tus transferencias</string>
     <string name="transfer_sort_by_name">Por nombre</string>
     <string name="transfer_sort_by_date">Por fecha</string>
     <string name="transfer_sort_by_status">Por estado</string>
+    <string name="transfer_hide_completed">Ocultar completados</string>
     <string name="transfer_cancel">Cancelar</string>
     <string name="transfer_actions_title">Acciones de transferencia</string>
     <plurals name="transfer_queue_count">

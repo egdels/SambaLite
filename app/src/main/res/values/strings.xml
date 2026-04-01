@@ -390,9 +390,11 @@
     <string name="transfer_already_queued_title">Upload already queued</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; is already in the transfer queue. Upload again anyway?</string>
     <string name="transfer_already_queued_confirm">Upload again</string>
+    <string name="transfer_sort_subtitle">Choose how to organize your transfers</string>
     <string name="transfer_sort_by_name">By name</string>
     <string name="transfer_sort_by_date">By date</string>
     <string name="transfer_sort_by_status">By status</string>
+    <string name="transfer_hide_completed">Hide completed</string>
     <string name="transfer_cancel">Cancel</string>
     <string name="transfer_actions_title">Transfer actions</string>
     <string name="file_upload_in_progress">This file is currently being uploaded</string>

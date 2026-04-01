@@ -89,9 +89,11 @@
     <string name="transfer_already_queued_title">Upload bereits in Warteschlange</string>
     <string name="transfer_already_queued_message">&#8220;%1$s&#8221; befindet sich bereits in der Übertragungswarteschlange. Trotzdem erneut hochladen?</string>
     <string name="transfer_already_queued_confirm">Erneut hochladen</string>
+    <string name="transfer_sort_subtitle">Wähle die Sortierung deiner Übertragungen</string>
     <string name="transfer_sort_by_name">Nach Name</string>
     <string name="transfer_sort_by_date">Nach Datum</string>
     <string name="transfer_sort_by_status">Nach Status</string>
+    <string name="transfer_hide_completed">Abgeschlossene ausblenden</string>
     <string name="transfer_cancel">Abbrechen</string>
     <string name="transfer_actions_title">Übertragungsaktionen</string>
     <plurals name="transfer_queue_count">

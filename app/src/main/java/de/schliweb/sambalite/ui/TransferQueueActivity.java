@@ -12,7 +12,10 @@ package de.schliweb.sambalite.ui;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,6 +49,8 @@ public class TransferQueueActivity extends AppCompatActivity
 
   /** Current sort mode: 0 = name, 1 = date, 2 = status. */
   private int currentSort = 1; // default: by date (newest first)
+
+  private boolean hideCompleted = false;
 
   private List<PendingTransfer> lastTransfers;
 
@@ -103,7 +108,13 @@ public class TransferQueueActivity extends AppCompatActivity
               .getQuantityString(
                   R.plurals.transfer_queue_count, transfers.size(), transfers.size()));
 
-      adapter.submitList(sortTransfers(transfers));
+      List<PendingTransfer> filtered =
+          hideCompleted
+              ? transfers.stream()
+                  .filter(t -> !"COMPLETED".equals(t.status))
+                  .collect(java.util.stream.Collectors.toList())
+              : transfers;
+      adapter.submitList(sortTransfers(filtered));
     } else {
       queueInfoText.setText(getString(R.string.transfer_queue_empty));
       adapter.submitList(null);
@@ -144,20 +155,36 @@ public class TransferQueueActivity extends AppCompatActivity
   }
 
   private void showSortDialog() {
-    String[] options = {
-      getString(R.string.transfer_sort_by_name),
-      getString(R.string.transfer_sort_by_date),
-      getString(R.string.transfer_sort_by_status)
-    };
+    View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sort_transfers, null);
+    RadioGroup sortGroup = dialogView.findViewById(R.id.sort_type_radio_group);
+    CompoundButton hideCompletedSwitch = dialogView.findViewById(R.id.hide_completed_switch);
+
+    // Set initial values
+    if (currentSort == 0) {
+      sortGroup.check(R.id.radio_name);
+    } else if (currentSort == 1) {
+      sortGroup.check(R.id.radio_date);
+    } else if (currentSort == 2) {
+      sortGroup.check(R.id.radio_status);
+    }
+
+    hideCompletedSwitch.setChecked(hideCompleted);
 
     new MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.sort)
-        .setSingleChoiceItems(
-            options,
-            currentSort,
+        .setView(dialogView)
+        .setPositiveButton(
+            R.string.ok,
             (dialog, which) -> {
-              currentSort = which;
-              dialog.dismiss();
+              int checkedId = sortGroup.getCheckedRadioButtonId();
+              if (checkedId == R.id.radio_name) {
+                currentSort = 0;
+              } else if (checkedId == R.id.radio_date) {
+                currentSort = 1;
+              } else if (checkedId == R.id.radio_status) {
+                currentSort = 2;
+              }
+
+              hideCompleted = hideCompletedSwitch.isChecked();
               if (lastTransfers != null) {
                 onTransfersChanged(lastTransfers);
               }
