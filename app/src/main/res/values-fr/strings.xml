@@ -402,4 +402,6 @@
     <string name="auth_subtitle_password">Vérifiez votre identité pour afficher le mot de passe</string>
     <string name="auth_not_available">Aucune authentification configurée. Veuillez configurer un code PIN, un schéma ou la biométrie dans les paramètres système.</string>
     <string name="auth_failed">Échec de l\u2019authentification : %s</string>
+    <string name="file_upload_in_progress">Ce fichier est en cours de téléversement</string>
+    <string name="file_download_in_progress">Ce fichier est en cours de téléchargement</string>
 </resources>

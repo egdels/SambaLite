@@ -395,6 +395,8 @@
     <string name="transfer_sort_by_status">By status</string>
     <string name="transfer_cancel">Cancel</string>
     <string name="transfer_actions_title">Transfer actions</string>
+    <string name="file_upload_in_progress">This file is currently being uploaded</string>
+    <string name="file_download_in_progress">This file is currently being downloaded</string>
     <plurals name="transfer_queue_count">
         <item quantity="one">%1$d transfer</item>
         <item quantity="other">%1$d transfers</item>

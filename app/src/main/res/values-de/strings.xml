@@ -390,4 +390,6 @@
     <string name="auth_subtitle_password">Bestätigen Sie Ihre Identität, um das Passwort anzuzeigen</string>
     <string name="auth_not_available">Keine Geräte-Authentifizierung eingerichtet. Bitte richten Sie eine PIN, ein Muster oder Biometrie in den Systemeinstellungen ein.</string>
     <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>
+    <string name="file_upload_in_progress">Diese Datei wird gerade hochgeladen</string>
+    <string name="file_download_in_progress">Diese Datei wird gerade heruntergeladen</string>
 </resources>

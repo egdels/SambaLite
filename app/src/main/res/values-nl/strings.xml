@@ -390,4 +390,6 @@
     <string name="auth_subtitle_password">Verifieer uw identiteit om het wachtwoord te bekijken</string>
     <string name="auth_not_available">Geen apparaatauthenticatie geconfigureerd. Stel een PIN, patroon of biometrie in via de systeeminstellingen.</string>
     <string name="auth_failed">Authenticatie mislukt: %s</string>
+    <string name="file_upload_in_progress">Dit bestand wordt momenteel geüpload</string>
+    <string name="file_download_in_progress">Dit bestand wordt momenteel gedownload</string>
 </resources>

@@ -101,6 +101,27 @@
 
         </LinearLayout>
 
+        <!-- Upload transfer indicator (initially hidden) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/transfer_indicator"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp"
+            app:layout_constraintStart_toStartOf="@id/icon_container"
+            app:layout_constraintTop_toTopOf="@id/icon_container"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/transfer_indicator_icon"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/content_desc_sync_indicator"
+                android:src="@android:drawable/stat_sys_upload" />
+
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Sync direction indicator (initially hidden) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/sync_indicator"

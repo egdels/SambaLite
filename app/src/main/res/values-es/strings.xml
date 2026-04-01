@@ -402,4 +402,6 @@
     <string name="auth_subtitle_password">Verifique su identidad para ver la contraseña</string>
     <string name="auth_not_available">No hay autenticación configurada. Configure un PIN, patrón o biometría en los ajustes del sistema.</string>
     <string name="auth_failed">Error de autenticación: %s</string>
+    <string name="file_upload_in_progress">Este archivo se está subiendo actualmente</string>
+    <string name="file_download_in_progress">Este archivo se está descargando actualmente</string>
 </resources>
