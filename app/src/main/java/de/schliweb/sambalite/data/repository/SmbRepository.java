@@ -138,6 +138,20 @@ public interface SmbRepository {
   void deleteFile(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
+   * Deletes multiple files on the SMB server using a single connection. This avoids opening a new
+   * SMB session for each file, which can cause issues with SMB server-side directory caching and
+   * oplocks when deleting many files in quick succession.
+   *
+   * @param connection the SMB connection to use
+   * @param paths the list of file paths to delete
+   * @return a list of paths that failed to delete (empty if all succeeded)
+   * @throws Exception if the connection itself fails
+   */
+  @NonNull
+  java.util.List<String> deleteFiles(
+      @NonNull SmbConnection connection, @NonNull java.util.List<String> paths) throws Exception;
+
+  /**
    * Renames a file or directory on the SMB server.
    *
    * @param connection The SMB connection to use

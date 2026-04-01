@@ -734,51 +734,48 @@ public class FileOperationsController {
                   "batchDelete:" + System.currentTimeMillis(),
                   opTitle,
                   cb -> {
-                    int current = 0;
-                    int successCount = 0;
-                    java.util.ArrayList<String> failed = new java.util.ArrayList<>();
-
+                    // Collect all paths for batch deletion in a single SMB session
+                    java.util.ArrayList<String> paths = new java.util.ArrayList<>();
+                    java.util.LinkedHashMap<String, String> pathToName =
+                        new java.util.LinkedHashMap<>();
                     for (SmbFileItem f : toProcess) {
-                      if (cancel.get()) {
-                        failed.add("(cancelled)");
-                        break;
-                      }
-                      current++;
-                      String fileName = f.getName();
-                      try {
-                        cb.updateFileProgress(current, total, fileName);
-                        if (progressCallback != null) {
-                          int pct = (int) Math.round((current - 1) * 100.0 / total);
-                          progressCallback.updateDetailedProgress(
-                              pct,
-                              context.getString(de.schliweb.sambalite.R.string.deleting_ellipsis),
-                              fileName);
-                        }
-                        final java.util.concurrent.CountDownLatch done =
-                            new java.util.concurrent.CountDownLatch(1);
-                        final boolean[] ok = new boolean[1];
-                        operationsViewModel.deleteFile(
-                            f,
-                            (s, msg) -> {
-                              ok[0] = s;
-                              done.countDown();
-                            });
-                        try {
-                          done.await();
-                        } catch (InterruptedException ie) {
-                          Thread.currentThread().interrupt();
-                          failed.add(
-                              fileName
-                                  + " "
-                                  + context.getString(
-                                      de.schliweb.sambalite.R.string.interrupted_suffix));
-                          break;
-                        }
-                        if (ok[0]) successCount++;
-                        else failed.add(fileName);
-                      } catch (Throwable t) {
-                        failed.add(fileName + ": " + t.getMessage());
-                      }
+                      paths.add(f.getPath());
+                      pathToName.put(f.getPath(), f.getName());
+                    }
+
+                    // Update progress before starting
+                    cb.updateFileProgress(0, total, toProcess.get(0).getName());
+                    if (progressCallback != null) {
+                      progressCallback.updateDetailedProgress(
+                          0,
+                          context.getString(de.schliweb.sambalite.R.string.deleting_ellipsis),
+                          toProcess.get(0).getName());
+                    }
+
+                    // Use batch delete: single SMB session for all files
+                    java.util.List<String> failedPaths;
+                    try {
+                      failedPaths = operationsViewModel.deleteFilesBatch(paths);
+                    } catch (Exception e) {
+                      LogUtils.e(
+                          "FileOperationsController", "Batch delete failed: " + e.getMessage());
+                      failedPaths = paths; // all failed
+                    }
+
+                    int successCount = total - failedPaths.size();
+                    java.util.ArrayList<String> failed = new java.util.ArrayList<>();
+                    for (String fp : failedPaths) {
+                      String name = pathToName.getOrDefault(fp, fp);
+                      failed.add(name);
+                    }
+
+                    // Update final progress
+                    cb.updateFileProgress(total, total, "");
+                    if (progressCallback != null) {
+                      progressCallback.updateDetailedProgress(
+                          100,
+                          context.getString(de.schliweb.sambalite.R.string.deleting_ellipsis),
+                          "");
                     }
 
                     String base =
@@ -794,7 +791,8 @@ public class FileOperationsController {
                       progressCallback.showInfo(summary);
                       progressCallback.hideDetailedProgressDialog();
                     }
-                    // Ensure fresh list state
+                    // Refresh file list once after all deletions (cache already
+                    // invalidated by deleteFilesBatch)
                     fileListViewModel.refreshCurrentDirectory();
                     // Notify listeners that the batch delete operation has completed (for selection
                     // reset)

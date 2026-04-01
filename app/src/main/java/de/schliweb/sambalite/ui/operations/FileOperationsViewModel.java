@@ -746,6 +746,21 @@ public class FileOperationsViewModel extends ViewModel {
 
   public void deleteFile(
       @NonNull SmbFileItem file, @Nullable FileOperationCallbacks.DeleteFileCallback callback) {
+    deleteFile(file, callback, false);
+  }
+
+  /**
+   * Deletes a file on the SMB server.
+   *
+   * @param file the file to delete
+   * @param callback optional callback for result notification
+   * @param skipRefresh if true, skips the directory refresh after deletion (useful for batch
+   *     operations where a single refresh is done at the end)
+   */
+  public void deleteFile(
+      @NonNull SmbFileItem file,
+      @Nullable FileOperationCallbacks.DeleteFileCallback callback,
+      boolean skipRefresh) {
     if (state.getConnection() == null || file == null) {
       LogUtils.w("FileOperationsViewModel", "Cannot delete: invalid file or connection");
       if (callback != null) {
@@ -783,7 +798,9 @@ public class FileOperationsViewModel extends ViewModel {
             IntelligentCacheManager.getInstance().invalidateSync(cachePattern);
             IntelligentCacheManager.getInstance()
                 .invalidateSearchCache(state.getConnection(), state.getCurrentPathString());
-            fileListViewModel.refreshCurrentDirectory();
+            if (!skipRefresh) {
+              fileListViewModel.refreshCurrentDirectory();
+            }
           } catch (Exception e) {
             LogUtils.e("FileOperationsViewModel", "File deletion failed: " + e.getMessage());
             state.setLoading(false);
@@ -800,6 +817,37 @@ public class FileOperationsViewModel extends ViewModel {
                     e.getMessage()));
           }
         });
+  }
+
+  /**
+   * Deletes multiple files in a single SMB session. This method is synchronous and should be called
+   * from a background thread. It does not trigger a directory refresh — the caller is responsible
+   * for refreshing after the batch completes.
+   *
+   * @param paths the list of file paths to delete
+   * @return a list of paths that failed to delete
+   * @throws Exception if the connection itself fails
+   */
+  @NonNull
+  public List<String> deleteFilesBatch(@NonNull List<String> paths) throws Exception {
+    if (state.getConnection() == null) {
+      LogUtils.w("FileOperationsViewModel", "Cannot batch delete: no connection");
+      return new ArrayList<>(paths);
+    }
+    LogUtils.d("FileOperationsViewModel", "Batch deleting " + paths.size() + " files");
+    List<String> failed = smbRepository.deleteFiles(state.getConnection(), paths);
+    // Invalidate cache once after all deletions
+    if (state.getConnection() != null) {
+      String cachePattern =
+          "conn_"
+              + state.getConnection().getId()
+              + "_path_"
+              + state.getCurrentPathString().hashCode();
+      IntelligentCacheManager.getInstance().invalidateSync(cachePattern);
+      IntelligentCacheManager.getInstance()
+          .invalidateSearchCache(state.getConnection(), state.getCurrentPathString());
+    }
+    return failed;
   }
 
   public void renameFile(

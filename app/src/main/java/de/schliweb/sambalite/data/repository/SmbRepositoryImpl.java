@@ -694,6 +694,62 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
+  @NonNull
+  public List<String> deleteFiles(@NonNull SmbConnection connection, @NonNull List<String> paths)
+      throws Exception {
+    LogUtils.d("SmbRepositoryImpl", "Batch deleting " + paths.size() + " files");
+    return withShare(
+        connection,
+        share -> {
+          List<String> failed = new ArrayList<>();
+          for (String path : paths) {
+            try {
+              String filePath = getPathWithoutShare(path);
+              if (share.fileExists(filePath)) {
+                share.rm(filePath);
+                // Verify deletion — SMB server may delay due to oplocks on large files
+                if (share.fileExists(filePath)) {
+                  LogUtils.w(
+                      "SmbRepositoryImpl", "File still exists after rm, retrying: " + filePath);
+                  try {
+                    Thread.sleep(200);
+                  } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                  }
+                  if (share.fileExists(filePath)) {
+                    share.rm(filePath);
+                    if (share.fileExists(filePath)) {
+                      LogUtils.e("SmbRepositoryImpl", "File still exists after retry: " + filePath);
+                      failed.add(path);
+                      continue;
+                    }
+                  }
+                }
+                LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
+              } else if (share.folderExists(filePath)) {
+                share.rmdir(filePath, true);
+                LogUtils.i("SmbRepositoryImpl", "Directory deleted successfully: " + filePath);
+              } else {
+                LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + filePath);
+                failed.add(path);
+              }
+            } catch (Exception e) {
+              LogUtils.e("SmbRepositoryImpl", "Failed to delete: " + path + " - " + e.getMessage());
+              failed.add(path);
+            }
+          }
+          LogUtils.i(
+              "SmbRepositoryImpl",
+              "Batch delete completed: "
+                  + (paths.size() - failed.size())
+                  + " succeeded, "
+                  + failed.size()
+                  + " failed");
+          return failed;
+        });
+  }
+
+  @Override
   public void renameFile(
       @NonNull SmbConnection connection, @NonNull String oldPath, @NonNull String newName)
       throws Exception {
