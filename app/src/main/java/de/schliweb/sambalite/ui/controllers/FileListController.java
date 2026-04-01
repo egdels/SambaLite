@@ -15,14 +15,19 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.sync.SyncDirection;
+import de.schliweb.sambalite.transfer.db.PendingTransfer;
+import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
 import de.schliweb.sambalite.util.LogUtils;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -135,11 +140,12 @@ public class FileListController
               adapter.setSelectedPaths(selectedPaths);
               updateEmptyView(files);
               swipeRefreshLayout.setRefreshing(false);
-
               // Update file statistics if callback is set
               if (fileStatisticsCallback != null) {
                 fileStatisticsCallback.onFileStatisticsUpdated(files);
               }
+              // Refresh active upload indicators from DB
+              refreshActiveUploadPaths();
             });
 
     // Observe current path changes
@@ -309,6 +315,63 @@ public class FileListController
             + (syncDirections != null ? syncDirections.size() : 0)
             + " entries");
     adapter.setSyncDirections(syncDirections);
+  }
+
+  /**
+   * Sets the active upload paths for transfer indicators in the file list.
+   *
+   * @param paths Set of remote paths currently being uploaded
+   */
+  public void setActiveUploadPaths(@NonNull Set<String> paths) {
+    adapter.setActiveUploadPaths(paths);
+  }
+
+  /**
+   * Sets the active download paths for transfer indicators in the file list.
+   *
+   * @param paths Set of remote paths currently being downloaded
+   */
+  public void setActiveDownloadPaths(@NonNull Set<String> paths) {
+    adapter.setActiveDownloadPaths(paths);
+  }
+
+  /**
+   * Refreshes active transfer indicators (uploads and downloads) by querying the DB on a background
+   * thread. Called once after each file list update and on manual refresh.
+   */
+  private void refreshActiveUploadPaths() {
+    SmbConnection conn = viewModel.getConnection();
+    if (conn == null) {
+      adapter.setActiveUploadPaths(new HashSet<>());
+      adapter.setActiveDownloadPaths(new HashSet<>());
+      return;
+    }
+    String connectionId = conn.getId();
+    new Thread(
+            () -> {
+              var dao =
+                  TransferDatabase.getInstance(recyclerView.getContext()).pendingTransferDao();
+              List<PendingTransfer> uploads = dao.getActiveUploadsForConnection(connectionId);
+              Set<String> uploadPaths = new HashSet<>();
+              for (PendingTransfer t : uploads) {
+                if (t.remotePath != null && !t.remotePath.isEmpty()) {
+                  uploadPaths.add(t.remotePath);
+                }
+              }
+              List<PendingTransfer> downloads = dao.getActiveDownloadsForConnection(connectionId);
+              Set<String> downloadPaths = new HashSet<>();
+              for (PendingTransfer t : downloads) {
+                if (t.remotePath != null && !t.remotePath.isEmpty()) {
+                  downloadPaths.add(t.remotePath);
+                }
+              }
+              recyclerView.post(
+                  () -> {
+                    adapter.setActiveUploadPaths(uploadPaths);
+                    adapter.setActiveDownloadPaths(downloadPaths);
+                  });
+            })
+        .start();
   }
 
   /**

@@ -178,4 +178,20 @@ public interface PendingTransferDao {
   /** Returns the total count of all transfer entries. */
   @Query("SELECT COUNT(*) FROM pending_transfer")
   int countAll();
+
+  /** Returns active/pending uploads for a given connection (for FileBrowser upload indicators). */
+  @Query(
+      "SELECT * FROM pending_transfer WHERE connection_id = :connectionId"
+          + " AND transfer_type = 'UPLOAD' AND status IN ('PENDING', 'ACTIVE')")
+  @NonNull
+  List<PendingTransfer> getActiveUploadsForConnection(@NonNull String connectionId);
+
+  /**
+   * Returns active/pending downloads for a given connection (for FileBrowser download indicators).
+   */
+  @Query(
+      "SELECT * FROM pending_transfer WHERE connection_id = :connectionId"
+          + " AND transfer_type = 'DOWNLOAD' AND status IN ('PENDING', 'ACTIVE')")
+  @NonNull
+  List<PendingTransfer> getActiveDownloadsForConnection(@NonNull String connectionId);
 }

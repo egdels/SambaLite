@@ -9,6 +9,7 @@
  */
 package de.schliweb.sambalite.ui;
 
+import android.app.Activity;
 import android.text.format.DateFormat;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
@@ -26,6 +27,7 @@ import com.google.android.material.color.MaterialColors;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.sync.SyncDirection;
+import de.schliweb.sambalite.ui.utils.UIHelper;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -50,6 +52,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
   // Sync direction markers: maps folder path to its SyncDirection
   Map<String, SyncDirection> syncDirections = new HashMap<>();
+
+  // Active upload paths: remote paths of files currently being uploaded
+  java.util.Set<String> activeUploadPaths = new java.util.HashSet<>();
+  // Active download paths: remote paths of files currently being downloaded
+  java.util.Set<String> activeDownloadPaths = new java.util.HashSet<>();
 
   /**
    * Updates the list of files.
@@ -135,6 +142,48 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
   public void setSyncDirections(@NonNull Map<String, SyncDirection> syncDirections) {
     this.syncDirections = syncDirections != null ? syncDirections : new HashMap<>();
     notifyItemRangeChanged(0, getItemCount());
+  }
+
+  /**
+   * Sets the active upload paths for transfer indicators.
+   *
+   * @param paths Set of remote paths currently being uploaded
+   */
+  public void setActiveUploadPaths(@NonNull java.util.Set<String> paths) {
+    java.util.Set<String> newPaths = paths != null ? paths : new java.util.HashSet<>();
+    java.util.Set<String> oldPaths = this.activeUploadPaths;
+    this.activeUploadPaths = newPaths;
+    // Only notify items whose upload status actually changed
+    for (int i = 0; i < files.size(); i++) {
+      String filePath = files.get(i).getPath();
+      boolean wasActive = oldPaths.contains(filePath);
+      boolean isActive = newPaths.contains(filePath);
+      if (wasActive != isActive) {
+        int adapterPos = showParentDirectory ? i + 1 : i;
+        notifyItemChanged(adapterPos);
+      }
+    }
+  }
+
+  /**
+   * Sets the active download paths for transfer indicators.
+   *
+   * @param paths Set of remote paths currently being downloaded
+   */
+  public void setActiveDownloadPaths(@NonNull java.util.Set<String> paths) {
+    java.util.Set<String> newPaths = paths != null ? paths : new java.util.HashSet<>();
+    java.util.Set<String> oldPaths = this.activeDownloadPaths;
+    this.activeDownloadPaths = newPaths;
+    // Only notify items whose download status actually changed
+    for (int i = 0; i < files.size(); i++) {
+      String filePath = files.get(i).getPath();
+      boolean wasActive = oldPaths.contains(filePath);
+      boolean isActive = newPaths.contains(filePath);
+      if (wasActive != isActive) {
+        int adapterPos = showParentDirectory ? i + 1 : i;
+        notifyItemChanged(adapterPos);
+      }
+    }
   }
 
   @NonNull
@@ -279,6 +328,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final MaterialCardView rootCard;
     private final View syncIndicator;
     private final ImageView syncIndicatorIcon;
+    private final View transferIndicator;
+    private final ImageView transferIndicatorIcon;
 
     FileViewHolder(@NonNull View itemView) {
       super(itemView);
@@ -290,6 +341,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       rootCard = (itemView instanceof MaterialCardView matched) ? matched : null;
       syncIndicator = itemView.findViewById(R.id.sync_indicator);
       syncIndicatorIcon = itemView.findViewById(R.id.sync_indicator_icon);
+      transferIndicator = itemView.findViewById(R.id.transfer_indicator);
+      transferIndicatorIcon = itemView.findViewById(R.id.transfer_indicator_icon);
 
       itemView.setOnClickListener(
           v -> {
@@ -330,6 +383,26 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
               } else {
                 int filePosition = showParentDirectory ? position - 1 : position;
                 SmbFileItem file = files.get(filePosition);
+                if (file.getPath() != null && activeUploadPaths.contains(file.getPath())) {
+                  LogUtils.d(
+                      "FileAdapter", "Long click blocked for uploading file: " + file.getName());
+                  if (v.getContext() instanceof Activity) {
+                    UIHelper.showInfo(
+                        (Activity) v.getContext(),
+                        v.getContext().getString(R.string.file_upload_in_progress));
+                  }
+                  return true;
+                }
+                if (file.getPath() != null && activeDownloadPaths.contains(file.getPath())) {
+                  LogUtils.d(
+                      "FileAdapter", "Long click blocked for downloading file: " + file.getName());
+                  if (v.getContext() instanceof Activity) {
+                    UIHelper.showInfo(
+                        (Activity) v.getContext(),
+                        v.getContext().getString(R.string.file_download_in_progress));
+                  }
+                  return true;
+                }
                 longClickListener.onFileLongClick(file);
                 return true;
               }
@@ -355,7 +428,25 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                         + filePosition
                         + ": "
                         + file.getName());
-                optionsClickListener.onFileOptionsClick(file);
+                if (file.getPath() != null && activeUploadPaths.contains(file.getPath())) {
+                  LogUtils.d(
+                      "FileAdapter", "Options blocked for uploading file: " + file.getName());
+                  if (v.getContext() instanceof Activity) {
+                    UIHelper.showInfo(
+                        (Activity) v.getContext(),
+                        v.getContext().getString(R.string.file_upload_in_progress));
+                  }
+                } else if (file.getPath() != null && activeDownloadPaths.contains(file.getPath())) {
+                  LogUtils.d(
+                      "FileAdapter", "Options blocked for downloading file: " + file.getName());
+                  if (v.getContext() instanceof Activity) {
+                    UIHelper.showInfo(
+                        (Activity) v.getContext(),
+                        v.getContext().getString(R.string.file_download_in_progress));
+                  }
+                } else {
+                  optionsClickListener.onFileOptionsClick(file);
+                }
               }
             } else {
               LogUtils.d("FileAdapter", "Options click ignored: position invalid or no listener");
@@ -373,6 +464,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         sizeView.setText("");
         if (syncIndicator != null) {
           syncIndicator.setVisibility(View.GONE);
+        }
+        if (transferIndicator != null) {
+          transferIndicator.setVisibility(View.GONE);
         }
         return;
       }
@@ -448,6 +542,21 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
           }
         } else {
           syncIndicator.setVisibility(View.GONE);
+        }
+      }
+
+      // Show transfer indicator for uploads and downloads
+      if (transferIndicator != null) {
+        String filePath = file.getPath();
+        boolean isUploading = filePath != null && activeUploadPaths.contains(filePath);
+        boolean isDownloading = filePath != null && activeDownloadPaths.contains(filePath);
+        if (isUploading || isDownloading) {
+          transferIndicator.setVisibility(View.VISIBLE);
+          if (transferIndicatorIcon != null) {
+            transferIndicatorIcon.setImageResource(R.drawable.ic_sync_active);
+          }
+        } else {
+          transferIndicator.setVisibility(View.GONE);
         }
       }
 
