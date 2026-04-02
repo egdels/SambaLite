@@ -357,13 +357,22 @@ public class TransferWorker extends Worker {
         processDownload(dao, share, transfer);
       }
 
+      // If the transfer was cancelled by the user during processing, don't mark as completed
+      if (isTransferCancelled(dao, transfer.id)) {
+        LogUtils.i(TAG, "Transfer was cancelled by user: " + transfer.displayName);
+        return false;
+      }
+
       dao.updateStatus(transfer.id, "COMPLETED", System.currentTimeMillis());
       LogUtils.i(TAG, "Transfer completed: " + transfer.displayName);
       sendTransferCompletedBroadcast(transfer);
       return true;
     } catch (Exception e) {
       LogUtils.e(TAG, "Transfer failed: " + transfer.displayName + " - " + e.getMessage());
-      dao.markFailed(transfer.id, e.getMessage(), System.currentTimeMillis());
+      // Don't overwrite CANCELLED status with FAILED
+      if (!isTransferCancelled(dao, transfer.id)) {
+        dao.markFailed(transfer.id, e.getMessage(), System.currentTimeMillis());
+      }
       return false;
     }
   }
@@ -476,8 +485,17 @@ public class TransferWorker extends Worker {
         long bytesSinceLastSave = 0;
 
         while ((read = in.read(buffer)) != -1) {
-          if (isStopped()) {
+          if (isStopped() || isTransferCancelled(dao, transfer.id)) {
             dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+            if (isTransferCancelled(dao, transfer.id)) {
+              LogUtils.i(
+                  TAG,
+                  "Upload cancelled by user at byte "
+                      + transfer.bytesTransferred
+                      + ": "
+                      + transfer.displayName);
+              return;
+            }
             // Only reset to PENDING if not already CANCELLED by user
             dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
             LogUtils.i(
@@ -720,10 +738,19 @@ public class TransferWorker extends Worker {
                 bytesSinceLastSave = 0;
               }
 
-              if (isStopped()) {
+              if (isStopped() || isTransferCancelled(dao, transfer.id)) {
                 prefetchFuture.cancel(true);
                 dao.updateProgress(
                     transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+                if (isTransferCancelled(dao, transfer.id)) {
+                  LogUtils.i(
+                      TAG,
+                      "Download cancelled by user at byte "
+                          + transfer.bytesTransferred
+                          + ": "
+                          + transfer.displayName);
+                  return;
+                }
                 dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
                 LogUtils.i(
                     TAG,
@@ -802,6 +829,15 @@ public class TransferWorker extends Worker {
 
     // Final progress update
     dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+  }
+
+  /**
+   * Checks whether the given transfer has been cancelled by the user (via queue UI). This allows
+   * individual transfer cancellation while the worker continues processing others.
+   */
+  private boolean isTransferCancelled(PendingTransferDao dao, long transferId) {
+    String status = dao.getStatus(transferId);
+    return status == null || "CANCELLED".equals(status);
   }
 
   private void updateTransferNotification(PendingTransfer transfer) {

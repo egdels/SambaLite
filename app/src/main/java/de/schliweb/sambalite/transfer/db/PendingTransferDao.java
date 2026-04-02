@@ -165,6 +165,11 @@ public interface PendingTransferDao {
           + " WHERE id = :id AND status = 'ACTIVE'")
   void updateStatusIfActive(long id, @NonNull String status, long now);
 
+  /** Returns the current status of a transfer (for cancellation checks during active transfer). */
+  @Query("SELECT status FROM pending_transfer WHERE id = :id")
+  @Nullable
+  String getStatus(long id);
+
   /** Deletes a single transfer by ID. */
   @Query("DELETE FROM pending_transfer WHERE id = :id")
   void deleteById(long id);
