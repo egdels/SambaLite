@@ -1,0 +1,6 @@
+• New: Persistent transfer queue with background processing & resume.
+• New: Background file search with live results.
+• New: Batch deletion & multi-file overwrite dialog.
+• New: Async transport for faster SMB transfers.
+• New: Auth before changing security settings.
+• Fixed: DB migration crash, delete verification, transfer integrity.

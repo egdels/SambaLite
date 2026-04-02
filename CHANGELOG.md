@@ -5,139 +5,85 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.6] - 2026-04-02
+## [2.1.0] - 2026-04-02
+
+_First public release after 1.8.3. Versions 2.0.0–2.0.6 were internal development builds and were not published to Play Store or F-Droid._
 
 ### Added
-- **Authentication before security settings**: `FileBrowserActivity` and `MainActivity` now require biometric/device authentication before opening the security settings dialog if any auth setting is currently enabled. This prevents unauthorized users from disabling security protections.
-- **Individual transfer cancellation**: `TransferWorker` now checks per-transfer cancellation status during active uploads and downloads. A new `getStatus()` query in `PendingTransferDao` enables real-time cancellation detection, allowing users to cancel individual transfers while the worker continues processing others.
-- **Background transfer progress reporting**: `FileOperationsViewModel` now forwards byte-level progress updates to `BackgroundSmbManager` for both upload and download operations, enabling accurate progress display in notifications.
-- Translation for `auth_subtitle_security_settings` in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
-
-### Fixed
-- **Database migration crash**: `SearchDatabase` and `SyncDatabase` now use `fallbackToDestructiveMigration(true)`, preventing crashes when the database schema changes between app updates.
-- **Cancelled transfer status overwrite**: `TransferWorker` no longer overwrites a `CANCELLED` status with `FAILED` when a transfer error occurs after user cancellation.
-
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
-
-## [2.0.5] - 2026-04-01
-
-### Added
-- **Batch file deletion**: New `deleteFiles()` method in `SmbRepository` / `SmbRepositoryImpl` deletes multiple files in a single SMB session, avoiding repeated session creation and SMB oplock/caching issues. Includes per-file retry logic with 200 ms delay for servers that delay deletion due to oplocks.
-- **"Hide completed" filter in Transfer Queue**: `TransferQueueActivity` now offers a toggle to hide completed transfers. The sort dialog has been redesigned as a custom dialog (`dialog_sort_transfers.xml`) with radio buttons and a checkbox.
-- **Transfer Worker connection failure tracking**: `TransferWorker` now tracks connections that fail with connectivity errors within a single worker run and skips them for the remainder of that run, avoiding tight retry loops on unreachable servers.
-- Translations for `transfer_sort_subtitle` and `transfer_hide_completed` in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
-- New drawable `ic_system_monitor` for the System Monitor menu entry.
+- **Persistent Transfer Queue**: Uploads and downloads are now queued persistently and processed in the background via WorkManager. Transfers survive app kills and device restarts, with automatic resume from the last byte offset. Includes foreground notification with live progress, connection reuse, direct SAF→SMB streaming, and disk space checks.
+- **Transfer Queue Activity**: New dedicated screen to view, sort, retry, cancel, and remove queued transfers. Supports batch actions, status filtering, sorting by name/date/status, and a "Hide completed" filter.
+- **Individual transfer cancellation**: Users can cancel individual transfers without stopping the entire queue.
+- **Background transfer progress**: Accurate byte-level progress display in notifications for uploads and downloads.
+- **Background Search**: File search now runs in the background via WorkManager with live results appearing as they are found. Survives activity recreation.
+- **Batch file deletion**: Multiple files can be deleted in a single SMB session, improving performance and avoiding oplock issues.
+- **Multi-file overwrite dialog**: When uploading files that already exist, users can individually select which files to overwrite.
+- **Async transport option**: New per-connection toggle for faster SMB transfers using async direct TCP transport.
+- **Transfer status badges**: Files with active uploads or downloads display a transfer badge in the file browser.
+- **Blocked actions during transfer**: Files currently being transferred cannot be edited or multi-selected, preventing conflicts.
+- **Authentication before security settings**: Biometric/device authentication is now required before opening security settings if any auth setting is enabled.
+- **Connection failure tracking**: The transfer worker skips unreachable connections for the remainder of a run, avoiding tight retry loops.
+- Translations for all new strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
 
 ### Changed
-- **Batch delete in FileOperationsController**: Multi-file deletion now uses `FileOperationsViewModel.deleteFilesBatch()` instead of deleting files one by one. Directory refresh and cache invalidation happen once after the entire batch completes, improving performance for large selections.
-- **`deleteFile()` overload with `skipRefresh` parameter**: Allows callers to suppress the automatic directory refresh after a single deletion, enabling efficient batch workflows.
-- **Layout improvements**: `dialog_progress.xml`, `item_file.xml`, and `item_transfer.xml` updated — file name text views now use `match_parent` width with `maxLines="2"` and `ellipsize="end"` for better readability of long file names. Removed redundant `layout_constraintBottom` attributes.
-- System Monitor menu icon changed from generic `ic_dialog_info` to dedicated `ic_system_monitor` drawable.
+- Uploads and downloads no longer block the UI with progress dialogs — they are enqueued and processed in the background.
+- File search rewritten from blocking in-process execution to WorkManager-backed background search with Room persistence.
+- Batch file deletion replaces one-by-one deletion for multi-file operations, with single directory refresh after completion.
+- Unified user feedback: All messages now use Snackbar exclusively (Toast removed). Consistent color semantics: green = success, red = error, blue = informational.
+- File-exists dialogs refactored to custom in-layout button views for better consistency.
+- Layout improvements for long file names in file list and transfer queue items.
 
 ### Fixed
-- **Single-file delete verification**: `SmbRepositoryImpl.deleteFile()` now verifies that the file was actually removed after `share.rm()` and retries once with a 200 ms delay if the file still exists due to SMB server-side oplock delays.
-
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
-
-## [2.0.4] - 2026-04-01
-
-### Changed
-- **Unified user feedback**: All user-facing messages now consistently use Snackbar (via `UIHelper`) instead of a mix of Toast and Snackbar. Toast is completely removed from the codebase.
-- **Consistent Snackbar color strategy**: Success messages (delete, rename, folder created) now correctly show green instead of blue. Color semantics: green = success, red = error, blue = informational.
-- **Removed "Opening ..." message**: The redundant "Opening ..." Snackbar after navigating to a share was removed, as the navigation itself provides sufficient feedback.
-
-### Added
-- **Transfer status badges in file browser**: Files with active uploads or downloads now display a transfer badge (sync icon) on their file icon, matching the transfer queue visual style.
-- **Blocked actions during transfer**: Files currently being uploaded or downloaded cannot be edited (rename, delete, options menu) or multi-selected. A blue info Snackbar explains the restriction.
-- Translations for `file_upload_in_progress` and `file_download_in_progress` in all 7 languages (EN, DE, FR, PL, ES, NL, ZH).
+- **Database migration crash**: Databases now use `fallbackToDestructiveMigration` to prevent crashes on schema changes.
+- **Cancelled transfer status**: Cancelled transfers are no longer overwritten with FAILED status.
+- **Single-file delete verification**: Deletion is verified and retried if the file still exists due to SMB oplock delays.
+- **Transfer integrity check**: File size comparisons now use actual file sizes instead of potentially stale database values.
+- **Keyboard not dismissed on dialog close**: Fixed on devices where the keyboard reappeared after dismissing the rename dialog.
+- **Folder upload overwrite selection**: Folder uploads now respect individual per-file overwrite selections.
+- **Thread-safe date formatting** and **locale-independent sorting** in the transfer queue.
 
 ### Removed
-- **Toast completely removed**: `DialogHelper.showToast()`, `EnhancedUIUtils.showEnhancedToast()`, and the unreachable Toast in `FileBrowserActivity.onDestroy()` have been removed. All user feedback now uses Snackbar exclusively.
+- `FileUploadTask` class — upload logic is now handled by `TransferWorker`.
+- `AdvancedNetworkOptimizer` class — network optimization is handled by the system `ConnectivityManager`.
+- Toast-based user feedback — replaced entirely by Snackbar.
+- Blocking progress dialogs for uploads and downloads.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 
-## [2.0.3] - 2026-03-31
+<details>
+<summary>Internal development builds (2.0.0–2.0.6) — not published to Play Store or F-Droid</summary>
 
-### Added
-- **Async transport option**: New per-connection toggle "Use async transport (faster)" in the add/edit connection dialog. When enabled, SMB clients use `AsyncDirectTcpTransportFactory` for improved transfer, sync, and search performance. Persisted via `SmbConnection.asyncTransport` and `ConnectionRepositoryImpl`. Translations added for all 7 languages.
-- **Transfer throughput logging**: `TransferWorker` now measures and logs upload and download duration and throughput (MB/s) on completion.
+### [2.0.6] - 2026-04-02
+- Added: Authentication before security settings, individual transfer cancellation, background transfer progress reporting.
+- Fixed: Database migration crash, cancelled transfer status overwrite.
 
-### Fixed
-- **Keyboard not dismissed on dialog close**: Added `OnDismissListener` to the rename dialog in `DialogHelper` that clears focus and hides the keyboard, including a delayed secondary hide (100 ms) to handle devices where the keyboard reappears after dismiss.
-- **Folder upload ignores per-file overwrite selection**: `FileOperationsController` folder upload now respects the user's individual file selection from the multi-file exists dialog. Previously, confirming the dialog always uploaded all files; now unselected files are excluded via a `Set<String>` filter passed to the enqueue logic.
+### [2.0.5] - 2026-04-01
+- Added: Batch file deletion, "Hide completed" filter in Transfer Queue, connection failure tracking.
+- Changed: Batch delete performance, layout improvements for long file names.
+- Fixed: Single-file delete verification with retry.
 
-### Changed
-- **File-exists dialogs refactored to custom button views**: `showFileExistsDialog` and `showMultiFileExistsDialog` in `DialogHelper` now use in-layout buttons (`file_exists_overwrite_button`, `file_exists_cancel_button`, `files_exist_overwrite_button`, `files_exist_skip_button`) instead of `MaterialAlertDialogBuilder` positive/negative buttons, improving layout control and consistency.
-- `FileOperationsController`: Removed `showMultiFileExistsOrSingle` helper; folder upload now calls `showMultiFileExistsDialog` directly with a `Consumer<Set<String>>` callback for selective file exclusion.
-- `SystemMonitorActivity`: Simplified network status section — removed `AdvancedNetworkOptimizer` details, now reports that network monitoring is handled by system `ConnectivityManager`.
-- `SmbRepositoryImpl`, `TransferWorker`, `FolderSyncWorker`, `SearchWorker`: SMB client creation now respects the `asyncTransport` flag and includes enhanced debug logging for client configuration.
+### [2.0.4] - 2026-04-01
+- Added: Transfer status badges in file browser, blocked actions during transfer.
+- Changed: Unified Snackbar feedback, consistent color strategy.
+- Removed: Toast completely removed.
 
-### Removed
-- `AdvancedNetworkOptimizer` class deleted — network optimization is now handled by the system `ConnectivityManager`. References removed from `SambaLiteApp` and `SystemMonitorActivity`.
+### [2.0.3] - 2026-03-31
+- Added: Async transport option, transfer throughput logging.
+- Fixed: Keyboard not dismissed on dialog close, folder upload overwrite selection.
+- Changed: File-exists dialogs refactored, AdvancedNetworkOptimizer removed.
 
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+### [2.0.2] - 2026-03-31
+- Added: Multi-file overwrite dialog.
+- Fixed: Transfer integrity check, thread-safe date formatting, locale-independent sorting.
 
-## [2.0.2] - 2026-03-31
+### [2.0.1] - 2026-03-30
+- Fixed: Polish locale lint error (MissingQuantity).
 
-### Added
-- **Multi-file overwrite dialog**: When uploading multiple files that already exist on the server, a new checkbox dialog (`showMultiFileExistsDialog`) allows the user to individually select which files to overwrite. Includes a "Select all" toggle and "Skip all" option. New layout `dialog_file_exists_multi` and translations for all 7 languages.
+### [2.0.0] - 2026-03-30
+- Added: Persistent Transfer Queue, Transfer Queue Activity, Background Search, transfer completion broadcast, duplicate upload detection.
+- Changed: Uploads/downloads no longer block UI, SearchViewModel rewritten, FileOperationsController refactored.
+- Removed: FileUploadTask, blocking progress dialogs, in-memory search.
 
-### Fixed
-- **Transfer integrity check**: Upload and download integrity checks in `TransferWorker` and `FolderSyncWorker` now compare the actual local file size (queried via SAF `ContentResolver`) against the actual remote file size, instead of relying on the potentially stale `fileSize` value stored in the database. This prevents false positives when the DB value is zero or outdated.
-- **Thread-safe date formatting**: `TimestampUtils.DATE_FORMAT` changed from a shared `SimpleDateFormat` with `synchronized` block to a `ThreadLocal<SimpleDateFormat>`, eliminating potential contention in multi-threaded transfer scenarios.
-- **Locale-independent sorting**: `TransferQueueActivity` sort-by-name now uses `Locale.ROOT` instead of the default locale for consistent case-insensitive ordering.
-
-### Changed
-- `FileOperationsController`: Extracted multi-file and single-file overwrite dialog logic into dedicated methods (`showMultiFileExistsOrSingle`, `showMultiFileExistsDialog`). Removed ~350 lines of unused legacy upload/download code and related imports.
-- `PendingTransferDao`: Clarified documentation for `resetActiveToRetry()` and `resetFailedToRetry()` — resetting `bytes_transferred` to 0 is intentional; resume after crash/reboot is not yet supported.
-- `TransferWorker`: Added documentation note that upload resume does not take effect after crash/reboot due to the `resetActiveToRetry()` reset. Added `getLocalFileSize()` helper method for SAF-based file size queries. Improved logging for download remote file size lookup.
-
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
-
-## [2.0.1] - 2026-03-30
-
-### Fixed
-- Polish locale lint error (`MissingQuantity`): Added missing `few` and `many` plural quantity items to `transfer_queue_count` in `values-pl/strings.xml`. Polish requires four plural forms (`one`, `few`, `many`, `other`); the missing entries caused a lint error that failed the CI build.
-
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
-
-## [2.0.0] - 2026-03-30
-
-### Added
-- **Persistent Transfer Queue**: Uploads and downloads are now queued persistently using Room DB and processed in the background via WorkManager (`TransferWorker`). Transfers survive app kills and device restarts, with automatic resume from the last saved byte offset. Includes foreground notification with live progress, connection reuse (one SMB session per connection), direct SAF→SMB streaming without temp copies, and disk space checks during downloads.
-- **Transfer Queue Activity**: New dedicated screen (`TransferQueueActivity`) to view, sort, retry, cancel, and remove queued transfers. Supports batch actions, status filtering (pending, active, completed, failed, cancelled), and sorting by name, date, or status. Accessible from the main menu.
-- **Background Search via WorkManager**: File search is now performed in the background using `SearchWorker` with a Room database (`SearchDatabase`). Results appear live in the UI via LiveData as they are found, replacing the previous blocking in-process search. Search survives activity recreation and runs as a foreground service with notification.
-- Transfer completion broadcast: `FileBrowserActivity` receives a local broadcast when a transfer finishes, showing a success message and refreshing the file list automatically.
-- Duplicate upload detection: When enqueuing a file that is already in the transfer queue, a confirmation dialog is shown before adding it again.
-- Translations for all new Transfer Queue and search strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
-- New drawable resources: `ic_transfer_queue`, `ic_cancel_red`, `ic_check_circle_green`, `ic_power_off`, `ic_sync_active`.
-
-### Changed
-- Uploads and downloads no longer block the UI with progress dialogs. Instead, they are enqueued into the persistent transfer queue and processed in the background.
-- `SearchViewModel` fully rewritten: replaced in-memory executor-based search with WorkManager-backed `SearchWorker` and Room-based `SearchResultDao`. Removed search cache optimizer and in-memory throttle logic.
-- `FileOperationsController` and `FileOperationsViewModel` significantly refactored: removed inline upload/download logic (~700 lines) in favor of `enqueueUpload()`/`enqueueDownload()` methods that persist transfers to Room and trigger `TransferWorker`.
-- `SambaLiteApp` now implements `Configuration.Provider` for custom WorkManager initialization. On app start, pending transfers from a previous session are automatically resumed.
-- Search dialog (`dialog_search.xml`) wrapped in `ScrollView` for better keyboard handling; `SOFT_INPUT_ADJUST_RESIZE` applied to search dialog window.
-- `SmbRepository` / `SmbRepositoryImpl`: Removed `searchFiles()` and related search methods (now handled by `SearchWorker` directly). Removed unused `BackgroundSmbManager` search context methods.
-- `BiometricAuthHelper.AuthCallback.onAuthFailure` parameter annotated with `@NonNull`.
-
-### Removed
-- `FileUploadTask` class removed — upload logic is now handled entirely by `TransferWorker`.
-- Blocking progress dialogs for uploads and downloads removed from `FileOperationsController`.
-- In-memory search execution removed from `SmbRepository` and `BackgroundSmbManager`.
-- `FileSkippedException` and its test class removed.
-- Removed several obsolete test methods from `SmbRepositoryTest`, `SmbRepositoryNetworkIntegrityTest`, `SmbRepositoryPerformanceTest`, and `NotificationFeatureTest` that tested removed search/upload APIs.
-
-### Developer Notes
-- `TransferWorker`: WorkManager `Worker` with foreground service notification, connection pooling (`Map<Integer, Session>`), chunked I/O with 256 KB buffer, periodic progress persistence (every 2 MB), and disk space validation during downloads.
-- `PendingTransfer` / `PendingTransferDao` / `TransferDatabase`: Room-based persistence for the transfer queue with status tracking (PENDING, ACTIVE, COMPLETED, FAILED, CANCELLED), byte-level progress, retry count, and error messages.
-- `SearchWorker` / `SearchDatabase` / `SearchResult` / `SearchResultDao`: Room-based persistence for background search results with live observation via LiveData.
-- `TransferQueueViewModel`: ViewModel exposing LiveData from `PendingTransferDao` for the transfer queue UI.
-- `TransferItemAdapter`: RecyclerView adapter for transfer items with status icons, progress bars, and action callbacks (retry, cancel, remove).
-- `FileOperationsViewModelEnqueueTest`: New test class covering enqueue logic for uploads and downloads.
-- `PendingTransferTest`: New test class for `PendingTransfer` entity validation.
-
-If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+</details>
 
 
 
