@@ -269,6 +269,7 @@ public class FileOperationsViewModel extends ViewModel {
                 new BackgroundSmbManager.ProgressCallback() {
                   @Override
                   public void updateProgress(String progressInfo) {
+                    backgroundSmbManager.updateOperationProgress(opName, progressInfo);
                     int raw = ProgressFormat.parsePercent(progressInfo);
                     int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
                     if (throttle.allow(pct)) {
@@ -280,6 +281,8 @@ public class FileOperationsViewModel extends ViewModel {
                   @Override
                   public void updateBytesProgress(
                       long currentBytes, long totalBytes, String fileName) {
+                    backgroundSmbManager.updateBytesProgress(
+                        opName, currentBytes, totalBytes, fileName);
                     int raw = calculateAccuratePercentage(currentBytes, totalBytes);
                     int pct = ensureMonotonicDownloadPct(raw, lastPctBox[0]);
                     if (throttle.allow(pct)) {
@@ -412,6 +415,7 @@ public class FileOperationsViewModel extends ViewModel {
                   new BackgroundSmbManager.ProgressCallback() {
                     @Override
                     public void updateProgress(String progressInfo) {
+                      backgroundSmbManager.updateOperationProgress(dlOpName, progressInfo);
                       progressCallback.updateProgress(progressInfo);
                       if (callback != null) {
                         int raw = ProgressFormat.parsePercent(progressInfo);
@@ -428,6 +432,8 @@ public class FileOperationsViewModel extends ViewModel {
                     @Override
                     public void updateBytesProgress(
                         long currentBytes, long totalBytes, String fileName) {
+                      backgroundSmbManager.updateBytesProgress(
+                          dlOpName, currentBytes, totalBytes, fileName);
                       progressCallback.updateBytesProgress(currentBytes, totalBytes, fileName);
                       if (callback != null) {
                         int raw = calculateAccuratePercentage(currentBytes, totalBytes);
