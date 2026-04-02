@@ -358,6 +358,7 @@
     <string name="auth_subtitle_access">Verify your identity to access this share</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verify your identity to view the password</string>
+    <string name="auth_subtitle_security_settings">Verify your identity to change security settings</string>
     <string name="auth_not_available">No device authentication configured. Please set up a PIN, pattern, or biometric in system settings.</string>
     <string name="auth_failed">Authentication failed: %s</string>
 

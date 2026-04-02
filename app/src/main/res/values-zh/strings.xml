@@ -381,6 +381,7 @@
     <string name="auth_subtitle_access">验证您的身份以访问此共享</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">验证您的身份以查看密码</string>
+    <string name="auth_subtitle_security_settings">验证您的身份以更改安全设置</string>
     <string name="auth_not_available">未配置设备身份验证。请在系统设置中设置PIN、图案或生物识别。</string>
     <string name="auth_failed">身份验证失败：%s</string>
     <string name="file_upload_in_progress">此文件正在上传中</string>

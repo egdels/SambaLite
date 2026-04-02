@@ -1081,7 +1081,7 @@ public class MainActivity extends AppCompatActivity
     }
     if (item.getItemId() == R.id.action_security_settings) {
       LogUtils.d("MainActivity", "Security settings menu item selected");
-      showSecuritySettingsDialog();
+      authenticateBeforeSecuritySettings();
       return true;
     }
     if (item.getItemId() == R.id.action_system_monitor) {
@@ -1118,6 +1118,42 @@ public class MainActivity extends AppCompatActivity
       backgroundSmbManager.requestStopService();
     }
     finishAffinity();
+  }
+
+  /**
+   * Requires authentication before opening the security settings dialog if any auth setting is
+   * currently enabled. This prevents unauthorized users from disabling security protections.
+   */
+  private void authenticateBeforeSecuritySettings() {
+    boolean anyAuthEnabled =
+        preferencesManager.isAuthRequiredForAccess()
+            || preferencesManager.isAuthRequiredForPasswordReveal();
+
+    if (anyAuthEnabled && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      BiometricAuthHelper.authenticate(
+          this,
+          getString(R.string.auth_title_access),
+          getString(R.string.auth_subtitle_security_settings),
+          new BiometricAuthHelper.AuthCallback() {
+            @Override
+            public void onAuthSuccess() {
+              showSecuritySettingsDialog();
+            }
+
+            @Override
+            public void onAuthFailure(String errorMessage) {
+              EnhancedUIUtils.showError(
+                  MainActivity.this, getString(R.string.auth_failed, errorMessage));
+            }
+
+            @Override
+            public void onAuthCancelled() {
+              LogUtils.d("MainActivity", "Security settings authentication cancelled by user");
+            }
+          });
+    } else {
+      showSecuritySettingsDialog();
+    }
   }
 
   /** Shows a dialog for configuring security settings. */

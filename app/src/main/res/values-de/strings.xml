@@ -390,6 +390,7 @@
     <string name="auth_subtitle_access">Bestätigen Sie Ihre Identität, um auf diese Freigabe zuzugreifen</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Bestätigen Sie Ihre Identität, um das Passwort anzuzeigen</string>
+    <string name="auth_subtitle_security_settings">Bestätigen Sie Ihre Identität, um die Sicherheitseinstellungen zu ändern</string>
     <string name="auth_not_available">Keine Geräte-Authentifizierung eingerichtet. Bitte richten Sie eine PIN, ein Muster oder Biometrie in den Systemeinstellungen ein.</string>
     <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>
     <string name="file_upload_in_progress">Diese Datei wird gerade hochgeladen</string>

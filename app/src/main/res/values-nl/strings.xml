@@ -390,6 +390,7 @@
     <string name="auth_subtitle_access">Verifieer uw identiteit om toegang te krijgen tot deze share</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verifieer uw identiteit om het wachtwoord te bekijken</string>
+    <string name="auth_subtitle_security_settings">Verifieer uw identiteit om de beveiligingsinstellingen te wijzigen</string>
     <string name="auth_not_available">Geen apparaatauthenticatie geconfigureerd. Stel een PIN, patroon of biometrie in via de systeeminstellingen.</string>
     <string name="auth_failed">Authenticatie mislukt: %s</string>
     <string name="file_upload_in_progress">Dit bestand wordt momenteel geüpload</string>

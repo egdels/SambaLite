@@ -1395,7 +1395,7 @@ public class FileBrowserActivity extends AppCompatActivity
       return true;
     } else if (item.getItemId() == R.id.action_security_settings) {
       LogUtils.d("FileBrowserActivity", "Security settings menu item selected");
-      showSecuritySettingsDialog();
+      authenticateBeforeSecuritySettings();
       return true;
     } else if (item.getItemId() == R.id.action_system_monitor) {
       LogUtils.d("FileBrowserActivity", "System Monitor menu item selected");
@@ -1407,6 +1407,42 @@ public class FileBrowserActivity extends AppCompatActivity
       return true;
     }
     return super.onOptionsItemSelected(item);
+  }
+
+  /**
+   * Requires authentication before opening the security settings dialog if any auth setting is
+   * currently enabled. This prevents unauthorized users from disabling security protections.
+   */
+  private void authenticateBeforeSecuritySettings() {
+    boolean anyAuthEnabled =
+        preferencesManager.isAuthRequiredForAccess()
+            || preferencesManager.isAuthRequiredForPasswordReveal();
+
+    if (anyAuthEnabled && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      BiometricAuthHelper.authenticate(
+          this,
+          getString(R.string.auth_title_access),
+          getString(R.string.auth_subtitle_security_settings),
+          new BiometricAuthHelper.AuthCallback() {
+            @Override
+            public void onAuthSuccess() {
+              showSecuritySettingsDialog();
+            }
+
+            @Override
+            public void onAuthFailure(String errorMessage) {
+              progressController.showError(getString(R.string.auth_failed, errorMessage), null);
+            }
+
+            @Override
+            public void onAuthCancelled() {
+              LogUtils.d(
+                  "FileBrowserActivity", "Security settings authentication cancelled by user");
+            }
+          });
+    } else {
+      showSecuritySettingsDialog();
+    }
   }
 
   /** Shows a dialog for configuring security settings. */

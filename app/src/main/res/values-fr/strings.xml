@@ -402,6 +402,7 @@
     <string name="auth_subtitle_access">Vérifiez votre identité pour accéder à ce partage</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Vérifiez votre identité pour afficher le mot de passe</string>
+    <string name="auth_subtitle_security_settings">Vérifiez votre identité pour modifier les paramètres de sécurité</string>
     <string name="auth_not_available">Aucune authentification configurée. Veuillez configurer un code PIN, un schéma ou la biométrie dans les paramètres système.</string>
     <string name="auth_failed">Échec de l\u2019authentification : %s</string>
     <string name="file_upload_in_progress">Ce fichier est en cours de téléversement</string>

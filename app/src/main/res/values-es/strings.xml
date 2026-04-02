@@ -402,6 +402,7 @@
     <string name="auth_subtitle_access">Verifique su identidad para acceder a este recurso compartido</string>
     <string name="auth_title_password">@string/auth_title_access</string>
     <string name="auth_subtitle_password">Verifique su identidad para ver la contraseña</string>
+    <string name="auth_subtitle_security_settings">Verifique su identidad para cambiar la configuración de seguridad</string>
     <string name="auth_not_available">No hay autenticación configurada. Configure un PIN, patrón o biometría en los ajustes del sistema.</string>
     <string name="auth_failed">Error de autenticación: %s</string>
     <string name="file_upload_in_progress">Este archivo se está subiendo actualmente</string>
