@@ -5,6 +5,20 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6] - 2026-04-02
+
+### Added
+- **Authentication before security settings**: `FileBrowserActivity` and `MainActivity` now require biometric/device authentication before opening the security settings dialog if any auth setting is currently enabled. This prevents unauthorized users from disabling security protections.
+- **Individual transfer cancellation**: `TransferWorker` now checks per-transfer cancellation status during active uploads and downloads. A new `getStatus()` query in `PendingTransferDao` enables real-time cancellation detection, allowing users to cancel individual transfers while the worker continues processing others.
+- **Background transfer progress reporting**: `FileOperationsViewModel` now forwards byte-level progress updates to `BackgroundSmbManager` for both upload and download operations, enabling accurate progress display in notifications.
+- Translation for `auth_subtitle_security_settings` in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Fixed
+- **Database migration crash**: `SearchDatabase` and `SyncDatabase` now use `fallbackToDestructiveMigration(true)`, preventing crashes when the database schema changes between app updates.
+- **Cancelled transfer status overwrite**: `TransferWorker` no longer overwrites a `CANCELLED` status with `FAILED` when a transfer error occurs after user cancellation.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.0.5] - 2026-04-01
 
 ### Added

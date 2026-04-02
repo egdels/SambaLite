@@ -1,0 +1,5 @@
+• New: Authentication required before changing security settings.
+• New: Cancel individual transfers without stopping the queue.
+• New: Accurate background transfer progress in notifications.
+• Fixed: Database migration crash on app updates.
+• Fixed: Cancelled transfers no longer marked as failed.
