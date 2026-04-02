@@ -38,6 +38,7 @@ public abstract class SyncDatabase extends RoomDatabase {
           instance =
               Room.databaseBuilder(
                       context.getApplicationContext(), SyncDatabase.class, DATABASE_NAME)
+                  .fallbackToDestructiveMigration(true)
                   .build();
         }
       }

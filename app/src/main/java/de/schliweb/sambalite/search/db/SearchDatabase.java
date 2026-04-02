@@ -38,6 +38,7 @@ public abstract class SearchDatabase extends RoomDatabase {
           instance =
               Room.databaseBuilder(
                       context.getApplicationContext(), SearchDatabase.class, DATABASE_NAME)
+                  .fallbackToDestructiveMigration(true)
                   .build();
         }
       }
