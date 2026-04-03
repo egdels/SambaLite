@@ -8,6 +8,7 @@
     <string name="welcome_title">欢迎来到 SambaLite</string>
     <string name="welcome_subtitle">轻松安全地连接到 SMB/CIFS 分享。</string>
     <string name="your_connections">你的连接</string>
+    <string name="your_folder_syncs">文件夹同步</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">连接状态</string>
@@ -22,6 +23,7 @@
     <string name="clear_selection">清除选择</string>
     <string name="download_selected">下载所选项</string>
     <string name="delete_selected">删除所选项</string>
+    <string name="multi_select_options">更多选项</string>
 
 
     <!-- System Monitor -->
@@ -316,13 +318,19 @@
     <string name="sync_no_folder_selected">未选择文件夹</string>
     <string name="sync_select_folder_first">请先选择一个本地文件夹</string>
     <string name="sync_never">从未</string>
+    <string name="sync_never_synced">从未同步</string>
+    <string name="sync_running">正在同步…</string>
+    <string name="sync_scheduled">计划同步：%1$s</string>
     <string name="sync_folder_option">设置同步</string>
     <string name="sync_folder_already_synced">此文件夹已在同步中</string>
     <string name="sync_parent_folder_synced">父文件夹已在同步中。已同步文件夹的子文件夹不能单独同步。</string>
     <string name="sync_child_folder_synced">此文件夹的子文件夹已在同步中。已同步文件夹的父文件夹不能单独同步。</string>
     <string name="sync_edit_option">编辑同步</string>
     <string name="sync_remove_option">移除同步</string>
+    <string name="sync_delete_confirm_title">删除同步配置</string>
+    <string name="sync_delete_confirm_message">确定要移除“%1$s”文件夹的同步配置吗？</string>
     <string name="sync_config_removed">同步配置已移除</string>
+    <string name="sync_config_updated">同步配置已更新</string>
     <string name="sync_max_configs_reached">已达到同步配置的最大数量（%1$d）。请先删除现有配置。</string>
     <string name="sync_local_parent_folder_synced">所选本地文件夹的父文件夹已在同步中。已同步文件夹的子文件夹不能单独同步。</string>
     <string name="sync_local_child_folder_synced">所选本地文件夹的子文件夹已在同步中。已同步文件夹的父文件夹不能单独同步。</string>

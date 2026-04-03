@@ -8,6 +8,7 @@
     <string name="welcome_title">Welcome to SambaLite</string>
     <string name="welcome_subtitle">Connect to your SMB/CIFS shares easily and securely.</string>
     <string name="your_connections">Your Connections</string>
+    <string name="your_folder_syncs">Your Folder Syncs</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">Connection Status</string>
@@ -20,8 +21,9 @@
     <!-- Menu Items -->
     <string name="menu_refresh">Refresh</string>
     <string name="clear_selection">Clear selection</string>
-    <string name="download_selected">Download selected</string>
+    <string name="download_selected">Select all files</string>
     <string name="delete_selected">Delete selected</string>
+    <string name="multi_select_options">More options</string>
 
     <!-- System Monitor -->
 
@@ -285,13 +287,19 @@
     <string name="sync_no_folder_selected">No folder selected</string>
     <string name="sync_select_folder_first">Please select a local folder first</string>
     <string name="sync_never">Never</string>
+    <string name="sync_never_synced">Never synced</string>
+    <string name="sync_running">Sync running…</string>
+    <string name="sync_scheduled">Scheduled: %1$s</string>
     <string name="sync_folder_option">Set Up Sync</string>
     <string name="sync_folder_already_synced">This folder is already being synced</string>
     <string name="sync_parent_folder_synced">A parent folder is already being synced. Sub-folders of synced folders cannot be synced separately.</string>
     <string name="sync_child_folder_synced">A sub-folder of this folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>
     <string name="sync_edit_option">Edit Sync</string>
     <string name="sync_remove_option">Remove Sync</string>
+    <string name="sync_delete_confirm_title">Delete Sync Configuration</string>
+    <string name="sync_delete_confirm_message">Are you sure you want to remove the sync configuration for folder ’%1$s’?</string>
     <string name="sync_config_removed">Sync configuration removed</string>
+    <string name="sync_config_updated">Sync configuration updated</string>
     <string name="sync_max_configs_reached">Maximum number of sync configurations (%1$d) reached. Please remove an existing configuration first.</string>
     <string name="sync_local_parent_folder_synced">A parent of the selected local folder is already being synced. Sub-folders of synced folders cannot be synced separately.</string>
     <string name="sync_local_child_folder_synced">A sub-folder of the selected local folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>

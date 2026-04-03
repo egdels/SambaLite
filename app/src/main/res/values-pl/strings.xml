@@ -8,6 +8,7 @@
     <string name="welcome_title">Witamy w SambaLite</string>
     <string name="welcome_subtitle">Połącz się łatwo i bezpiecznie ze swoimi udziałami SMB/CIFS.</string>
     <string name="your_connections">Twoje połączenia</string>
+    <string name="your_folder_syncs">Twoje synchronizacje folderów</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">Status połączenia</string>
@@ -22,6 +23,7 @@
     <string name="clear_selection">Wyczyść zaznaczenie</string>
     <string name="download_selected">Pobierz zaznaczone</string>
     <string name="delete_selected">Usuń zaznaczone</string>
+    <string name="multi_select_options">Więcej opcji</string>
 
 
     <!-- System Monitor -->
@@ -326,13 +328,19 @@
     <string name="sync_no_folder_selected">Nie wybrano folderu</string>
     <string name="sync_select_folder_first">Najpierw wybierz folder lokalny</string>
     <string name="sync_never">Nigdy</string>
+    <string name="sync_never_synced">Nigdy nie synchronizowano</string>
+    <string name="sync_running">Synchronizacja w toku…</string>
+    <string name="sync_scheduled">Zaplanowano: %1$s</string>
     <string name="sync_folder_option">Skonfiguruj synchronizację</string>
     <string name="sync_folder_already_synced">Ten folder jest już synchronizowany</string>
     <string name="sync_parent_folder_synced">Folder nadrzędny jest już synchronizowany. Podfoldery synchronizowanych folderów nie mogą być synchronizowane osobno.</string>
     <string name="sync_child_folder_synced">Podfolder tego folderu jest już synchronizowany. Foldery nadrzędne synchronizowanych folderów nie mogą być synchronizowane osobno.</string>
     <string name="sync_edit_option">Edytuj synchronizację</string>
     <string name="sync_remove_option">Usuń synchronizację</string>
+    <string name="sync_delete_confirm_title">Usuń konfigurację synchronizacji</string>
+    <string name="sync_delete_confirm_message">Czy na pewno chcesz usunąć konfigurację synchronizacji dla folderu ’%1$s’?</string>
     <string name="sync_config_removed">Konfiguracja synchronizacji usunięta</string>
+    <string name="sync_config_updated">Konfiguracja synchronizacji zaktualizowana</string>
     <string name="sync_max_configs_reached">Osiągnięto maksymalną liczbę konfiguracji synchronizacji (%1$d). Najpierw usuń istniejącą konfigurację.</string>
     <string name="sync_local_parent_folder_synced">Folder nadrzędny wybranego folderu lokalnego jest już synchronizowany. Podfoldery synchronizowanych folderów nie mogą być synchronizowane osobno.</string>
     <string name="sync_local_child_folder_synced">Podfolder wybranego folderu lokalnego jest już synchronizowany. Foldery nadrzędne synchronizowanych folderów nie mogą być synchronizowane osobno.</string>

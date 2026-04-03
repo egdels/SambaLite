@@ -8,6 +8,7 @@
     <string name="welcome_title">Bienvenue dans SambaLite</string>
     <string name="welcome_subtitle">Connectez-vous facilement et en toute sécurité à vos partages SMB/CIFS.</string>
     <string name="your_connections">Vos connexions</string>
+    <string name="your_folder_syncs">Vos synchronisations de dossiers</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">Statut de la connexion</string>
@@ -22,6 +23,7 @@
     <string name="clear_selection">Effacer la sélection</string>
     <string name="download_selected">Télécharger la sélection</string>
     <string name="delete_selected">Supprimer la sélection</string>
+    <string name="multi_select_options">Plus d’options</string>
 
 
     <!-- System Monitor -->
@@ -322,13 +324,19 @@
     <string name="sync_no_folder_selected">Aucun dossier sélectionné</string>
     <string name="sync_select_folder_first">Veuillez d’abord sélectionner un dossier local</string>
     <string name="sync_never">Jamais</string>
+    <string name="sync_never_synced">Jamais synchronisé</string>
+    <string name="sync_running">Synchronisation en cours…</string>
+    <string name="sync_scheduled">Prévu : %1$s</string>
     <string name="sync_folder_option">Configurer la synchronisation</string>
     <string name="sync_folder_already_synced">Ce dossier est déjà synchronisé</string>
     <string name="sync_parent_folder_synced">Un dossier parent est déjà synchronisé. Les sous-dossiers de dossiers synchronisés ne peuvent pas être synchronisés séparément.</string>
     <string name="sync_child_folder_synced">Un sous-dossier de ce dossier est déjà synchronisé. Les dossiers parents de dossiers synchronisés ne peuvent pas être synchronisés séparément.</string>
     <string name="sync_edit_option">Modifier la synchronisation</string>
     <string name="sync_remove_option">Supprimer la synchronisation</string>
+    <string name="sync_delete_confirm_title">Supprimer la configuration de synchronisation</string>
+    <string name="sync_delete_confirm_message">Êtes-vous sûr de vouloir supprimer la configuration de synchronisation pour le dossier ’%1$s’ ?</string>
     <string name="sync_config_removed">Configuration de synchronisation supprimée</string>
+    <string name="sync_config_updated">Configuration de synchronisation mise à jour</string>
     <string name="sync_max_configs_reached">Nombre maximum de configurations de synchronisation (%1$d) atteint. Veuillez d’abord supprimer une configuration existante.</string>
     <string name="sync_local_parent_folder_synced">Un dossier parent du dossier local sélectionné est déjà synchronisé. Les sous-dossiers de dossiers synchronisés ne peuvent pas être synchronisés séparément.</string>
     <string name="sync_local_child_folder_synced">Un sous-dossier du dossier local sélectionné est déjà synchronisé. Les dossiers parents de dossiers synchronisés ne peuvent pas être synchronisés séparément.</string>

@@ -8,6 +8,7 @@
     <string name="welcome_title">Willkommen bei SambaLite</string>
     <string name="welcome_subtitle">Verbinde dich einfach und sicher mit deinen SMB/CIFS-Freigaben.</string>
     <string name="your_connections">Deine Verbindungen</string>
+    <string name="your_folder_syncs">Deine Ordner-Syncs</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">Verbindungsstatus</string>
@@ -20,8 +21,9 @@
     <!-- Menu Items -->
     <string name="menu_refresh">Aktualisieren</string>
     <string name="clear_selection">Auswahl aufheben</string>
-    <string name="download_selected">Ausgewählte herunterladen</string>
+    <string name="download_selected">Alle Dateien auswählen</string>
     <string name="delete_selected">Ausgewählte löschen</string>
+    <string name="multi_select_options">Weitere Optionen</string>
 
     <!-- System Monitor -->
 
@@ -318,13 +320,19 @@
     <string name="sync_no_folder_selected">Kein Ordner ausgewählt</string>
     <string name="sync_select_folder_first">Bitte zuerst einen lokalen Ordner auswählen</string>
     <string name="sync_never">Nie</string>
+    <string name="sync_never_synced">Nie synchronisiert</string>
+    <string name="sync_running">Sync läuft …</string>
+    <string name="sync_scheduled">Geplant: %1$s</string>
     <string name="sync_folder_option">Sync einrichten</string>
     <string name="sync_folder_already_synced">Dieser Ordner wird bereits synchronisiert</string>
     <string name="sync_parent_folder_synced">Ein übergeordneter Ordner wird bereits synchronisiert. Unterordner von synchronisierten Ordnern können nicht separat synchronisiert werden.</string>
     <string name="sync_child_folder_synced">Ein Unterordner dieses Ordners wird bereits synchronisiert. Übergeordnete Ordner von synchronisierten Ordnern können nicht separat synchronisiert werden.</string>
     <string name="sync_edit_option">Sync bearbeiten</string>
     <string name="sync_remove_option">Sync entfernen</string>
+    <string name="sync_delete_confirm_title">Sync-Konfiguration löschen</string>
+    <string name="sync_delete_confirm_message">Sind Sie sicher, dass Sie die Sync-Konfiguration für den Ordner ’%1$s’ entfernen möchten?</string>
     <string name="sync_config_removed">Sync-Konfiguration entfernt</string>
+    <string name="sync_config_updated">Sync-Konfiguration aktualisiert</string>
     <string name="sync_max_configs_reached">Maximale Anzahl an Sync-Konfigurationen (%1$d) erreicht. Bitte entfernen Sie zuerst eine bestehende Konfiguration.</string>
     <string name="sync_local_parent_folder_synced">Ein übergeordneter Ordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Unterordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>
     <string name="sync_local_child_folder_synced">Ein Unterordner des ausgewählten lokalen Ordners wird bereits synchronisiert. Übergeordnete Ordner synchronisierter Ordner können nicht separat synchronisiert werden.</string>

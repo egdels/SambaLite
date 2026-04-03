@@ -8,6 +8,7 @@
     <string name="welcome_title">Bienvenido a SambaLite</string>
     <string name="welcome_subtitle">Conéctate a tus recursos compartidos SMB/CIFS de forma fácil y segura.</string>
     <string name="your_connections">Tus conexiones</string>
+    <string name="your_folder_syncs">Tus sincronizaciones de carpetas</string>
 
     <!-- Content Descriptions for Accessibility -->
     <string name="content_desc_connection_status">Estado de la conexión</string>
@@ -22,6 +23,7 @@
     <string name="clear_selection">Borrar selección</string>
     <string name="download_selected">Descargar seleccionados</string>
     <string name="delete_selected">Eliminar seleccionados</string>
+    <string name="multi_select_options">Más opciones</string>
 
 
     <!-- System Monitor -->
@@ -321,13 +323,19 @@
     <string name="sync_no_folder_selected">Ninguna carpeta seleccionada</string>
     <string name="sync_select_folder_first">Por favor, seleccione primero una carpeta local</string>
     <string name="sync_never">Nunca</string>
+    <string name="sync_never_synced">Nunca sincronizado</string>
+    <string name="sync_running">Sincronización en curso…</string>
+    <string name="sync_scheduled">Programado: %1$s</string>
     <string name="sync_folder_option">Configurar sincronización</string>
     <string name="sync_folder_already_synced">Esta carpeta ya se está sincronizando</string>
     <string name="sync_parent_folder_synced">Una carpeta principal ya se está sincronizando. Las subcarpetas de carpetas sincronizadas no se pueden sincronizar por separado.</string>
     <string name="sync_child_folder_synced">Una subcarpeta de esta carpeta ya se está sincronizando. Las carpetas principales de carpetas sincronizadas no se pueden sincronizar por separado.</string>
     <string name="sync_edit_option">Editar sincronización</string>
     <string name="sync_remove_option">Eliminar sincronización</string>
+    <string name="sync_delete_confirm_title">Eliminar configuración de sincronización</string>
+    <string name="sync_delete_confirm_message">¿Estás seguro de que quieres eliminar la configuración de sincronización para la carpeta ’%1$s’?</string>
     <string name="sync_config_removed">Configuración de sincronización eliminada</string>
+    <string name="sync_config_updated">Configuración de sincronización actualizada</string>
     <string name="sync_max_configs_reached">Se alcanzó el número máximo de configuraciones de sincronización (%1$d). Elimine primero una configuración existente.</string>
     <string name="sync_local_parent_folder_synced">Una carpeta principal de la carpeta local seleccionada ya se está sincronizando. Las subcarpetas de carpetas sincronizadas no se pueden sincronizar por separado.</string>
     <string name="sync_local_child_folder_synced">Una subcarpeta de la carpeta local seleccionada ya se está sincronizando. Las carpetas principales de carpetas sincronizadas no se pueden sincronizar por separado.</string>
