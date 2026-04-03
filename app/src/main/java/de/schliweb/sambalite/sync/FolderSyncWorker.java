@@ -135,10 +135,11 @@ public class FolderSyncWorker extends Worker {
 
     List<SyncConfig> configs;
     if (specificConfigId != null) {
+      LogUtils.i(TAG, "Starting sync for specific config: " + specificConfigId);
       configs = syncRepository.getAllEnabledConfigs();
       configs.removeIf(c -> !c.getId().equals(specificConfigId));
-      LogUtils.i(TAG, "Syncing specific config: " + specificConfigId);
     } else {
+      LogUtils.i(TAG, "Starting periodic sync for all enabled configs");
       configs = syncRepository.getAllEnabledConfigs();
     }
 

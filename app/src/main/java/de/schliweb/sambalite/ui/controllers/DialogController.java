@@ -33,6 +33,7 @@ import de.schliweb.sambalite.ui.operations.FileOperationCallbacks;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.util.LogUtils;
 import java.lang.ref.WeakReference;
+import java.util.List;
 import lombok.Setter;
 
 /**
@@ -62,6 +63,8 @@ public class DialogController {
   @Setter private FolderSyncCallback folderSyncCallback;
 
   @Setter private FileOpenCallback fileOpenCallback;
+
+  @Setter private MultiSelectCallback multiSelectCallback;
 
   /**
    * User feedback provider for showing success, error, and info messages. This provides a
@@ -214,6 +217,41 @@ public class DialogController {
                     folderSyncCallback.onRemoveSyncRequested(file);
                   }
                   break;
+              }
+            })
+        .show();
+  }
+
+  /**
+   * Shows a dialog with options for multiple selected files.
+   *
+   * @param selectedItems The list of selected files
+   */
+  public void showMultiSelectOptionsDialog(@NonNull List<SmbFileItem> selectedItems) {
+    Context context = getContext();
+    if (context == null || selectedItems.isEmpty()) return;
+
+    LogUtils.d(
+        "DialogController",
+        "Showing multi-select options dialog for " + selectedItems.size() + " items");
+
+    String[] options =
+        new String[] {context.getString(R.string.download), context.getString(R.string.delete)};
+
+    new MaterialAlertDialogBuilder(context)
+        .setTitle(context.getString(R.string.multi_select_options))
+        .setItems(
+            options,
+            (dialog, which) -> {
+              if (multiSelectCallback != null) {
+                switch (which) {
+                  case 0: // Download
+                    multiSelectCallback.onMultiDownloadRequested(selectedItems);
+                    break;
+                  case 1: // Delete
+                    multiSelectCallback.onMultiDeleteRequested(selectedItems);
+                    break;
+                }
               }
             })
         .show();
@@ -600,6 +638,13 @@ public class DialogController {
   /** Callback for opening a file with an external app. */
   public interface FileOpenCallback {
     void onOpenRequested(@NonNull SmbFileItem file);
+  }
+
+  /** Callback for multi-select file operations. */
+  public interface MultiSelectCallback {
+    void onMultiDownloadRequested(@NonNull List<SmbFileItem> files);
+
+    void onMultiDeleteRequested(@NonNull List<SmbFileItem> files);
   }
 
   /** Callback for file operations. */

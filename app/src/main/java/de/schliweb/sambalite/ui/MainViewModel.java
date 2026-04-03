@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.SmbRepository;
+import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
@@ -31,6 +32,7 @@ public class MainViewModel extends ViewModel {
   private final ConnectionRepository connectionRepository;
   private final SmbRepository smbRepository;
   private final SyncManager syncManager;
+  private final MutableLiveData<List<SyncConfig>> syncConfigs = new MutableLiveData<>();
   private final Executor executor;
   private final SmartErrorHandler errorHandler;
 
@@ -56,11 +58,17 @@ public class MainViewModel extends ViewModel {
 
     // Debug: Add immediate debug log for connections
     LogUtils.d("MainViewModel", "MainViewModel created, connections LiveData initialized");
+    loadSyncConfigs();
   }
 
   /** Gets the list of connections as LiveData. */
   public @NonNull LiveData<List<SmbConnection>> getConnections() {
     return connections;
+  }
+
+  /** Gets the list of sync configurations as LiveData. */
+  public @NonNull LiveData<List<SyncConfig>> getSyncConfigs() {
+    return syncConfigs;
   }
 
   /** Gets the loading state as LiveData. */
@@ -71,6 +79,76 @@ public class MainViewModel extends ViewModel {
   /** Gets the error message as LiveData. */
   public @NonNull LiveData<String> getErrorMessage() {
     return errorMessage;
+  }
+
+  /** Loads sync configurations from the database. */
+  public void loadSyncConfigs() {
+    executor.execute(
+        () -> {
+          try {
+            LogUtils.d("MainViewModel", "Loading sync configurations");
+            List<SyncConfig> configs = syncManager.getAllSyncConfigs();
+            syncConfigs.postValue(configs);
+            LogUtils.d(
+                "MainViewModel",
+                "Loaded " + (configs != null ? configs.size() : 0) + " sync configurations");
+          } catch (Exception e) {
+            LogUtils.e("MainViewModel", "Failed to load sync configurations: " + e.getMessage());
+            errorHandler.recordError(
+                e, "MainViewModel.loadSyncConfigs", SmartErrorHandler.ErrorSeverity.MEDIUM);
+          }
+        });
+  }
+
+  /**
+   * Triggers an immediate synchronization for a specific configuration.
+   *
+   * @param configId The ID of the sync configuration to trigger
+   */
+  public void triggerSync(@NonNull String configId) {
+    executor.execute(
+        () -> {
+          try {
+            LogUtils.i("MainViewModel", "Triggering manual sync for config: " + configId);
+            syncManager.triggerImmediateSync(configId);
+          } catch (Exception e) {
+            LogUtils.e("MainViewModel", "Failed to trigger sync: " + e.getMessage());
+            errorHandler.recordError(
+                e, "MainViewModel.triggerSync", SmartErrorHandler.ErrorSeverity.MEDIUM);
+          }
+        });
+  }
+
+  /**
+   * Updates an existing sync configuration.
+   *
+   * @param config The sync configuration to update
+   */
+  public void updateSyncConfig(@NonNull SyncConfig config) {
+    LogUtils.d("MainViewModel", "Updating sync config: " + config.getId());
+    syncManager.updateSyncConfig(config);
+    loadSyncConfigs();
+  }
+
+  /**
+   * Deletes a sync configuration.
+   *
+   * @param configId The ID of the sync configuration to delete
+   */
+  public void deleteSyncConfig(@NonNull String configId) {
+    LogUtils.d("MainViewModel", "Deleting sync configuration with ID: " + configId);
+    executor.execute(
+        () -> {
+          try {
+            syncManager.removeSyncConfig(configId);
+            LogUtils.i("MainViewModel", "Sync configuration deleted successfully: " + configId);
+            loadSyncConfigs(); // Reload the list
+          } catch (Exception e) {
+            LogUtils.e("MainViewModel", "Failed to delete sync configuration: " + e.getMessage());
+            errorHandler.recordError(
+                e, "MainViewModel.deleteSyncConfig", SmartErrorHandler.ErrorSeverity.MEDIUM);
+          }
+        });
   }
 
   /** Loads the list of connections from the repository. */

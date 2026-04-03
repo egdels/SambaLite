@@ -30,6 +30,17 @@ public class SyncConfig implements Serializable {
   private SyncDirection direction = SyncDirection.BIDIRECTIONAL;
   private int intervalMinutes = 60;
 
+  /** Indicates if this sync is currently running. Not persisted. */
+  private transient boolean isRunning = false;
+
+  public boolean isRunning() {
+    return isRunning;
+  }
+
+  public void setRunning(boolean running) {
+    isRunning = running;
+  }
+
   /** Default constructor for SyncConfig. */
   public SyncConfig() {}
 

@@ -108,13 +108,42 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
-                android:paddingBottom="80dp"
                 android:nestedScrollingEnabled="false"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/connections_header"
                 tools:listitem="@layout/item_connection"
-                tools:itemCount="3" />
+                tools:itemCount="2" />
+
+            <!-- Sync List Header -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/sync_header"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/your_folder_syncs"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/connections_recycler_view"
+                tools:visibility="visible" />
+
+            <!-- Sync RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/sync_recycler_view"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:paddingBottom="80dp"
+                android:nestedScrollingEnabled="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/sync_header"
+                tools:listitem="@layout/item_sync_config"
+                tools:itemCount="2" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

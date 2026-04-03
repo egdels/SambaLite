@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sync_card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOnSurface"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:rippleColor="?attr/colorPrimary">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Sync Icon Container -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/sync_icon_container"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorSecondaryContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/sync_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/stat_notify_sync"
+                android:contentDescription="@string/content_desc_sync_indicator"
+                app:tint="?attr/colorOnSecondaryContainer" />
+
+            <ProgressBar
+                android:id="@+id/sync_progress"
+                style="?android:attr/progressBarStyleSmall"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                app:indicatorColor="?attr/colorPrimary"
+                tools:visibility="visible" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Sync Name (Local Folder Name) -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/sync_local_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textColor="?attr/colorOnSurface"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintStart_toEndOf="@id/sync_icon_container"
+            app:layout_constraintTop_toTopOf="@id/sync_icon_container"
+            tools:text="Documents" />
+
+        <!-- Sync Path (Remote Path) -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/sync_remote_path"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:ellipsize="start"
+            android:maxLines="1"
+            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintStart_toEndOf="@id/sync_icon_container"
+            app:layout_constraintTop_toBottomOf="@id/sync_local_name"
+            tools:text="NAS/Public/Backup" />
+
+        <!-- Sync Status / Last Sync -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/sync_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOutline"
+            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintStart_toEndOf="@id/sync_icon_container"
+            app:layout_constraintTop_toBottomOf="@id/sync_remote_path"
+            tools:text="Last sync: 10 minutes ago" />
+
+        <!-- Sync Direction Icon/Text -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/sync_direction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorSecondary"
+            app:layout_constraintStart_toStartOf="@id/sync_local_name"
+            app:layout_constraintTop_toBottomOf="@id/sync_status"
+            tools:text="Local → Remote" />
+
+        <!-- Sync Now Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/sync_now_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sync_now"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
+            app:layout_constraintTop_toTopOf="parent"
+            app:paddingStart="12dp"
+            app:paddingEnd="12dp" />
+
+        <!-- More Options Button -->
+        <ImageButton
+            android:id="@+id/sync_more_options"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_desc_more_options"
+            android:src="@android:drawable/ic_menu_more"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

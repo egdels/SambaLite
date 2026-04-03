@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
@@ -35,7 +36,7 @@ import javax.inject.Singleton;
 public class SyncManager {
 
   private static final String TAG = "SyncManager";
-  private static final String UNIQUE_WORK_NAME = "sambalite_folder_sync";
+  public static final String UNIQUE_WORK_NAME = "sambalite_folder_sync";
   private static final int MIN_INTERVAL_MINUTES = 15;
 
   private final Context context;
@@ -145,6 +146,27 @@ public class SyncManager {
   }
 
   /**
+   * Updates an existing sync configuration.
+   *
+   * @param config the configuration to update
+   */
+  public void updateSyncConfig(@NonNull SyncConfig config) {
+    LogUtils.d(TAG, "Updating sync config: " + config.getId());
+    syncRepository.saveSyncConfig(config);
+
+    if (config.isEnabled()) {
+      schedulePeriodicSync();
+    } else {
+      List<SyncConfig> enabledConfigs = syncRepository.getAllEnabledConfigs();
+      if (enabledConfigs.isEmpty()) {
+        cancelPeriodicSync();
+      } else {
+        schedulePeriodicSync();
+      }
+    }
+  }
+
+  /**
    * Returns all sync configurations.
    *
    * @return list of all sync configurations
@@ -163,10 +185,12 @@ public class SyncManager {
     OneTimeWorkRequest request =
         new OneTimeWorkRequest.Builder(FolderSyncWorker.class)
             .setConstraints(constraints)
+            .addTag(UNIQUE_WORK_NAME)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build();
 
-    WorkManager.getInstance(context).enqueue(request);
+    WorkManager.getInstance(context)
+        .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.REPLACE, request);
   }
 
   /**
@@ -189,10 +213,14 @@ public class SyncManager {
         new OneTimeWorkRequest.Builder(FolderSyncWorker.class)
             .setConstraints(constraints)
             .setInputData(inputData)
+            .addTag(UNIQUE_WORK_NAME)
+            .addTag("manual_sync")
+            .addTag("config_id:" + configId)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build();
 
-    WorkManager.getInstance(context).enqueue(request);
+    WorkManager.getInstance(context)
+        .enqueueUniqueWork(UNIQUE_WORK_NAME + "_" + configId, ExistingWorkPolicy.REPLACE, request);
   }
 
   /** Schedules periodic sync based on the minimum interval of all enabled configs. */
@@ -226,6 +254,7 @@ public class SyncManager {
     PeriodicWorkRequest request =
         new PeriodicWorkRequest.Builder(FolderSyncWorker.class, minInterval, TimeUnit.MINUTES)
             .setConstraints(constraints)
+            .addTag(UNIQUE_WORK_NAME)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
             .build();
 

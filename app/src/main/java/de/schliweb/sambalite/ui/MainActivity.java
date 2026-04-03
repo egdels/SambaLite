@@ -36,6 +36,8 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
@@ -43,10 +45,16 @@ import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.security.BiometricAuthHelper;
+import de.schliweb.sambalite.sync.SyncConfig;
+import de.schliweb.sambalite.sync.SyncDirection;
+import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.ui.adapters.DiscoveredServerAdapter;
 import de.schliweb.sambalite.ui.adapters.SharesAdapter;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import javax.inject.Inject;
 
 /**
@@ -62,10 +70,15 @@ public class MainActivity extends AppCompatActivity
 
   private MainViewModel viewModel;
   private ConnectionAdapter adapter;
+  private SyncConfigAdapter syncAdapter;
   private LoadingIndicator loadingIndicator;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
   private NetworkScanner networkScanner;
   private PreferencesManager preferencesManager;
+
+  // Track running sync config IDs from WorkManager to apply after config reloads
+  private final Set<String> currentRunningConfigIds = new HashSet<>();
+  private boolean currentAnySyncRunning = false;
 
   // Temporary flags for share discovery to honor per-connection security during discovery
   boolean discoverRequireEncrypt = false;
@@ -211,6 +224,54 @@ public class MainActivity extends AppCompatActivity
     recyclerView.setAdapter(adapter);
     LogUtils.d("MainActivity", "RecyclerView and adapter set up");
 
+    // Set up Sync RecyclerView
+    RecyclerView syncRecyclerView = findViewById(R.id.sync_recycler_view);
+    syncRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+    syncAdapter = new SyncConfigAdapter();
+    syncAdapter.setOnSyncClickListener(
+        new SyncConfigAdapter.OnSyncClickListener() {
+          @Override
+          public void onSyncClick(@NonNull SyncConfig config) {
+            LogUtils.d("MainActivity", "Sync config clicked: " + config.getId());
+            // For now, we only trigger sync. In future, we could open edit dialog.
+          }
+
+          @Override
+          public void onSyncNowClick(@NonNull SyncConfig config) {
+            LogUtils.i("MainActivity", "Manual sync triggered for: " + config.getId());
+            viewModel.triggerSync(config.getId());
+            EnhancedUIUtils.showInfo(MainActivity.this, getString(R.string.sync_running));
+
+            // Update UI state immediately to show progress
+            List<SyncConfig> configs = viewModel.getSyncConfigs().getValue();
+            if (configs != null) {
+              LogUtils.d("MainActivity", "Updating UI immediately for config: " + config.getId());
+              boolean found = false;
+              for (SyncConfig c : configs) {
+                if (c.getId().equals(config.getId())) {
+                  c.setRunning(true);
+                  found = true;
+                  break;
+                }
+              }
+              if (found) {
+                syncAdapter.notifyDataSetChanged();
+              } else {
+                LogUtils.w("MainActivity", "Config not found in current list: " + config.getId());
+              }
+            } else {
+              LogUtils.w("MainActivity", "Sync configs list is null, cannot update UI immediately");
+            }
+          }
+
+          @Override
+          public void onOptionsClick(@NonNull View view, @NonNull SyncConfig config) {
+            showSyncOptions(view, config);
+          }
+        });
+    syncRecyclerView.setAdapter(syncAdapter);
+    LogUtils.d("MainActivity", "Sync RecyclerView and adapter set up");
+
     // Long click functionality is used for connection options including delete
     LogUtils.d("MainActivity", "Long click functionality for connection options is already set up");
 
@@ -233,6 +294,7 @@ public class MainActivity extends AppCompatActivity
     // Get UI elements for empty state management
     View welcomeCard = findViewById(R.id.welcome_card);
     View connectionsHeader = findViewById(R.id.connections_header);
+    View syncHeader = findViewById(R.id.sync_header);
 
     // Observe connections
     viewModel
@@ -256,6 +318,27 @@ public class MainActivity extends AppCompatActivity
                 LogUtils.d("MainActivity", "Connections available - hiding welcome card");
                 if (welcomeCard != null) welcomeCard.setVisibility(View.GONE);
                 if (connectionsHeader != null) connectionsHeader.setVisibility(View.VISIBLE);
+              }
+            });
+
+    // Observe sync configurations
+    viewModel
+        .getSyncConfigs()
+        .observe(
+            this,
+            syncConfigs -> {
+              int size = syncConfigs != null ? syncConfigs.size() : 0;
+              LogUtils.d("MainActivity", "Sync configs updated: " + size + " configs");
+              List<SyncConfig> configs =
+                  syncConfigs != null ? syncConfigs : new java.util.ArrayList<>();
+              // Re-apply running state from WorkManager after config reload
+              applyRunningState(configs);
+              syncAdapter.setSyncConfigs(configs);
+
+              if (size > 0) {
+                if (syncHeader != null) syncHeader.setVisibility(View.VISIBLE);
+              } else {
+                if (syncHeader != null) syncHeader.setVisibility(View.GONE);
               }
             });
 
@@ -307,6 +390,114 @@ public class MainActivity extends AppCompatActivity
 
     // Check if a previous operation was cancelled due to swipe-kill
     checkForCancelledOperations();
+
+    // Observe WorkManager for sync status to refresh UI
+    WorkManager.getInstance(this)
+        .getWorkInfosByTagLiveData(SyncManager.UNIQUE_WORK_NAME)
+        .observe(
+            this,
+            workInfos -> {
+              int infoCount = workInfos != null ? workInfos.size() : 0;
+              LogUtils.d("MainActivity", "Received " + infoCount + " work infos from WorkManager");
+
+              boolean anySyncRunning = false;
+              Set<String> runningConfigIds = new HashSet<>();
+
+              if (workInfos != null) {
+                for (WorkInfo workInfo : workInfos) {
+                  boolean isRunning = workInfo.getState() == WorkInfo.State.RUNNING;
+
+                  LogUtils.v(
+                      "MainActivity",
+                      "WorkInfo: ID="
+                          + workInfo.getId()
+                          + ", State="
+                          + workInfo.getState()
+                          + ", Tags="
+                          + workInfo.getTags());
+
+                  if (isRunning) {
+                    String configId = null;
+                    boolean isManual = false;
+                    for (String tag : workInfo.getTags()) {
+                      if (tag.equals("manual_sync")) {
+                        isManual = true;
+                      }
+                      if (tag.startsWith("config_id:")) {
+                        configId = tag.substring("config_id:".length());
+                      }
+                    }
+                    if (configId != null) {
+                      runningConfigIds.add(configId);
+                    } else if (!isManual) {
+                      // Periodic RUNNING worker without specific config_id; affects eligible
+                      // periodic configs
+                      anySyncRunning = true;
+                    }
+                  }
+
+                  if (workInfo.getState() == WorkInfo.State.SUCCEEDED
+                      || workInfo.getState() == WorkInfo.State.FAILED) {
+                    LogUtils.i(
+                        "MainActivity",
+                        "Sync work "
+                            + workInfo.getId()
+                            + " finished with state: "
+                            + workInfo.getState()
+                            + ". Refreshing configs.");
+                    viewModel.loadSyncConfigs();
+                  }
+                }
+              }
+
+              LogUtils.d(
+                  "MainActivity", "Running config IDs from WorkManager: " + runningConfigIds);
+
+              // Store running state for re-application after config reloads
+              currentRunningConfigIds.clear();
+              currentRunningConfigIds.addAll(runningConfigIds);
+              currentAnySyncRunning = anySyncRunning;
+
+              // Update isRunning state in current list
+              List<SyncConfig> currentConfigs = viewModel.getSyncConfigs().getValue();
+              if (currentConfigs != null) {
+                if (applyRunningState(currentConfigs)) {
+                  LogUtils.d("MainActivity", "Notifying adapter of data change");
+                  syncAdapter.notifyDataSetChanged();
+                }
+              }
+            });
+  }
+
+  /**
+   * Applies the current WorkManager running state to the given config list.
+   *
+   * @param configs the list of sync configurations to update
+   * @return true if any config's running state was changed
+   */
+  private boolean applyRunningState(List<SyncConfig> configs) {
+    boolean changed = false;
+    for (SyncConfig config : configs) {
+      boolean nowRunning;
+      if (currentRunningConfigIds.isEmpty()) {
+        nowRunning = currentAnySyncRunning && config.isEnabled() && config.getIntervalMinutes() > 0;
+      } else {
+        nowRunning = currentRunningConfigIds.contains(config.getId());
+      }
+      if (config.isRunning() != nowRunning) {
+        LogUtils.d(
+            "MainActivity",
+            "Updating config "
+                + config.getId()
+                + " isRunning: "
+                + config.isRunning()
+                + " -> "
+                + nowRunning);
+        config.setRunning(nowRunning);
+        changed = true;
+      }
+    }
+    return changed;
   }
 
   /**
@@ -390,6 +581,160 @@ public class MainActivity extends AppCompatActivity
     showConnectionOptionsDialog(connection);
   }
 
+  /**
+   * Shows a popup menu with options for a sync configuration.
+   *
+   * @param view The view to anchor the popup menu to
+   * @param config The sync configuration
+   */
+  private void showSyncOptions(View view, SyncConfig config) {
+    androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, view);
+    popup.getMenu().add(0, 1, 0, R.string.sync_now);
+    popup.getMenu().add(0, 2, 1, R.string.sync_edit_option);
+    popup.getMenu().add(0, 3, 2, R.string.sync_remove_option);
+
+    popup.setOnMenuItemClickListener(
+        item -> {
+          int itemId = item.getItemId();
+          if (itemId == 1) {
+            viewModel.triggerSync(config.getId());
+            EnhancedUIUtils.showInfo(this, getString(R.string.sync_running));
+            return true;
+          } else if (itemId == 2) {
+            showEditSyncDialog(config);
+            return true;
+          } else if (itemId == 3) {
+            confirmDeleteSync(config);
+            return true;
+          }
+          return false;
+        });
+    popup.show();
+  }
+
+  /**
+   * Shows a confirmation dialog before deleting a sync configuration.
+   *
+   * @param config The sync configuration to delete
+   */
+  private void confirmDeleteSync(SyncConfig config) {
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.sync_delete_confirm_title)
+        .setMessage(
+            getString(R.string.sync_delete_confirm_message, config.getLocalFolderDisplayName()))
+        .setPositiveButton(
+            R.string.delete,
+            (dialog, which) -> {
+              viewModel.deleteSyncConfig(config.getId());
+              EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_removed));
+            })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  /**
+   * Shows a dialog to edit an existing sync configuration.
+   *
+   * @param config The sync configuration to edit
+   */
+  private void showEditSyncDialog(SyncConfig config) {
+    LogUtils.d("MainActivity", "Showing edit sync dialog for config: " + config.getId());
+
+    View dialogView = getLayoutInflater().inflate(R.layout.dialog_sync_setup, null);
+
+    RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
+    Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
+    com.google.android.material.textfield.TextInputEditText remotePathField =
+        dialogView.findViewById(R.id.sync_remote_path);
+    TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
+    Button selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
+
+    // Pre-fill remote path and make it non-editable
+    if (config.getRemotePath() != null && !config.getRemotePath().isEmpty()) {
+      remotePathField.setText(config.getRemotePath());
+    }
+    remotePathField.setEnabled(false);
+
+    // Pre-fill direction
+    switch (config.getDirection()) {
+      case LOCAL_TO_REMOTE:
+        directionGroup.check(R.id.radio_local_to_remote);
+        break;
+      case REMOTE_TO_LOCAL:
+        directionGroup.check(R.id.radio_remote_to_local);
+        break;
+      case BIDIRECTIONAL:
+      default:
+        directionGroup.check(R.id.radio_bidirectional);
+        break;
+    }
+
+    // Setup interval spinner
+    String[] intervalLabels = {
+      getString(R.string.sync_interval_manual),
+      getString(R.string.sync_interval_15min),
+      getString(R.string.sync_interval_30min),
+      getString(R.string.sync_interval_1h),
+      getString(R.string.sync_interval_6h),
+      getString(R.string.sync_interval_12h),
+      getString(R.string.sync_interval_24h)
+    };
+    int[] intervalValues = {0, 15, 30, 60, 360, 720, 1440};
+
+    ArrayAdapter<String> adapter =
+        new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, intervalLabels);
+    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    intervalSpinner.setAdapter(adapter);
+
+    // Pre-select interval
+    int currentInterval = config.getIntervalMinutes();
+    int selectedIndex = 3; // default: 1h
+    for (int i = 0; i < intervalValues.length; i++) {
+      if (intervalValues[i] == currentInterval) {
+        selectedIndex = i;
+        break;
+      }
+    }
+    intervalSpinner.setSelection(selectedIndex);
+
+    // Pre-fill local folder display
+    if (config.getLocalFolderDisplayName() != null
+        && !config.getLocalFolderDisplayName().isEmpty()) {
+      folderDisplay.setText(config.getLocalFolderDisplayName());
+    }
+
+    // Folder picker button (disabled for now as it requires more complex handling of SAF results)
+    selectFolderButton.setVisibility(View.GONE);
+
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.sync_edit_option)
+        .setView(dialogView)
+        .setPositiveButton(
+            R.string.save,
+            (dialog, which) -> {
+              // Get direction
+              SyncDirection direction = SyncDirection.BIDIRECTIONAL;
+              int checkedId = directionGroup.getCheckedRadioButtonId();
+              if (checkedId == R.id.radio_local_to_remote) {
+                direction = SyncDirection.LOCAL_TO_REMOTE;
+              } else if (checkedId == R.id.radio_remote_to_local) {
+                direction = SyncDirection.REMOTE_TO_LOCAL;
+              }
+
+              // Get interval
+              int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
+
+              // Update config
+              config.setDirection(direction);
+              config.setIntervalMinutes(intervalMinutes);
+
+              viewModel.updateSyncConfig(config);
+              EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));
+            })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
     if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -415,6 +760,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   /** Shows a dialog for adding a new connection. */
+  @SuppressWarnings("deprecation")
   private void showAddConnectionDialog() {
     LogUtils.d("MainActivity", "Showing add connection dialog");
     // Inflate the dialog layout
@@ -544,7 +890,6 @@ public class MainActivity extends AppCompatActivity
 
     // Ensure the dialog resizes when the keyboard appears so buttons remain visible
     if (dialog.getWindow() != null) {
-      //noinspection deprecation
       dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
@@ -734,6 +1079,7 @@ public class MainActivity extends AppCompatActivity
   }
 
   /** Shows a dialog for editing an existing connection. */
+  @SuppressWarnings("deprecation")
   private void showEditConnectionDialog(SmbConnection connection) {
     LogUtils.d("MainActivity", "Showing edit connection dialog for: " + connection.getName());
     // Inflate the dialog layout
@@ -920,7 +1266,6 @@ public class MainActivity extends AppCompatActivity
 
     // Ensure the dialog resizes when the keyboard appears so buttons remain visible
     if (dialog.getWindow() != null) {
-      //noinspection deprecation
       dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
@@ -1645,6 +1990,7 @@ public class MainActivity extends AppCompatActivity
     if (backgroundSmbManager != null) {
       backgroundSmbManager.onActivityStarted();
     }
+    viewModel.loadSyncConfigs();
   }
 
   @Override

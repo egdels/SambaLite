@@ -246,6 +246,7 @@ public class DialogHelper {
    * @param context The context
    * @param callback The callback for the search parameters
    */
+  @SuppressWarnings("deprecation")
   public static void showSearchDialog(@NonNull Context context, @Nullable SearchCallback callback) {
     LogUtils.d("DialogHelper", "Showing search dialog");
 
