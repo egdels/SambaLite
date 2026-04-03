@@ -76,7 +76,7 @@
             android:maxLines="2"
             android:ellipsize="end"
             app:layout_constraintStart_toEndOf="@id/icon_container"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/more_options"
             app:layout_constraintTop_toTopOf="@id/icon_container"
             tools:text="Video_Urlaub.mp4" />
 
@@ -88,7 +88,7 @@
             android:layout_marginTop="4dp"
             android:orientation="horizontal"
             app:layout_constraintStart_toEndOf="@id/icon_container"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/more_options"
             app:layout_constraintTop_toBottomOf="@id/transfer_name">
 
             <TextView
@@ -120,6 +120,42 @@
                 tools:text="1.2 GB / 1.8 GB" />
 
         </LinearLayout>
+
+        <!-- More options button -->
+        <ImageButton
+            android:id="@+id/more_options"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/content_desc_more_options"
+            android:src="@android:drawable/ic_menu_more"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="?attr/colorOnSurface"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- Selection indicator (initially hidden) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/selection_indicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_margin="4dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorPrimary"
+            app:layout_constraintEnd_toEndOf="@id/icon_container"
+            app:layout_constraintTop_toTopOf="@id/icon_container"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/ic_menu_save"
+                android:contentDescription="@string/content_desc_selected"
+                app:tint="?attr/colorOnPrimary" />
+
+        </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

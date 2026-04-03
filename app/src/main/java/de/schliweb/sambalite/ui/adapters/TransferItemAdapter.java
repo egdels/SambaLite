@@ -9,9 +9,11 @@
  */
 package de.schliweb.sambalite.ui.adapters;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -19,6 +21,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
@@ -26,17 +29,36 @@ import de.schliweb.sambalite.util.EnhancedFileUtils;
 /** RecyclerView adapter for displaying transfer queue items matching the FileBrowser item style. */
 public class TransferItemAdapter
     extends ListAdapter<PendingTransfer, TransferItemAdapter.ViewHolder> {
+  private static final String TAG = "TransferItemAdapter";
 
   /** Callback interface for transfer item clicks. */
   public interface TransferActionCallback {
     void onItemClick(@NonNull PendingTransfer transfer);
+
+    void onItemLongClick(@NonNull PendingTransfer transfer);
   }
 
   private final TransferActionCallback callback;
 
+  private boolean selectionMode = false;
+  private java.util.Set<Long> selectedIds = new java.util.HashSet<>();
+
   public TransferItemAdapter(@NonNull TransferActionCallback callback) {
     super(DIFF_CALLBACK);
     this.callback = callback;
+  }
+
+  public void setSelectionMode(boolean enabled) {
+    this.selectionMode = enabled;
+    if (!enabled) {
+      selectedIds.clear();
+    }
+    notifyDataSetChanged();
+  }
+
+  public void setSelectedIds(java.util.Set<Long> selectedIds) {
+    this.selectedIds = new java.util.HashSet<>(selectedIds);
+    notifyDataSetChanged();
   }
 
   private static final DiffUtil.ItemCallback<PendingTransfer> DIFF_CALLBACK =
@@ -44,15 +66,21 @@ public class TransferItemAdapter
         @Override
         public boolean areItemsTheSame(
             @NonNull PendingTransfer oldItem, @NonNull PendingTransfer newItem) {
-          return oldItem.id == newItem.id;
+          boolean same = oldItem.id == newItem.id;
+          Log.v(TAG, "areItemsTheSame: old=" + oldItem.id + ", new=" + newItem.id + " -> " + same);
+          return same;
         }
 
         @Override
         public boolean areContentsTheSame(
             @NonNull PendingTransfer oldItem, @NonNull PendingTransfer newItem) {
-          return oldItem.bytesTransferred == newItem.bytesTransferred
-              && oldItem.status.equals(newItem.status)
-              && oldItem.retryCount == newItem.retryCount;
+          boolean same =
+              oldItem.id == newItem.id
+                  && oldItem.bytesTransferred == newItem.bytesTransferred
+                  && oldItem.status.equals(newItem.status)
+                  && oldItem.retryCount == newItem.retryCount;
+          Log.v(TAG, "areContentsTheSame: id=" + oldItem.id + " -> " + same);
+          return same;
         }
       };
 
@@ -67,7 +95,18 @@ public class TransferItemAdapter
   @Override
   public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
     PendingTransfer item = getItem(position);
-    holder.bind(item, callback);
+    boolean isSelected = selectedIds.contains(item.id);
+    Log.d(
+        TAG,
+        "onBindViewHolder: pos="
+            + position
+            + ", id="
+            + item.id
+            + ", selected="
+            + isSelected
+            + ", mode="
+            + selectionMode);
+    holder.bind(item, callback, selectionMode, selectedIds);
   }
 
   static class ViewHolder extends RecyclerView.ViewHolder {
@@ -79,6 +118,8 @@ public class TransferItemAdapter
     final View statusBadge;
     final ImageView statusIcon;
     final MaterialCardView rootCard;
+    final ImageButton moreOptions;
+    final View selectionIndicator;
 
     ViewHolder(@NonNull View itemView) {
       super(itemView);
@@ -90,9 +131,15 @@ public class TransferItemAdapter
       statusBadge = itemView.findViewById(R.id.status_badge);
       statusIcon = itemView.findViewById(R.id.transfer_status_icon);
       rootCard = itemView instanceof MaterialCardView ? (MaterialCardView) itemView : null;
+      moreOptions = itemView.findViewById(R.id.more_options);
+      selectionIndicator = itemView.findViewById(R.id.selection_indicator);
     }
 
-    void bind(PendingTransfer item, TransferActionCallback callback) {
+    void bind(
+        PendingTransfer item,
+        TransferActionCallback callback,
+        boolean selectionMode,
+        java.util.Set<Long> selectedIds) {
       name.setText(item.displayName);
 
       // Icon based on transfer type
@@ -101,8 +148,37 @@ public class TransferItemAdapter
               ? android.R.drawable.stat_sys_download
               : android.R.drawable.stat_sys_upload);
 
-      // Click handler opens action dialog
+      // Selection state visualization
+      boolean isSelected = selectedIds.contains(item.id);
+      itemView.setActivated(isSelected);
+
+      /*if (selectionIndicator != null) {
+          selectionIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+      }*/
+      if (rootCard != null) {
+        int bgColor =
+            MaterialColors.getColor(
+                itemView,
+                isSelected
+                    ? com.google.android.material.R.attr.colorSecondaryContainer
+                    : com.google.android.material.R.attr.colorSurface);
+        rootCard.setCardBackgroundColor(bgColor);
+      }
+
+      // Click handler
       itemView.setOnClickListener(v -> callback.onItemClick(item));
+
+      // More options click handler
+      if (moreOptions != null) {
+        moreOptions.setOnClickListener(v -> callback.onItemClick(item));
+      }
+
+      // Long click handler
+      itemView.setOnLongClickListener(
+          v -> {
+            callback.onItemLongClick(item);
+            return true;
+          });
 
       switch (item.status) {
         case "PENDING":

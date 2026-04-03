@@ -170,9 +170,19 @@ public interface PendingTransferDao {
   @Nullable
   String getStatus(long id);
 
-  /** Deletes a single transfer by ID. */
-  @Query("DELETE FROM pending_transfer WHERE id = :id")
-  void deleteById(long id);
+  /** Deletes multiple transfers by their IDs. */
+  @Query("DELETE FROM pending_transfer WHERE id IN (:ids)")
+  void deleteByIds(@NonNull java.util.List<Long> ids);
+
+  /** Cancels multiple transfers by their IDs. */
+  @Query("UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now WHERE id IN (:ids)")
+  void cancelByIds(@NonNull java.util.List<Long> ids, long now);
+
+  /** Resets multiple transfers to PENDING for retry. */
+  @Query(
+      "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0, updated_at = :now"
+          + " WHERE id IN (:ids)")
+  void resetToPendingByIds(@NonNull java.util.List<Long> ids, long now);
 
   /** Counts PENDING/ACTIVE transfers for a given remote path (duplicate detection). */
   @Query(

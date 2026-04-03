@@ -12,6 +12,7 @@ package de.schliweb.sambalite.ui;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CompoundButton;
@@ -23,20 +24,26 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.ui.adapters.TransferItemAdapter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /** Activity displaying the persistent transfer queue matching the FileBrowser design. */
 public class TransferQueueActivity extends AppCompatActivity
     implements TransferItemAdapter.TransferActionCallback {
 
+  private static final String TAG = "TransferQueueActivity";
+
   private TransferQueueViewModel viewModel;
   private TransferItemAdapter adapter;
+  private MaterialToolbar toolbar;
 
   private RecyclerView transferList;
   private View emptyState;
@@ -54,6 +61,13 @@ public class TransferQueueActivity extends AppCompatActivity
 
   private List<PendingTransfer> lastTransfers;
 
+  private FloatingActionButton fabSelectAll;
+  private FloatingActionButton fabClearSelection;
+  private FloatingActionButton fabMultiOptions;
+
+  private boolean selectionMode = false;
+  private final Set<Long> selectedIds = new HashSet<>();
+
   public static @NonNull Intent createIntent(@NonNull Context context) {
     return new Intent(context, TransferQueueActivity.class);
   }
@@ -63,7 +77,7 @@ public class TransferQueueActivity extends AppCompatActivity
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_transfer_queue);
 
-    MaterialToolbar toolbar = findViewById(R.id.toolbar);
+    toolbar = findViewById(R.id.toolbar);
     toolbar.setNavigationOnClickListener(v -> finish());
 
     transferList = findViewById(R.id.transfer_list);
@@ -80,11 +94,106 @@ public class TransferQueueActivity extends AppCompatActivity
     adapter = new TransferItemAdapter(this);
     transferList.setAdapter(adapter);
 
+    fabSelectAll = findViewById(R.id.fab_select_all);
+    fabClearSelection = findViewById(R.id.fab_clear_selection);
+    fabMultiOptions = findViewById(R.id.fab_multi_options);
+
+    fabSelectAll.setOnClickListener(v -> selectAllTransfers());
+    fabClearSelection.setOnClickListener(v -> clearSelection());
+    fabMultiOptions.setOnClickListener(v -> showMultiSelectOptionsDialog());
+
     viewModel = new ViewModelProvider(this).get(TransferQueueViewModel.class);
-    viewModel.getActiveTransfers().observe(this, this::onTransfersChanged);
+    viewModel
+        .getActiveTransfers()
+        .observe(
+            this,
+            transfers -> {
+              Log.d(
+                  TAG,
+                  "observe: activeTransfers changed, size="
+                      + (transfers != null ? transfers.size() : 0));
+              this.onTransfersChanged(transfers);
+            });
+  }
+
+  private void selectAllTransfers() {
+    Log.d(TAG, "selectAllTransfers: selectionMode=" + selectionMode);
+    if (lastTransfers != null) {
+      for (PendingTransfer transfer : lastTransfers) {
+        if (!hideCompleted || !"COMPLETED".equals(transfer.status)) {
+          selectedIds.add(transfer.id);
+        }
+      }
+      updateSelectionUI();
+    }
+  }
+
+  private void clearSelection() {
+    Log.d(
+        TAG,
+        "clearSelection: previous selectionMode=" + selectionMode + ", size=" + selectedIds.size());
+    selectionMode = false;
+    selectedIds.clear();
+    updateSelectionUI();
+  }
+
+  private void updateSelectionUI() {
+    Log.d(
+        TAG, "updateSelectionUI: selectionMode=" + selectionMode + ", selectedIds=" + selectedIds);
+    if (selectedIds.isEmpty()) {
+      selectionMode = false;
+    }
+    adapter.setSelectionMode(selectionMode);
+
+    int visibility = selectionMode ? View.VISIBLE : View.GONE;
+    fabSelectAll.setVisibility(visibility);
+    fabClearSelection.setVisibility(visibility);
+    fabMultiOptions.setVisibility(visibility);
+
+    if (selectionMode) {
+      toolbar.setSubtitle(
+          getResources()
+              .getQuantityString(
+                  R.plurals.transfer_selection_count, selectedIds.size(), selectedIds.size()));
+    } else {
+      toolbar.setSubtitle(null);
+      selectedIds.clear();
+    }
+    adapter.setSelectedIds(selectedIds);
+  }
+
+  private void showMultiSelectOptionsDialog() {
+    String[] items = {
+      getString(R.string.transfer_retry),
+      getString(R.string.transfer_cancel),
+      getString(R.string.transfer_remove)
+    };
+
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.transfer_actions_title)
+        .setItems(
+            items,
+            (dialog, which) -> {
+              Log.d(TAG, "multiSelectAction: which=" + which + ", ids=" + selectedIds);
+              switch (which) {
+                case 0:
+                  viewModel.retryTransfers(selectedIds);
+                  break;
+                case 1:
+                  viewModel.cancelTransfers(selectedIds);
+                  break;
+                case 2:
+                  viewModel.removeTransfers(selectedIds);
+                  break;
+              }
+              clearSelection();
+            })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   private void onTransfersChanged(List<PendingTransfer> transfers) {
+    Log.d(TAG, "onTransfersChanged: size=" + (transfers != null ? transfers.size() : 0));
     lastTransfers = transfers;
 
     boolean empty = transfers == null || transfers.isEmpty();
@@ -93,6 +202,17 @@ public class TransferQueueActivity extends AppCompatActivity
     statsCard.setVisibility(empty ? View.GONE : View.VISIBLE);
 
     if (!empty) {
+      // Sync selection with current items
+      Set<Long> currentIds =
+          transfers.stream().map(t -> t.id).collect(java.util.stream.Collectors.toSet());
+      boolean changed = selectedIds.retainAll(currentIds);
+      if (changed) {
+        Log.d(TAG, "onTransfersChanged: selection updated after items removed");
+        if (selectedIds.isEmpty()) {
+          selectionMode = false;
+        }
+        updateSelectionUI();
+      }
       long pending = transfers.stream().filter(t -> "PENDING".equals(t.status)).count();
       long active = transfers.stream().filter(t -> "ACTIVE".equals(t.status)).count();
       long completed = transfers.stream().filter(t -> "COMPLETED".equals(t.status)).count();
@@ -197,7 +317,29 @@ public class TransferQueueActivity extends AppCompatActivity
 
   @Override
   public void onItemClick(@NonNull PendingTransfer transfer) {
-    showTransferActionDialog(transfer);
+    if (selectionMode) {
+      if (selectedIds.contains(transfer.id)) {
+        selectedIds.remove(transfer.id);
+        if (selectedIds.isEmpty()) {
+          selectionMode = false;
+        }
+      } else {
+        selectedIds.add(transfer.id);
+      }
+      updateSelectionUI();
+    } else {
+      showTransferActionDialog(transfer);
+    }
+  }
+
+  @Override
+  public void onItemLongClick(@NonNull PendingTransfer transfer) {
+    if (!selectionMode) {
+      selectionMode = true;
+      selectedIds.add(transfer.id);
+      adapter.setSelectionMode(true);
+      updateSelectionUI();
+    }
   }
 
   private void showTransferActionDialog(PendingTransfer transfer) {

@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui;
 
 import android.app.Application;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit;
  * pending count (badge), and provides actions to cancel, retry, or remove transfers.
  */
 public class TransferQueueViewModel extends AndroidViewModel {
+  private static final String TAG = "TransferQueueViewModel";
   private final PendingTransferDao dao;
   private final ExecutorService executor = Executors.newSingleThreadExecutor();
   private final LiveData<List<PendingTransfer>> activeTransfers;
@@ -60,7 +62,8 @@ public class TransferQueueViewModel extends AndroidViewModel {
 
   /** Cancels a single transfer. */
   public void cancelTransfer(long id) {
-    executor.execute(() -> dao.cancel(id, System.currentTimeMillis()));
+    executor.execute(
+        () -> dao.cancelByIds(java.util.Collections.singletonList(id), System.currentTimeMillis()));
   }
 
   /** Cancels all pending/active transfers and stops the running worker. */
@@ -76,7 +79,8 @@ public class TransferQueueViewModel extends AndroidViewModel {
   public void retryTransfer(long id) {
     executor.execute(
         () -> {
-          dao.resetToPending(id, System.currentTimeMillis());
+          dao.resetToPendingByIds(
+              java.util.Collections.singletonList(id), System.currentTimeMillis());
           startTransferWorker();
         });
   }
@@ -92,28 +96,32 @@ public class TransferQueueViewModel extends AndroidViewModel {
 
   /** Removes a transfer from the database permanently. */
   public void removeTransfer(long id) {
-    executor.execute(() -> dao.deleteById(id));
+    executor.execute(() -> dao.deleteByIds(java.util.Collections.singletonList(id)));
   }
 
   /** Removes multiple transfers by their IDs. */
   public void removeTransfers(@NonNull Set<Long> ids) {
+    Log.d(TAG, "removeTransfers: ids=" + ids);
+    List<Long> idsCopy = new java.util.ArrayList<>(ids);
     executor.execute(
         () -> {
-          for (long id : ids) {
-            dao.deleteById(id);
-          }
+          Log.d(TAG, "removeTransfers: starting execution for ids=" + idsCopy);
+          dao.deleteByIds(idsCopy);
+          Log.d(TAG, "removeTransfers: execution finished");
         });
   }
 
   /** Retries multiple transfers by resetting them to PENDING and starts the worker. */
   public void retryTransfers(@NonNull Set<Long> ids) {
+    Log.d(TAG, "retryTransfers: ids=" + ids);
+    List<Long> idsCopy = new java.util.ArrayList<>(ids);
     executor.execute(
         () -> {
+          Log.d(TAG, "retryTransfers: starting execution for ids=" + idsCopy);
           long now = System.currentTimeMillis();
-          for (long id : ids) {
-            dao.resetToPending(id, now);
-          }
+          dao.resetToPendingByIds(idsCopy, now);
           startTransferWorker();
+          Log.d(TAG, "retryTransfers: execution finished");
         });
   }
 
@@ -130,13 +138,15 @@ public class TransferQueueViewModel extends AndroidViewModel {
 
   /** Cancels multiple transfers by their IDs. */
   public void cancelTransfers(@NonNull Set<Long> ids) {
+    Log.d(TAG, "cancelTransfers: ids=" + ids);
+    List<Long> idsCopy = new java.util.ArrayList<>(ids);
     executor.execute(
         () -> {
+          Log.d(TAG, "cancelTransfers: starting execution for ids=" + idsCopy);
           long now = System.currentTimeMillis();
-          for (long id : ids) {
-            dao.cancel(id, now);
-          }
+          dao.cancelByIds(idsCopy, now);
           WorkManager.getInstance(getApplication()).cancelUniqueWork("transfer_queue");
+          Log.d(TAG, "cancelTransfers: execution finished");
         });
   }
 }
