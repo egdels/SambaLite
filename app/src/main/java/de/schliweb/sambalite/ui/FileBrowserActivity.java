@@ -43,6 +43,8 @@ import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.KeyboardUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.PreferencesManager;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import javax.inject.Inject;
 
@@ -51,10 +53,11 @@ import javax.inject.Inject;
  * controllers to handle different responsibilities.
  */
 public class FileBrowserActivity extends AppCompatActivity
-    implements FileListController.FileClickCallback,
-        FileListController.FileOptionsCallback,
+    implements FileListController.FileOptionsCallback,
         FileListController.FileStatisticsCallback,
-        FileOperationsController.FileOperationListener {
+        FileOperationsController.FileOperationListener,
+        DialogController.FileOpenCallback,
+        DialogController.MultiSelectCallback {
 
   private static final String EXTRA_CONNECTION_ID = "extra_connection_id";
   private static final String EXTRA_SEARCH_QUERY = "extra_search_query";
@@ -97,7 +100,7 @@ public class FileBrowserActivity extends AppCompatActivity
 
   // Selection state for toolbar actions
   int selectionCount = 0;
-  private java.util.List<SmbFileItem> selectedItems = new java.util.ArrayList<>();
+  private List<SmbFileItem> selectedItems = new ArrayList<>();
 
   // UI Components
   private RecyclerView recyclerView;
@@ -106,10 +109,9 @@ public class FileBrowserActivity extends AppCompatActivity
   private TextView currentPathView;
   FloatingActionButton fab;
   FloatingActionButton fabCreateFolder;
-  private com.google.android.material.floatingactionbutton.FloatingActionButton fabDeleteSelected;
-  private com.google.android.material.floatingactionbutton.FloatingActionButton fabDownloadSelected;
-  private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-      fabClearSelection;
+  private FloatingActionButton fabMultiOptions;
+  private FloatingActionButton fabSelectAll;
+  private FloatingActionButton fabClearSelection;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
       fabSelectFolder;
   private boolean folderPickerMode = false;
@@ -335,8 +337,8 @@ public class FileBrowserActivity extends AppCompatActivity
     currentPathView = findViewById(R.id.current_path);
     fab = findViewById(R.id.fab);
     fabCreateFolder = findViewById(R.id.fab_create_folder);
-    fabDeleteSelected = findViewById(R.id.fab_delete_selected);
-    fabDownloadSelected = findViewById(R.id.fab_download_selected);
+    fabMultiOptions = findViewById(R.id.fab_multi_options);
+    fabSelectAll = findViewById(R.id.fab_select_all);
     fabClearSelection = findViewById(R.id.fab_clear_selection);
     fabSelectFolder = findViewById(R.id.fab_select_folder);
     LogUtils.d("FileBrowserActivity", "UI components initialized");
@@ -598,7 +600,6 @@ public class FileBrowserActivity extends AppCompatActivity
   /** Sets up controller callbacks. */
   private void setupControllerCallbacks() {
     // Set up FileListController callbacks
-    fileListController.setFileClickCallback(this);
     fileListController.setFileOptionsCallback(this);
     fileListController.setFileStatisticsCallback(this);
     fileListController.setFolderChangeCallback(this::onRemoteFolderChanged);
@@ -616,7 +617,8 @@ public class FileBrowserActivity extends AppCompatActivity
           KeyboardUtils.hideKeyboard(this);
           searchViewModel.searchFiles(query, searchType, includeSubfolders);
         });
-    dialogController.setFileOpenCallback(this::openFileFromServer);
+    dialogController.setFileOpenCallback(this);
+    dialogController.setMultiSelectCallback(this);
     dialogController.setUploadCallback(
         new DialogController.UploadCallback() {
           @Override
@@ -716,15 +718,15 @@ public class FileBrowserActivity extends AppCompatActivity
             fabCreateFolder.setVisibility(View.GONE);
             // Improve placement of multi-select FABs when regular ones are hidden
             adjustMultiSelectFabPlacement();
-            if (fabDeleteSelected.getVisibility() != View.VISIBLE) fabDeleteSelected.show();
-            if (fabDownloadSelected.getVisibility() != View.VISIBLE) fabDownloadSelected.show();
+            if (fabMultiOptions.getVisibility() != View.VISIBLE) fabMultiOptions.show();
+            if (fabSelectAll.getVisibility() != View.VISIBLE) fabSelectAll.show();
             if (fabClearSelection.getVisibility() != View.VISIBLE) fabClearSelection.show();
           } else {
             // Restore default visibility of regular FABs
             fab.setVisibility(View.VISIBLE);
             fabCreateFolder.setVisibility(View.VISIBLE);
-            if (fabDeleteSelected.isShown()) fabDeleteSelected.hide();
-            if (fabDownloadSelected.isShown()) fabDownloadSelected.hide();
+            if (fabMultiOptions.isShown()) fabMultiOptions.hide();
+            if (fabSelectAll.isShown()) fabSelectAll.hide();
             if (fabClearSelection.isShown()) fabClearSelection.hide();
           }
           // Update menu item visibility/enabled state
@@ -876,25 +878,21 @@ public class FileBrowserActivity extends AppCompatActivity
         });
 
     // Multi-select FABs
-    if (fabDownloadSelected != null) {
-      fabDownloadSelected.setOnClickListener(
+    if (fabSelectAll != null) {
+      fabSelectAll.setOnClickListener(
           v -> {
-            LogUtils.d(
-                "FileBrowserActivity", "FAB download selected clicked (" + selectionCount + ")");
-            if (selectionCount > 0) {
-              fileOperationsController.handleMultipleFileDownloads(selectedItems);
-              fileListController.clearSelection();
+            LogUtils.d("FileBrowserActivity", "FAB select all clicked");
+            if (fileListController != null) {
+              fileListController.selectAllVisible();
             }
           });
     }
-    if (fabDeleteSelected != null) {
-      fabDeleteSelected.setOnClickListener(
+    if (fabMultiOptions != null) {
+      fabMultiOptions.setOnClickListener(
           v -> {
-            LogUtils.d(
-                "FileBrowserActivity", "FAB delete selected clicked (" + selectionCount + ")");
+            LogUtils.d("FileBrowserActivity", "FAB multi options clicked (" + selectionCount + ")");
             if (selectionCount > 0) {
-              fileOperationsController.handleMultipleFileDelete(selectedItems);
-              fileListController.clearSelection();
+              onMultiSelectOptionsClick(selectedItems);
             }
           });
     }
@@ -1845,14 +1843,11 @@ public class FileBrowserActivity extends AppCompatActivity
     }
   }
 
-  // FileListController.FileClickCallback implementation
+  // DialogController.FileOpenCallback implementation
   @Override
-  public void onFileClick(@NonNull SmbFileItem file) {
-    LogUtils.d("FileBrowserActivity", "File clicked: " + file.getName());
-    if (!file.isDirectory()) {
-      // Open the file by downloading to cache and launching with an external app
-      openFileFromServer(file);
-    }
+  public void onOpenRequested(@NonNull SmbFileItem file) {
+    LogUtils.d("FileBrowserActivity", "Open requested for: " + file.getName());
+    openFileFromServer(file);
   }
 
   /** Downloads a file to the local cache and opens it with an appropriate external app. */
@@ -1882,6 +1877,28 @@ public class FileBrowserActivity extends AppCompatActivity
   public void onFileOptionsClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileBrowserActivity", "File options clicked: " + file.getName());
     dialogController.showFileOptionsDialog(file);
+  }
+
+  @Override
+  public void onMultiSelectOptionsClick(@NonNull List<SmbFileItem> selectedItems) {
+    LogUtils.d(
+        "FileBrowserActivity", "Multi-select options clicked: " + selectedItems.size() + " items");
+    dialogController.showMultiSelectOptionsDialog(selectedItems);
+  }
+
+  // DialogController.MultiSelectCallback implementation
+  @Override
+  public void onMultiDownloadRequested(@NonNull List<SmbFileItem> files) {
+    LogUtils.d("FileBrowserActivity", "Multi-download requested for " + files.size() + " items");
+    fileOperationsController.handleMultipleFileDownloads(files);
+    fileListController.clearSelection();
+  }
+
+  @Override
+  public void onMultiDeleteRequested(@NonNull List<SmbFileItem> files) {
+    LogUtils.d("FileBrowserActivity", "Multi-delete requested for " + files.size() + " items");
+    fileOperationsController.handleMultipleFileDelete(files);
+    fileListController.clearSelection();
   }
 
   // FileListController.FileStatisticsCallback implementation
@@ -1993,14 +2010,13 @@ public class FileBrowserActivity extends AppCompatActivity
   // bottom
   private void adjustMultiSelectFabPlacement() {
     try {
-      if (fabDeleteSelected == null || fabDownloadSelected == null || fabClearSelection == null)
-        return;
+      if (fabMultiOptions == null || fabSelectAll == null || fabClearSelection == null) return;
       // Compact layout: stack with 64dp gaps starting at 32dp from bottom
       int base = dpToPx(32);
       int gap = dpToPx(64);
       setFabBottomMargin(fabClearSelection, base);
-      setFabBottomMargin(fabDownloadSelected, base + gap);
-      setFabBottomMargin(fabDeleteSelected, base + gap + gap);
+      setFabBottomMargin(fabSelectAll, base + gap);
+      setFabBottomMargin(fabMultiOptions, base + gap + gap);
     } catch (Throwable ignored) {
       // best-effort adjustment only
     }

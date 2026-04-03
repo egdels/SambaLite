@@ -58,8 +58,6 @@ public class FileListController
   @Setter private SelectionChangedCallback selectionChangedCallback;
 
   // Callback interfaces
-  @Setter private FileClickCallback fileClickCallback;
-
   @Setter private FileOptionsCallback fileOptionsCallback;
 
   @Setter private FileStatisticsCallback fileStatisticsCallback;
@@ -223,10 +221,8 @@ public class FileListController
     if (file.isDirectory()) {
       viewModel.navigateToDirectory(file);
     } else {
-      // Otherwise, notify the callback
-      if (fileClickCallback != null) {
-        fileClickCallback.onFileClick(file);
-      }
+      // For files, show the file options dialog
+      onFileOptionsClick(file);
     }
   }
 
@@ -472,16 +468,6 @@ public class FileListController
     }
   }
 
-  /** Callback for file clicks. */
-  public interface FileClickCallback {
-    /**
-     * Called when a file is clicked.
-     *
-     * @param file The file that was clicked
-     */
-    void onFileClick(@NonNull SmbFileItem file);
-  }
-
   /** Callback for file options clicks. */
   public interface FileOptionsCallback {
     /**
@@ -490,6 +476,13 @@ public class FileListController
      * @param file The file for which options were requested
      */
     void onFileOptionsClick(@NonNull SmbFileItem file);
+
+    /**
+     * Called when multi-select options are requested.
+     *
+     * @param selectedItems The list of selected items
+     */
+    default void onMultiSelectOptionsClick(@NonNull List<SmbFileItem> selectedItems) {}
   }
 
   /** Callback for file statistics updates. */
