@@ -5,6 +5,26 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-04-03
+
+### Added
+- **Sync Configuration Management on Main Screen**: Folder sync configurations are now displayed directly on the main screen with a dedicated list. Each configuration shows connection details, sync interval, and last sync time. A popup menu provides quick access to "Sync Now", "Edit", and "Remove" actions.
+- **Live Sync Status**: The main screen observes WorkManager to display real-time sync running/idle status for each configuration, with automatic UI refresh when sync completes.
+- **Multi-Select in Transfer Queue**: The Transfer Queue now supports multi-selection with "Select All", "Deselect All", and batch action FABs for managing multiple transfers at once.
+- **Multi-Select in File Browser**: The File Browser gains a "Select All" FAB for quickly selecting all visible files during multi-selection mode.
+- **Sync Configuration Editing**: Existing sync configurations can be updated in-place via the new edit option in the popup menu.
+- New icons: `ic_menu_selectall`, `ic_menu_unselectall`, `ic_menu_more` for selection and overflow actions.
+- Translations for all new strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- `SyncConfig` model extended with transient `isRunning` flag for live UI status tracking.
+- `SyncManager` now supports updating existing sync configurations via `updateSyncConfig()`.
+- `PendingTransferDao` extended with additional query methods for batch operations.
+- Transfer item layout updated with overflow "more options" button.
+- Main activity layout updated to include sync configuration list section.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.1.0] - 2026-04-02
 
 _First public release after 1.8.3. Versions 2.0.0–2.0.6 were internal development builds and were not published to Play Store or F-Droid._

@@ -1,0 +1,4 @@
+• New: Sync configurations displayed on main screen with live status.
+• New: Popup menu for Sync Now, Edit & Remove actions.
+• New: Multi-select in Transfer Queue & File Browser.
+• New: Icons & translations in all 7 languages.
