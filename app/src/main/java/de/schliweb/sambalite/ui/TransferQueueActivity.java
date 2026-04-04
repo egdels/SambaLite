@@ -355,6 +355,16 @@ public class TransferQueueActivity extends AppCompatActivity
       selectedIds.add(transfer.id);
       adapter.setSelectionMode(true);
       updateSelectionUI();
+    } else {
+      if (selectedIds.contains(transfer.id)) {
+        selectedIds.remove(transfer.id);
+        if (selectedIds.isEmpty()) {
+          selectionMode = false;
+        }
+      } else {
+        selectedIds.add(transfer.id);
+      }
+      updateSelectionUI();
     }
   }
 
