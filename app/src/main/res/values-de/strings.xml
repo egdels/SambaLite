@@ -322,6 +322,9 @@
     <string name="sync_never">Nie</string>
     <string name="sync_never_synced">Nie synchronisiert</string>
     <string name="sync_running">Sync läuft …</string>
+    <string name="sync_completed">Sync erfolgreich abgeschlossen</string>
+    <string name="sync_failed">Sync fehlgeschlagen</string>
+    <string name="sync_cancelled">Sync wurde unterbrochen und wird erneut versucht</string>
     <string name="sync_scheduled">Geplant: %1$s</string>
     <string name="sync_folder_option">Sync einrichten</string>
     <string name="sync_folder_already_synced">Dieser Ordner wird bereits synchronisiert</string>

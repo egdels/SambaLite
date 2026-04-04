@@ -326,6 +326,9 @@
     <string name="sync_never">Jamais</string>
     <string name="sync_never_synced">Jamais synchronisé</string>
     <string name="sync_running">Synchronisation en cours…</string>
+    <string name="sync_completed">Synchronisation terminée avec succès</string>
+    <string name="sync_failed">Échec de la synchronisation</string>
+    <string name="sync_cancelled">La synchronisation a été interrompue et sera réessayée</string>
     <string name="sync_scheduled">Prévu : %1$s</string>
     <string name="sync_folder_option">Configurer la synchronisation</string>
     <string name="sync_folder_already_synced">Ce dossier est déjà synchronisé</string>

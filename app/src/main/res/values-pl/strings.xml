@@ -330,6 +330,9 @@
     <string name="sync_never">Nigdy</string>
     <string name="sync_never_synced">Nigdy nie synchronizowano</string>
     <string name="sync_running">Synchronizacja w toku…</string>
+    <string name="sync_completed">Synchronizacja zakończona pomyślnie</string>
+    <string name="sync_failed">Synchronizacja nie powiodła się</string>
+    <string name="sync_cancelled">Synchronizacja została przerwana i zostanie ponowiona</string>
     <string name="sync_scheduled">Zaplanowano: %1$s</string>
     <string name="sync_folder_option">Skonfiguruj synchronizację</string>
     <string name="sync_folder_already_synced">Ten folder jest już synchronizowany</string>

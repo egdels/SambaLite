@@ -289,6 +289,9 @@
     <string name="sync_never">Never</string>
     <string name="sync_never_synced">Never synced</string>
     <string name="sync_running">Sync running…</string>
+    <string name="sync_completed">Sync completed successfully</string>
+    <string name="sync_failed">Sync failed</string>
+    <string name="sync_cancelled">Sync was interrupted and will be retried</string>
     <string name="sync_scheduled">Scheduled: %1$s</string>
     <string name="sync_folder_option">Set Up Sync</string>
     <string name="sync_folder_already_synced">This folder is already being synced</string>

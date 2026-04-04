@@ -322,6 +322,9 @@
     <string name="sync_never">Nooit</string>
     <string name="sync_never_synced">Nooit gesynchroniseerd</string>
     <string name="sync_running">Synchronisatie bezig…</string>
+    <string name="sync_completed">Synchronisatie succesvol voltooid</string>
+    <string name="sync_failed">Synchronisatie mislukt</string>
+    <string name="sync_cancelled">Synchronisatie werd onderbroken en wordt opnieuw geprobeerd</string>
     <string name="sync_scheduled">Gepland: %1$s</string>
     <string name="sync_folder_option">Synchronisatie instellen</string>
     <string name="sync_folder_already_synced">Deze map wordt al gesynchroniseerd</string>
