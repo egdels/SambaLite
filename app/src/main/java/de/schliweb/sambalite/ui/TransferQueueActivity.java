@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -54,6 +55,10 @@ public class TransferQueueActivity extends AppCompatActivity
   private TextView countFailed;
   private TextView queueInfoText;
 
+  private static final String PREFS_NAME = "transfer_queue_prefs";
+  private static final String PREF_SORT_MODE = "sort_mode";
+  private static final String PREF_HIDE_COMPLETED = "hide_completed";
+
   /** Current sort mode: 0 = name, 1 = date, 2 = status. */
   private int currentSort = 1; // default: by date (newest first)
 
@@ -88,6 +93,10 @@ public class TransferQueueActivity extends AppCompatActivity
     countCompleted = findViewById(R.id.count_completed);
     countFailed = findViewById(R.id.count_failed);
     queueInfoText = findViewById(R.id.queue_info_text);
+
+    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+    currentSort = prefs.getInt(PREF_SORT_MODE, 1);
+    hideCompleted = prefs.getBoolean(PREF_HIDE_COMPLETED, false);
 
     findViewById(R.id.sort_button).setOnClickListener(v -> showSortDialog());
 
@@ -305,6 +314,13 @@ public class TransferQueueActivity extends AppCompatActivity
               }
 
               hideCompleted = hideCompletedSwitch.isChecked();
+
+              getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                  .edit()
+                  .putInt(PREF_SORT_MODE, currentSort)
+                  .putBoolean(PREF_HIDE_COMPLETED, hideCompleted)
+                  .apply();
+
               if (lastTransfers != null) {
                 onTransfersChanged(lastTransfers);
               }
