@@ -237,34 +237,6 @@ public class MainActivity extends AppCompatActivity
           }
 
           @Override
-          public void onSyncNowClick(@NonNull SyncConfig config) {
-            LogUtils.i("MainActivity", "Manual sync triggered for: " + config.getId());
-            viewModel.triggerSync(config.getId());
-            EnhancedUIUtils.showInfo(MainActivity.this, getString(R.string.sync_running));
-
-            // Update UI state immediately to show progress
-            List<SyncConfig> configs = viewModel.getSyncConfigs().getValue();
-            if (configs != null) {
-              LogUtils.d("MainActivity", "Updating UI immediately for config: " + config.getId());
-              boolean found = false;
-              for (SyncConfig c : configs) {
-                if (c.getId().equals(config.getId())) {
-                  c.setRunning(true);
-                  found = true;
-                  break;
-                }
-              }
-              if (found) {
-                syncAdapter.notifyDataSetChanged();
-              } else {
-                LogUtils.w("MainActivity", "Config not found in current list: " + config.getId());
-              }
-            } else {
-              LogUtils.w("MainActivity", "Sync configs list is null, cannot update UI immediately");
-            }
-          }
-
-          @Override
           public void onOptionsClick(@NonNull View view, @NonNull SyncConfig config) {
             showSyncOptions(view, config);
           }
@@ -308,6 +280,7 @@ public class MainActivity extends AppCompatActivity
                   "MainActivity",
                   "Connections list: " + (connections != null ? connections.toString() : "null"));
               adapter.setConnections(connections);
+              syncAdapter.setConnections(connections);
 
               // Manage empty state visibility
               if (connections == null || connections.isEmpty()) {
@@ -446,6 +419,32 @@ public class MainActivity extends AppCompatActivity
                             + workInfo.getState()
                             + ". Refreshing configs.");
                     viewModel.loadSyncConfigs();
+                    if (workInfo.getState() == WorkInfo.State.SUCCEEDED) {
+                      EnhancedUIUtils.showInfo(
+                          MainActivity.this, getString(R.string.sync_completed));
+                    } else {
+                      EnhancedUIUtils.showError(MainActivity.this, getString(R.string.sync_failed));
+                    }
+                  }
+
+                  // Detect RETRY: state goes back to ENQUEUED while config was previously running
+                  if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
+                    String configId = null;
+                    for (String tag : workInfo.getTags()) {
+                      if (tag.startsWith("config_id:")) {
+                        configId = tag.substring("config_id:".length());
+                      }
+                    }
+                    if (configId != null && currentRunningConfigIds.contains(configId)) {
+                      LogUtils.i(
+                          "MainActivity",
+                          "Sync work "
+                              + workInfo.getId()
+                              + " was retried (ENQUEUED after RUNNING). Config: "
+                              + configId);
+                      EnhancedUIUtils.showError(
+                          MainActivity.this, getString(R.string.sync_cancelled));
+                    }
                   }
                 }
               }

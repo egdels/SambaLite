@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.net.Uri;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,8 +20,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.button.MaterialButton;
 import de.schliweb.sambalite.R;
+import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.util.LogUtils;
@@ -32,6 +33,7 @@ public class SyncConfigAdapter
     extends RecyclerView.Adapter<SyncConfigAdapter.SyncConfigViewHolder> {
 
   private List<SyncConfig> syncConfigs = new ArrayList<>();
+  private List<SmbConnection> connections = new ArrayList<>();
   private OnSyncClickListener listener;
   private Context context;
 
@@ -48,10 +50,16 @@ public class SyncConfigAdapter
   }
 
   /**
-   * Sets the click listener for sync configurations.
+   * Updates the list of connections used for resolving server paths.
    *
-   * @param listener The listener to set
+   * @param connections The list of SMB connections
    */
+  @SuppressLint("NotifyDataSetChanged")
+  public void setConnections(@NonNull List<SmbConnection> connections) {
+    this.connections = connections;
+    notifyDataSetChanged();
+  }
+
   public void setOnSyncClickListener(@Nullable OnSyncClickListener listener) {
     this.listener = listener;
   }
@@ -79,19 +87,67 @@ public class SyncConfigAdapter
   public interface OnSyncClickListener {
     void onSyncClick(@NonNull SyncConfig config);
 
-    void onSyncNowClick(@NonNull SyncConfig config);
-
     void onOptionsClick(@NonNull View view, @NonNull SyncConfig config);
+  }
+
+  /**
+   * Extracts a human-readable path from a content URI.
+   *
+   * @param uriString the content URI string
+   * @return a readable path, or the original string if parsing fails
+   */
+  private static String extractReadablePath(@Nullable String uriString) {
+    if (uriString == null || uriString.isEmpty()) {
+      return "";
+    }
+    try {
+      Uri uri = Uri.parse(uriString);
+      String lastSegment = uri.getLastPathSegment();
+      if (lastSegment != null && lastSegment.contains(":")) {
+        // Format: "primary:Documents/scans" -> "/Documents/scans"
+        String path = lastSegment.substring(lastSegment.indexOf(':') + 1);
+        return "/" + path;
+      }
+      if (lastSegment != null) {
+        return lastSegment;
+      }
+    } catch (Exception e) {
+      LogUtils.w("SyncConfigAdapter", "Failed to parse URI: " + e.getMessage());
+    }
+    return uriString;
+  }
+
+  /**
+   * Builds a full server path from the connection and remote path.
+   *
+   * @param config the sync configuration
+   * @return a path like "//server/share/remotePath"
+   */
+  private String buildServerPath(@NonNull SyncConfig config) {
+    for (SmbConnection conn : connections) {
+      if (conn.getId().equals(config.getConnectionId())) {
+        StringBuilder sb = new StringBuilder("//");
+        sb.append(conn.getServer());
+        if (conn.getShare() != null && !conn.getShare().isEmpty()) {
+          sb.append("/").append(conn.getShare());
+        }
+        if (config.getRemotePath() != null && !config.getRemotePath().isEmpty()) {
+          sb.append("/").append(config.getRemotePath());
+        }
+        return sb.toString();
+      }
+    }
+    return config.getRemotePath();
   }
 
   /** ViewHolder for a sync configuration item. */
   class SyncConfigViewHolder extends RecyclerView.ViewHolder {
 
     private final TextView localNameTextView;
+    private final TextView localPathTextView;
     private final TextView remotePathTextView;
     private final TextView statusTextView;
     private final TextView directionTextView;
-    private final MaterialButton syncNowButton;
     private final View moreOptionsButton;
     private final View syncIcon;
     private final View syncProgressBar;
@@ -99,10 +155,10 @@ public class SyncConfigAdapter
     SyncConfigViewHolder(@NonNull View itemView) {
       super(itemView);
       localNameTextView = itemView.findViewById(R.id.sync_local_name);
+      localPathTextView = itemView.findViewById(R.id.sync_local_path);
       remotePathTextView = itemView.findViewById(R.id.sync_remote_path);
       statusTextView = itemView.findViewById(R.id.sync_status);
       directionTextView = itemView.findViewById(R.id.sync_direction);
-      syncNowButton = itemView.findViewById(R.id.sync_now_button);
       moreOptionsButton = itemView.findViewById(R.id.sync_more_options);
       syncIcon = itemView.findViewById(R.id.sync_icon);
       syncProgressBar = itemView.findViewById(R.id.sync_progress);
@@ -112,14 +168,6 @@ public class SyncConfigAdapter
             int position = getBindingAdapterPosition();
             if (position != RecyclerView.NO_POSITION && listener != null) {
               listener.onSyncClick(syncConfigs.get(position));
-            }
-          });
-
-      syncNowButton.setOnClickListener(
-          v -> {
-            int position = getBindingAdapterPosition();
-            if (position != RecyclerView.NO_POSITION && listener != null) {
-              listener.onSyncNowClick(syncConfigs.get(position));
             }
           });
 
@@ -134,7 +182,9 @@ public class SyncConfigAdapter
 
     void bind(SyncConfig config) {
       localNameTextView.setText(config.getLocalFolderDisplayName());
-      remotePathTextView.setText(config.getRemotePath());
+      localPathTextView.setText(extractReadablePath(config.getLocalFolderUri()));
+      String serverPath = buildServerPath(config);
+      remotePathTextView.setText(serverPath);
 
       // Set last sync status
       if (config.getLastSyncTimestamp() > 0) {
@@ -159,9 +209,6 @@ public class SyncConfigAdapter
         directionText = context.getString(R.string.sync_direction_bidirectional);
       }
       directionTextView.setText(directionText);
-
-      // Update sync now button state based on enabled status
-      syncNowButton.setEnabled(config.isEnabled() && !config.isRunning());
 
       // Update running status
       if (config.isRunning()) {

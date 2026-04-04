@@ -29,7 +29,7 @@
             android:layout_height="40dp"
             app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorSecondaryContainer"
+            app:cardBackgroundColor="?attr/colorPrimary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -40,16 +40,19 @@
                 android:layout_gravity="center"
                 android:src="@android:drawable/stat_notify_sync"
                 android:contentDescription="@string/content_desc_sync_indicator"
-                app:tint="?attr/colorOnSecondaryContainer" />
+                app:tint="?attr/colorOnPrimary" />
 
-            <ProgressBar
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/sync_progress"
-                style="?android:attr/progressBarStyleSmall"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:visibility="gone"
-                app:indicatorColor="?attr/colorPrimary"
+                android:indeterminate="true"
+                app:indicatorSize="20dp"
+                app:trackThickness="2dp"
+                app:indicatorColor="?attr/colorOnPrimary"
+                app:trackColor="@android:color/transparent"
                 tools:visibility="visible" />
 
         </com.google.android.material.card.MaterialCardView>
@@ -65,10 +68,27 @@
             android:textColor="?attr/colorOnSurface"
             android:ellipsize="middle"
             android:maxLines="1"
-            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
             app:layout_constraintStart_toEndOf="@id/sync_icon_container"
             app:layout_constraintTop_toTopOf="@id/sync_icon_container"
             tools:text="Documents" />
+
+        <!-- Local Folder Path -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/sync_local_path"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:ellipsize="start"
+            android:maxLines="1"
+            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
+            app:layout_constraintStart_toEndOf="@id/sync_icon_container"
+            app:layout_constraintTop_toBottomOf="@id/sync_local_name"
+            tools:text="/Documents/scans" />
 
         <!-- Sync Path (Remote Path) -->
         <com.google.android.material.textview.MaterialTextView
@@ -82,9 +102,9 @@
             android:textColor="?attr/colorOnSurfaceVariant"
             android:ellipsize="start"
             android:maxLines="1"
-            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
             app:layout_constraintStart_toEndOf="@id/sync_icon_container"
-            app:layout_constraintTop_toBottomOf="@id/sync_local_name"
+            app:layout_constraintTop_toBottomOf="@id/sync_local_path"
             tools:text="NAS/Public/Backup" />
 
         <!-- Sync Status / Last Sync -->
@@ -97,7 +117,7 @@
             android:layout_marginEnd="8dp"
             android:textAppearance="?attr/textAppearanceLabelSmall"
             android:textColor="?attr/colorOutline"
-            app:layout_constraintEnd_toStartOf="@id/sync_now_button"
+            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
             app:layout_constraintStart_toEndOf="@id/sync_icon_container"
             app:layout_constraintTop_toBottomOf="@id/sync_remote_path"
             tools:text="Last sync: 10 minutes ago" />
@@ -114,20 +134,6 @@
             app:layout_constraintTop_toBottomOf="@id/sync_status"
             tools:text="Local → Remote" />
 
-        <!-- Sync Now Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/sync_now_button"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/sync_now"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/sync_more_options"
-            app:layout_constraintTop_toTopOf="parent"
-            app:paddingStart="12dp"
-            app:paddingEnd="12dp" />
-
         <!-- More Options Button -->
         <ImageButton
             android:id="@+id/sync_more_options"
@@ -139,7 +145,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="?attr/colorOnSurfaceVariant" />
+            app:tint="?attr/colorOnSurface" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
