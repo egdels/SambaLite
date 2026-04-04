@@ -1,4 +1,8 @@
 • New: Sync configurations displayed on main screen with live status.
 • New: Popup menu for Sync Now, Edit & Remove actions.
 • New: Multi-select in Transfer Queue & File Browser.
+• New: Sync completion feedback (success/failed/cancelled via Snackbar).
+• New: Persistent sort & filter preferences in Transfer Queue.
+• Changed: Human-readable local paths & full server paths in sync configs.
+• Changed: Redesigned sync config layout with local path display.
 • New: Icons & translations in all 7 languages.
