@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Translations for all new strings in all 7 languages (EN, DE, ES, FR, NL, PL, ZH), including sync status messages (completed, failed, cancelled).
 
 ### Changed
+- **Transfer Queue multi-select toggle**: Tapping a transfer item in multi-select mode now toggles its selection on and off, and multi-select mode exits automatically when the last item is deselected.
+- **Shared text cache cleanup moved to TransferWorker**: Temporary files created by `ShareReceiverActivity` for text shares are now cleaned up after successful upload inside `TransferWorker`, instead of immediately at enqueue time in `FileOperationsController`. This ensures the source file remains available for retry if the upload fails.
 - `SyncConfigAdapter` now resolves and displays human-readable local paths (from content URIs) and full server paths (e.g. `//server/share/path`) instead of raw URIs and relative remote paths.
 - Sync action callbacks (`onSyncNowClick`, `onEditClick`, `onRemoveClick`) moved from `MainActivity` into `SyncConfigAdapter` for better separation of concerns.
 - `SyncConfigAdapter` receives the list of `SmbConnection`s to build full server paths for display.
