@@ -612,7 +612,6 @@ public class FileOperationsController {
                                 }
                                 operationsViewModel.enqueueUpload(
                                     f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
-                                cleanupSharedTextSourceFile(f.uri);
                                 count++;
                               }
                               if (count > 0) {

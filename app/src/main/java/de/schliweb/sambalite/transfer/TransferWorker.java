@@ -365,6 +365,7 @@ public class TransferWorker extends Worker {
 
       dao.updateStatus(transfer.id, "COMPLETED", System.currentTimeMillis());
       LogUtils.i(TAG, "Transfer completed: " + transfer.displayName);
+      cleanupSharedTextSourceFile(transfer);
       sendTransferCompletedBroadcast(transfer);
       return true;
     } catch (Exception e) {
@@ -924,6 +925,30 @@ public class TransferWorker extends Worker {
     } catch (Exception e) {
       LogUtils.w(TAG, "Could not get remote file size for: " + remotePath);
       return -1;
+    }
+  }
+
+  /**
+   * Deletes the source file if it resides in the shared_text cache directory (i.e. it was created
+   * by ShareReceiverActivity for a text share). Called after successful upload.
+   */
+  private void cleanupSharedTextSourceFile(PendingTransfer transfer) {
+    if (transfer.localUri == null) return;
+    try {
+      Uri uri = Uri.parse(transfer.localUri);
+      if (!"file".equals(uri.getScheme())) return;
+      java.io.File sourceFile = new java.io.File(uri.getPath());
+      java.io.File sharedTextDir =
+          new java.io.File(getApplicationContext().getCacheDir(), "shared_text");
+      if (sourceFile.exists()
+          && sourceFile.getParentFile() != null
+          && sourceFile.getParentFile().equals(sharedTextDir)) {
+        if (sourceFile.delete()) {
+          LogUtils.d(TAG, "Deleted shared text cache file: " + sourceFile.getName());
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Failed to clean up shared text source file: " + e.getMessage());
     }
   }
 
