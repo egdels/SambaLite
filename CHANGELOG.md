@@ -5,6 +5,24 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-04-06
+
+### Added
+- **Thumbnail Support**: New "Show thumbnails" option in the sort dialog. Thumbnails are managed by a new `ThumbnailManager` for efficient loading and display in the file list.
+- **Improved Data Streaming**: Introduced `SmbInputStream` for more robust and efficient data reading from SMB shares.
+- Translations for the new thumbnail option in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- **Performance Optimization**: `IntelligentCacheManager` now uses a pool of 4 threads (increased from 1) for concurrent operations.
+- **Cache Reliability**: Added a mechanism to `IntelligentCacheManager` to prevent redundant disk writes for the same cache key in quick succession.
+- **UI FAB Refactoring**: Reorganized the Floating Action Buttons (FAB) in the file browser for "Select All" and "Clear Selection" for better consistency.
+
+### Fixed
+- **Foreground Service Compliance**: `SmbBackgroundService` now calls `startForeground()` more reliably at every start to satisfy Android's strict 5-second contract for foreground services, preventing potential crashes.
+- Improved lifecycle handling in `FileListViewModel` and `FileAdapter` to prevent potential memory leaks or inconsistent states during view updates.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.2.0] - 2026-04-03
 
 ### Added
