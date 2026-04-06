@@ -30,28 +30,36 @@ import lombok.Getter;
 @SuppressWarnings("KotlinPropertyAccess") // LiveData getters intentionally return wrapped types
 public class FileBrowserState {
   // Preferences manager for persisting UI preferences
-  private final PreferencesManager preferencesManager;
+  @NonNull private final PreferencesManager preferencesManager;
   // Navigation state
-  private final Deque<String> pathStack = new ArrayDeque<>();
-  private final MutableLiveData<String> currentPathLiveData = new MutableLiveData<>("");
+  @NonNull private final Deque<String> pathStack = new ArrayDeque<>();
+  @NonNull private final MutableLiveData<String> currentPathLiveData = new MutableLiveData<>("");
+
   // File list state
+  @NonNull
   private final MutableLiveData<List<SmbFileItem>> files = new MutableLiveData<>(new ArrayList<>());
-  private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
-  private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+
+  @NonNull private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+  @NonNull private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
   // Sorting state
-  private final MutableLiveData<FileSortOption> sortOption;
-  private final MutableLiveData<Boolean> directoriesFirstLiveData;
-  private final MutableLiveData<Boolean> showHiddenFilesLiveData;
+  @NonNull private final MutableLiveData<FileSortOption> sortOption;
+  @NonNull private final MutableLiveData<Boolean> directoriesFirstLiveData;
+  @NonNull private final MutableLiveData<Boolean> showHiddenFilesLiveData;
+  @NonNull private final MutableLiveData<Boolean> showThumbnailsLiveData;
+
   // Search state
+  @NonNull
   private final MutableLiveData<List<SmbFileItem>> searchResults =
       new MutableLiveData<>(new ArrayList<>());
-  private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
+
+  @NonNull private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
   // Connection state
   @Getter private SmbConnection connection;
   private String currentPath = "";
   private FileSortOption currentSortOption;
   private boolean directoriesFirst;
   private boolean showHiddenFiles;
+  private boolean showThumbnails;
   private boolean isSearchMode = false;
   private String currentSearchQuery = "";
   private String searchStartPath = "";
@@ -71,11 +79,13 @@ public class FileBrowserState {
     this.currentSortOption = preferencesManager.getSortOption();
     this.directoriesFirst = preferencesManager.getDirectoriesFirst();
     this.showHiddenFiles = preferencesManager.getShowHiddenFiles();
+    this.showThumbnails = preferencesManager.getShowThumbnails();
 
     // Initialize LiveData with loaded preferences
     this.sortOption = new MutableLiveData<>(currentSortOption);
     this.directoriesFirstLiveData = new MutableLiveData<>(directoriesFirst);
     this.showHiddenFilesLiveData = new MutableLiveData<>(showHiddenFiles);
+    this.showThumbnailsLiveData = new MutableLiveData<>(showThumbnails);
 
     LogUtils.d(
         "FileBrowserState",
@@ -252,6 +262,26 @@ public class FileBrowserState {
     // Save to preferences
     preferencesManager.saveShowHiddenFiles(showHiddenFiles);
     LogUtils.d("FileBrowserState", "Show hidden files saved to preferences: " + showHiddenFiles);
+  }
+
+  /** Gets the show-thumbnails LiveData. */
+  public @NonNull LiveData<Boolean> getShowThumbnails() {
+    return showThumbnailsLiveData;
+  }
+
+  /** Gets the current show-thumbnails value. */
+  public boolean isShowThumbnails() {
+    return showThumbnails;
+  }
+
+  /** Sets the show-thumbnails flag. */
+  public void setShowThumbnails(boolean showThumbnails) {
+    this.showThumbnails = showThumbnails;
+    this.showThumbnailsLiveData.setValue(showThumbnails);
+
+    // Save to preferences
+    preferencesManager.saveShowThumbnails(showThumbnails);
+    LogUtils.d("FileBrowserState", "Show thumbnails saved to preferences: " + showThumbnails);
   }
 
   /** Gets the search results as LiveData. */

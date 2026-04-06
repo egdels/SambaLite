@@ -26,6 +26,7 @@ public class PreferencesManager {
   private static final String KEY_AUTH_REQUIRED_FOR_ACCESS = "auth_required_for_access";
   private static final String KEY_AUTH_REQUIRED_FOR_PASSWORD_REVEAL =
       "auth_required_for_password_reveal";
+  private static final String KEY_SHOW_THUMBNAILS = "show_thumbnails";
 
   private final SharedPreferences preferences;
 
@@ -149,5 +150,26 @@ public class PreferencesManager {
     boolean required = preferences.getBoolean(KEY_AUTH_REQUIRED_FOR_PASSWORD_REVEAL, false);
     LogUtils.d("PreferencesManager", "Retrieved auth required for password reveal: " + required);
     return required;
+  }
+
+  /**
+   * Saves the show-thumbnails flag.
+   *
+   * @param showThumbnails Whether to show file thumbnails
+   */
+  public void saveShowThumbnails(boolean showThumbnails) {
+    LogUtils.d("PreferencesManager", "Saving show thumbnails: " + showThumbnails);
+    preferences.edit().putBoolean(KEY_SHOW_THUMBNAILS, showThumbnails).apply();
+  }
+
+  /**
+   * Gets the saved show-thumbnails flag.
+   *
+   * @return The saved show-thumbnails flag, or true if none is saved
+   */
+  public boolean getShowThumbnails() {
+    boolean showThumbnails = preferences.getBoolean(KEY_SHOW_THUMBNAILS, true);
+    LogUtils.d("PreferencesManager", "Retrieved show thumbnails: " + showThumbnails);
+    return showThumbnails;
   }
 }

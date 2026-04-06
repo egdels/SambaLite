@@ -23,6 +23,7 @@ import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
+import de.schliweb.sambalite.ui.ThumbnailManager;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.HashSet;
 import java.util.List;
@@ -323,12 +324,43 @@ public class FileListController
   }
 
   /**
+   * Sets the thumbnail manager for loading image previews in the file list.
+   *
+   * @param thumbnailManager The thumbnail manager instance
+   */
+  public void setThumbnailManager(ThumbnailManager thumbnailManager) {
+    adapter.setThumbnailManager(thumbnailManager);
+  }
+
+  /**
+   * Sets whether thumbnails should be shown in the file list.
+   *
+   * @param showThumbnails Whether to show thumbnails
+   */
+  public void setShowThumbnails(boolean showThumbnails) {
+    adapter.setShowThumbnails(showThumbnails);
+  }
+
+  public void shutdown() {
+    adapter.shutdown();
+  }
+
+  /**
    * Sets the active download paths for transfer indicators in the file list.
    *
    * @param paths Set of remote paths currently being downloaded
    */
   public void setActiveDownloadPaths(@NonNull Set<String> paths) {
     adapter.setActiveDownloadPaths(paths);
+  }
+
+  /**
+   * Refreshes a single file item in the list.
+   *
+   * @param remotePath The remote path of the file to refresh
+   */
+  public void refreshFileItem(@NonNull String remotePath) {
+    adapter.notifyFileItemChanged(remotePath);
   }
 
   /**

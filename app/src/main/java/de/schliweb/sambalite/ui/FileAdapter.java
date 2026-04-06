@@ -10,6 +10,8 @@
 package de.schliweb.sambalite.ui;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.format.DateFormat;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
@@ -35,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.Getter;
 
 /** Adapter for displaying SMB files and directories in a RecyclerView. */
@@ -58,18 +62,43 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
   // Active download paths: remote paths of files currently being downloaded
   java.util.Set<String> activeDownloadPaths = new java.util.HashSet<>();
 
+  // Thumbnail manager for loading image previews
+  @Nullable ThumbnailManager thumbnailManager;
+  boolean showThumbnails = true;
+
+  // Background executor for DiffUtil calculations to avoid blocking the main thread
+  private final ExecutorService diffExecutor = Executors.newSingleThreadExecutor();
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+  public void shutdown() {
+    diffExecutor.shutdownNow();
+    LogUtils.d("FileAdapter", "DiffExecutor shutdown");
+  }
+
   /**
-   * Updates the list of files.
+   * Updates the list of files using DiffUtil on a background thread.
    *
    * @param files The new list of files
    */
+  @SuppressWarnings("ThreadPriorityCheck")
   public void setFiles(@NonNull List<SmbFileItem> files) {
     int size = files != null ? files.size() : 0;
-    LogUtils.d("FileAdapter", "Setting files: " + size + " items");
-    List<SmbFileItem> newFiles = files != null ? files : new ArrayList<>();
-    DiffUtil.DiffResult result = DiffUtil.calculateDiff(new FileDiffCallback(this.files, newFiles));
-    this.files = newFiles;
-    result.dispatchUpdatesTo(this);
+    LogUtils.d("FileAdapter", "Scheduling DiffUtil for " + size + " items");
+    final List<SmbFileItem> newFiles = files != null ? new ArrayList<>(files) : new ArrayList<>();
+    final List<SmbFileItem> oldFiles = new ArrayList<>(this.files);
+
+    diffExecutor.execute(
+        () -> {
+          // Ensure lower priority for background diff calculation
+          Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
+          final DiffUtil.DiffResult result =
+              DiffUtil.calculateDiff(new FileDiffCallback(oldFiles, newFiles));
+          mainHandler.post(
+              () -> {
+                this.files = newFiles;
+                result.dispatchUpdatesTo(this);
+              });
+        });
   }
 
   /**
@@ -128,6 +157,20 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
   }
 
+  /**
+   * Notifies the adapter that a file item has changed, e.g., its thumbnail was updated.
+   *
+   * @param remotePath The remote path of the file
+   */
+  public void notifyFileItemChanged(@NonNull String remotePath) {
+    for (int i = 0; i < files.size(); i++) {
+      if (files.get(i).getPath().equals(remotePath)) {
+        notifyItemChanged(showParentDirectory ? i + 1 : i);
+        break;
+      }
+    }
+  }
+
   /** Updates the selected paths used for highlighting. */
   public void setSelectedPaths(@NonNull java.util.Set<String> selectedPaths) {
     this.selectedPaths = selectedPaths != null ? selectedPaths : new java.util.HashSet<>();
@@ -162,6 +205,27 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         int adapterPos = showParentDirectory ? i + 1 : i;
         notifyItemChanged(adapterPos);
       }
+    }
+  }
+
+  /**
+   * Sets the thumbnail manager for loading image previews.
+   *
+   * @param thumbnailManager The thumbnail manager instance
+   */
+  public void setThumbnailManager(@Nullable ThumbnailManager thumbnailManager) {
+    this.thumbnailManager = thumbnailManager;
+  }
+
+  /**
+   * Sets whether thumbnails should be shown.
+   *
+   * @param showThumbnails Whether to show thumbnails
+   */
+  public void setShowThumbnails(boolean showThumbnails) {
+    if (this.showThumbnails != showThumbnails) {
+      this.showThumbnails = showThumbnails;
+      notifyItemRangeChanged(0, getItemCount());
     }
   }
 
@@ -321,6 +385,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
   class FileViewHolder extends RecyclerView.ViewHolder {
 
     private final ImageView iconView;
+    private final MaterialCardView iconContainer;
     private final TextView nameView;
     private final TextView dateView;
     private final TextView sizeView;
@@ -334,6 +399,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     FileViewHolder(@NonNull View itemView) {
       super(itemView);
       iconView = itemView.findViewById(R.id.file_icon);
+      iconContainer = itemView.findViewById(R.id.icon_container);
       nameView = itemView.findViewById(R.id.file_name);
       dateView = itemView.findViewById(R.id.file_date);
       sizeView = itemView.findViewById(R.id.file_size);
@@ -475,13 +541,58 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
           "FileAdapter",
           "Binding file: " + file.getName() + ", isDirectory: " + file.isDirectory());
 
-      // Set icon based on file type
-      if (file.isDirectory()) {
-        LogUtils.d("FileAdapter", "Setting directory icon for: " + file.getName());
-        iconView.setImageResource(android.R.drawable.ic_menu_more);
+      // Set icon based on file type, with thumbnail support for images
+      boolean isThumbnail =
+          showThumbnails
+              && thumbnailManager != null
+              && !file.isDirectory()
+              && ThumbnailManager.isThumbnailSupported(file.getName())
+              && file.getPath() != null;
+
+      if (isThumbnail) {
+        LogUtils.d("FileAdapter", "Loading thumbnail for: " + file.getName());
+        // Expand ImageView to fill the container for thumbnails
+        ViewGroup.LayoutParams lp = iconView.getLayoutParams();
+        lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        iconView.setLayoutParams(lp);
+        iconView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        iconView.setImageTintList(null);
+        if (iconContainer != null) {
+          iconContainer.setCardBackgroundColor(android.graphics.Color.TRANSPARENT);
+        }
+        int fallbackIcon = getFileIcon(file.getName());
+        thumbnailManager.loadThumbnail(file.getPath(), file.getSize(), iconView, fallbackIcon);
       } else {
-        LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
-        iconView.setImageResource(getFileIcon(file.getName()));
+        // Restore default icon layout
+        float density = itemView.getContext().getResources().getDisplayMetrics().density;
+        int iconSizePx = (int) (24 * density);
+        ViewGroup.LayoutParams lp = iconView.getLayoutParams();
+        lp.width = iconSizePx;
+        lp.height = iconSizePx;
+        iconView.setLayoutParams(lp);
+        iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        iconView.setImageTintList(
+            android.content.res.ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    iconView,
+                    com.google.android.material.R.attr.colorOnPrimary,
+                    android.graphics.Color.WHITE)));
+        if (iconContainer != null) {
+          iconContainer.setCardBackgroundColor(
+              MaterialColors.getColor(
+                  iconContainer,
+                  androidx.appcompat.R.attr.colorPrimary,
+                  android.graphics.Color.BLUE));
+        }
+        iconView.setTag(null);
+        if (file.isDirectory()) {
+          LogUtils.d("FileAdapter", "Setting directory icon for: " + file.getName());
+          iconView.setImageResource(android.R.drawable.ic_menu_more);
+        } else {
+          LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
+          iconView.setImageResource(getFileIcon(file.getName()));
+        }
       }
 
       // Set file name

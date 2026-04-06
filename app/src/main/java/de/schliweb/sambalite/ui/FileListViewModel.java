@@ -22,8 +22,13 @@ import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executor;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 /**
@@ -33,10 +38,22 @@ import javax.inject.Inject;
 @SuppressWarnings("KotlinPropertyAccess") // LiveData getters intentionally return wrapped types
 public class FileListViewModel extends ViewModel {
 
-  private final SmbRepository smbRepository;
-  private final Executor executor;
-  private final FileBrowserState state;
-  private final BackgroundSmbManager backgroundSmbManager;
+  @NonNull private final SmbRepository smbRepository;
+  @NonNull private final ExecutorService executor;
+  @NonNull private final FileBrowserState state;
+  @NonNull private final BackgroundSmbManager backgroundSmbManager;
+
+  @NonNull
+  private final Set<String> pendingValidations =
+      Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+  @NonNull
+  private final Set<String> pendingPrefetches =
+      Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+  private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+  private ScheduledFuture<?> pendingLoadTask;
+  private static final long LOAD_DEBOUNCE_MS = 300;
 
   @Inject
   public FileListViewModel(
@@ -46,7 +63,7 @@ public class FileListViewModel extends ViewModel {
     this.smbRepository = smbRepository;
     this.state = state;
     this.backgroundSmbManager = backgroundSmbManager;
-    this.executor = Executors.newSingleThreadExecutor();
+    this.executor = Executors.newFixedThreadPool(4);
     LogUtils.d("FileListViewModel", "FileListViewModel initialized");
   }
 
@@ -64,6 +81,14 @@ public class FileListViewModel extends ViewModel {
   /** Resets navigation state to the share root. */
   public void resetNavigation() {
     state.resetNavigation();
+  }
+
+  @Override
+  protected void onCleared() {
+    super.onCleared();
+    scheduler.shutdownNow();
+    executor.shutdownNow();
+    LogUtils.d("FileListViewModel", "Executors shutdown");
   }
 
   public @Nullable SmbConnection getConnection() {
@@ -112,11 +137,6 @@ public class FileListViewModel extends ViewModel {
   public void setSortOption(@NonNull FileSortOption option) {
     state.setSortOption(option);
 
-    // Invalidate cache when sorting changes to ensure fresh loading with new sort order
-    if (state.getConnection() != null) {
-      IntelligentCacheManager.getInstance().invalidateConnection(state.getConnection());
-    }
-
     // Reload files with new sorting
     if (state.getSearchMode()) {
       // Re-sort search results
@@ -127,8 +147,8 @@ public class FileListViewModel extends ViewModel {
         state.setSearchResults(sorted);
       }
     } else {
-      // Reload files with new sorting
-      loadFiles();
+      // Reload from current state (efficiently uses currently loaded files if possible)
+      refreshUIFromCurrentState();
     }
   }
 
@@ -145,11 +165,6 @@ public class FileListViewModel extends ViewModel {
   public void setDirectoriesFirst(boolean directoriesFirst) {
     state.setDirectoriesFirst(directoriesFirst);
 
-    // Invalidate cache when sorting changes to ensure fresh loading with new sort order
-    if (state.getConnection() != null) {
-      IntelligentCacheManager.getInstance().invalidateConnection(state.getConnection());
-    }
-
     // Reload files with new sorting
     if (state.getSearchMode()) {
       // Re-sort search results
@@ -160,8 +175,8 @@ public class FileListViewModel extends ViewModel {
         state.setSearchResults(sorted);
       }
     } else {
-      // Reload files with new sorting
-      loadFiles();
+      // Reload from current state
+      refreshUIFromCurrentState();
     }
   }
 
@@ -178,11 +193,6 @@ public class FileListViewModel extends ViewModel {
   public void setShowHiddenFiles(boolean showHiddenFiles) {
     state.setShowHiddenFiles(showHiddenFiles);
 
-    // Invalidate cache when visibility changes to ensure fresh loading
-    if (state.getConnection() != null) {
-      IntelligentCacheManager.getInstance().invalidateConnection(state.getConnection());
-    }
-
     // Reload files with new setting
     if (state.getSearchMode()) {
       List<SmbFileItem> results = state.getSearchResults().getValue();
@@ -192,8 +202,23 @@ public class FileListViewModel extends ViewModel {
         state.setSearchResults(filtered);
       }
     } else {
-      loadFiles();
+      // Reload from current state
+      refreshUIFromCurrentState();
     }
+  }
+
+  /** Gets the current "show thumbnails" flag as LiveData. */
+  public @NonNull LiveData<Boolean> getShowThumbnails() {
+    return state.getShowThumbnails();
+  }
+
+  /**
+   * Sets the "show thumbnails" flag.
+   *
+   * @param showThumbnails Whether to show file thumbnails
+   */
+  public void setShowThumbnails(boolean showThumbnails) {
+    state.setShowThumbnails(showThumbnails);
   }
 
   /**
@@ -366,6 +391,24 @@ public class FileListViewModel extends ViewModel {
       return;
     }
 
+    // Cancel any pending load task
+    if (pendingLoadTask != null && !pendingLoadTask.isDone()) {
+      pendingLoadTask.cancel(false);
+    }
+
+    // Schedule new load task with debounce
+    pendingLoadTask =
+        scheduler.schedule(
+            () -> performLoadFiles(showLoadingIndicator), LOAD_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Performs the actual file loading logic.
+   *
+   * @param showLoadingIndicator Whether to show the loading indicator
+   */
+  @SuppressWarnings("ThreadPriorityCheck")
+  private void performLoadFiles(boolean showLoadingIndicator) {
     backgroundSmbManager.ensureServiceRunning();
     String path = state.getCurrentPathString().isEmpty() ? "root" : state.getCurrentPathString();
     LogUtils.d(
@@ -379,6 +422,8 @@ public class FileListViewModel extends ViewModel {
 
     executor.execute(
         () -> {
+          // Set thread priority to background to avoid blocking the UI
+          Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
           try {
             // Check if we can use cache for loading
             List<SmbFileItem> cachedFiles =
@@ -393,11 +438,14 @@ public class FileListViewModel extends ViewModel {
                       + state.getCurrentPathString());
               // Sort and filter cached files according to current options
               sortFiles(cachedFiles);
-              cachedFiles = filterHiddenFiles(cachedFiles);
-              state.setFiles(cachedFiles);
+              List<SmbFileItem> filteredCachedFiles = filterHiddenFiles(cachedFiles);
+              state.setFiles(filteredCachedFiles);
               if (showLoadingIndicator) {
                 state.setLoading(false);
               }
+
+              // Asynchronously validate the cache
+              validateCacheAsync(state.getConnection(), state.getCurrentPathString());
               return;
             }
 
@@ -407,17 +455,20 @@ public class FileListViewModel extends ViewModel {
 
             // Sort and filter files according to the current options
             sortFiles(fileList);
-            fileList = filterHiddenFiles(fileList);
+            List<SmbFileItem> filteredFileList = filterHiddenFiles(fileList);
 
-            // Cache the loaded file list
+            // Cache the loaded file list (the full list, not filtered)
             IntelligentCacheManager.getInstance()
                 .cacheFileList(state.getConnection(), state.getCurrentPathString(), fileList);
+
+            // Prefetch subdirectories for better performance
+            prefetchSubdirectories(state.getConnection(), fileList);
 
             // Preload common search patterns in the background for better search performance
             IntelligentCacheManager.getInstance()
                 .preloadCommonSearches(state.getConnection(), state.getCurrentPathString());
 
-            state.setFiles(fileList);
+            state.setFiles(filteredFileList);
             if (showLoadingIndicator) {
               state.setLoading(false);
             }
@@ -430,6 +481,188 @@ public class FileListViewModel extends ViewModel {
             state.setErrorMessage("Failed to load files: " + e.getMessage());
           }
         });
+  }
+
+  /**
+   * Prefetches the content of subdirectories to improve navigation performance.
+   *
+   * @param connection The SMB connection
+   * @param fileList The list of files containing potential subdirectories
+   */
+  @SuppressWarnings("ThreadPriorityCheck")
+  private void prefetchSubdirectories(
+      @NonNull SmbConnection connection, @NonNull List<SmbFileItem> fileList) {
+    List<SmbFileItem> directories = new ArrayList<>();
+    for (SmbFileItem item : fileList) {
+      if (item.isDirectory()) {
+        directories.add(item);
+      }
+    }
+
+    // Limit prefetching to avoid overloading the network
+    final int MAX_PREFETCH = 3;
+    for (int i = 0; i < Math.min(directories.size(), MAX_PREFETCH); i++) {
+      SmbFileItem dir = directories.get(i);
+      String cacheKey = connection.getId() + ":" + dir.getPath();
+
+      // Skip if already in cache or validation/prefetch is pending
+      if (pendingPrefetches.contains(cacheKey) || pendingValidations.contains(cacheKey)) {
+        continue;
+      }
+
+      pendingPrefetches.add(cacheKey);
+      executor.execute(
+          () -> {
+            // Set thread priority to background
+            Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
+            try {
+              // Check if already in cache
+              if (IntelligentCacheManager.getInstance().getCachedFileList(connection, dir.getPath())
+                  != null) {
+                return;
+              }
+
+              LogUtils.d("FileListViewModel", "Prefetching directory: " + dir.getName());
+              List<SmbFileItem> subFiles = smbRepository.listFiles(connection, dir.getPath());
+              IntelligentCacheManager.getInstance()
+                  .cacheFileList(connection, dir.getPath(), subFiles);
+              LogUtils.d(
+                  "FileListViewModel",
+                  "Prefetched " + subFiles.size() + " files for: " + dir.getName());
+            } catch (Exception e) {
+              LogUtils.w(
+                  "FileListViewModel",
+                  "Prefetch failed for " + dir.getName() + ": " + e.getMessage());
+            } finally {
+              pendingPrefetches.remove(cacheKey);
+            }
+          });
+    }
+  }
+
+  /**
+   * Asynchronously validates the cache for a specific path. If the directory has changed on the
+   * server, it triggers a background refresh.
+   *
+   * @param connection The SMB connection
+   * @param path The path to validate
+   */
+  @SuppressWarnings("ThreadPriorityCheck")
+  private void validateCacheAsync(@NonNull SmbConnection connection, @NonNull String path) {
+    String cacheKey = connection.getId() + ":" + path;
+    if (pendingValidations.contains(cacheKey)) {
+      return;
+    }
+
+    pendingValidations.add(cacheKey);
+    executor.execute(
+        () -> {
+          try {
+            // Set thread priority to background to avoid blocking the UI
+            Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
+            LogUtils.d("FileListViewModel", "Validating cache for: " + path);
+            SmbFileItem remoteDir = smbRepository.getFileItem(connection, path);
+            if (remoteDir == null) return;
+
+            // Retrieve currently cached data to compare with remote
+            List<SmbFileItem> cachedFiles =
+                IntelligentCacheManager.getInstance().getCachedFileList(connection, path);
+
+            // Heuristic: If we have cached files and the remote directory's last modified time
+            // is not newer than our latest cached file's timestamp, we can assume the cache is
+            // still valid.
+            if (cachedFiles != null && !cachedFiles.isEmpty()) {
+              long newestCachedTimestamp = 0;
+              for (SmbFileItem item : cachedFiles) {
+                if (item.getLastModified() != null) {
+                  newestCachedTimestamp =
+                      Math.max(newestCachedTimestamp, item.getLastModified().getTime());
+                }
+              }
+
+              if (remoteDir.getLastModified() != null
+                  && remoteDir.getLastModified().getTime() <= newestCachedTimestamp) {
+                LogUtils.d("FileListViewModel", "Cache is still up to date for: " + path);
+                return;
+              }
+            }
+
+            // Re-list and re-cache if needed (background refresh)
+            List<SmbFileItem> fileList = smbRepository.listFiles(connection, path);
+
+            // Only proceed if the list has actually changed
+            if (cachedFiles != null && areFileListEqual(cachedFiles, fileList)) {
+              LogUtils.d("FileListViewModel", "Cache content unchanged for: " + path);
+              return;
+            }
+
+            IntelligentCacheManager.getInstance().cacheFileList(connection, path, fileList);
+            LogUtils.d("FileListViewModel", "Cache validated/refreshed for: " + path);
+
+            // If the path is still the current one, update the UI
+            if (path.equals(state.getCurrentPathString())) {
+              List<SmbFileItem> listToProcess = new ArrayList<>(fileList);
+              sortFiles(listToProcess);
+              List<SmbFileItem> finalFileList = filterHiddenFiles(listToProcess);
+              state.setFiles(finalFileList);
+            }
+          } catch (Exception e) {
+            LogUtils.w("FileListViewModel", "Cache validation failed: " + e.getMessage());
+          } finally {
+            pendingValidations.remove(cacheKey);
+          }
+        });
+  }
+
+  /**
+   * Refreshes the UI using the currently loaded file list from the cache if available. This is much
+   * faster than loadFiles() as it avoids potential network calls.
+   */
+  @SuppressWarnings("ThreadPriorityCheck")
+  private void refreshUIFromCurrentState() {
+    executor.execute(
+        () -> {
+          try {
+            Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
+            List<SmbFileItem> currentFiles =
+                IntelligentCacheManager.getInstance()
+                    .getCachedFileList(state.getConnection(), state.getCurrentPathString());
+            if (currentFiles != null) {
+              List<SmbFileItem> listToProcess = new ArrayList<>(currentFiles);
+              sortFiles(listToProcess);
+              listToProcess = filterHiddenFiles(listToProcess);
+              state.setFiles(listToProcess);
+            } else {
+              // If not in cache for some reason, fall back to normal loading
+              loadFiles(false);
+            }
+          } catch (Exception e) {
+            LogUtils.e("FileListViewModel", "Failed to refresh UI from state: " + e.getMessage());
+          }
+        });
+  }
+
+  /** Helper method to compare two file lists for equality. */
+  private boolean areFileListEqual(List<SmbFileItem> list1, List<SmbFileItem> list2) {
+    if (list1.size() != list2.size()) return false;
+    for (int i = 0; i < list1.size(); i++) {
+      SmbFileItem item1 = list1.get(i);
+      SmbFileItem item2 = list2.get(i);
+      if (!item1.getName().equals(item2.getName())
+          || item1.isDirectory() != item2.isDirectory()
+          || item1.getSize() != item2.getSize()) {
+        return false;
+      }
+      if (item1.getLastModified() != null && item2.getLastModified() != null) {
+        if (item1.getLastModified().getTime() != item2.getLastModified().getTime()) return false;
+      } else if (item1.getLastModified() == null && item2.getLastModified() == null) {
+        // both are null, so they are equal in this regard
+      } else {
+        // one is null and the other is not
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
