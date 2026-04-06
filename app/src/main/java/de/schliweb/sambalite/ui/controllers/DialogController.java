@@ -219,6 +219,7 @@ public class DialogController {
                   break;
               }
             })
+        .setNegativeButton(R.string.cancel, null)
         .show();
   }
 
@@ -254,6 +255,7 @@ public class DialogController {
                 }
               }
             })
+        .setNegativeButton(R.string.cancel, null)
         .show();
   }
 
@@ -466,6 +468,7 @@ public class DialogController {
                   break;
               }
             })
+        .setNegativeButton(R.string.cancel, null)
         .show();
   }
 

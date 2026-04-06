@@ -204,13 +204,6 @@
                 app:indicatorColor="?attr/colorPrimary"
                 app:trackColor="?attr/colorSurfaceVariant" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/shares_recycler_view"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:maxHeight="150dp"
-                android:nestedScrollingEnabled="true" />
-
             <TextView
                 android:id="@+id/shares_status_text"
                 android:layout_width="match_parent"
@@ -221,6 +214,13 @@
                 android:alpha="0.7"
                 android:gravity="center"
                 android:padding="16dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/shares_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="150dp"
+                android:nestedScrollingEnabled="true" />
 
         </LinearLayout>
 
