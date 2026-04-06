@@ -342,6 +342,28 @@ public class SystemMonitorActivity extends AppCompatActivity {
     stats.append("- Files: ").append(openFileCount).append("\n");
     stats.append("- Max Size: 100 MB (evicts to 50 MB)\n");
 
+    // Thumbnail Cache size
+    java.io.File thumbnailCacheDir = new java.io.File(app.getCacheDir(), "thumbnails");
+    java.io.File[] thumbFiles = thumbnailCacheDir.listFiles();
+    long thumbCacheSize = 0;
+    int thumbFileCount = 0;
+    int thumbNoCoverCount = 0;
+    if (thumbFiles != null) {
+      for (java.io.File f : thumbFiles) {
+        if (f.getName().endsWith(".thumb")) {
+          thumbCacheSize += f.length();
+          thumbFileCount++;
+        } else if (f.getName().endsWith(".nocover")) {
+          thumbNoCoverCount++;
+        }
+      }
+    }
+    stats.append("\nThumbnail Cache:\n");
+    stats.append("- Size: ").append(EnhancedFileUtils.formatFileSize(thumbCacheSize)).append("\n");
+    stats.append("- Thumbnails: ").append(thumbFileCount).append("\n");
+    stats.append("- No-Cover Markers: ").append(thumbNoCoverCount).append("\n");
+    stats.append("- Max Size: 50 MB (LRU eviction)\n");
+
     IntelligentCacheManager cacheManager = app.getCacheManager();
     if (cacheManager != null) {
       // Run a cache performance test to verify hit rate calculation

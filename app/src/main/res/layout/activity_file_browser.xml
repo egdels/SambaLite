@@ -327,30 +327,31 @@
         app:rippleColor="#693DB7DC" />
 
     <!-- Multi-select FABs: only visible in selection mode -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_clear_selection"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="176dp"
-        android:contentDescription="@string/clear_selection"
-        android:visibility="gone"
-        android:src="@drawable/ic_menu_unselectall"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
-
+    <!-- Order top to bottom: Select All (304dp) → Unselect (240dp) → Action (176dp) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_select_all"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="240dp"
+        android:layout_marginBottom="304dp"
         android:contentDescription="@string/download_selected"
         android:visibility="gone"
         android:src="@drawable/ic_menu_selectall"
+        app:backgroundTint="#3DB7DC"
+        app:tint="#FFFFFF"
+        app:rippleColor="#693DB7DC" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_clear_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="240dp"
+        android:contentDescription="@string/clear_selection"
+        android:visibility="gone"
+        android:src="@drawable/ic_menu_unselectall"
         app:backgroundTint="#3DB7DC"
         app:tint="#FFFFFF"
         app:rippleColor="#693DB7DC" />
@@ -361,7 +362,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="304dp"
+        android:layout_marginBottom="176dp"
         android:contentDescription="@string/multi_select_options"
         android:visibility="gone"
         android:src="@drawable/ic_menu_more"

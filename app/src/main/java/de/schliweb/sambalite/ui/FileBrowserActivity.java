@@ -31,6 +31,7 @@ import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.sync.SyncConfig;
@@ -80,6 +81,10 @@ public class FileBrowserActivity extends AppCompatActivity
   @Inject SyncManager syncManager;
 
   @Inject PreferencesManager preferencesManager;
+
+  @Inject SmbRepository smbRepository;
+
+  private ThumbnailManager thumbnailManager;
 
   // ViewModels
   FileListViewModel fileListViewModel;
@@ -518,6 +523,16 @@ public class FileBrowserActivity extends AppCompatActivity
                   tp.percentage(), tp.statusText(), tp.fileName());
             });
 
+    fileListViewModel
+        .getShowThumbnails()
+        .observe(
+            this,
+            showThumbnails -> {
+              if (fileListController != null) {
+                fileListController.setShowThumbnails(showThumbnails);
+              }
+            });
+
     LogUtils.d("FileBrowserActivity", "ViewModel observers set up");
   }
 
@@ -593,6 +608,10 @@ public class FileBrowserActivity extends AppCompatActivity
     activityResultController = new ActivityResultController(this, uiState, inputController);
 
     // ServiceController removed; BackgroundSmbManager handles service binding internally.
+
+    // Initialize thumbnail manager for image previews
+    thumbnailManager = new ThumbnailManager(this, smbRepository);
+    fileListController.setThumbnailManager(thumbnailManager);
 
     LogUtils.d("FileBrowserActivity", "Controllers initialized");
   }
@@ -939,6 +958,9 @@ public class FileBrowserActivity extends AppCompatActivity
                 if (connection.getId().equals(connectionId)) {
                   LogUtils.i("FileBrowserActivity", "Connection found: " + connection.getName());
                   fileListViewModel.setConnection(connection);
+                  if (thumbnailManager != null) {
+                    thumbnailManager.setConnection(connection);
+                  }
 
                   // Check if we were opened from a notification or share handoff and handle it
                   checkAndHandleSearchNotification();
@@ -1832,6 +1854,12 @@ public class FileBrowserActivity extends AppCompatActivity
     // Immer schließen, sonst WindowLeaked bei Rotation
     progressController.closeAllDialogs();
 
+    if (thumbnailManager != null) {
+      thumbnailManager.shutdown();
+    }
+
+    fileListController.shutdown();
+
     boolean shouldCancelOps = isFinishing() && !isChangingConfigurations();
     if (shouldCancelOps) {
       LogUtils.d("FileBrowserActivity", "Activity finishing – requesting operation cancellations");
@@ -1862,6 +1890,13 @@ public class FileBrowserActivity extends AppCompatActivity
         file,
         localFile -> {
           progressController.hideDetailedProgressDialog();
+          // Update thumbnail from the downloaded file
+          if (thumbnailManager != null) {
+            thumbnailManager.updateThumbnailFromLocalFile(
+                file.getPath(),
+                localFile,
+                () -> fileListController.refreshFileItem(file.getPath()));
+          }
           if (!de.schliweb.sambalite.util.FileOpener.openFile(this, localFile)) {
             progressController.showError(file.getName(), getString(R.string.no_app_to_open_file));
           }
@@ -2012,11 +2047,12 @@ public class FileBrowserActivity extends AppCompatActivity
     try {
       if (fabMultiOptions == null || fabSelectAll == null || fabClearSelection == null) return;
       // Compact layout: stack with 64dp gaps starting at 32dp from bottom
+      // Order top to bottom: Select All → Unselect → Action
       int base = dpToPx(32);
       int gap = dpToPx(64);
-      setFabBottomMargin(fabClearSelection, base);
-      setFabBottomMargin(fabSelectAll, base + gap);
-      setFabBottomMargin(fabMultiOptions, base + gap + gap);
+      setFabBottomMargin(fabMultiOptions, base);
+      setFabBottomMargin(fabClearSelection, base + gap);
+      setFabBottomMargin(fabSelectAll, base + gap + gap);
     } catch (Throwable ignored) {
       // best-effort adjustment only
     }

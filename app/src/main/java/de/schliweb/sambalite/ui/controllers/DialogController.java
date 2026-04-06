@@ -362,12 +362,14 @@ public class DialogController {
         dialogView.findViewById(R.id.directories_first_checkbox);
     CompoundButton showHiddenFilesCheckbox =
         dialogView.findViewById(R.id.show_hidden_files_checkbox);
+    CompoundButton showThumbnailsCheckbox = dialogView.findViewById(R.id.show_thumbnails_checkbox);
 
     // Set initial values
     FileSortOption currentSortOption = fileListViewModel.getSortOption().getValue();
     boolean directoriesFirst = fileListViewModel.getDirectoriesFirst().getValue();
     boolean showHiddenFiles =
         Boolean.TRUE.equals(fileListViewModel.getShowHiddenFiles().getValue());
+    boolean showThumbnails = Boolean.TRUE.equals(fileListViewModel.getShowThumbnails().getValue());
 
     if (currentSortOption == FileSortOption.NAME) {
       sortGroup.check(R.id.radio_name);
@@ -379,6 +381,7 @@ public class DialogController {
 
     directoriesFirstCheckbox.setChecked(directoriesFirst);
     showHiddenFilesCheckbox.setChecked(showHiddenFiles);
+    showThumbnailsCheckbox.setChecked(showThumbnails);
 
     new MaterialAlertDialogBuilder(context)
         .setView(dialogView)
@@ -400,6 +403,7 @@ public class DialogController {
               fileListViewModel.setSortOption(sortOption);
               fileListViewModel.setDirectoriesFirst(directoriesFirstCheckbox.isChecked());
               fileListViewModel.setShowHiddenFiles(showHiddenFilesCheckbox.isChecked());
+              fileListViewModel.setShowThumbnails(showThumbnailsCheckbox.isChecked());
             })
         .setNegativeButton(R.string.cancel, null)
         .show();
