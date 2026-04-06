@@ -77,6 +77,32 @@ public interface SmbRepository {
       throws Exception;
 
   /**
+   * Gets the file item representing the specified path (file or directory). This is faster than
+   * listing a directory if only metadata for a specific path is needed.
+   *
+   * @param connection The SMB connection to use
+   * @param path The path to get information for
+   * @return The SmbFileItem representing the path, or null if not found
+   * @throws Exception if an error occurs during the operation
+   */
+  @Nullable
+  SmbFileItem getFileItem(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
+
+  /**
+   * Reads a range of bytes from a remote file.
+   *
+   * @param connection The SMB connection to use
+   * @param remotePath The path to the file on the SMB server
+   * @param offset The offset in the file to start reading from
+   * @param length The number of bytes to read
+   * @return A byte array containing the read data
+   * @throws Exception if an error occurs during reading
+   */
+  byte[] readRange(
+      @NonNull SmbConnection connection, @NonNull String remotePath, long offset, int length)
+      throws Exception;
+
+  /**
    * Downloads a file from the SMB server.
    *
    * @param connection The SMB connection to use

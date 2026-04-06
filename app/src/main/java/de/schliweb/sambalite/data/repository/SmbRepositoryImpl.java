@@ -37,6 +37,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -45,19 +49,14 @@ import javax.inject.Singleton;
 @Singleton
 public class SmbRepositoryImpl implements SmbRepository {
 
-  private final SMBClient smbClient;
+  @NonNull private final SMBClient smbClient;
   // Thread-local to track the currently connected share name for path normalization
-  private final ThreadLocal<String> currentShareName = new ThreadLocal<>();
-  private final BackgroundSmbManager backgroundManager;
-  private final SmartErrorHandler errorHandler;
-
-  /**
-   * Lock to prevent concurrent SMB operations. This lock ensures that only one SMB operation can be
-   * executed at a time, which helps prevent issues with concurrent access to SMB resources. All
-   * public methods that perform SMB operations acquire this lock before executing the operation and
-   * release it when the operation is complete.
-   */
-  private final ReentrantLock operationLock = new ReentrantLock();
+  @NonNull private final ThreadLocal<String> currentShareName = new ThreadLocal<>();
+  @NonNull private final BackgroundSmbManager backgroundManager;
+  @NonNull private final SmartErrorHandler errorHandler;
+  @NonNull private final ScheduledExecutorService scheduler;
+  @NonNull private final Map<String, CachedShare> sessionCache = new ConcurrentHashMap<>();
+  @NonNull private final Map<String, ReentrantLock> connectionLocks = new ConcurrentHashMap<>();
 
   private volatile boolean downloadCancelled = false;
   private volatile boolean uploadCancelled = false;
@@ -131,6 +130,58 @@ public class SmbRepositoryImpl implements SmbRepository {
     this.smbClient = new SMBClient();
     this.backgroundManager = backgroundManager;
     this.errorHandler = SmartErrorHandler.getInstance();
+    this.scheduler = Executors.newSingleThreadScheduledExecutor();
+    startCacheCleanupTask();
+  }
+
+  private void startCacheCleanupTask() {
+    scheduler.scheduleAtFixedRate(this::cleanupIdleSessions, 30, 30, TimeUnit.SECONDS);
+  }
+
+  private void cleanupIdleSessions() {
+    long now = System.currentTimeMillis();
+    long idleTimeout = 30000; // 30 seconds
+    Iterator<Map.Entry<String, CachedShare>> it = sessionCache.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String, CachedShare> entry = it.next();
+      String connectionId = entry.getKey();
+      CachedShare cached = entry.getValue();
+      if (cached != null && (now - cached.lastAccess > idleTimeout)) {
+        ReentrantLock lock =
+            connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
+        lock.lock();
+        try {
+          // Double check after locking (could have been accessed or removed)
+          CachedShare current = sessionCache.get(connectionId);
+          if (current == cached && (now - current.lastAccess > idleTimeout)) {
+            LogUtils.d(
+                "SmbRepositoryImpl", "Closing idle SMB session for connection: " + connectionId);
+            closeCachedShare(current);
+            it.remove();
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+    }
+  }
+
+  private void closeCachedShare(CachedShare cached) {
+    try {
+      if (cached.share != null) cached.share.close();
+    } catch (Exception e) {
+      LogUtils.w("SmbRepositoryImpl", "Error closing cached share: " + e.getMessage());
+    }
+    try {
+      if (cached.session != null) cached.session.close();
+    } catch (Exception e) {
+      LogUtils.w("SmbRepositoryImpl", "Error closing cached session: " + e.getMessage());
+    }
+    try {
+      if (cached.connection != null) cached.connection.close();
+    } catch (Exception e) {
+      LogUtils.w("SmbRepositoryImpl", "Error closing cached connection: " + e.getMessage());
+    }
   }
 
   @Override
@@ -548,40 +599,110 @@ public class SmbRepositoryImpl implements SmbRepository {
     return withShareWithRetry(connection, callback, 1);
   }
 
+  private DiskShare getOrCreateShare(SmbConnection connection) throws Exception {
+    String connectionId = connection.getId();
+    if (connectionId == null) {
+      connectionId = connection.getServer() + ":" + connection.getShare();
+    }
+
+    CachedShare cached = sessionCache.get(connectionId);
+    if (cached != null && cached.share.isConnected()) {
+      cached.lastAccess = System.currentTimeMillis();
+      return cached.share;
+    }
+
+    ReentrantLock lock = connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
+    lock.lock();
+    try {
+      // Re-check after locking
+      cached = sessionCache.get(connectionId);
+      if (cached != null && cached.share.isConnected()) {
+        cached.lastAccess = System.currentTimeMillis();
+        return cached.share;
+      }
+
+      // If existing but not connected, clean up
+      if (cached != null) {
+        closeCachedShare(cached);
+        sessionCache.remove(connectionId);
+      }
+
+      LogUtils.d(
+          "SmbRepositoryImpl", "Establishing new SMB connection for: " + connection.getServer());
+      Connection conn = getClientFor(connection).connect(connection.getServer());
+      try {
+        AuthenticationContext authContext = createAuthContext(connection);
+        Session session = conn.authenticate(authContext);
+        try {
+          enforceSecurityRequirements(connection, session);
+          String shareName = getShareName(connection.getShare());
+          DiskShare share = (DiskShare) session.connectShare(shareName);
+
+          if (!share.isConnected()) {
+            throw new IOException("Share connection failed for: " + shareName);
+          }
+
+          CachedShare newCached = new CachedShare(conn, session, share);
+          sessionCache.put(connectionId, newCached);
+          return share;
+        } catch (Exception e) {
+          try {
+            session.close();
+          } catch (Exception ignored) {
+          }
+          throw e;
+        }
+      } catch (Exception e) {
+        try {
+          conn.close();
+        } catch (Exception ignored) {
+        }
+        throw e;
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
   // Extended withShare with Retry-Logic for Background-Problems
   private <T> T withShareWithRetry(
       SmbConnection connection, SmbShareCallback<T> callback, int attempt) throws Exception {
     final int MAX_ATTEMPTS = 3;
-    operationLock.lock();
-    try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
-      AuthenticationContext authContext = createAuthContext(connection);
-      try (Session session = conn.authenticate(authContext)) {
-        // Enforce per-connection security requirements (encryption/signing)
-        enforceSecurityRequirements(connection, session);
-        String shareName = getShareName(connection.getShare());
-        try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-
-          // Check connection status before use
-          if (!share.isConnected()) {
-            throw new IOException("Share connection failed after creation: " + shareName);
-          }
-
-          LogUtils.d(
-              "SmbRepositoryImpl",
-              "Share connection established: " + shareName + " (attempt " + attempt + ")");
-          // Set active share name for path normalization within this thread
-          currentShareName.set(shareName);
-          try {
-            return callback.doWithShare(share);
-          } finally {
-            currentShareName.remove();
-          }
-        }
+    try {
+      DiskShare share = getOrCreateShare(connection);
+      String shareName = getShareName(connection.getShare());
+      LogUtils.d(
+          "SmbRepositoryImpl", "Using cached share: " + shareName + " (attempt " + attempt + ")");
+      // Set active share name for path normalization within this thread
+      currentShareName.set(shareName);
+      try {
+        return callback.doWithShare(share);
+      } finally {
+        currentShareName.remove();
       }
     } catch (Exception e) {
       LogUtils.w(
           "SmbRepositoryImpl",
           "Share operation failed (attempt " + attempt + "): " + e.getMessage());
+
+      // Invalidate cache on failure
+      String connectionId = connection.getId();
+      if (connectionId == null) {
+        connectionId = connection.getServer() + ":" + connection.getShare();
+      }
+      ReentrantLock lock = connectionLocks.get(connectionId);
+      if (lock != null) {
+        lock.lock();
+        try {
+          CachedShare cached = sessionCache.remove(connectionId);
+          if (cached != null) {
+            closeCachedShare(cached);
+          }
+        } finally {
+          lock.unlock();
+        }
+      }
+
       recordErrorWithContext(e, "shareOperation", "attempt:" + attempt);
 
       // For background-related errors: Retry with exponential backoff
@@ -606,8 +727,6 @@ public class SmbRepositoryImpl implements SmbRepository {
 
       // Non-retryable error or maximum attempts reached
       throw new IOException("Failed to execute share operation after " + attempt + " attempts", e);
-    } finally {
-      operationLock.unlock();
     }
   }
 
@@ -872,6 +991,67 @@ public class SmbRepositoryImpl implements SmbRepository {
           "Failed to get remote file size for " + path + ": " + e.getMessage());
       return -1;
     }
+  }
+
+  @Override
+  public @Nullable SmbFileItem getFileItem(@NonNull SmbConnection connection, @NonNull String path)
+      throws Exception {
+    return withShare(
+        connection,
+        share -> {
+          String normalizedPath = getPathWithoutShare(path);
+          if (normalizedPath.isEmpty() || "/".equals(normalizedPath)) {
+            // Special case for share root
+            return new SmbFileItem(path, path, SmbFileItem.Type.DIRECTORY, 0, new Date());
+          }
+
+          if (share.fileExists(normalizedPath)) {
+            com.hierynomus.msfscc.fileinformation.FileAllInformation info =
+                share.getFileInformation(normalizedPath);
+            return new SmbFileItem(
+                path,
+                path,
+                SmbFileItem.Type.FILE,
+                info.getStandardInformation().getEndOfFile(),
+                new Date(info.getBasicInformation().getChangeTime().toEpochMillis()));
+          } else if (share.folderExists(normalizedPath)) {
+            com.hierynomus.msfscc.fileinformation.FileAllInformation info =
+                share.getFileInformation(normalizedPath);
+            return new SmbFileItem(
+                path,
+                path,
+                SmbFileItem.Type.DIRECTORY,
+                0,
+                new Date(info.getBasicInformation().getChangeTime().toEpochMillis()));
+          }
+          return null;
+        });
+  }
+
+  @Override
+  public byte[] readRange(
+      @NonNull SmbConnection connection, @NonNull String remotePath, long offset, int length)
+      throws Exception {
+    return withShare(
+        connection,
+        share -> {
+          String filePath = getPathWithoutShare(remotePath);
+          try (File remoteFile =
+              share.openFile(
+                  filePath,
+                  EnumSet.of(AccessMask.GENERIC_READ),
+                  null,
+                  SMB2ShareAccess.ALL,
+                  SMB2CreateDisposition.FILE_OPEN,
+                  null)) {
+            byte[] buffer = new byte[length];
+            int read = remoteFile.read(buffer, offset, 0, length);
+            if (read < length) {
+              return Arrays.copyOf(buffer, Math.max(0, read));
+            }
+            return buffer;
+          }
+        });
   }
 
   @Override
@@ -1450,7 +1630,6 @@ public class SmbRepositoryImpl implements SmbRepository {
   @Override
   public @NonNull List<String> listShares(@NonNull SmbConnection connection) throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Listing shares on server: " + connection.getServer());
-    operationLock.lock();
     try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
       AuthenticationContext authContext = createAuthContext(connection);
       try (Session session = conn.authenticate(authContext)) {
@@ -1513,8 +1692,6 @@ public class SmbRepositoryImpl implements SmbRepository {
                 + connection.getServer());
         return shareList;
       }
-    } finally {
-      operationLock.unlock();
     }
   }
 
@@ -1871,5 +2048,19 @@ public class SmbRepositoryImpl implements SmbRepository {
   @FunctionalInterface
   private interface SmbShareCallback<T> {
     T doWithShare(DiskShare share) throws Exception;
+  }
+
+  private static class CachedShare {
+    final Connection connection;
+    final Session session;
+    final DiskShare share;
+    volatile long lastAccess;
+
+    CachedShare(Connection connection, Session session, DiskShare share) {
+      this.connection = connection;
+      this.session = session;
+      this.share = share;
+      this.lastAccess = System.currentTimeMillis();
+    }
   }
 }
