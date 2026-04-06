@@ -578,34 +578,37 @@ public class SmbBackgroundService extends Service {
 
   @Override
   public int onStartCommand(@Nullable Intent intent, int flags, int startId) {
-    if (!isRunning) {
-      stopRequested = false;
-      try {
-        startForeground(
-            NOTIFICATION_ID,
-            createNotification("SMB Service ready", "Ready for background operations"));
-        isRunning = true;
-      } catch (Exception e) {
-        boolean isStartNotAllowed =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && "android.app.ForegroundServiceStartNotAllowedException"
-                    .equals(e.getClass().getName());
+    // Always call startForeground() to satisfy the contract after startForegroundService().
+    // Android requires startForeground() within ~5s of every startForegroundService() call,
+    // even if the service is already running in the foreground.
+    try {
+      startForeground(
+          NOTIFICATION_ID,
+          createNotification("SMB Service ready", "Ready for background operations"));
+      if (!isRunning) {
+        stopRequested = false;
+      }
+      isRunning = true;
+    } catch (Exception e) {
+      boolean isStartNotAllowed =
+          Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+              && "android.app.ForegroundServiceStartNotAllowedException"
+                  .equals(e.getClass().getName());
 
-        if (isStartNotAllowed) {
-          try {
-            notificationManager.notify(
-                NOTIFICATION_ID,
-                createNotification(
-                    getString(R.string.app_name),
-                    "Foreground service limit reached. Please try again later."));
-          } catch (Throwable ignored) {
-          }
-          stopSelf();
-          return START_NOT_STICKY;
-        } else {
-          stopSelf();
-          return START_NOT_STICKY;
+      if (isStartNotAllowed) {
+        try {
+          notificationManager.notify(
+              NOTIFICATION_ID,
+              createNotification(
+                  getString(R.string.app_name),
+                  "Foreground service limit reached. Please try again later."));
+        } catch (Throwable ignored) {
         }
+        stopSelf();
+        return START_NOT_STICKY;
+      } else {
+        stopSelf();
+        return START_NOT_STICKY;
       }
     }
 
