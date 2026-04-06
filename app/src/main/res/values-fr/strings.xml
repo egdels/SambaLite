@@ -142,6 +142,7 @@
     <string name="sort_by_size">Taille</string>
     <string name="directories_first">Répertoires en premier</string>
     <string name="show_hidden_files">Afficher les fichiers/dossiers cachés</string>
+    <string name="show_thumbnails">Afficher les miniatures</string>
 
     <!-- Rename -->
     <string name="rename">Renommer</string>

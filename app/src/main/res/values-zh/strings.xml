@@ -137,6 +137,7 @@
     <string name="sort_by_size">大小</string>
     <string name="directories_first">目录优先</string>
     <string name="show_hidden_files">显示隐藏文件/文件夹</string>
+    <string name="show_thumbnails">显示缩略图</string>
 
     <!-- Rename -->
     <string name="rename">重命名</string>

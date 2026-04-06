@@ -99,6 +99,7 @@
     <string name="sort_by_size">Size</string>
     <string name="directories_first">Directories first</string>
     <string name="show_hidden_files">Show hidden files/folders</string>
+    <string name="show_thumbnails">Show thumbnails</string>
 
     <!-- Rename -->
     <string name="rename">Rename</string>

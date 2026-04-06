@@ -141,6 +141,7 @@
     <string name="sort_by_size">Tamaño</string>
     <string name="directories_first">Directorios primero</string>
     <string name="show_hidden_files">Mostrar archivos/carpetas ocultos</string>
+    <string name="show_thumbnails">Mostrar miniaturas</string>
 
     <!-- Rename -->
     <string name="rename">Renombrar</string>

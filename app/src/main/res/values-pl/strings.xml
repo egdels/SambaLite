@@ -145,6 +145,7 @@
     <string name="sort_by_size">Rozmiar</string>
     <string name="directories_first">Katalogi na początku</string>
     <string name="show_hidden_files">Pokaż ukryte pliki/foldery</string>
+    <string name="show_thumbnails">Pokaż miniatury</string>
 
     <!-- Rename -->
     <string name="rename">Zmień nazwę</string>

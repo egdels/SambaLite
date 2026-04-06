@@ -139,6 +139,7 @@
     <string name="sort_by_size">Grootte</string>
     <string name="directories_first">Mappen eerst</string>
     <string name="show_hidden_files">Verborgen bestanden/mappen tonen</string>
+    <string name="show_thumbnails">Miniaturen tonen</string>
 
     <!-- Rename -->
     <string name="rename">Hernoemen</string>
