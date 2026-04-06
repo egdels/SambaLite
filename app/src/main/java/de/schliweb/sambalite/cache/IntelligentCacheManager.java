@@ -28,8 +28,11 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +59,10 @@ public class IntelligentCacheManager {
   // Specialized operations
   private final FileListCacheOperations fileListOperations;
   private final SearchCacheOperations searchOperations;
+
+  // Set of keys currently being written to disk to avoid redundant operations
+  private final Set<String> pendingDiskWrites =
+      Collections.newSetFromMap(new ConcurrentHashMap<>());
 
   // Executor for background operations
   private final ScheduledExecutorService executor;
@@ -100,7 +107,7 @@ public class IntelligentCacheManager {
         new CacheMaintenanceManager(context, cacheStrategy, statistics, exceptionHandler);
 
     // Create executor for background operations
-    this.executor = Executors.newScheduledThreadPool(1);
+    this.executor = Executors.newScheduledThreadPool(4);
 
     // Start scheduled maintenance
     maintenanceManager.startScheduledMaintenance();
@@ -320,7 +327,19 @@ public class IntelligentCacheManager {
    */
   public void cacheFileList(
       @NonNull SmbConnection connection, @NonNull String path, @NonNull List<SmbFileItem> files) {
-    fileListOperations.cacheFileList(connection, path, files);
+    String cacheKey = keyGenerator.generateFileListKey(connection, path);
+    if (pendingDiskWrites.contains(cacheKey)) {
+      LogUtils.d(TAG, "Skipping redundant cache write for key: " + cacheKey);
+      return;
+    }
+    pendingDiskWrites.add(cacheKey);
+    try {
+      fileListOperations.cacheFileList(connection, path, files);
+    } finally {
+      // We remove the key after a short delay to allow the async disk write to settle
+      // and prevent multiple writes in quick succession
+      executor.schedule(() -> pendingDiskWrites.remove(cacheKey), 2, TimeUnit.SECONDS);
+    }
   }
 
   /**
