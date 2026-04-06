@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -1635,62 +1636,331 @@ public class SmbRepositoryImpl implements SmbRepository {
       try (Session session = conn.authenticate(authContext)) {
         // Enforce per-connection security requirements (encryption/signing)
         enforceSecurityRequirements(connection, session);
-        List<String> shareList = new ArrayList<>();
-
-        try {
-          // Try to connect to the IPC$ share to enumerate other shares
-          try (DiskShare ipcShare = (DiskShare) session.connectShare("IPC$")) {
-            // Use server manager to list shares (this is a more advanced approach)
-            // For now, we'll fallback to trying common share names
-            LogUtils.d("SmbRepositoryImpl", "Connected to IPC$ share for enumeration");
-          }
-        } catch (Exception ipcException) {
-          LogUtils.d(
-              "SmbRepositoryImpl", "Could not connect to IPC$ share: " + ipcException.getMessage());
-        }
 
         // Fallback: Try common share names
         String[] commonShares = {
-          "Users",
-          "Public",
-          "Documents",
-          "Downloads",
-          "Music",
-          "Pictures",
-          "Videos",
+          // General
           "Share",
+          "Shared",
           "Data",
           "Files",
           "Home",
-          "Shared"
+          "Homes",
+          "Public",
+          "Common",
+          "General",
+          "Freigabe",
+          "Gemeinsam",
+          "Oeffentlich",
+          "Publico",
+          "Partage",
+          "Publica",
+          "Alle",
+          "All",
+          "Samba",
+          "SMB",
+          "SharedDocs",
+          "CommonFiles",
+          "Storage",
+          "Resource",
+          "Global",
+
+          // Users & Docs
+          "Users",
+          "Documents",
+          "Dokumente",
+          "Downloads",
+          "Download",
+          "Documentos",
+          "Mis Documentos",
+          "Mes Documents",
+          "Dropbox",
+          "Cloud",
+          "Personal",
+          "Private",
+          "Work",
+          "Projekte",
+          "Projects",
+          "Projectos",
+          "Clients",
+          "Kunden",
+          "Archive",
+          "Archiv",
+          "Notes",
+          "Notizen",
+          "Desktop",
+          "Favorites",
+          "Favoriten",
+          "Templates",
+          "Vorlagen",
+
+          // Media
+          "Music",
+          "Musik",
+          "Musica",
+          "Musique",
+          "Audio",
+          "Sounds",
+          "MP3",
+          "Playlist",
+          "Pictures",
+          "Bilder",
+          "Photos",
+          "Photo",
+          "Fotos",
+          "Foto",
+          "Images",
+          "Imagenes",
+          "Gallery",
+          "Galerie",
+          "Camera",
+          "Kamera",
+          "Shot",
+          "Shots",
+          "Videos",
+          "Video",
+          "Movies",
+          "Filme",
+          "Peliculas",
+          "Films",
+          "Cinema",
+          "Kino",
+          "Multimedia",
+          "Media",
+          "Medien",
+          "Streaming",
+          "Library",
+          "Bibliothek",
+          "Recordings",
+          "Aufnahmen",
+          "TV",
+          "Shows",
+          "Series",
+          "Serien",
+
+          // Technical & Backup
+          "Backup",
+          "Backups",
+          "Sicherung",
+          "TimeMachine",
+          "Time-Machine",
+          "Time_Machine",
+          "TM",
+          "TMS",
+          "Recover",
+          "Recovery",
+          "Restore",
+          "Sync",
+          "Synchronisation",
+          "NAS",
+          "Storage",
+          "Speicher",
+          "Network",
+          "Netzwerk",
+          "Server",
+          "Volume",
+          "Software",
+          "Apps",
+          "Games",
+          "Spiele",
+          "Portable",
+          "ISO",
+          "Images",
+          "Install",
+          "Temp",
+          "Temporary",
+          "Transfer",
+          "Austausch",
+          "Incoming",
+          "Outgoing",
+          "Drop",
+          "Scan",
+          "Scans",
+          "Fax",
+          "Faxes",
+          "Print",
+          "Printers",
+          "Scanner",
+          "Digital",
+
+          // Infrastructure
+          "Netlogon",
+          "Sysvol",
+          "C$",
+          "D$",
+          "E$",
+          "F$",
+          "G$",
+          "Z$",
+          "ADMIN$",
+          "Web",
+          "WWW",
+          "HTTP",
+          "Logs",
+          "Log",
+          "Database",
+          "DB",
+          "Config",
+          "Settings",
+          "Einstellung",
+          "Scripts",
+          "Tools",
+
+          // NAS specific (Vendor defaults)
+          "multimedia",
+          "download",
+          "backup",
+          "recordings",
+          "web",
+          "public",
+          "home",
+          "photo",
+          "video",
+          "music",
+          "photos",
+          "videos",
+          "downloads",
+          "backups",
+          "homes",
+          "shared",
+          "external",
+          "usb",
+          "sd",
+          "sata",
+          "media_server",
+          "plex",
+          "share",
+          "data",
+          "files",
+          "archive",
+          "storage",
+          "cloud",
+          "sync",
+          "admin",
+          "user",
+          "guest",
+          "temp",
+          "tmp",
+          "logs",
+          "config",
+          "netbackup",
+          "surveillance",
+          "docker",
+          "containers",
+          "vm",
+          "virtual",
+          "snapshot",
+
+          // Additional Creative/Contextual
+          "Family",
+          "Familie",
+          "Kids",
+          "Kinder",
+          "School",
+          "Schule",
+          "University",
+          "Uni",
+          "Office",
+          "Buero",
+          "HomeOffice",
+          "Remote",
+          "Travel",
+          "Urlaub",
+          "Trip",
+          "Holidays",
+          "Events",
+          "Party",
+          "Wedding",
+          "Hochzeit",
+          "Christmas",
+          "Birthday",
+          "Finance",
+          "Finanzen",
+          "Tax",
+          "Steuer",
+          "Insurance",
+          "Versicherung",
+          "Legal",
+          "Recht",
+          "Medical",
+          "Gesundheit",
+          "Health",
+          "Fitness"
         };
 
-        for (String shareName : commonShares) {
-          try {
-            // Try to connect to the share to see if it exists
-            try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
-              if (share.isConnected()) {
-                shareList.add(shareName);
-                LogUtils.d("SmbRepositoryImpl", "Found share: " + shareName);
-              }
-            }
-          } catch (Exception e) {
-            // Share doesn't exist or is not accessible, ignore silently
+        // Use a set to avoid duplicate checks (e.g., if "Download" is in multiple categories)
+        Set<String> uniqueCommonShares = new LinkedHashSet<>(Arrays.asList(commonShares));
+
+        List<String> rawShareList = Collections.synchronizedList(new ArrayList<>());
+
+        // Use a fixed thread pool for parallel share discovery
+        // 8 threads should provide a good balance between speed and server load
+        ExecutorService discoveryExecutor = Executors.newFixedThreadPool(8);
+
+        for (String shareName : uniqueCommonShares) {
+          discoveryExecutor.submit(
+              () -> {
+                try {
+                  // Check for interruption to avoid long-running discovery on many shares
+                  if (Thread.currentThread().isInterrupted()) {
+                    return;
+                  }
+
+                  // Try to connect to the share to see if it exists
+                  try (DiskShare share = (DiskShare) session.connectShare(shareName)) {
+                    if (share.isConnected()) {
+                      rawShareList.add(shareName);
+                      LogUtils.d("SmbRepositoryImpl", "Found share: " + shareName);
+                    }
+                  }
+                } catch (Exception e) {
+                  // Share doesn't exist or is not accessible, ignore silently
+                }
+              });
+        }
+
+        // Wait for all discovery tasks to complete with a timeout
+        try {
+          discoveryExecutor.shutdown();
+          // Wait up to 15 seconds for all shares to be checked
+          if (!discoveryExecutor.awaitTermination(15, TimeUnit.SECONDS)) {
+            LogUtils.w("SmbRepositoryImpl", "Share discovery timed out before checking all shares");
+            discoveryExecutor.shutdownNow();
+          }
+        } catch (InterruptedException e) {
+          LogUtils.w("SmbRepositoryImpl", "Share discovery interrupted");
+          discoveryExecutor.shutdownNow();
+          Thread.currentThread().interrupt();
+        }
+
+        // Deduplicate share names case-insensitively and sort the list
+        Set<String> processedNames = new HashSet<>();
+        List<String> sortedShares = new ArrayList<>();
+
+        // Use a temporary list for sorting before deduplication to ensure consistent results
+        List<String> foundShares = new ArrayList<>(rawShareList);
+        Collections.sort(foundShares);
+
+        for (String share : foundShares) {
+          String lowerCaseName = share.toLowerCase(Locale.ROOT);
+          if (!processedNames.contains(lowerCaseName)) {
+            sortedShares.add(share);
+            processedNames.add(lowerCaseName);
           }
         }
 
         // If no shares found, suggest the user enter manually
-        if (shareList.isEmpty()) {
+        if (sortedShares.isEmpty()) {
           LogUtils.w("SmbRepositoryImpl", "No accessible shares found using common names");
         }
 
         LogUtils.i(
             "SmbRepositoryImpl",
             "Found "
-                + shareList.size()
+                + sortedShares.size()
                 + " accessible shares on server: "
                 + connection.getServer());
-        return shareList;
+        return sortedShares;
       }
     }
   }

@@ -817,16 +817,46 @@ public class MainActivity extends AppCompatActivity
     final java.util.concurrent.atomic.AtomicReference<Runnable> pendingDiscovery =
         new java.util.concurrent.atomic.AtomicReference<>();
 
-    serverEditText.addTextChangedListener(
+    // Shared discovery logic
+    final Runnable triggerDiscovery =
+        () -> {
+          String serverText = serverEditText.getText().toString().trim();
+          if (isValidServerAddress(serverText)) {
+            // Cancel any pending discovery
+            Runnable pending = pendingDiscovery.get();
+            if (pending != null) {
+              handler.removeCallbacks(pending);
+            }
+
+            Runnable discoveryTask =
+                () -> {
+                  discoverRequireEncrypt = (encryptSwitch != null && encryptSwitch.isChecked());
+                  discoverRequireSigning = (signingSwitch != null && signingSwitch.isChecked());
+                  discoverShares(
+                      serverText,
+                      usernameEditText.getText().toString().trim(),
+                      passwordEditText.getText().toString().trim(),
+                      domainEditText.getText().toString().trim(),
+                      sharesSection,
+                      sharesProgress,
+                      sharesAdapter,
+                      sharesStatusText);
+                };
+
+            pendingDiscovery.set(discoveryTask);
+            handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
+          } else {
+            sharesSection.setVisibility(View.GONE);
+          }
+        };
+
+    TextWatcher discoveryWatcher =
         new TextWatcher() {
           @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            // Not needed
-          }
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
           @Override
           public void onTextChanged(CharSequence s, int start, int before, int count) {
-            // Cancel any pending discovery
             Runnable pending = pendingDiscovery.get();
             if (pending != null) {
               handler.removeCallbacks(pending);
@@ -835,40 +865,14 @@ public class MainActivity extends AppCompatActivity
 
           @Override
           public void afterTextChanged(Editable s) {
-            String serverText = s.toString().trim();
-
-            // Hide shares section if server is empty
-            if (serverText.isEmpty()) {
-              sharesSection.setVisibility(View.GONE);
-              return;
-            }
-
-            // Only proceed if server looks like a complete IP address or hostname
-            if (isValidServerAddress(serverText)) {
-              // Debounce the discovery to avoid excessive network calls
-              Runnable discoveryTask =
-                  () -> {
-                    discoverRequireEncrypt = (encryptSwitch != null && encryptSwitch.isChecked());
-                    discoverRequireSigning = (signingSwitch != null && signingSwitch.isChecked());
-                    discoverShares(
-                        serverText,
-                        usernameEditText.getText().toString().trim(),
-                        passwordEditText.getText().toString().trim(),
-                        domainEditText.getText().toString().trim(),
-                        sharesSection,
-                        sharesProgress,
-                        sharesAdapter,
-                        sharesStatusText);
-                  };
-
-              pendingDiscovery.set(discoveryTask);
-              handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
-            } else {
-              // Hide shares section for incomplete addresses
-              sharesSection.setVisibility(View.GONE);
-            }
+            triggerDiscovery.run();
           }
-        });
+        };
+
+    serverEditText.addTextChangedListener(discoveryWatcher);
+    usernameEditText.addTextChangedListener(discoveryWatcher);
+    passwordEditText.addTextChangedListener(discoveryWatcher);
+    domainEditText.addTextChangedListener(discoveryWatcher);
 
     // Get references to custom buttons
     Button btnSave = dialogView.findViewById(R.id.btn_save);
@@ -1179,16 +1183,48 @@ public class MainActivity extends AppCompatActivity
     final java.util.concurrent.atomic.AtomicReference<Runnable> pendingDiscovery =
         new java.util.concurrent.atomic.AtomicReference<>();
 
-    serverEditText.addTextChangedListener(
+    // Shared discovery logic
+    final Runnable triggerDiscovery =
+        () -> {
+          String serverText = serverEditText.getText().toString().trim();
+          if (isValidServerAddress(serverText)) {
+            // Cancel any pending discovery
+            Runnable pending = pendingDiscovery.get();
+            if (pending != null) {
+              handler.removeCallbacks(pending);
+            }
+
+            Runnable discoveryTask =
+                () -> {
+                  discoverRequireEncrypt =
+                      (encryptSwitchEdit != null && encryptSwitchEdit.isChecked());
+                  discoverRequireSigning =
+                      (signingSwitchEdit != null && signingSwitchEdit.isChecked());
+                  discoverShares(
+                      serverText,
+                      usernameEditText.getText().toString().trim(),
+                      passwordEditText.getText().toString().trim(),
+                      domainEditText.getText().toString().trim(),
+                      sharesSection,
+                      sharesProgress,
+                      sharesAdapter,
+                      sharesStatusText);
+                };
+
+            pendingDiscovery.set(discoveryTask);
+            handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
+          } else {
+            sharesSection.setVisibility(View.GONE);
+          }
+        };
+
+    TextWatcher discoveryWatcher =
         new TextWatcher() {
           @Override
-          public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            // Not needed
-          }
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
           @Override
           public void onTextChanged(CharSequence s, int start, int before, int count) {
-            // Cancel any pending discovery
             Runnable pending = pendingDiscovery.get();
             if (pending != null) {
               handler.removeCallbacks(pending);
@@ -1197,42 +1233,14 @@ public class MainActivity extends AppCompatActivity
 
           @Override
           public void afterTextChanged(Editable s) {
-            String serverText = s.toString().trim();
-
-            // Hide shares section if server is empty
-            if (serverText.isEmpty()) {
-              sharesSection.setVisibility(View.GONE);
-              return;
-            }
-
-            // Only proceed if server looks like a complete IP address or hostname
-            if (isValidServerAddress(serverText)) {
-              // Debounce the discovery to avoid excessive network calls
-              Runnable discoveryTask =
-                  () -> {
-                    discoverRequireEncrypt =
-                        (encryptSwitchEdit != null && encryptSwitchEdit.isChecked());
-                    discoverRequireSigning =
-                        (signingSwitchEdit != null && signingSwitchEdit.isChecked());
-                    discoverShares(
-                        serverText,
-                        usernameEditText.getText().toString().trim(),
-                        passwordEditText.getText().toString().trim(),
-                        domainEditText.getText().toString().trim(),
-                        sharesSection,
-                        sharesProgress,
-                        sharesAdapter,
-                        sharesStatusText);
-                  };
-
-              pendingDiscovery.set(discoveryTask);
-              handler.postDelayed(discoveryTask, 1500); // Wait 1.5 seconds after user stops typing
-            } else {
-              // Hide shares section for incomplete addresses
-              sharesSection.setVisibility(View.GONE);
-            }
+            triggerDiscovery.run();
           }
-        });
+        };
+
+    serverEditText.addTextChangedListener(discoveryWatcher);
+    usernameEditText.addTextChangedListener(discoveryWatcher);
+    passwordEditText.addTextChangedListener(discoveryWatcher);
+    domainEditText.addTextChangedListener(discoveryWatcher);
 
     // Pre-populate fields with existing connection data
     nameEditText.setText(connection.getName());
