@@ -57,9 +57,8 @@ public class FileDiffCallback extends DiffUtil.Callback {
         || oldItem.getSize() != newItem.getSize()) {
       return false;
     }
-    if (oldItem.getLastModified() != null && newItem.getLastModified() != null) {
-      return oldItem.getLastModified().getTime() == newItem.getLastModified().getTime();
-    }
-    return oldItem.getLastModified() == newItem.getLastModified();
+    Long oldTime = oldItem.getLastModified() != null ? oldItem.getLastModified().getTime() : null;
+    Long newTime = newItem.getLastModified() != null ? newItem.getLastModified().getTime() : null;
+    return Objects.equals(oldTime, newTime);
   }
 }
