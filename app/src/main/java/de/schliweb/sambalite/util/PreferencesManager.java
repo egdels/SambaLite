@@ -165,10 +165,10 @@ public class PreferencesManager {
   /**
    * Gets the saved show-thumbnails flag.
    *
-   * @return The saved show-thumbnails flag, or true if none is saved
+   * @return The saved show-thumbnails flag, or false if none is saved
    */
   public boolean getShowThumbnails() {
-    boolean showThumbnails = preferences.getBoolean(KEY_SHOW_THUMBNAILS, true);
+    boolean showThumbnails = preferences.getBoolean(KEY_SHOW_THUMBNAILS, false);
     LogUtils.d("PreferencesManager", "Retrieved show thumbnails: " + showThumbnails);
     return showThumbnails;
   }
