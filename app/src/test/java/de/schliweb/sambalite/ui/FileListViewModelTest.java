@@ -12,9 +12,19 @@ import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,13 +74,16 @@ public class FileListViewModelTest {
 
     // Replace the executor with a direct executor that runs tasks immediately on the same thread
     // This ensures that our mocking of IntelligentCacheManager works correctly
-    java.lang.reflect.Field executorField;
     try {
-      executorField = FileListViewModel.class.getDeclaredField("executor");
+      java.lang.reflect.Field executorField = FileListViewModel.class.getDeclaredField("executor");
       executorField.setAccessible(true);
-      executorField.set(viewModel, new DirectExecutor());
+      executorField.set(viewModel, new DirectExecutorService());
+
+      java.lang.reflect.Field schedulerField = FileListViewModel.class.getDeclaredField("scheduler");
+      schedulerField.setAccessible(true);
+      schedulerField.set(viewModel, new DirectScheduledExecutorService());
     } catch (Exception e) {
-      throw new RuntimeException("Failed to replace executor", e);
+      throw new RuntimeException("Failed to replace executor or scheduler", e);
     }
   }
 
@@ -256,12 +269,9 @@ public class FileListViewModelTest {
       // Act
       viewModel.setSortOption(FileSortOption.DATE);
 
-      // Wait for background tasks to complete
-      Thread.sleep(100);
-
       // Assert
       verify(state).setSortOption(eq(FileSortOption.DATE));
-      verify(cacheManager).invalidateConnection(eq(testConnection));
+      // No invalidateConnection check here as we optimized it away
     }
   }
 
@@ -276,12 +286,9 @@ public class FileListViewModelTest {
       // Act
       viewModel.setDirectoriesFirst(false);
 
-      // Wait for background tasks to complete
-      Thread.sleep(100);
-
       // Assert
       verify(state).setDirectoriesFirst(eq(false));
-      verify(cacheManager).invalidateConnection(eq(testConnection));
+      // No invalidateConnection check here as we optimized it away
     }
   }
 
@@ -322,13 +329,46 @@ public class FileListViewModelTest {
   }
 
   /**
-   * A direct executor that runs tasks immediately on the same thread. This is used to make tests
-   * synchronous and predictable.
+   * A direct executor service that runs tasks immediately on the same thread.
    */
-  private static class DirectExecutor implements Executor {
+  private static class DirectExecutorService implements ExecutorService {
+    @Override public void shutdown() {}
+    @Override public List<Runnable> shutdownNow() { return new ArrayList<>(); }
+    @Override public boolean isShutdown() { return false; }
+    @Override public boolean isTerminated() { return false; }
+    @Override public boolean awaitTermination(long timeout, TimeUnit unit) { return true; }
+    @Override public <T> Future<T> submit(Callable<T> task) { throw new UnsupportedOperationException(); }
+    @Override public <T> Future<T> submit(Runnable task, T result) { throw new UnsupportedOperationException(); }
+    @Override public Future<?> submit(Runnable task) { task.run(); return null; }
+    @Override public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) { throw new UnsupportedOperationException(); }
+    @Override public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) { throw new UnsupportedOperationException(); }
+    @Override public <T> T invokeAny(Collection<? extends Callable<T>> tasks) { throw new UnsupportedOperationException(); }
+    @Override public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) { throw new UnsupportedOperationException(); }
+    @Override public void execute(Runnable command) { command.run(); }
+  }
+
+  /**
+   * A direct scheduled executor service that runs scheduled tasks immediately on the same thread.
+   */
+  private static class DirectScheduledExecutorService extends DirectExecutorService implements ScheduledExecutorService {
     @Override
-    public void execute(Runnable command) {
+    public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
       command.run();
+      return new ImmediateScheduledFuture<>();
     }
+
+    @Override public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) { throw new UnsupportedOperationException(); }
+    @Override public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) { throw new UnsupportedOperationException(); }
+    @Override public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) { throw new UnsupportedOperationException(); }
+  }
+
+  private static class ImmediateScheduledFuture<V> implements ScheduledFuture<V> {
+    @Override public long getDelay(TimeUnit unit) { return 0; }
+    @Override public int compareTo(Delayed o) { return 0; }
+    @Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
+    @Override public boolean isCancelled() { return false; }
+    @Override public boolean isDone() { return true; }
+    @Override public V get() { return null; }
+    @Override public V get(long timeout, TimeUnit unit) { return null; }
   }
 }

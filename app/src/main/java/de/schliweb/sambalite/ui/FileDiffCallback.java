@@ -51,10 +51,15 @@ public class FileDiffCallback extends DiffUtil.Callback {
   public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
     SmbFileItem oldItem = oldList.get(oldItemPosition);
     SmbFileItem newItem = newList.get(newItemPosition);
-    return Objects.equals(oldItem.getName(), newItem.getName())
-        && Objects.equals(oldItem.getPath(), newItem.getPath())
-        && oldItem.getType() == newItem.getType()
-        && oldItem.getSize() == newItem.getSize()
-        && oldItem.getLastModified().getTime() == newItem.getLastModified().getTime();
+    if (!Objects.equals(oldItem.getName(), newItem.getName())
+        || !Objects.equals(oldItem.getPath(), newItem.getPath())
+        || oldItem.getType() != newItem.getType()
+        || oldItem.getSize() != newItem.getSize()) {
+      return false;
+    }
+    if (oldItem.getLastModified() != null && newItem.getLastModified() != null) {
+      return oldItem.getLastModified().getTime() == newItem.getLastModified().getTime();
+    }
+    return oldItem.getLastModified() == newItem.getLastModified();
   }
 }
