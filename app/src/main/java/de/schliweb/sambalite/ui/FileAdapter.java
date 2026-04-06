@@ -64,11 +64,17 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
   // Thumbnail manager for loading image previews
   @Nullable ThumbnailManager thumbnailManager;
-  boolean showThumbnails = true;
+  boolean showThumbnails = false;
 
   // Background executor for DiffUtil calculations to avoid blocking the main thread
   private final ExecutorService diffExecutor = Executors.newSingleThreadExecutor();
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+  /**
+   * Tracks the ID of the latest scheduled update to ensure that only the most recent results are
+   * applied.
+   */
+  private long latestUpdateId = 0;
 
   public void shutdown() {
     diffExecutor.shutdownNow();
@@ -82,8 +88,10 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    */
   @SuppressWarnings("ThreadPriorityCheck")
   public void setFiles(@NonNull List<SmbFileItem> files) {
+    final long updateId = ++latestUpdateId;
     int size = files != null ? files.size() : 0;
-    LogUtils.d("FileAdapter", "Scheduling DiffUtil for " + size + " items");
+    LogUtils.d(
+        "FileAdapter", "Scheduling DiffUtil for " + size + " items (updateId=" + updateId + ")");
     final List<SmbFileItem> newFiles = files != null ? new ArrayList<>(files) : new ArrayList<>();
     final List<SmbFileItem> oldFiles = new ArrayList<>(this.files);
 
@@ -95,8 +103,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
               DiffUtil.calculateDiff(new FileDiffCallback(oldFiles, newFiles));
           mainHandler.post(
               () -> {
-                this.files = newFiles;
-                result.dispatchUpdatesTo(this);
+                if (updateId == latestUpdateId) {
+                  this.files = newFiles;
+                  result.dispatchUpdatesTo(this);
+                  LogUtils.d("FileAdapter", "Applied updateId=" + updateId);
+                } else {
+                  LogUtils.d(
+                      "FileAdapter",
+                      "Discarded updateId="
+                          + updateId
+                          + " (stale, current is "
+                          + latestUpdateId
+                          + ")");
+                }
               });
         });
   }
@@ -107,16 +126,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    * @param showParentDirectory True to show parent directory, false otherwise
    */
   public void setShowParentDirectory(boolean showParentDirectory) {
-    LogUtils.d("FileAdapter", "Setting showParentDirectory: " + showParentDirectory);
-    boolean oldValue = this.showParentDirectory;
-    this.showParentDirectory = showParentDirectory;
-    if (oldValue != showParentDirectory) {
-      if (showParentDirectory) {
-        notifyItemInserted(0);
-      } else {
-        notifyItemRemoved(0);
-      }
-    }
+    mainHandler.post(
+        () -> {
+          LogUtils.d("FileAdapter", "Setting showParentDirectory: " + showParentDirectory);
+          boolean oldValue = this.showParentDirectory;
+          this.showParentDirectory = showParentDirectory;
+          if (oldValue != showParentDirectory) {
+            if (showParentDirectory) {
+              notifyItemInserted(0);
+            } else {
+              notifyItemRemoved(0);
+            }
+          }
+        });
   }
 
   /**
