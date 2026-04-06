@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.3.0] - 2026-04-06
 
 ### Added
-- **Thumbnail Support**: New "Show thumbnails" option in the sort dialog. Thumbnails are managed by a new `ThumbnailManager` for efficient loading and display in the file list.
+- **Thumbnail Support (NEW)**: Introduced a "Show thumbnails" option in the sort dialog. Thumbnails are managed by a new `ThumbnailManager` for efficient loading and display in the file list. To ensure best performance, this feature is disabled by default.
 - **Improved Data Streaming**: Introduced `SmbInputStream` for more robust and efficient data reading from SMB shares.
+- **Enhanced Share Discovery**: Significantly expanded list of common share names (now includes localized names for media, documents, and technical folders) and implemented parallel share discovery with 8 threads for faster results.
+- **Dynamic Connection Feedback**: Share discovery in the "Add Connection" dialog now automatically triggers when updating username, password, or domain, providing immediate feedback.
 - Translations for the new thumbnail option in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
 
 ### Changed
@@ -19,7 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Foreground Service Compliance**: `SmbBackgroundService` now calls `startForeground()` more reliably at every start to satisfy Android's strict 5-second contract for foreground services, preventing potential crashes.
-- Improved lifecycle handling in `FileListViewModel` and `FileAdapter` to prevent potential memory leaks or inconsistent states during view updates.
+- **File List Consistency**: Implemented an update ID mechanism in `FileAdapter` to prevent stale search or directory results from overwriting newer content during rapid navigation or searching.
+- **Lifecycle Handling**: Improved lifecycle handling in `FileListViewModel` and `FileAdapter` to prevent potential memory leaks or inconsistent states during view updates.
+- **UI Interaction**: Added missing "Cancel" buttons to sort and filter dialogs for better navigation control.
+- **Layout Adjustments**: Fixed visibility and ordering of share discovery results in the connection dialog.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 
