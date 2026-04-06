@@ -1,6 +1,0 @@
-- New: Thumbnail support for SMB shares.
-- Optimized: Faster cache processing (4 threads).
-- Improved: SmbInputStream for more stable data streaming.
-- Fixed: Improved foreground service stability on Android.
-- UI: Unified Floating Action Buttons.
-- Added new translations.
