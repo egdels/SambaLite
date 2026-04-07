@@ -268,8 +268,9 @@ public class FolderSyncWorker extends Worker {
       String relPath) {
     if (isStopped()) return;
 
-    DocumentFile[] localFiles = localFolder.listFiles();
-    for (DocumentFile localFile : localFiles) {
+    DocumentFile[] localFilesArray = localFolder.listFiles();
+
+    for (DocumentFile localFile : localFilesArray) {
       if (isStopped()) return;
 
       String name = localFile.getName();
@@ -348,6 +349,16 @@ public class FolderSyncWorker extends Worker {
     try {
       List<FileIdBothDirectoryInformation> remoteFiles = share.list(remotePath);
 
+      // Cache local files to avoid expensive findFile calls which can cause duplicates in SAF
+      DocumentFile[] localFilesArray = localFolder.listFiles();
+      Map<String, DocumentFile> localFilesMap = new HashMap<>();
+      for (DocumentFile f : localFilesArray) {
+        String n = f.getName();
+        if (n != null) {
+          localFilesMap.put(n, f);
+        }
+      }
+
       for (FileIdBothDirectoryInformation remoteFile : remoteFiles) {
         if (isStopped()) return;
 
@@ -360,7 +371,7 @@ public class FolderSyncWorker extends Worker {
                 != 0;
 
         if (isDirectory) {
-          DocumentFile localSubDir = localFolder.findFile(name);
+          DocumentFile localSubDir = localFilesMap.get(name);
           if (localSubDir == null) {
             localSubDir = localFolder.createDirectory(name);
             actionLog.log(SyncActionLog.Action.CREATED_DIR, name);
@@ -374,7 +385,7 @@ public class FolderSyncWorker extends Worker {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
             long remoteSize = getRemoteFileSize(share, remoteFilePath);
             String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
-            DocumentFile localFile = localFolder.findFile(name);
+            DocumentFile localFile = localFilesMap.get(name);
 
             if (localFile == null) {
               String mimeType = getMimeType(name);
