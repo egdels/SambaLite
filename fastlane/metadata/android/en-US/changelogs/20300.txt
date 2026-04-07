@@ -1,4 +1,5 @@
 - NEW: Thumbnail support & robust data streaming with SmbInputStream.
+- Optimization: Faster & more reliable folder sync with local file caching.
 - Faster share discovery & expanded recognition.
 - Dynamic share updates in the connection dialog.
 - Performance: Thumbnails disabled by default for optimal speed.

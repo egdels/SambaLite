@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Translations for the new thumbnail option in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
 
 ### Changed
+- **Folder Sync Optimization**: Improved performance and reliability of folder synchronization by implementing local file caching. This avoids expensive and potentially error-prone `findFile()` calls in the Storage Access Framework (SAF), which could previously cause duplicate file creations.
 - **Performance Optimization**: `IntelligentCacheManager` now uses a pool of 4 threads (increased from 1) for concurrent operations.
 - **Cache Reliability**: Added a mechanism to `IntelligentCacheManager` to prevent redundant disk writes for the same cache key in quick succession.
 - **UI FAB Refactoring**: Reorganized the Floating Action Buttons (FAB) in the file browser for "Select All" and "Clear Selection" for better consistency.
