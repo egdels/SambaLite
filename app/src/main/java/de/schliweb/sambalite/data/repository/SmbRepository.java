@@ -276,4 +276,9 @@ public interface SmbRepository {
       @NonNull java.io.File localFile,
       @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception;
+
+  /**
+   * Closes all active connections and sessions in the repository.
+   */
+  void closeConnections();
 }

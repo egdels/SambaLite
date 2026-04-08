@@ -186,6 +186,25 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   @Override
+  public void closeConnections() {
+    LogUtils.d("SmbRepositoryImpl", "Closing all cached SMB connections");
+    Iterator<Map.Entry<String, CachedShare>> it = sessionCache.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String, CachedShare> entry = it.next();
+      String connectionId = entry.getKey();
+      CachedShare cached = entry.getValue();
+      ReentrantLock lock = connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
+      lock.lock();
+      try {
+        closeCachedShare(cached);
+        it.remove();
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
+
+  @Override
   public void cancelDownload() {
     LogUtils.d("SmbRepositoryImpl", "Download cancellation requested");
     downloadCancelled = true;

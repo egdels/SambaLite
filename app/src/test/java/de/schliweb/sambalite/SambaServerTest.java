@@ -73,6 +73,9 @@ public class SambaServerTest {
 
   @After
   public void tearDown() {
+    if (smbRepository != null) {
+      smbRepository.closeConnections();
+    }
     if (sambaContainer != null) {
       sambaContainer.stop();
     }

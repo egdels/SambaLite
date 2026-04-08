@@ -215,6 +215,9 @@ public class SmbTestHelper {
 
   /** Cleans up test data after tests. */
   public void cleanup() {
+    if (smbRepository != null) {
+      smbRepository.closeConnections();
+    }
     if (shouldUseMockServer()) {
       mockServer.reset();
       LogUtils.d(TAG, "Mock server reset");
