@@ -23,6 +23,7 @@ public class SmbConnection implements Serializable {
   private String id;
   private String name;
   private String server;
+  private int port = 445;
   private String share;
   private String username;
   private String password;

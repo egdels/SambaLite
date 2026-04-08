@@ -629,8 +629,13 @@ public class SmbRepositoryImpl implements SmbRepository {
       }
 
       LogUtils.d(
-          "SmbRepositoryImpl", "Establishing new SMB connection for: " + connection.getServer());
-      Connection conn = getClientFor(connection).connect(connection.getServer());
+          "SmbRepositoryImpl",
+          "Establishing new SMB connection for: "
+              + connection.getServer()
+              + ":"
+              + connection.getPort());
+      Connection conn =
+          getClientFor(connection).connect(connection.getServer(), connection.getPort());
       try {
         AuthenticationContext authContext = createAuthContext(connection);
         Session session = conn.authenticate(authContext);
