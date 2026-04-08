@@ -102,29 +102,29 @@ Coverage reports are generated under `app/build/reports/jacoco/`. Aim to maintai
 
 #### SMB Testing Framework
 
-Das Projekt verfügt über ein umfassendes SMB-Testing-Framework:
+The project includes a comprehensive SMB testing framework:
 
-**Mock-basierte Tests (schnell):**
+**Mock-based tests (fast):**
 ```java
 SmbTestHelper helper = new SmbTestHelper.Builder()
     .withMockOnly()
     .build();
 ```
 
-**Container-basierte Tests (realistisch):**
+**Container-based tests (realistic):**
 ```java
 SmbTestHelper helper = new SmbTestHelper.Builder()
     .withContainerOnly()
     .build();
 ```
 
-**Fehler-Testing:**
+**Error testing:**
 ```java
 helper.setConnectionFailure(true);
 helper.setNetworkDelay(500);
 ```
 
-Siehe [SAMBA_TESTING_FRAMEWORK.md](docs/SAMBA_TESTING_FRAMEWORK.md) für Details.
+See [SAMBA_TESTING_FRAMEWORK.md](docs/SAMBA_TESTING_FRAMEWORK.md) for details.
 
 ## Git Workflow
 
