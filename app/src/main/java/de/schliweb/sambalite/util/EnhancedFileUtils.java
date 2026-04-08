@@ -9,7 +9,9 @@
  */
 package de.schliweb.sambalite.util;
 
+import android.os.StatFs;
 import androidx.annotation.NonNull;
+import java.io.File;
 import java.util.Locale;
 
 /**
@@ -17,6 +19,36 @@ import java.util.Locale;
  * progress tracking.
  */
 public class EnhancedFileUtils {
+
+  /** Minimum free disk space required (10 MB). Matches TransferWorker.MIN_DISK_SPACE_BYTES. */
+  public static final long MIN_DISK_SPACE_BYTES = 10 * 1024 * 1024;
+
+  /**
+   * Checks whether the device has enough free disk space.
+   *
+   * @param dir The directory to check space for (usually app files dir)
+   * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
+   */
+  public static boolean hasEnoughDiskSpace(File dir) {
+    if (dir == null) return true;
+    try {
+      StatFs stat = new StatFs(dir.getPath());
+      long available = stat.getAvailableBytes();
+      if (available < MIN_DISK_SPACE_BYTES) {
+        LogUtils.w(
+            "EnhancedFileUtils",
+            "Low disk space: "
+                + available
+                + " bytes available (min: "
+                + MIN_DISK_SPACE_BYTES
+                + ")");
+        return false;
+      }
+    } catch (Exception e) {
+      LogUtils.w("EnhancedFileUtils", "Could not check disk space: " + e.getMessage());
+    }
+    return true;
+  }
 
   /** Formats file size in human-readable format. */
   public static @NonNull String formatFileSize(long bytes) {

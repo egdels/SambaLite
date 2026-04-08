@@ -19,7 +19,6 @@ import android.content.pm.ServiceInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
-import android.os.StatFs;
 import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -44,6 +43,7 @@ import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
+import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -78,9 +78,6 @@ public class TransferWorker extends Worker {
   private static final String CHANNEL_ID = "TRANSFER_QUEUE";
   private static final int NOTIFICATION_ID = 2002;
   private static final long CLEANUP_AGE_DAYS = 7;
-
-  /** Minimum free disk space required to continue transfers (10 MB). */
-  private static final long MIN_DISK_SPACE_BYTES = 10 * 1024 * 1024;
 
   /** Minimum interval between notification updates to avoid Android rate-limiting. */
   private static final long NOTIFICATION_MIN_INTERVAL_MS = 1000;
@@ -1021,26 +1018,7 @@ public class TransferWorker extends Worker {
    * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
    */
   private boolean hasEnoughDiskSpace() {
-    try {
-      java.io.File dataDir = getApplicationContext().getFilesDir();
-      if (dataDir != null) {
-        StatFs stat = new StatFs(dataDir.getPath());
-        long available = stat.getAvailableBytes();
-        if (available < MIN_DISK_SPACE_BYTES) {
-          LogUtils.w(
-              TAG,
-              "Low disk space: "
-                  + available
-                  + " bytes available (min: "
-                  + MIN_DISK_SPACE_BYTES
-                  + ")");
-          return false;
-        }
-      }
-    } catch (Exception e) {
-      LogUtils.w(TAG, "Could not check disk space: " + e.getMessage());
-    }
-    return true;
+    return EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
   }
 
   private AuthenticationContext createAuthContext(SmbConnection connection) {
