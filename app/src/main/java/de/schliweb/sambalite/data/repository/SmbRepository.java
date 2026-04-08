@@ -277,8 +277,6 @@ public interface SmbRepository {
       @Nullable BackgroundSmbManager.ProgressCallback progressCallback)
       throws Exception;
 
-  /**
-   * Closes all active connections and sessions in the repository.
-   */
+  /** Closes all active connections and sessions in the repository. */
   void closeConnections();
 }
