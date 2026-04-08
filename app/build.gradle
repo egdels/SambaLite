@@ -249,6 +249,13 @@ dependencies {
     // SLF4J simple provider to suppress "No SLF4J providers were found" warning
     testImplementation 'org.slf4j:slf4j-simple:2.0.17'
     
+    // Testcontainers for real Samba server testing
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.junit.vintage:junit-vintage-engine:5.10.2' // Support for existing JUnit 4 tests
+
     // Architecture Components testing
     testImplementation 'androidx.arch.core:core-testing:2.2.0'
     

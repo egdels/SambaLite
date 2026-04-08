@@ -30,6 +30,12 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Check Docker service status
+      run: docker version
+
+    - name: Pre-pull Samba Docker image
+      run: docker pull dperson/samba:latest
+
     - name: Check code formatting (Spotless)
       run: ./gradlew spotlessCheck
 
