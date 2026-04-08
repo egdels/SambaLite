@@ -70,19 +70,31 @@ public class SmbRepositoryAdvancedTest {
 
     // Create the repository with mock BackgroundSmbManager
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
-    // Configure mock to return a failed future (simulates no real service available)
-    CompletableFuture<Object> failedFuture = new CompletableFuture<>();
-    failedFuture.completeExceptionally(
-        new UnsupportedOperationException("No background service in test"));
+    // Configure mock to execute the operation directly (synchronously)
     Mockito.when(
             mockBackgroundManager.executeBackgroundOperation(
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
-        .thenReturn(failedFuture);
+        .thenAnswer(
+            invocation -> {
+              BackgroundSmbManager.BackgroundOperation<?> operation = invocation.getArgument(2);
+
+              try {
+                Object result = operation.execute(null); // Execute synchronously
+                return CompletableFuture.completedFuture(result);
+              } catch (Exception e) {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+              }
+            });
     smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
   }
 
   @After
   public void tearDown() {
+    if (smbRepository != null) {
+      smbRepository.closeConnections();
+    }
     if (sambaContainer != null) {
       sambaContainer.stop();
     }
