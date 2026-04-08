@@ -1,6 +1,6 @@
 # User Guide: Transfer Queue in SambaLite
 
-Last updated: 2026-03-31
+Last updated: 2026-04-08
 
 This guide explains how the transfer queue works for manual file uploads and downloads between your Android device and an SMB network share.
 
@@ -58,8 +58,9 @@ At the top of the screen, a summary card shows the current counts:
 |---------|-------------|
 | **Pending** | Transfers waiting to be processed. |
 | **Active** | The transfer currently in progress. |
-| **Completed** | Successfully finished transfers (shown for up to 1 hour). |
+| **Completed** | Successfully finished transfers (shown for up to 1 hour after completion). |
 | **Failed** | Transfers that encountered an error. |
+| **Cancelled** | Transfers that were cancelled by the user. |
 
 ### Sorting
 
@@ -115,15 +116,13 @@ PENDING → ACTIVE → COMPLETED
 - If any transfers fail, the worker requests a **retry** from WorkManager, which re-schedules it with backoff.
 - You can manually retry individual transfers or all failed transfers from the queue UI.
 
-## Crash Recovery
+## Crash Recovery and Resume
 
-The transfer queue is fully persistent in a **Room database**. If the app is killed or the device restarts:
+The transfer queue is fully persistent in a **Room database**. Transfers survive app kills and device restarts, with **automatic resume** from the last transferred byte offset.
 
-- All **ACTIVE** transfers are automatically reset to **PENDING** with their progress reset to zero (transfers restart from the beginning).
-- All **FAILED** transfers with remaining retries are also reset to **PENDING**.
+- All **ACTIVE** transfers are automatically reset to **PENDING** after an unclean app exit.
 - The worker is re-enqueued on the next app start if there are pending transfers.
-
-> **Note:** In the current implementation, interrupted transfers always restart from the beginning rather than resuming from the last transferred byte. This ensures data integrity after unclean interruptions.
+- Upon restart, the worker checks the already transferred bytes and resumes from that point.
 
 ## Transfer Behavior After App Exit and Device Restart
 
@@ -151,8 +150,7 @@ Completed and cancelled transfers are automatically cleaned up after **7 days**.
 
 ## Limitations
 
-- **No resume after crash**: Interrupted transfers restart from the beginning rather than resuming from the last byte. This may be improved in a future version.
-- **Large files** may take longer than the WorkManager execution window. Very large files might not complete in a single worker run.
+- **Large files** may take longer than the WorkManager execution window. Very large files might not complete in a single worker run, but they will automatically resume in the next run.
 - **Battery optimization**: Some device manufacturers (e.g. Xiaomi, Huawei, Samsung) apply aggressive battery restrictions that may delay or stop the transfer worker. Exclude SambaLite from battery optimization in your device settings.
 - **Storage Access Framework limitations**: Timestamp preservation after download may not work on all storage types (e.g. SD cards or certain cloud-backed storage providers).
 
@@ -164,4 +162,4 @@ Completed and cancelled transfers are automatically cleaned up after **7 days**.
 | Transfer fails repeatedly | Check the error message in the queue UI. Verify that the remote path exists and your SMB credentials are correct. |
 | Transfers stop after a while | Android may restrict background work for battery optimization. Exclude SambaLite from battery optimization in your device settings. |
 | Queue is empty but files weren't transferred | Completed transfers are hidden after 1 hour in the queue UI. Check the file browser to verify the transfer succeeded. |
-| Duplicate files after crash | Interrupted transfers restart from the beginning. If the partial file was already written, it will be overwritten on retry. |
+| Duplicate files after interruption | Interrupted transfers automatically resume from the last byte. If the transfer was interrupted before any data was written, it will start from the beginning. |
