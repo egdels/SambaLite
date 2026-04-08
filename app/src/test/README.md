@@ -1,4 +1,4 @@
-# SambaLite Test Suite
+1.# SambaLite Test Suite
 
 This directory contains test classes and utilities for testing the SambaLite application.
 
@@ -6,57 +6,36 @@ This directory contains test classes and utilities for testing the SambaLite app
 
 The test suite includes:
 
-1. An in-memory implementation of a Samba server for testing (`SambaContainer`)
-2. Basic tests demonstrating how to use the Samba server (`SambaServerTest`)
-3. Comprehensive tests for the `SmbRepository` implementation (`SmbRepositoryTest`)
-4. Advanced tests focusing on edge cases and error handling (`SmbRepositoryAdvancedTest`)
+1. A hybrid implementation of a Samba server for testing (`SambaContainer`), which automatically chooses between Docker (Testcontainers) and an in-memory mock.
+2. Basic tests for server connectivity (`SambaServerTest`).
+3. Comprehensive tests for the `SmbRepository` implementation (`SmbRepositoryTest`).
+4. Advanced integrity and performance tests in the package `de.schliweb.sambalite.data.repository`.
+5. A central `SmbTestHelper` for abstracting server provisioning.
 
-## In-Memory Samba Server
+## Samba Server Testing Framework
 
-The `SambaContainer` class provides an in-memory implementation of a Samba server that runs within the JUnit test process. This allows you to test your SMB client code without requiring Docker or any external dependencies.
+The `SambaContainer` class provides a test infrastructure that is:
 
-For more details, see the [samba-server-info.txt](samba-server-info.txt) file.
+1. **Docker-based:** Uses `Testcontainers` (Image: `dperson/samba`) to start a real Samba server (recommended for MacOS/OrbStack and CI).
+2. **In-Memory Mock:** Automatically falls back to a fast Java simulation if Docker is not available.
+
+This allows for realistic protocol tests (SMB2/3) without manual setup steps.
+
+Further details can be found in the central documentation at [docs/SAMBA_TESTING_FRAMEWORK.md](../../../docs/SAMBA_TESTING_FRAMEWORK.md).
 
 ## Test Classes
 
+The tests use the `SmbTestHelper` with `AUTO_DETECT` mode.
+
 ### SambaServerTest
+Validates the basic reachability of the server (Docker or Mock).
 
-This class demonstrates the basic usage of the `SambaContainer` for testing. It includes tests for:
-
-- Connecting to the Samba server
-- Listing files in a directory
-- Downloading a file from the server
-
-### SmbRepositoryTest
-
-This class provides comprehensive tests for all methods in the `SmbRepository` interface:
-
-1. **testConnectionToSambaServer**: Tests connecting to the Samba server
-2. **testListFiles**: Tests listing files in a directory
-3. **testDownloadFile**: Tests downloading a file from the server
-4. **testUploadFile**: Tests uploading a file to the server
-5. **testDeleteFile**: Tests deleting a file from the server
-6. **testRenameFile**: Tests renaming a file on the server
-7. **testCreateDirectory**: Tests creating a directory on the server
-8. **testFileExists**: Tests checking if a file exists on the server
-9. **testDownloadFolder**: Tests downloading a folder from the server
-10. **testSearchFiles**: Tests searching for files on the server
-11. **testCancelSearch**: Tests canceling an ongoing search operation
-
-### SmbRepositoryAdvancedTest
-
-This class provides advanced tests that focus on edge cases, error handling, and more complex scenarios:
-
-1. **testSpecialCharactersInFilenames**: Tests handling of filenames with spaces, underscores, hyphens, dots, numbers, and special symbols
-2. **testDeepNestedDirectories**: Tests handling of deep nested directory structures (5 levels deep)
-3. **testEmptyFiles**: Tests handling of empty files
-4. **testLargeFiles**: Tests handling of large files (5 MB)
-5. **testConcurrentOperations**: Tests concurrent operations with multiple threads
-6. **testErrorHandlingForNonExistentFiles**: Tests error handling for operations on non-existent files
-7. **testAuthenticationWithInvalidCredentials**: Tests authentication with invalid credentials
-8. **testInvalidShareNames**: Tests handling of invalid share names
-9. **testFileNameCollisions**: Tests handling of file name collisions (overwriting existing files)
-10. **testVeryLongFileNames**: Tests handling of very long file names
+### SmbRepository Tests
+The project contains extensive test suites to ensure data integrity:
+- `SmbRepositoryTest`: CRUD operations.
+- `SmbRepositoryAdvancedIntegrityTest`: Concurrency, ZIP handling, and deep structures.
+- `SmbRepositoryNetworkIntegrityTest`: Error injection and timeout handling.
+- `SmbRepositoryPerformanceTest`: Throughput measurements.
 
 ## Usage
 
@@ -75,9 +54,13 @@ Or run individual test classes:
 
 ## Implementation Notes
 
-The current implementation of the `SambaContainer` is a simplified mock that simulates a Samba server in memory. It provides the same interface as a real Samba server but doesn't actually run a real Samba server. This means that some functionality may not be fully implemented, and tests may need to be adjusted accordingly.
+The `SambaContainer` class manages dynamic port assignment when using Docker. Tests should always use the `SmbTestHelper` to abstract between mock and container modes.
 
-The tests are designed to demonstrate how to use the in-memory Samba server for testing, not necessarily to have fully functioning tests. They include appropriate assertions to verify the expected behavior, but also include catch blocks that print debug information and allow the test to pass even if the operation fails.
+### Docker on MacOS (OrbStack)
+Ensure that OrbStack is running. The framework automatically detects the Docker socket.
+
+### GitHub Actions
+The CI is configured to use Docker for all integration tests.
 
 ## Adding New Tests
 

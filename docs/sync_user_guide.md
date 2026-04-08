@@ -101,9 +101,10 @@ Because sync is managed by Android's WorkManager, it operates **independently of
 
 ## Conflict Resolution
 
-SambaLite uses a **"Newer Wins"** (last-writer-wins) strategy:
+SambaLite uses a **"Newer Wins"** (last-writer-wins) strategy with a small timestamp tolerance (~3 seconds) to account for network jitter and filesystem differences:
 
 - When syncing in either direction, the file with the more recent modification timestamp overwrites the older one.
+- A file is only considered "newer" if its modification time differs by more than the 3-second tolerance.
 - In bidirectional mode, both directions are checked — the newer file always takes precedence.
 - There is no file merging. If the same file is modified on both sides between syncs, the newer version wins and the older changes are lost.
 
@@ -136,7 +137,7 @@ SambaLite records all sync actions with timestamps. You can view the log in the 
 - **↓ Downloaded**: Files received from the SMB share to your device.
 - **⊘ Skipped**: Files that were unchanged (same size and modification time) and not transferred.
 - **📁 Created dir**: New directories created during sync.
-- **🗑 Deleted**: Files or directories removed during sync.
+- **🗑 Deleted**: Database entries for files or directories that no longer exist on the remote share. Note: SambaLite never deletes your actual files on your device or the SMB share during sync.
 - **🕐 Timestamp set**: File modification timestamps successfully synchronized.
 - **⚠ Timestamp failed**: File modification timestamps could not be set (e.g. due to filesystem limitations).
 - **✗ Error**: Files that failed to sync, with an error description.

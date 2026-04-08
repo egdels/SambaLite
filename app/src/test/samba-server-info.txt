@@ -1,77 +1,48 @@
-Local Samba Server for Testing
-==============================
+Samba Server Testing Framework (Integration)
+=========================================
 
-This directory contains utilities for setting up a local Samba server for testing purposes.
+This project uses a hybrid framework for Samba integration tests.
 
-SambaContainer
--------------
+SambaContainer (Docker & Mock)
+------------------------------
 
-The SambaContainer class is an in-memory implementation of a Samba server that runs within the JUnit test process.
-This allows you to test your SMB client code without requiring Docker or any external dependencies.
+The `SambaContainer` class is the core of the test infrastructure. It provides:
+
+1. **Real Docker Container (Default)**
+   - Uses `Testcontainers` and the image `dperson/samba`.
+   - Provides full protocol compatibility (SMB2/SMB3).
+   - Requires an active Docker runtime environment (e.g., OrbStack on MacOS).
+
+2. **In-Memory Mock (Fallback)**
+   - If no Docker daemon is detected, the framework automatically switches to a Java-based simulation.
+   - Ideal for environments without Docker support or extremely fast unit tests.
+
+Configuration & Usage
+---------------------
+
+Preferably use the `SmbTestHelper` to write tests. It abstracts the details of server provisioning:
+
+```java
+SmbTestHelper helper = SmbTestHelper.builder()
+    .withAutoDetect() // Choose Docker if available, otherwise Mock
+    .build();
+
+helper.start();
+// Test logic
+helper.stop();
+```
 
 Prerequisites
-------------
+-------------
 
-- jcifs-ng dependency must be added to your project (already done in build.gradle)
-
-Usage
------
-
-Here's a basic example of how to use the SambaContainer in your tests:
-
-1. Create and start the in-memory Samba server:
-   SambaContainer sambaContainer = new SambaContainer()
-       .withUsername("testuser")
-       .withPassword("testpassword")
-       .withDomain("WORKGROUP")
-       .withShare("testshare", "/testshare");
-   sambaContainer.start();
-
-2. Create a test connection:
-   SmbConnection testConnection = new SmbConnection();
-   testConnection.setServer(sambaContainer.getHost());
-   testConnection.setShare("testshare");
-   testConnection.setUsername(sambaContainer.getUsername());
-   testConnection.setPassword(sambaContainer.getPassword());
-   testConnection.setDomain(sambaContainer.getDomain());
-
-3. Use the connection in your tests
-
-4. Don't forget to stop the server when done:
-   sambaContainer.stop();
-
-Configuration Options
---------------------
-
-The SambaContainer class provides several methods for configuring the Samba server:
-
-- withUsername(String username): Sets the username for authentication
-- withPassword(String password): Sets the password for authentication
-- withDomain(String domain): Sets the domain/workgroup for authentication
-- withShare(String shareName, String path): Adds a share to the Samba server
-
-Example Test
------------
-
-See the SambaServerTest class for a complete example of how to use the SambaContainer in your tests.
-
-Implementation Details
---------------------
-
-The current implementation is a simplified mock that simulates a Samba server in memory. It provides the same interface
-as the previous Docker-based implementation but doesn't actually run a real Samba server. This means that some
-functionality may not be fully implemented, and tests may need to be adjusted accordingly.
-
-The mock implementation maintains an in-memory representation of shares and files, which can be accessed through
-the standard SMB client interface. However, since it's not a real Samba server, some advanced features may not
-be available.
+- **MacOS:** Install and start **OrbStack** (recommended) or Docker Desktop.
+- **CI (GitHub Actions):** Docker is automatically enabled.
 
 Troubleshooting
---------------
+---------------
 
-If you encounter issues with the in-memory Samba server:
+1. **Docker not detected:** Check if `/var/run/docker.sock` exists and is accessible.
+2. **Ports:** The framework uses dynamic ports to avoid conflicts. Access the current port via `sambaContainer.getPort()`.
 
-1. Check the debug logs for any error messages
-2. Ensure that your test is properly setting up the server and shares
-3. Be aware that the current implementation is a mock and may not support all SMB features
-4. Consider adding more detailed logging to help diagnose issues
+Detailed information can be found in the central guide:
+`docs/SAMBA_TESTING_FRAMEWORK.md`

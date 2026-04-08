@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.test.helper.SmbTestHelper;
 import java.io.*;
 import java.security.MessageDigest;
 import java.util.*;
@@ -29,9 +30,14 @@ public class SmbRepositoryPerformanceTest {
   private SmbRepositoryImpl smbRepository;
   private SmbConnection testConnection;
   private File tempTestDir;
+  private SmbTestHelper testHelper;
 
   @Before
   public void setUp() throws IOException {
+    testHelper =
+        new SmbTestHelper.Builder().withTestMode(SmbTestHelper.TestMode.AUTO_DETECT).build();
+    testHelper.setupTestData();
+
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
     CompletableFuture<Object> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(
@@ -43,11 +49,7 @@ public class SmbRepositoryPerformanceTest {
     smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
 
     // Test connection setup
-    testConnection = new SmbConnection();
-    testConnection.setServer("localhost");
-    testConnection.setShare("testshare");
-    testConnection.setUsername("testuser");
-    testConnection.setPassword("testpass");
+    testConnection = testHelper.createTestConnection();
 
     // Create temp directory for tests
     tempTestDir = createTempDirectory("smb_performance_test");

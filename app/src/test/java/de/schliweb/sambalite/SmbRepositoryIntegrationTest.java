@@ -31,7 +31,7 @@ public class SmbRepositoryIntegrationTest {
 
     System.out.println("[DEBUG_LOG] Setting up SMB repository integration tests");
 
-    testHelper = new SmbTestHelper.Builder().withMockOnly().build();
+    testHelper = new SmbTestHelper.Builder().withTestMode(SmbTestHelper.TestMode.AUTO_DETECT).build();
 
     testConnection = testHelper.createTestConnection();
     testHelper.setupTestData();
@@ -227,8 +227,8 @@ public class SmbRepositoryIntegrationTest {
   @Test
   public void testRepositoryConnectionPooling() throws Exception {
     // Test multiple connections with same credentials
-    SmbConnection connection1 = testHelper.createTestConnection("share1");
-    SmbConnection connection2 = testHelper.createTestConnection("share2");
+    SmbConnection connection1 = testHelper.createTestConnection();
+    SmbConnection connection2 = testHelper.createTestConnection();
 
     // Setup mock repository for both connections
     when(mockSmbRepository.testConnection(eq(connection1))).thenReturn(true);

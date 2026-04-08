@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
+import de.schliweb.sambalite.test.helper.SmbTestHelper;
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -34,11 +35,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SmbRepositoryAdvancedIntegrityTest {
 
   private final SecureRandom random = new SecureRandom();
-  private SmbConnection testConnection;
   private File tempTestDir;
+  private SmbTestHelper testHelper;
 
   @Before
   public void setUp() throws IOException {
+    testHelper =
+        new SmbTestHelper.Builder().withTestMode(SmbTestHelper.TestMode.AUTO_DETECT).build();
+    testHelper.setupTestData();
+
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
     CompletableFuture<Object> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(
@@ -48,13 +53,6 @@ public class SmbRepositoryAdvancedIntegrityTest {
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
         .thenReturn(failedFuture);
     new SmbRepositoryImpl(mockBackgroundManager);
-
-    // Test connection setup
-    testConnection = new SmbConnection();
-    testConnection.setServer("localhost");
-    testConnection.setShare("testshare");
-    testConnection.setUsername("testuser");
-    testConnection.setPassword("testpass");
 
     // Create temp directory for local file tests
     tempTestDir = createTempDirectory("smb_advanced_test");

@@ -26,8 +26,8 @@ public class SmbIntegrationTest {
   public void setUp() {
     System.out.println("[DEBUG_LOG] Setting up SMB integration tests");
 
-    // Initialize test helper with mock-only mode for reliable testing
-    testHelper = new SmbTestHelper.Builder().withMockOnly().build();
+    // Initialize test helper with AUTO_DETECT for Docker support when available
+    testHelper = new SmbTestHelper.Builder().withTestMode(SmbTestHelper.TestMode.AUTO_DETECT).build();
 
     new MockSmbServer();
     testHelper.setupTestData();

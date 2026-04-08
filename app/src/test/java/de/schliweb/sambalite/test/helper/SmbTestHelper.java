@@ -1,11 +1,20 @@
 package de.schliweb.sambalite.test.helper;
 
+import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.data.repository.SmbRepository;
+import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
 import de.schliweb.sambalite.test.mock.MockSmbServer;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SambaContainer;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import org.mockito.Mockito;
 
 /**
  * Test helper for SMB operations during testing. Provides a unified interface for both mock and
@@ -21,12 +30,42 @@ public class SmbTestHelper {
 
   private final MockSmbServer mockServer;
   private final TestMode testMode;
+  private SambaContainer container;
+  private SmbRepository smbRepository;
 
   public SmbTestHelper(TestMode mode) {
     this.testMode = mode;
     this.mockServer = new MockSmbServer();
 
-    LogUtils.d(TAG, "SmbTestHelper initialized with mode: " + mode);
+    if (mode == TestMode.CONTAINER_ONLY || (mode == TestMode.AUTO_DETECT && isDockerAvailable())) {
+      setupContainer();
+    }
+
+    LogUtils.d(TAG, "SmbTestHelper initialized with mode: " + testMode);
+  }
+
+  private boolean isDockerAvailable() {
+    try {
+      // Use reflection or check SambaContainer's logic
+      return new SambaContainer().getPort() > 0;
+    } catch (Throwable e) {
+      return false;
+    }
+  }
+
+  private void setupContainer() {
+    container = new SambaContainer()
+        .withUsername("testuser")
+        .withPassword("testpass123")
+        .withShare("testshare", "/testshare");
+    container.start();
+
+    BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
+    CompletableFuture<Object> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(new UnsupportedOperationException("No background service"));
+    Mockito.when(mockBackgroundManager.executeBackgroundOperation(Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+        .thenReturn(failedFuture);
+    smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
   }
 
   public SmbTestHelper() {
@@ -51,13 +90,14 @@ public class SmbTestHelper {
       connection.setShare(shareName);
       connection.setDomain("WORKGROUP");
     } else {
-      // Container configuration (will be filled when container support is active)
+      // Container configuration
       connection.setName("Container Test Connection");
-      connection.setServer("localhost");
-      connection.setUsername("testuser");
-      connection.setPassword("testpass123");
+      connection.setServer(container.getHost());
+      connection.setPort(container.getPort());
+      connection.setUsername(container.getUsername());
+      connection.setPassword(container.getPassword());
       connection.setShare(shareName);
-      connection.setDomain("WORKGROUP");
+      connection.setDomain(container.getDomain());
     }
 
     LogUtils.d(TAG, "Created test connection: " + connection.getName());
@@ -71,8 +111,11 @@ public class SmbTestHelper {
           mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
       return mockServer.listFiles(mockConnection, path);
     } else {
-      // TODO: Implement container-based file listing
-      throw new UnsupportedOperationException("Container-based testing not yet implemented");
+      try {
+        return smbRepository.listFiles(createTestConnection(), path);
+      } catch (Exception e) {
+        throw new RuntimeException("Listing failed", e);
+      }
     }
   }
 
@@ -83,8 +126,14 @@ public class SmbTestHelper {
           mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
       return mockServer.downloadFile(mockConnection, filePath);
     } else {
-      // TODO: Implement container-based file download
-      throw new UnsupportedOperationException("Container-based testing not yet implemented");
+      try {
+        File tempFile = File.createTempFile("smb-test-download", ".tmp");
+        tempFile.deleteOnExit();
+        smbRepository.downloadFile(createTestConnection(), filePath, tempFile);
+        return Files.newInputStream(tempFile.toPath());
+      } catch (Exception e) {
+        throw new RuntimeException("Download failed", e);
+      }
     }
   }
 
@@ -96,8 +145,16 @@ public class SmbTestHelper {
             mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
         mockServer.uploadFile(mockConnection, filePath, inputStream);
       } else {
-        // TODO: Implement container-based file upload
-        throw new UnsupportedOperationException("Container-based testing not yet implemented");
+        File tempFile = File.createTempFile("smb-test-upload", ".tmp");
+        tempFile.deleteOnExit();
+        try (FileOutputStream out = new FileOutputStream(tempFile)) {
+          byte[] buffer = new byte[8192];
+          int read;
+          while ((read = inputStream.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+          }
+        }
+        smbRepository.uploadFile(createTestConnection(), tempFile, filePath);
       }
     } catch (Exception e) {
       LogUtils.d(TAG, "Failed to upload file: " + filePath + " - " + e.getMessage());
@@ -112,8 +169,11 @@ public class SmbTestHelper {
           mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
       mockServer.deleteFile(mockConnection, filePath);
     } else {
-      // TODO: Implement container-based file deletion
-      throw new UnsupportedOperationException("Container-based testing not yet implemented");
+      try {
+        smbRepository.deleteFile(createTestConnection(), filePath);
+      } catch (Exception e) {
+        throw new RuntimeException("Deletion failed", e);
+      }
     }
   }
 
@@ -124,8 +184,14 @@ public class SmbTestHelper {
           mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
       mockServer.createDirectory(mockConnection, dirPath);
     } else {
-      // TODO: Implement container-based directory creation
-      throw new UnsupportedOperationException("Container-based testing not yet implemented");
+      try {
+        int lastSlash = dirPath.lastIndexOf('/');
+        String parent = lastSlash <= 0 ? "" : dirPath.substring(0, lastSlash);
+        String name = lastSlash < 0 ? dirPath : dirPath.substring(lastSlash + 1);
+        smbRepository.createDirectory(createTestConnection(), parent, name);
+      } catch (Exception e) {
+        throw new RuntimeException("Directory creation failed", e);
+      }
     }
   }
 
@@ -135,8 +201,15 @@ public class SmbTestHelper {
       // Mock server already has default test data
       LogUtils.d(TAG, "Using default mock server test data");
     } else {
-      // TODO: Setup container test data
-      LogUtils.d(TAG, "Container test data setup not yet implemented");
+      try {
+        container.execInContainer("sh", "-c", "mkdir -p /testshare/documents");
+        container.execInContainer("sh", "-c", "mkdir -p /testshare/images");
+        container.execInContainer("sh", "-c", "echo 'test' > /testshare/documents/test.txt");
+        container.execInContainer("sh", "-c", "echo 'readme' > /testshare/documents/readme.md");
+        container.execInContainer("sh", "-c", "echo 'root' > /testshare/test_file.txt");
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to setup test data", e);
+      }
     }
   }
 
@@ -146,8 +219,9 @@ public class SmbTestHelper {
       mockServer.reset();
       LogUtils.d(TAG, "Mock server reset");
     } else {
-      // TODO: Cleanup container test data
-      LogUtils.d(TAG, "Container cleanup not yet implemented");
+      if (container != null) {
+        container.stop();
+      }
     }
   }
 
@@ -186,6 +260,11 @@ public class SmbTestHelper {
   }
 
   /** Determines whether to use the mock server based on test mode and environment. */
+  public boolean isMockMode() {
+    return shouldUseMockServer();
+  }
+
+  /** Determines whether to use the mock server based on test mode and environment. */
   private boolean shouldUseMockServer() {
     switch (testMode) {
       case MOCK_ONLY:
@@ -196,9 +275,7 @@ public class SmbTestHelper {
 
       case AUTO_DETECT:
       default:
-        // For now, always use mock server
-        // TODO: Add logic to detect if Docker/Testcontainers is available
-        return true;
+        return container == null;
     }
   }
 

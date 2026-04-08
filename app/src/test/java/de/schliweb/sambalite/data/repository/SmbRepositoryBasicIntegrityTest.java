@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.test.helper.SmbTestHelper;
 import java.io.*;
 import java.security.MessageDigest;
 import java.util.*;
@@ -27,9 +28,14 @@ public class SmbRepositoryBasicIntegrityTest {
   private SmbRepositoryImpl smbRepository;
   private SmbConnection testConnection;
   private File tempTestDir;
+  private SmbTestHelper testHelper;
 
   @Before
   public void setUp() throws IOException {
+    testHelper =
+        new SmbTestHelper.Builder().withTestMode(SmbTestHelper.TestMode.AUTO_DETECT).build();
+    testHelper.setupTestData();
+
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
     CompletableFuture<Object> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(
@@ -41,11 +47,7 @@ public class SmbRepositoryBasicIntegrityTest {
     smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
 
     // Test connection setup
-    testConnection = new SmbConnection();
-    testConnection.setServer("localhost");
-    testConnection.setShare("testshare");
-    testConnection.setUsername("testuser");
-    testConnection.setPassword("testpass");
+    testConnection = testHelper.createTestConnection();
 
     // Create temp directory for local file tests
     tempTestDir = createTempDirectory("smb_test");
@@ -112,10 +114,10 @@ public class SmbRepositoryBasicIntegrityTest {
   @Test
   public void testSmbConnectionIntegrity() {
     assertNotNull("SmbConnection should be created", testConnection);
-    assertEquals("Server should be set", "localhost", testConnection.getServer());
-    assertEquals("Share should be set", "testshare", testConnection.getShare());
-    assertEquals("Username should be set", "testuser", testConnection.getUsername());
-    assertEquals("Password should be set", "testpass", testConnection.getPassword());
+    assertNotNull("Server should be set", testConnection.getServer());
+    assertNotNull("Share should be set", testConnection.getShare());
+    assertNotNull("Username should be set", testConnection.getUsername());
+    assertNotNull("Password should be set", testConnection.getPassword());
   }
 
   /** Test SmbFileItem model integrity */
@@ -143,14 +145,17 @@ public class SmbRepositoryBasicIntegrityTest {
 
   /** Test repository API exists and is callable */
   @Test
-  public void testRepositoryAPIExists() {
+  public void testRepositoryAPIExists() throws Exception {
     assertNotNull("Repository should be created", smbRepository);
 
-    // Verify key methods exist (will throw exceptions without real SMB server)
-    // These will fail without SMB server, but should compile
-    Exception expected =
-        assertThrows(Exception.class, () -> smbRepository.testConnection(testConnection));
-    assertNotNull("Should fail gracefully", expected.getMessage());
+    // Verify key methods exist
+    // Note: testConnection() in SmbRepositoryImpl needs a real backend (Docker or real SmbService).
+    if (!testHelper.isMockMode()) {
+        boolean isValid = smbRepository.testConnection(testConnection);
+        assertTrue("Should be able to connect to real container", isValid);
+    } else {
+        System.out.println("[DEBUG_LOG] Skipping real testConnection check in Mock mode");
+    }
   }
 
   /** Test large file handling simulation */
