@@ -25,7 +25,7 @@ import org.junit.Test;
  *
  * <p>Note: Actual file download is tested via {@code SmbTestHelper.downloadFile()} which reads
  * files directly from the SMB share. The recursive flattening logic mirrors
- * {@code FileOperationsViewModel.flattenDirectoryForDownload()}.
+ * {@code TransferWorker.collectDirectoryFiles()}.
  */
 public class SmbRepositoryMultiDownloadTest {
 
@@ -314,7 +314,7 @@ public class SmbRepositoryMultiDownloadTest {
 
   /**
    * Recursively collects all files from a remote directory (mirrors the
-   * flattenDirectoryForDownload logic in FileOperationsViewModel).
+   * collectDirectoryFiles logic in TransferWorker).
    */
   private List<SmbFileItem> flattenDirectory(String dirPath) {
     List<SmbFileItem> result = new ArrayList<>();
