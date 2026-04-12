@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Disk Space Check Refactoring**: Moved disk space check logic to `EnhancedFileUtils` for better separation of concerns.
 - **Directory Download moved to TransferWorker**: Recursive directory download logic moved from `FileOperationsViewModel` into `TransferWorker`. A single `DOWNLOAD_DIRECTORY` placeholder is enqueued, and the worker resolves directory contents using its own SMB connection — avoiding dependency on the (possibly closed) UI-layer SMB session.
 - **TransferWorker Work Policy**: Changed `ExistingWorkPolicy` from `REPLACE` to `KEEP` to prevent restarting an already running transfer worker when new transfers are enqueued.
+- **Transfer Queue Scalability**: Transfer list query now uses `LIMIT 500` to prevent `CursorWindow` overflow on large queues. Status counts (Pending, Active, Completed, Failed, Total) are observed via separate lightweight `COUNT` queries for accurate stats display independent of the list limit.
+- **Transfer Badge Performance**: `FileListController` now uses lightweight path-only DAO queries (`getActiveUploadPathsForConnection`, `getActiveDownloadPathsForConnection`) instead of loading full `PendingTransfer` objects for UI badge indicators.
+- **TransferItemAdapter Cleanup**: Removed verbose `Log.v` debug logging from `DiffUtil` callbacks.
 - **Test Infrastructure Overhaul**: Reworked `SmbTestHelper` and `SambaContainer`, updated and stabilized existing repository tests, and updated test documentation with the new test structure.
 
 ### Fixed
