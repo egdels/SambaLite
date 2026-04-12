@@ -1096,9 +1096,9 @@ public class FileOperationsViewModel extends ViewModel {
   }
 
   /**
-   * Enqueues all files from a remote SMB folder as individual downloads into the persistent
-   * transfer queue. Creates the local folder structure via SAF DocumentFile and enqueues each file
-   * as a separate DOWNLOAD transfer. Returns immediately — no blocking dialog.
+   * Enqueues a remote SMB folder for download by inserting a single DOWNLOAD_DIRECTORY placeholder
+   * into the transfer queue. The TransferWorker will resolve the directory contents using its own
+   * SMB connection, avoiding dependency on the (possibly closed) UI-layer SMB session.
    *
    * @param remoteFolderPath internal SMB path of the remote folder (without share name)
    * @param destFolderUri SAF URI of the local destination folder
@@ -1116,39 +1116,28 @@ public class FileOperationsViewModel extends ViewModel {
             return;
           }
 
-          List<PendingTransfer> transfers = new ArrayList<>();
-          DocumentFile destDir = DocumentFile.fromTreeUri(context, destFolderUri);
-          if (destDir == null || !destDir.isDirectory()) {
-            LogUtils.w("FileOperationsViewModel", "Invalid destination folder: " + destFolderUri);
-            return;
-          }
-
-          // Create subfolder in destination
-          DocumentFile subFolder = destDir.createDirectory(folderName);
-          if (subFolder == null) {
-            // Folder may already exist
-            subFolder = destDir.findFile(folderName);
-          }
-          if (subFolder == null) {
-            LogUtils.e(
-                "FileOperationsViewModel", "Cannot create destination subfolder: " + folderName);
-            return;
-          }
-
-          scanRemoteFolderForDownloadQueue(remoteFolderPath, subFolder, transfers, batchId, 0);
-
-          if (transfers.isEmpty()) {
-            LogUtils.i("FileOperationsViewModel", "No files found in remote folder for download");
-            return;
-          }
+          PendingTransfer t = new PendingTransfer();
+          t.transferType = "DOWNLOAD_DIRECTORY";
+          t.localUri = destFolderUri.toString();
+          t.remotePath = remoteFolderPath;
+          t.connectionId = state.getConnection().getId();
+          t.displayName = folderName;
+          t.mimeType = "";
+          t.fileSize = 0;
+          t.bytesTransferred = 0;
+          t.status = "PENDING";
+          t.createdAt = System.currentTimeMillis();
+          t.updatedAt = System.currentTimeMillis();
+          t.batchId = batchId;
+          t.sortOrder = 0;
 
           PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-          dao.insertAll(transfers);
+          dao.insertAll(java.util.Collections.singletonList(t));
           LogUtils.i(
               "FileOperationsViewModel",
-              "Enqueued "
-                  + transfers.size()
-                  + " files for folder download (batch="
+              "Enqueued folder download as DOWNLOAD_DIRECTORY: "
+                  + folderName
+                  + " (batch="
                   + batchId
                   + ")");
 
@@ -1156,66 +1145,6 @@ public class FileOperationsViewModel extends ViewModel {
         });
 
     return batchId;
-  }
-
-  /**
-   * Recursively scans a remote SMB folder and builds PendingTransfer entries for each file. Creates
-   * local SAF directories and documents as needed.
-   */
-  private void scanRemoteFolderForDownloadQueue(
-      String remotePath,
-      DocumentFile localDir,
-      List<PendingTransfer> transfers,
-      String batchId,
-      int sortOrderStart) {
-    try {
-      List<SmbFileItem> items = smbRepository.listFiles(state.getConnection(), remotePath);
-      if (items == null) return;
-
-      int sortOrder = sortOrderStart;
-      for (SmbFileItem item : items) {
-        if (item.getName() == null) continue;
-
-        if (item.isDirectory()) {
-          // Create local subdirectory
-          DocumentFile subDir = localDir.createDirectory(item.getName());
-          if (subDir == null) {
-            subDir = localDir.findFile(item.getName());
-          }
-          if (subDir != null) {
-            scanRemoteFolderForDownloadQueue(item.getPath(), subDir, transfers, batchId, sortOrder);
-          }
-        } else {
-          // Create local file via SAF
-          String mimeType = "application/octet-stream";
-          DocumentFile localFile = localDir.createFile(mimeType, item.getName());
-          if (localFile == null) {
-            LogUtils.w("FileOperationsViewModel", "Cannot create local file: " + item.getName());
-            continue;
-          }
-
-          PendingTransfer t = new PendingTransfer();
-          t.transferType = "DOWNLOAD";
-          t.localUri = localFile.getUri().toString();
-          t.remotePath = item.getPath();
-          t.connectionId = state.getConnection().getId();
-          t.displayName = item.getName();
-          t.mimeType = mimeType;
-          t.fileSize = item.getSize();
-          t.bytesTransferred = 0;
-          t.status = "PENDING";
-          t.createdAt = System.currentTimeMillis();
-          t.updatedAt = System.currentTimeMillis();
-          t.batchId = batchId;
-          t.sortOrder = sortOrder++;
-          transfers.add(t);
-        }
-      }
-    } catch (Exception e) {
-      LogUtils.e(
-          "FileOperationsViewModel",
-          "Error scanning remote folder " + remotePath + ": " + e.getMessage());
-    }
   }
 
   /**
@@ -1247,56 +1176,53 @@ public class FileOperationsViewModel extends ViewModel {
           List<PendingTransfer> transfers = new ArrayList<>();
           int sortOrder = 0;
 
-          // Flatten directories: resolve directory items into their contained files
-          List<SmbFileItem> flatFiles = new ArrayList<>();
           for (SmbFileItem file : files) {
             if (file == null || file.getName() == null) continue;
+
             if (file.isDirectory()) {
-              flattenDirectoryForDownload(file, destDir, flatFiles);
+              // Enqueue directories as DOWNLOAD_DIRECTORY — the TransferWorker will
+              // resolve their contents using its own SMB connection.  This avoids
+              // depending on the current (possibly closed) SMB session.
+              PendingTransfer t = new PendingTransfer();
+              t.transferType = "DOWNLOAD_DIRECTORY";
+              t.localUri = destFolderUri.toString();
+              t.remotePath = file.getPath();
+              t.connectionId = state.getConnection().getId();
+              t.displayName = file.getName();
+              t.mimeType = "";
+              t.fileSize = 0;
+              t.bytesTransferred = 0;
+              t.status = "PENDING";
+              t.createdAt = System.currentTimeMillis();
+              t.updatedAt = System.currentTimeMillis();
+              t.batchId = batchId;
+              t.sortOrder = sortOrder++;
+              transfers.add(t);
             } else if (file.isFile()) {
-              flatFiles.add(file);
-            }
-          }
-
-          for (SmbFileItem file : flatFiles) {
-            if (file == null || file.getName() == null || !file.isFile()) continue;
-
-            // Determine the target directory: for files inside flattened directories,
-            // create subdirectories matching the remote structure relative to the original
-            // selection
-            DocumentFile targetDir = destDir;
-            String relativePath = getRelativeDownloadPath(file, files, destDir);
-            if (relativePath != null) {
-              targetDir = ensureSubDirectories(destDir, relativePath);
-              if (targetDir == null) {
+              String mimeType = "application/octet-stream";
+              DocumentFile localFile = destDir.createFile(mimeType, file.getName());
+              if (localFile == null) {
                 LogUtils.w(
-                    "FileOperationsViewModel", "Cannot create subdirectory for: " + file.getPath());
+                    "FileOperationsViewModel", "Cannot create local file: " + file.getName());
                 continue;
               }
-            }
 
-            String mimeType = "application/octet-stream";
-            DocumentFile localFile = targetDir.createFile(mimeType, file.getName());
-            if (localFile == null) {
-              LogUtils.w("FileOperationsViewModel", "Cannot create local file: " + file.getName());
-              continue;
+              PendingTransfer t = new PendingTransfer();
+              t.transferType = "DOWNLOAD";
+              t.localUri = localFile.getUri().toString();
+              t.remotePath = file.getPath();
+              t.connectionId = state.getConnection().getId();
+              t.displayName = file.getName();
+              t.mimeType = mimeType;
+              t.fileSize = file.getSize();
+              t.bytesTransferred = 0;
+              t.status = "PENDING";
+              t.createdAt = System.currentTimeMillis();
+              t.updatedAt = System.currentTimeMillis();
+              t.batchId = batchId;
+              t.sortOrder = sortOrder++;
+              transfers.add(t);
             }
-
-            PendingTransfer t = new PendingTransfer();
-            t.transferType = "DOWNLOAD";
-            t.localUri = localFile.getUri().toString();
-            t.remotePath = file.getPath();
-            t.connectionId = state.getConnection().getId();
-            t.displayName = file.getName();
-            t.mimeType = mimeType;
-            t.fileSize = file.getSize();
-            t.bytesTransferred = 0;
-            t.status = "PENDING";
-            t.createdAt = System.currentTimeMillis();
-            t.updatedAt = System.currentTimeMillis();
-            t.batchId = batchId;
-            t.sortOrder = sortOrder++;
-            transfers.add(t);
           }
 
           if (transfers.isEmpty()) {
@@ -1406,88 +1332,6 @@ public class FileOperationsViewModel extends ViewModel {
   int ensureMonotonicDownloadPct(int pct, int last) {
     pct = clampDownloadPct(pct);
     return Math.max(last, pct);
-  }
-
-  /**
-   * Recursively collects all files from a remote directory into the flat list. Each file retains
-   * its full remote path so that the relative structure can be reconstructed on the local side.
-   */
-  void flattenDirectoryForDownload(
-      @NonNull SmbFileItem directory,
-      @NonNull DocumentFile destDir,
-      @NonNull List<SmbFileItem> outFiles) {
-    if (state.getConnection() == null) return;
-    try {
-      List<SmbFileItem> children =
-          smbRepository.listFiles(state.getConnection(), directory.getPath());
-      for (SmbFileItem child : children) {
-        if (child == null || child.getName() == null) continue;
-        if (child.isDirectory()) {
-          flattenDirectoryForDownload(child, destDir, outFiles);
-        } else if (child.isFile()) {
-          outFiles.add(child);
-        }
-      }
-    } catch (Exception e) {
-      LogUtils.e(
-          "FileOperationsViewModel",
-          "Failed to list directory for download: " + directory.getPath() + " - " + e.getMessage());
-    }
-  }
-
-  /**
-   * Determines the relative subdirectory path for a file that was resolved from a selected
-   * directory. Returns {@code null} if the file was directly selected (not from a directory).
-   */
-  @Nullable
-  String getRelativeDownloadPath(
-      @NonNull SmbFileItem file,
-      @NonNull List<SmbFileItem> originalSelection,
-      @NonNull DocumentFile destDir) {
-    String filePath = file.getPath();
-    for (SmbFileItem selected : originalSelection) {
-      if (selected == null || !selected.isDirectory() || selected.getPath() == null) continue;
-      String dirPath = selected.getPath();
-      // Normalize: ensure dirPath ends with separator
-      if (!dirPath.endsWith("/") && !dirPath.endsWith("\\")) {
-        dirPath = dirPath + "/";
-      }
-      if (filePath.startsWith(dirPath)) {
-        // Relative path from the directory root, including the directory name itself
-        String relative = filePath.substring(dirPath.length());
-        // Remove the file name to get just the directory portion
-        int lastSep = Math.max(relative.lastIndexOf('/'), relative.lastIndexOf('\\'));
-        String relativeDir =
-            selected.getName() + (lastSep > 0 ? "/" + relative.substring(0, lastSep) : "");
-        return relativeDir;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Creates nested subdirectories under the given parent DocumentFile. Path segments are separated
-   * by '/'.
-   */
-  @Nullable
-  DocumentFile ensureSubDirectories(@NonNull DocumentFile parent, @NonNull String relativePath) {
-    String[] segments = relativePath.split("/");
-    DocumentFile current = parent;
-    for (String segment : segments) {
-      if (segment == null || segment.isEmpty()) continue;
-      DocumentFile existing = current.findFile(segment);
-      if (existing != null && existing.isDirectory()) {
-        current = existing;
-      } else {
-        DocumentFile created = current.createDirectory(segment);
-        if (created == null) {
-          LogUtils.w("FileOperationsViewModel", "Failed to create subdirectory: " + segment);
-          return null;
-        }
-        current = created;
-      }
-    }
-    return current;
   }
 
   /** Zeitbasierter Gate für Progress-Events. */

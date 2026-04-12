@@ -118,7 +118,7 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
                                   .build())
                           .build();
                   WorkManager.getInstance(this)
-                      .enqueueUniqueWork(TRANSFER_WORK_NAME, ExistingWorkPolicy.REPLACE, request);
+                      .enqueueUniqueWork(TRANSFER_WORK_NAME, ExistingWorkPolicy.KEEP, request);
                 } else {
                   LogUtils.i("SambaLiteApp", "No pending transfers found");
                 }

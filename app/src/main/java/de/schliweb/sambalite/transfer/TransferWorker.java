@@ -22,6 +22,7 @@ import android.os.Build;
 import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.work.ForegroundInfo;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -38,6 +39,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
+import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
@@ -50,6 +52,7 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -221,6 +224,13 @@ public class TransferWorker extends Worker {
           return Result.retry();
         }
 
+        // Stop processing further connections when disk is full
+        if (!hasEnoughDiskSpace()) {
+          LogUtils.e(TAG, "Insufficient disk space \u2013 stopping transfer queue");
+          cleanup(dao);
+          return Result.failure();
+        }
+
         SmbConnection connection = connectionCache.get(connectionId);
         if (connection == null) {
           LogUtils.e(TAG, "Connection not found: " + connectionId);
@@ -246,6 +256,10 @@ public class TransferWorker extends Worker {
     cleanup(dao);
 
     if (anyFailure) {
+      if (!hasEnoughDiskSpace()) {
+        LogUtils.e(TAG, "Disk full after failures \u2013 returning failure instead of retry");
+        return Result.failure();
+      }
       LogUtils.w(TAG, "Some transfers failed, requesting retry");
       return Result.retry();
     }
@@ -309,6 +323,15 @@ public class TransferWorker extends Worker {
               return false;
             }
 
+            // Check disk space before each transfer to avoid wasting bandwidth
+            if (!hasEnoughDiskSpace()) {
+              LogUtils.e(
+                  TAG,
+                  "Insufficient disk space \u2013 aborting remaining transfers for connection: "
+                      + connection.getId());
+              break;
+            }
+
             boolean success = processTransfer(dao, share, transfer);
             if (!success) {
               allSuccess = false;
@@ -320,16 +343,28 @@ public class TransferWorker extends Worker {
                     "DiskShare disconnected, aborting batch for connection: " + connection.getId());
                 break;
               }
+              // If disk is full, stop the entire batch immediately
+              if (!hasEnoughDiskSpace()) {
+                LogUtils.e(
+                    TAG,
+                    "Disk full after failed transfer \u2013 aborting batch for connection: "
+                        + connection.getId());
+                break;
+              }
             }
           }
         }
       }
     } catch (Exception e) {
       LogUtils.e(TAG, "Connection error for " + connection.getId() + ": " + e.getMessage());
-      for (PendingTransfer t : transfers) {
-        if ("ACTIVE".equals(t.status) || "PENDING".equals(t.status)) {
-          dao.markFailed(t.id, "Connection error: " + e.getMessage(), System.currentTimeMillis());
+      try {
+        for (PendingTransfer t : transfers) {
+          if ("ACTIVE".equals(t.status) || "PENDING".equals(t.status)) {
+            dao.markFailed(t.id, "Connection error: " + e.getMessage(), System.currentTimeMillis());
+          }
         }
+      } catch (Exception dbEx) {
+        LogUtils.e(TAG, "Could not update transfer status (disk/DB full?): " + dbEx.getMessage());
       }
       return false;
     }
@@ -345,11 +380,17 @@ public class TransferWorker extends Worker {
   private boolean processTransfer(
       PendingTransferDao dao, DiskShare share, PendingTransfer transfer) {
     dao.updateStatus(transfer.id, "ACTIVE", System.currentTimeMillis());
-    updateNotification("Übertragung läuft…", transfer.displayName);
+    updateNotification(
+        getApplicationContext().getString(R.string.transfer_title), transfer.displayName);
 
     try {
       if ("UPLOAD".equals(transfer.transferType)) {
         processUpload(dao, share, transfer);
+      } else if ("DOWNLOAD_DIRECTORY".equals(transfer.transferType)) {
+        processDirectoryDownload(dao, share, transfer);
+        // Directory placeholder is deleted inside processDirectoryDownload;
+        // skip normal completion handling.
+        return true;
       } else {
         processDownload(dao, share, transfer);
       }
@@ -635,6 +676,122 @@ public class TransferWorker extends Worker {
     }
   }
 
+  /**
+   * Resolves a DOWNLOAD_DIRECTORY transfer by recursively listing the remote directory and
+   * enqueuing individual DOWNLOAD transfers for each file found. The directory transfer itself is
+   * marked as COMPLETED once all child transfers have been enqueued. This runs inside the worker
+   * which has its own SMB connection, avoiding dependency on the UI-layer SMB session.
+   */
+  private void processDirectoryDownload(
+      PendingTransferDao dao, DiskShare share, PendingTransfer transfer) throws Exception {
+    Uri destFolderUri = Uri.parse(transfer.localUri);
+    DocumentFile destDir = DocumentFile.fromTreeUri(getApplicationContext(), destFolderUri);
+    if (destDir == null || !destDir.isDirectory()) {
+      throw new IOException("Invalid destination folder: " + transfer.localUri);
+    }
+
+    // Create a subdirectory matching the remote directory name
+    DocumentFile subDir = destDir.findFile(transfer.displayName);
+    if (subDir == null || !subDir.isDirectory()) {
+      subDir = destDir.createDirectory(transfer.displayName);
+    }
+    if (subDir == null) {
+      throw new IOException("Cannot create local directory: " + transfer.displayName);
+    }
+
+    List<PendingTransfer> childTransfers = new ArrayList<>();
+    collectDirectoryFiles(
+        share,
+        transfer.remotePath,
+        subDir,
+        transfer.connectionId,
+        transfer.batchId,
+        childTransfers);
+
+    if (!childTransfers.isEmpty()) {
+      dao.insertAll(childTransfers);
+      LogUtils.i(
+          TAG,
+          "Directory resolved: "
+              + transfer.displayName
+              + " -> "
+              + childTransfers.size()
+              + " files enqueued");
+    } else {
+      LogUtils.i(TAG, "Directory was empty: " + transfer.displayName);
+    }
+
+    // Remove the directory placeholder so only individual files are visible in the queue
+    dao.deleteByIds(java.util.Collections.singletonList(transfer.id));
+  }
+
+  /**
+   * Recursively collects all files from a remote directory and creates corresponding SAF documents
+   * and PendingTransfer entries.
+   */
+  private void collectDirectoryFiles(
+      DiskShare share,
+      String remotePath,
+      DocumentFile localDir,
+      String connectionId,
+      String batchId,
+      List<PendingTransfer> outTransfers)
+      throws IOException {
+    List<com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation> entries;
+    try {
+      entries = share.list(remotePath);
+    } catch (Exception e) {
+      throw new IOException("Failed to list remote directory: " + remotePath, e);
+    }
+
+    for (com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation entry : entries) {
+      String name = entry.getFileName();
+      if (".".equals(name) || "..".equals(name)) continue;
+
+      String childPath =
+          remotePath.endsWith("/") || remotePath.endsWith("\\")
+              ? remotePath + name
+              : remotePath + "\\" + name;
+
+      boolean isDir =
+          (entry.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
+
+      if (isDir) {
+        DocumentFile childDir = localDir.findFile(name);
+        if (childDir == null || !childDir.isDirectory()) {
+          childDir = localDir.createDirectory(name);
+        }
+        if (childDir == null) {
+          LogUtils.w(TAG, "Cannot create local subdirectory: " + name);
+          continue;
+        }
+        collectDirectoryFiles(share, childPath, childDir, connectionId, batchId, outTransfers);
+      } else {
+        DocumentFile localFile = localDir.createFile("application/octet-stream", name);
+        if (localFile == null) {
+          LogUtils.w(TAG, "Cannot create local file for download: " + name);
+          continue;
+        }
+
+        PendingTransfer t = new PendingTransfer();
+        t.transferType = "DOWNLOAD";
+        t.localUri = localFile.getUri().toString();
+        t.remotePath = childPath;
+        t.connectionId = connectionId;
+        t.displayName = name;
+        t.mimeType = "application/octet-stream";
+        t.fileSize = entry.getEndOfFile();
+        t.bytesTransferred = 0;
+        t.status = "PENDING";
+        t.createdAt = System.currentTimeMillis();
+        t.updatedAt = System.currentTimeMillis();
+        t.batchId = batchId;
+        t.sortOrder = outTransfers.size();
+        outTransfers.add(t);
+      }
+    }
+  }
+
   /** Downloads a file from SMB share directly to the local SAF URI. */
   private void processDownload(PendingTransferDao dao, DiskShare share, PendingTransfer transfer)
       throws Exception {
@@ -844,7 +1001,7 @@ public class TransferWorker extends Worker {
       int pct = (int) (transfer.bytesTransferred * 100 / transfer.fileSize);
       content = transfer.displayName + " • " + pct + "%";
     }
-    updateNotification("Übertragung läuft…", content);
+    updateNotification(getApplicationContext().getString(R.string.transfer_title), content);
   }
 
   /** Skips exactly {@code n} bytes from the input stream. Returns the actual number skipped. */
@@ -1018,7 +1175,11 @@ public class TransferWorker extends Worker {
    * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
    */
   private boolean hasEnoughDiskSpace() {
-    return EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
+    boolean internalOk =
+        EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
+    boolean externalOk =
+        EnhancedFileUtils.hasEnoughDiskSpace(android.os.Environment.getExternalStorageDirectory());
+    return internalOk && externalOk;
   }
 
   private AuthenticationContext createAuthContext(SmbConnection connection) {
