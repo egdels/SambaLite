@@ -770,8 +770,8 @@ public class FileBrowserActivity extends AppCompatActivity
         new DialogController.SyncSetupCallback() {
           @Override
           public void onSyncSetupRequested(
-              SyncDirection direction, int intervalMinutes, String remotePath) {
-            handleSyncSetupConfirmed(direction, intervalMinutes, remotePath);
+              SyncDirection direction, int intervalMinutes, String remotePath, boolean wifiOnly) {
+            handleSyncSetupConfirmed(direction, intervalMinutes, remotePath, wifiOnly);
           }
 
           @Override
@@ -1706,7 +1706,8 @@ public class FileBrowserActivity extends AppCompatActivity
   /** Handles the sync setup confirmation from the dialog. */
   private static final int MAX_SYNC_CONFIGS = 5;
 
-  void handleSyncSetupConfirmed(SyncDirection direction, int intervalMinutes, String remotePath) {
+  void handleSyncSetupConfirmed(
+      SyncDirection direction, int intervalMinutes, String remotePath, boolean wifiOnly) {
     Uri folderUri = uiState.getSyncFolderUri();
     if (folderUri == null) {
       progressController.showError(getString(R.string.sync_select_folder_first), null);
@@ -1758,7 +1759,13 @@ public class FileBrowserActivity extends AppCompatActivity
     }
 
     syncManager.addSyncConfig(
-        connection.getId(), folderUri, remotePath, displayName, direction, intervalMinutes);
+        connection.getId(),
+        folderUri,
+        remotePath,
+        displayName,
+        direction,
+        intervalMinutes,
+        wifiOnly);
 
     progressController.showSuccess(getString(R.string.sync_config_saved));
 

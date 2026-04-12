@@ -727,7 +727,10 @@ public class DialogController {
      * @param remotePath the remote path
      */
     void onSyncSetupRequested(
-        @NonNull SyncDirection direction, int intervalMinutes, @NonNull String remotePath);
+        @NonNull SyncDirection direction,
+        int intervalMinutes,
+        @NonNull String remotePath,
+        boolean wifiOnly);
 
     /** Called when the user wants to select a local folder for sync. */
     void onSyncFolderPickRequested();
@@ -748,6 +751,8 @@ public class DialogController {
 
     RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
     Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
+    com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
+        dialogView.findViewById(R.id.sync_wifi_only_switch);
     TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
@@ -805,11 +810,15 @@ public class DialogController {
               // Get interval
               int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
 
+              // Get wifiOnly
+              boolean wifiOnly = wifiOnlySwitch.isChecked();
+
               // Get remote path
               String remotePath = remotePathField.getText().toString().trim();
 
               if (syncSetupCallback != null) {
-                syncSetupCallback.onSyncSetupRequested(direction, intervalMinutes, remotePath);
+                syncSetupCallback.onSyncSetupRequested(
+                    direction, intervalMinutes, remotePath, wifiOnly);
               }
             })
         .setNegativeButton(R.string.cancel, null)
@@ -831,6 +840,8 @@ public class DialogController {
 
     RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
     Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
+    com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
+        dialogView.findViewById(R.id.sync_wifi_only_switch);
     TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
@@ -883,6 +894,9 @@ public class DialogController {
     }
     intervalSpinner.setSelection(selectedIndex);
 
+    // Pre-fill wifiOnly
+    wifiOnlySwitch.setChecked(config.isWifiOnly());
+
     // Pre-fill local folder display
     if (config.getLocalFolderDisplayName() != null
         && !config.getLocalFolderDisplayName().isEmpty()) {
@@ -922,11 +936,15 @@ public class DialogController {
               // Get interval
               int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
 
+              // Get wifiOnly
+              boolean wifiOnly = wifiOnlySwitch.isChecked();
+
               // Get remote path
               String remotePath = remotePathField.getText().toString().trim();
 
               if (syncSetupCallback != null) {
-                syncSetupCallback.onSyncSetupRequested(direction, intervalMinutes, remotePath);
+                syncSetupCallback.onSyncSetupRequested(
+                    direction, intervalMinutes, remotePath, wifiOnly);
               }
             })
         .setNegativeButton(

@@ -309,6 +309,7 @@
     <string name="sync_direction_local_to_remote">Local → Distant</string>
     <string name="sync_direction_remote_to_local">Distant → Local</string>
     <string name="sync_direction_bidirectional">Bidirectionnel</string>
+    <string name="sync_wifi_only">WiFi uniquement</string>
     <string name="sync_interval">Intervalle de synchronisation</string>
     <string name="sync_interval_manual">Manuel uniquement</string>
     <string name="sync_interval_15min">Toutes les 15 minutes</string>

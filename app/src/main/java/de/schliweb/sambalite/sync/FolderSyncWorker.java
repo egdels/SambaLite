@@ -14,6 +14,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.ServiceInfo;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import androidx.annotation.NonNull;
@@ -85,8 +88,11 @@ public class FolderSyncWorker extends Worker {
     Context context = getApplicationContext();
 
     NotificationChannel channel =
-        new NotificationChannel(SYNC_CHANNEL_ID, "Folder Sync", NotificationManager.IMPORTANCE_LOW);
-    channel.setDescription("Shows the status of folder sync operations");
+        new NotificationChannel(
+            SYNC_CHANNEL_ID,
+            context.getString(de.schliweb.sambalite.R.string.your_folder_syncs),
+            NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription(context.getString(de.schliweb.sambalite.R.string.sync_setup_subtitle));
     channel.setShowBadge(false);
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     if (manager != null) {
@@ -95,7 +101,7 @@ public class FolderSyncWorker extends Worker {
 
     Notification notification =
         new NotificationCompat.Builder(context, SYNC_CHANNEL_ID)
-            .setContentTitle("Synchronisierung läuft…")
+            .setContentTitle(context.getString(de.schliweb.sambalite.R.string.sync_running))
             .setSmallIcon(de.schliweb.sambalite.R.drawable.ic_notification)
             .setOngoing(true)
             .setSilent(true)
@@ -194,6 +200,16 @@ public class FolderSyncWorker extends Worker {
       SmbConnection connection = connectionMap.get(config.getConnectionId());
       if (connection == null) {
         LogUtils.w(TAG, "Connection not found for config: " + config.getId());
+        continue;
+      }
+
+      // Check if sync is restricted to WiFi only
+      if (config.isWifiOnly() && !isConnectedToWifi()) {
+        LogUtils.i(
+            TAG,
+            "Skipping config "
+                + config.getId()
+                + " because WiFi is not connected and wifiOnly is enabled");
         continue;
       }
 
@@ -810,5 +826,21 @@ public class FolderSyncWorker extends Worker {
   /** Returns a MIME type for a file based on its extension. */
   String getMimeType(String fileName) {
     return de.schliweb.sambalite.util.MimeTypeUtils.getMimeType(fileName);
+  }
+
+  /** Checks if the device is currently connected to a WiFi network. */
+  boolean isConnectedToWifi() {
+    ConnectivityManager cm =
+        (ConnectivityManager)
+            getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+    if (cm == null) return false;
+
+    Network activeNetwork = cm.getActiveNetwork();
+    if (activeNetwork == null) return false;
+
+    NetworkCapabilities caps = cm.getNetworkCapabilities(activeNetwork);
+    if (caps == null) return false;
+
+    return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
   }
 }

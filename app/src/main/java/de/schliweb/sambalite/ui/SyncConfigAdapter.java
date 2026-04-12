@@ -148,6 +148,7 @@ public class SyncConfigAdapter
     private final TextView remotePathTextView;
     private final TextView statusTextView;
     private final TextView directionTextView;
+    private final TextView wifiOnlyIndicator;
     private final View moreOptionsButton;
     private final View syncIcon;
     private final View syncProgressBar;
@@ -159,6 +160,7 @@ public class SyncConfigAdapter
       remotePathTextView = itemView.findViewById(R.id.sync_remote_path);
       statusTextView = itemView.findViewById(R.id.sync_status);
       directionTextView = itemView.findViewById(R.id.sync_direction);
+      wifiOnlyIndicator = itemView.findViewById(R.id.sync_wifi_only_indicator);
       moreOptionsButton = itemView.findViewById(R.id.sync_more_options);
       syncIcon = itemView.findViewById(R.id.sync_icon);
       syncProgressBar = itemView.findViewById(R.id.sync_progress);
@@ -209,6 +211,14 @@ public class SyncConfigAdapter
         directionText = context.getString(R.string.sync_direction_bidirectional);
       }
       directionTextView.setText(directionText);
+
+      // Update WiFi only indicator
+      if (config.isWifiOnly()) {
+        wifiOnlyIndicator.setText(R.string.sync_wifi_only);
+        wifiOnlyIndicator.setVisibility(View.VISIBLE);
+      } else {
+        wifiOnlyIndicator.setVisibility(View.GONE);
+      }
 
       // Update running status
       if (config.isRunning()) {

@@ -67,6 +67,36 @@ public class SyncManager {
       @NonNull String localFolderDisplayName,
       @NonNull SyncDirection direction,
       int intervalMinutes) {
+    return addSyncConfig(
+        connectionId,
+        localFolderUri,
+        remotePath,
+        localFolderDisplayName,
+        direction,
+        intervalMinutes,
+        false);
+  }
+
+  /**
+   * Adds a new sync configuration and schedules periodic sync.
+   *
+   * @param connectionId the connection ID to use
+   * @param localFolderUri the URI of the local folder (from SAF picker)
+   * @param remotePath the remote path on the SMB share
+   * @param localFolderDisplayName display name of the local folder
+   * @param direction the sync direction
+   * @param intervalMinutes the sync interval in minutes (minimum 15)
+   * @param wifiOnly whether to sync on WiFi only
+   * @return the saved SyncConfig
+   */
+  public @NonNull SyncConfig addSyncConfig(
+      @NonNull String connectionId,
+      @NonNull Uri localFolderUri,
+      @NonNull String remotePath,
+      @NonNull String localFolderDisplayName,
+      @NonNull SyncDirection direction,
+      int intervalMinutes,
+      boolean wifiOnly) {
     LogUtils.d(TAG, "Adding sync config for connection: " + connectionId);
 
     // Take persistable URI permission
@@ -89,6 +119,7 @@ public class SyncManager {
     config.setDirection(direction);
     config.setIntervalMinutes(
         intervalMinutes <= 0 ? 0 : Math.max(intervalMinutes, MIN_INTERVAL_MINUTES));
+    config.setWifiOnly(wifiOnly);
 
     SyncConfig saved = syncRepository.saveSyncConfig(config);
     LogUtils.i(TAG, "Sync config added: " + saved.getId());

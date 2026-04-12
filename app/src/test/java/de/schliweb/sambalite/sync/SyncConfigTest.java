@@ -26,6 +26,7 @@ public class SyncConfigTest {
     assertEquals(0, config.getLastSyncTimestamp());
     assertEquals(SyncDirection.BIDIRECTIONAL, config.getDirection());
     assertEquals(60, config.getIntervalMinutes());
+    assertFalse(config.isWifiOnly());
   }
 
   @Test
@@ -39,6 +40,7 @@ public class SyncConfigTest {
     config.setLastSyncTimestamp(123456789L);
     config.setDirection(SyncDirection.LOCAL_TO_REMOTE);
     config.setIntervalMinutes(30);
+    config.setWifiOnly(true);
 
     assertEquals("sync1", config.getId());
     assertEquals("conn1", config.getConnectionId());
@@ -49,6 +51,7 @@ public class SyncConfigTest {
     assertEquals(123456789L, config.getLastSyncTimestamp());
     assertEquals(SyncDirection.LOCAL_TO_REMOTE, config.getDirection());
     assertEquals(30, config.getIntervalMinutes());
+    assertTrue(config.isWifiOnly());
   }
 
   @Test
@@ -62,6 +65,7 @@ public class SyncConfigTest {
     assertTrue(result.contains("c1"));
     assertTrue(result.contains("/docs"));
     assertTrue(result.contains("BIDIRECTIONAL"));
+    assertTrue(result.contains("wifiOnly=false"));
   }
 
   @Test

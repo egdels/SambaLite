@@ -26,6 +26,7 @@ public class SyncConfig implements Serializable {
   private String remotePath;
   private String localFolderDisplayName;
   private boolean enabled = true;
+  private boolean wifiOnly = false;
   private long lastSyncTimestamp;
   private SyncDirection direction = SyncDirection.BIDIRECTIONAL;
   private int intervalMinutes = 60;
@@ -64,6 +65,8 @@ public class SyncConfig implements Serializable {
         + '\''
         + ", enabled="
         + enabled
+        + ", wifiOnly="
+        + wifiOnly
         + ", lastSyncTimestamp="
         + lastSyncTimestamp
         + ", direction="

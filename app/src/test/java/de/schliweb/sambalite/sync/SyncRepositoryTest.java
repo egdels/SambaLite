@@ -91,6 +91,7 @@ public class SyncRepositoryTest {
     config.setLastSyncTimestamp(1234567890L);
     config.setDirection(SyncDirection.LOCAL_TO_REMOTE);
     config.setIntervalMinutes(30);
+    config.setWifiOnly(true);
 
     repository.saveSyncConfig(config);
 
@@ -103,6 +104,7 @@ public class SyncRepositoryTest {
     assertEquals(1234567890L, loaded.getLastSyncTimestamp());
     assertEquals(SyncDirection.LOCAL_TO_REMOTE, loaded.getDirection());
     assertEquals(30, loaded.getIntervalMinutes());
+    assertTrue(loaded.isWifiOnly());
   }
 
   // =========================================================================

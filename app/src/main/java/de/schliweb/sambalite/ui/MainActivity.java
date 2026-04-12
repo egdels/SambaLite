@@ -645,6 +645,8 @@ public class MainActivity extends AppCompatActivity
     Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
     com.google.android.material.textfield.TextInputEditText remotePathField =
         dialogView.findViewById(R.id.sync_remote_path);
+    com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
+        dialogView.findViewById(R.id.sync_wifi_only_switch);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     Button selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
 
@@ -696,6 +698,9 @@ public class MainActivity extends AppCompatActivity
     }
     intervalSpinner.setSelection(selectedIndex);
 
+    // Pre-fill wifiOnly
+    wifiOnlySwitch.setChecked(config.isWifiOnly());
+
     // Pre-fill local folder display
     if (config.getLocalFolderDisplayName() != null
         && !config.getLocalFolderDisplayName().isEmpty()) {
@@ -723,9 +728,13 @@ public class MainActivity extends AppCompatActivity
               // Get interval
               int intervalMinutes = intervalValues[intervalSpinner.getSelectedItemPosition()];
 
+              // Get wifiOnly
+              boolean wifiOnly = wifiOnlySwitch.isChecked();
+
               // Update config
               config.setDirection(direction);
               config.setIntervalMinutes(intervalMinutes);
+              config.setWifiOnly(wifiOnly);
 
               viewModel.updateSyncConfig(config);
               EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));

@@ -259,6 +259,7 @@ public class SyncRepository {
     json.put("lastSyncTimestamp", config.getLastSyncTimestamp());
     json.put("direction", config.getDirection().name());
     json.put("intervalMinutes", config.getIntervalMinutes());
+    json.put("wifiOnly", config.isWifiOnly());
     return json;
   }
 
@@ -274,6 +275,7 @@ public class SyncRepository {
     config.setLastSyncTimestamp(json.optLong("lastSyncTimestamp", 0));
     config.setDirection(SyncDirection.valueOf(json.optString("direction", "BIDIRECTIONAL")));
     config.setIntervalMinutes(json.optInt("intervalMinutes", 60));
+    config.setWifiOnly(json.optBoolean("wifiOnly", false));
     return config;
   }
 }
