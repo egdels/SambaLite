@@ -236,8 +236,23 @@ public class DialogController {
         "DialogController",
         "Showing multi-select options dialog for " + selectedItems.size() + " items");
 
-    String[] options =
-        new String[] {context.getString(R.string.download), context.getString(R.string.delete)};
+    // Check if folders are in the selection
+    boolean hasFolders = false;
+    for (SmbFileItem item : selectedItems) {
+      if (item.isDirectory()) {
+        hasFolders = true;
+        break;
+      }
+    }
+
+    String downloadLabel = context.getString(R.string.download);
+    String deleteLabel = context.getString(R.string.delete);
+    if (hasFolders) {
+      String folderHint = context.getString(R.string.multi_download_includes_folders);
+      downloadLabel += "\n" + folderHint;
+    }
+
+    String[] options = new String[] {downloadLabel, deleteLabel};
 
     new MaterialAlertDialogBuilder(context)
         .setTitle(context.getString(R.string.multi_select_options))

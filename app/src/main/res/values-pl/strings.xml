@@ -256,6 +256,11 @@
     <string name="multi_no_files_selected">Nie wybrano żadnych plików</string>
     <string name="multi_only_files_delete">W trybie wielokrotnego wyboru można usuwać tylko pliki</string>
     <string name="multi_only_files_download">W trybie wielokrotnego wyboru można pobierać tylko pliki</string>
+    <string name="selection_files_and_folders">%1$d plików, %2$d folderów zaznaczonych</string>
+    <string name="selection_files_only">%1$d plików zaznaczonych</string>
+    <string name="selection_folders_only">%1$d folderów zaznaczonych</string>
+    <string name="multi_delete_includes_folders_warning">Zaznaczone foldery i cała ich zawartość zostaną trwale usunięte.</string>
+    <string name="multi_download_includes_folders">Foldery zostaną pobrane z całą ich zawartością.</string>
     <string name="preparing_ellipsis">Przygotowywanie…</string>
     <string name="deleting_ellipsis">Usuwanie…</string>
     <string name="cancelled_suffix">anulowano</string>

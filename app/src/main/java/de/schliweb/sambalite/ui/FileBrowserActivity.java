@@ -723,8 +723,21 @@ public class FileBrowserActivity extends AppCompatActivity
           // Update toolbar subtitle with selection count
           if (getSupportActionBar() != null) {
             if (fileListController.isSelectionMode() && selectionCount > 0) {
-              getSupportActionBar()
-                  .setSubtitle(selectionCount + " " + getString(R.string.selected));
+              int fileCount = 0;
+              int folderCount = 0;
+              for (SmbFileItem item : items) {
+                if (item.isDirectory()) folderCount++;
+                else fileCount++;
+              }
+              String subtitle;
+              if (fileCount > 0 && folderCount > 0) {
+                subtitle = getString(R.string.selection_files_and_folders, fileCount, folderCount);
+              } else if (folderCount > 0) {
+                subtitle = getString(R.string.selection_folders_only, folderCount);
+              } else {
+                subtitle = getString(R.string.selection_files_only, fileCount);
+              }
+              getSupportActionBar().setSubtitle(subtitle);
             } else {
               getSupportActionBar().setSubtitle(null);
             }

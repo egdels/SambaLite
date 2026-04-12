@@ -252,6 +252,11 @@
     <string name="multi_no_files_selected">Aucun fichier sélectionné</string>
     <string name="multi_only_files_delete">En mode multi-sélection, seuls les fichiers peuvent être supprimés</string>
     <string name="multi_only_files_download">En mode multi-sélection, seuls les fichiers peuvent être téléchargés</string>
+    <string name="selection_files_and_folders">%1$d fichiers, %2$d dossiers sélectionnés</string>
+    <string name="selection_files_only">%1$d fichiers sélectionnés</string>
+    <string name="selection_folders_only">%1$d dossiers sélectionnés</string>
+    <string name="multi_delete_includes_folders_warning">Les dossiers sélectionnés et tout leur contenu seront définitivement supprimés.</string>
+    <string name="multi_download_includes_folders">Les dossiers seront téléchargés avec tout leur contenu.</string>
     <string name="preparing_ellipsis">Préparation…</string>
     <string name="deleting_ellipsis">Suppression…</string>
     <string name="cancelled_suffix">annulé</string>

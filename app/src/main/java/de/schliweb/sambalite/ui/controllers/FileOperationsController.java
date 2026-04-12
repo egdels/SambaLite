@@ -684,24 +684,39 @@ public class FileOperationsController {
             context.getString(de.schliweb.sambalite.R.string.multi_no_files_selected));
       return;
     }
-    // Filter only regular files (ignore directories for v1)
+    // Filter files and directories with valid paths
     java.util.ArrayList<SmbFileItem> toProcess = new java.util.ArrayList<>();
     for (SmbFileItem f : files) {
-      if (f != null && f.isFile() && f.getPath() != null) toProcess.add(f);
+      if (f != null && (f.isFile() || f.isDirectory()) && f.getPath() != null) toProcess.add(f);
     }
     if (toProcess.isEmpty()) {
       if (progressCallback != null)
         progressCallback.showInfo(
-            context.getString(de.schliweb.sambalite.R.string.multi_only_files_delete));
+            context.getString(de.schliweb.sambalite.R.string.multi_no_files_selected));
       return;
     }
     final int total = toProcess.size();
     final String title = context.getString(de.schliweb.sambalite.R.string.delete);
-    final String confirmMsg =
+    String confirmMsg =
         context
             .getResources()
             .getQuantityString(
                 de.schliweb.sambalite.R.plurals.confirm_delete_multiple, total, total);
+
+    // Add folder warning if directories are selected
+    boolean hasFolders = false;
+    for (SmbFileItem f : toProcess) {
+      if (f.isDirectory()) {
+        hasFolders = true;
+        break;
+      }
+    }
+    if (hasFolders) {
+      confirmMsg +=
+          "\n\n"
+              + context.getString(
+                  de.schliweb.sambalite.R.string.multi_delete_includes_folders_warning);
+    }
 
     de.schliweb.sambalite.ui.dialogs.DialogHelper.showConfirmationDialog(
         context,
@@ -812,15 +827,15 @@ public class FileOperationsController {
             context.getString(de.schliweb.sambalite.R.string.multi_no_files_selected));
       return;
     }
-    // Filter to files only (ignore directories v1)
+    // Filter files and directories with valid paths
     java.util.ArrayList<SmbFileItem> toProcess = new java.util.ArrayList<>();
     for (SmbFileItem f : files) {
-      if (f != null && f.isFile() && f.getPath() != null) toProcess.add(f);
+      if (f != null && (f.isFile() || f.isDirectory()) && f.getPath() != null) toProcess.add(f);
     }
     if (toProcess.isEmpty()) {
       if (progressCallback != null)
         progressCallback.showInfo(
-            context.getString(de.schliweb.sambalite.R.string.multi_only_files_download));
+            context.getString(de.schliweb.sambalite.R.string.multi_no_files_selected));
       return;
     }
     // Store pending list in shared UI state and request a target folder

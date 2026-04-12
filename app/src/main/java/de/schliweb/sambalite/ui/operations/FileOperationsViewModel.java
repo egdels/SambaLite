@@ -1247,11 +1247,36 @@ public class FileOperationsViewModel extends ViewModel {
           List<PendingTransfer> transfers = new ArrayList<>();
           int sortOrder = 0;
 
+          // Flatten directories: resolve directory items into their contained files
+          List<SmbFileItem> flatFiles = new ArrayList<>();
           for (SmbFileItem file : files) {
+            if (file == null || file.getName() == null) continue;
+            if (file.isDirectory()) {
+              flattenDirectoryForDownload(file, destDir, flatFiles);
+            } else if (file.isFile()) {
+              flatFiles.add(file);
+            }
+          }
+
+          for (SmbFileItem file : flatFiles) {
             if (file == null || file.getName() == null || !file.isFile()) continue;
 
+            // Determine the target directory: for files inside flattened directories,
+            // create subdirectories matching the remote structure relative to the original
+            // selection
+            DocumentFile targetDir = destDir;
+            String relativePath = getRelativeDownloadPath(file, files, destDir);
+            if (relativePath != null) {
+              targetDir = ensureSubDirectories(destDir, relativePath);
+              if (targetDir == null) {
+                LogUtils.w(
+                    "FileOperationsViewModel", "Cannot create subdirectory for: " + file.getPath());
+                continue;
+              }
+            }
+
             String mimeType = "application/octet-stream";
-            DocumentFile localFile = destDir.createFile(mimeType, file.getName());
+            DocumentFile localFile = targetDir.createFile(mimeType, file.getName());
             if (localFile == null) {
               LogUtils.w("FileOperationsViewModel", "Cannot create local file: " + file.getName());
               continue;
@@ -1381,6 +1406,88 @@ public class FileOperationsViewModel extends ViewModel {
   int ensureMonotonicDownloadPct(int pct, int last) {
     pct = clampDownloadPct(pct);
     return Math.max(last, pct);
+  }
+
+  /**
+   * Recursively collects all files from a remote directory into the flat list. Each file retains
+   * its full remote path so that the relative structure can be reconstructed on the local side.
+   */
+  void flattenDirectoryForDownload(
+      @NonNull SmbFileItem directory,
+      @NonNull DocumentFile destDir,
+      @NonNull List<SmbFileItem> outFiles) {
+    if (state.getConnection() == null) return;
+    try {
+      List<SmbFileItem> children =
+          smbRepository.listFiles(state.getConnection(), directory.getPath());
+      for (SmbFileItem child : children) {
+        if (child == null || child.getName() == null) continue;
+        if (child.isDirectory()) {
+          flattenDirectoryForDownload(child, destDir, outFiles);
+        } else if (child.isFile()) {
+          outFiles.add(child);
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.e(
+          "FileOperationsViewModel",
+          "Failed to list directory for download: " + directory.getPath() + " - " + e.getMessage());
+    }
+  }
+
+  /**
+   * Determines the relative subdirectory path for a file that was resolved from a selected
+   * directory. Returns {@code null} if the file was directly selected (not from a directory).
+   */
+  @Nullable
+  String getRelativeDownloadPath(
+      @NonNull SmbFileItem file,
+      @NonNull List<SmbFileItem> originalSelection,
+      @NonNull DocumentFile destDir) {
+    String filePath = file.getPath();
+    for (SmbFileItem selected : originalSelection) {
+      if (selected == null || !selected.isDirectory() || selected.getPath() == null) continue;
+      String dirPath = selected.getPath();
+      // Normalize: ensure dirPath ends with separator
+      if (!dirPath.endsWith("/") && !dirPath.endsWith("\\")) {
+        dirPath = dirPath + "/";
+      }
+      if (filePath.startsWith(dirPath)) {
+        // Relative path from the directory root, including the directory name itself
+        String relative = filePath.substring(dirPath.length());
+        // Remove the file name to get just the directory portion
+        int lastSep = Math.max(relative.lastIndexOf('/'), relative.lastIndexOf('\\'));
+        String relativeDir =
+            selected.getName() + (lastSep > 0 ? "/" + relative.substring(0, lastSep) : "");
+        return relativeDir;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Creates nested subdirectories under the given parent DocumentFile. Path segments are separated
+   * by '/'.
+   */
+  @Nullable
+  DocumentFile ensureSubDirectories(@NonNull DocumentFile parent, @NonNull String relativePath) {
+    String[] segments = relativePath.split("/");
+    DocumentFile current = parent;
+    for (String segment : segments) {
+      if (segment == null || segment.isEmpty()) continue;
+      DocumentFile existing = current.findFile(segment);
+      if (existing != null && existing.isDirectory()) {
+        current = existing;
+      } else {
+        DocumentFile created = current.createDirectory(segment);
+        if (created == null) {
+          LogUtils.w("FileOperationsViewModel", "Failed to create subdirectory: " + segment);
+          return null;
+        }
+        current = created;
+      }
+    }
+    return current;
   }
 
   /** Zeitbasierter Gate für Progress-Events. */

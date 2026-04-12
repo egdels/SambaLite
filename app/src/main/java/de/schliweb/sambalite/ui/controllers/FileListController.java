@@ -207,9 +207,9 @@ public class FileListController
   public void onFileClick(@NonNull SmbFileItem file) {
     LogUtils.d("FileListController", "File clicked: " + file.getName());
 
-    // Selection mode: toggle selection for files, ignore directories.
+    // Selection mode: toggle selection for files and directories.
     if (selectionMode) {
-      if (file.isFile()) {
+      if (file.isFile() || file.isDirectory()) {
         toggleSelection(file);
       }
       return;
@@ -427,7 +427,7 @@ public class FileListController
   }
 
   public void toggleSelection(@NonNull SmbFileItem file) {
-    if (file == null || !file.isFile()) return;
+    if (file == null || (!file.isFile() && !file.isDirectory())) return;
     String path = file.getPath();
     if (path == null) return;
     if (selectedPaths.contains(path)) {
@@ -458,7 +458,7 @@ public class FileListController
   public void selectAllVisible() {
     List<SmbFileItem> files = adapter.getFiles();
     for (SmbFileItem f : files) {
-      if (f != null && f.isFile() && f.getPath() != null) {
+      if (f != null && (f.isFile() || f.isDirectory()) && f.getPath() != null) {
         selectedPaths.add(f.getPath());
       }
     }
@@ -492,7 +492,7 @@ public class FileListController
   public void onFileLongClick(@NonNull SmbFileItem file) {
     LogUtils.d(
         "FileListController", "File long-clicked: " + (file != null ? file.getName() : "null"));
-    if (file != null && file.isFile()) {
+    if (file != null && (file.isFile() || file.isDirectory())) {
       if (!selectionMode) {
         enableSelectionMode(true);
       }

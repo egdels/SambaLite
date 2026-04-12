@@ -246,6 +246,11 @@
     <string name="multi_no_files_selected">未选择任何文件</string>
     <string name="multi_only_files_delete">多选模式下只能删除文件</string>
     <string name="multi_only_files_download">多选模式下只能下载文件</string>
+    <string name="selection_files_and_folders">已选择 %1$d 个文件、%2$d 个文件夹</string>
+    <string name="selection_files_only">已选择 %1$d 个文件</string>
+    <string name="selection_folders_only">已选择 %1$d 个文件夹</string>
+    <string name="multi_delete_includes_folders_warning">所选文件夹及其全部内容将被永久删除。</string>
+    <string name="multi_download_includes_folders">文件夹将连同其全部内容一起下载。</string>
     <string name="preparing_ellipsis">正在准备…</string>
     <string name="deleting_ellipsis">正在删除…</string>
     <string name="cancelled_suffix">已取消</string>

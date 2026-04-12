@@ -225,6 +225,11 @@
     <string name="multi_no_files_selected">No files selected</string>
     <string name="multi_only_files_delete">Only files can be deleted in multi-select</string>
     <string name="multi_only_files_download">Only files can be downloaded in multi-select</string>
+    <string name="selection_files_and_folders">%1$d files, %2$d folders selected</string>
+    <string name="selection_files_only">%1$d files selected</string>
+    <string name="selection_folders_only">%1$d folders selected</string>
+    <string name="multi_delete_includes_folders_warning">Selected folders and all their contents will be permanently deleted.</string>
+    <string name="multi_download_includes_folders">Folders will be downloaded with their full contents.</string>
     <string name="preparing_ellipsis">Preparing…</string>
     <string name="deleting_ellipsis">Deleting…</string>
     <string name="cancelled_suffix">cancelled</string>
