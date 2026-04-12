@@ -241,4 +241,24 @@ public interface PendingTransferDao {
           + " AND transfer_type = 'DOWNLOAD' AND status IN ('PENDING', 'ACTIVE')")
   @NonNull
   List<PendingTransfer> getActiveDownloadsForConnection(@NonNull String connectionId);
+
+  /**
+   * Returns remote paths of active/pending uploads for a connection (lightweight query for UI
+   * indicators, avoids CursorWindow overflow on large queues).
+   */
+  @Query(
+      "SELECT DISTINCT remote_path FROM pending_transfer WHERE connection_id = :connectionId"
+          + " AND transfer_type = 'UPLOAD' AND status IN ('PENDING', 'ACTIVE')")
+  @NonNull
+  List<String> getActiveUploadPathsForConnection(@NonNull String connectionId);
+
+  /**
+   * Returns remote paths of active/pending downloads for a connection (lightweight query for UI
+   * indicators, avoids CursorWindow overflow on large queues).
+   */
+  @Query(
+      "SELECT DISTINCT remote_path FROM pending_transfer WHERE connection_id = :connectionId"
+          + " AND transfer_type = 'DOWNLOAD' AND status IN ('PENDING', 'ACTIVE')")
+  @NonNull
+  List<String> getActiveDownloadPathsForConnection(@NonNull String connectionId);
 }

@@ -18,7 +18,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.sync.SyncDirection;
-import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
@@ -379,20 +378,10 @@ public class FileListController
             () -> {
               var dao =
                   TransferDatabase.getInstance(recyclerView.getContext()).pendingTransferDao();
-              List<PendingTransfer> uploads = dao.getActiveUploadsForConnection(connectionId);
-              Set<String> uploadPaths = new HashSet<>();
-              for (PendingTransfer t : uploads) {
-                if (t.remotePath != null && !t.remotePath.isEmpty()) {
-                  uploadPaths.add(t.remotePath);
-                }
-              }
-              List<PendingTransfer> downloads = dao.getActiveDownloadsForConnection(connectionId);
-              Set<String> downloadPaths = new HashSet<>();
-              for (PendingTransfer t : downloads) {
-                if (t.remotePath != null && !t.remotePath.isEmpty()) {
-                  downloadPaths.add(t.remotePath);
-                }
-              }
+              Set<String> uploadPaths =
+                  new HashSet<>(dao.getActiveUploadPathsForConnection(connectionId));
+              Set<String> downloadPaths =
+                  new HashSet<>(dao.getActiveDownloadPathsForConnection(connectionId));
               recyclerView.post(
                   () -> {
                     adapter.setActiveUploadPaths(uploadPaths);
