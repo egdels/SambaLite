@@ -301,20 +301,61 @@ public class SystemMonitorActivity extends AppCompatActivity {
   }
 
   private String getPerformanceMetrics() {
+    StringBuilder metrics = new StringBuilder();
+    metrics.append("=== Performance Metrics ===\n");
+    metrics.append("Memory: ").append(SimplePerformanceMonitor.getMemoryInfo()).append("\n");
+    metrics.append("Device: ").append(SimplePerformanceMonitor.getDeviceInfo()).append("\n");
+    metrics
+        .append("Performance: ")
+        .append(SimplePerformanceMonitor.getPerformanceStats())
+        .append("\n");
 
-    String metrics =
-        "=== Performance Metrics ===\n"
-            + "Memory: "
-            + SimplePerformanceMonitor.getMemoryInfo()
-            + "\n"
-            + "Device: "
-            + SimplePerformanceMonitor.getDeviceInfo()
-            + "\n"
-            + "Performance: "
-            + SimplePerformanceMonitor.getPerformanceStats()
-            + "\n";
+    // Disk space information
+    metrics.append("\n=== Disk Space ===\n");
 
-    return metrics;
+    // Internal storage
+    java.io.File internalDir = getFilesDir();
+    long internalFree = internalDir.getFreeSpace();
+    long internalTotal = internalDir.getTotalSpace();
+    long internalUsed = internalTotal - internalFree;
+    metrics
+        .append("Internal Storage:\n")
+        .append("- Used: ")
+        .append(EnhancedFileUtils.formatFileSize(internalUsed))
+        .append(" / ")
+        .append(EnhancedFileUtils.formatFileSize(internalTotal))
+        .append("\n")
+        .append("- Free: ")
+        .append(EnhancedFileUtils.formatFileSize(internalFree))
+        .append("\n");
+
+    // External storage
+    java.io.File externalDir = android.os.Environment.getExternalStorageDirectory();
+    long externalFree = externalDir.getFreeSpace();
+    long externalTotal = externalDir.getTotalSpace();
+    long externalUsed = externalTotal - externalFree;
+    metrics
+        .append("External Storage:\n")
+        .append("- Used: ")
+        .append(EnhancedFileUtils.formatFileSize(externalUsed))
+        .append(" / ")
+        .append(EnhancedFileUtils.formatFileSize(externalTotal))
+        .append("\n")
+        .append("- Free: ")
+        .append(EnhancedFileUtils.formatFileSize(externalFree))
+        .append("\n");
+
+    // Minimum required space warning
+    boolean internalOk = EnhancedFileUtils.hasEnoughDiskSpace(internalDir);
+    boolean externalOk = EnhancedFileUtils.hasEnoughDiskSpace(externalDir);
+    if (!internalOk || !externalOk) {
+      metrics.append("\n⚠ WARNING: Low disk space");
+      if (!internalOk) metrics.append(" (internal)");
+      if (!externalOk) metrics.append(" (external)");
+      metrics.append("\n");
+    }
+
+    return metrics.toString();
   }
 
   private String getCacheStatistics(SambaLiteApp app) {
