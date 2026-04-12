@@ -66,21 +66,16 @@ public class TransferItemAdapter
         @Override
         public boolean areItemsTheSame(
             @NonNull PendingTransfer oldItem, @NonNull PendingTransfer newItem) {
-          boolean same = oldItem.id == newItem.id;
-          Log.v(TAG, "areItemsTheSame: old=" + oldItem.id + ", new=" + newItem.id + " -> " + same);
-          return same;
+          return oldItem.id == newItem.id;
         }
 
         @Override
         public boolean areContentsTheSame(
             @NonNull PendingTransfer oldItem, @NonNull PendingTransfer newItem) {
-          boolean same =
-              oldItem.id == newItem.id
-                  && oldItem.bytesTransferred == newItem.bytesTransferred
-                  && oldItem.status.equals(newItem.status)
-                  && oldItem.retryCount == newItem.retryCount;
-          Log.v(TAG, "areContentsTheSame: id=" + oldItem.id + " -> " + same);
-          return same;
+          return oldItem.id == newItem.id
+              && oldItem.bytesTransferred == newItem.bytesTransferred
+              && oldItem.status.equals(newItem.status)
+              && oldItem.retryCount == newItem.retryCount;
         }
       };
 
