@@ -5,6 +5,24 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-04-12
+
+### Added
+- **Directory Multi-Select Operations**: Directories can now be selected in multi-select mode. Multi-select delete supports directories with a confirmation warning, and multi-select download supports recursive directory downloads.
+- **WiFi-Only Folder Sync**: New `wifiOnly` option for folder sync configurations. When enabled, `FolderSyncWorker` checks the WiFi constraint before syncing, and `SyncManager` sets `NetworkType.UNMETERED`. A MaterialSwitch is available in the sync setup and edit dialogs, and the WiFi-Only status is displayed in the sync configuration overview.
+- **SMB Port Support**: Custom SMB port can now be configured per connection in the connection model and repository.
+- **Connection Cleanup**: New `closeConnections()` method in `SmbRepository` for explicit connection lifecycle management.
+- **Testcontainers Integration**: Added Testcontainers support with a Samba container for realistic SMB integration testing in CI.
+- **Comprehensive Test Suite**: New integration and unit tests for WiFi constraints, end-to-end sync workflows, transfer queue integration, error recovery, search functionality, and notification handling.
+- Translations for directory selection and WiFi-Only strings in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- **Selection Subtitle**: Toolbar subtitle now shows the count of selected files and directories separately during multi-select mode.
+- **Disk Space Check Refactoring**: Moved disk space check logic to `EnhancedFileUtils` for better separation of concerns.
+- **Test Infrastructure Overhaul**: Reworked `SmbTestHelper` and `SambaContainer`, updated and stabilized existing repository tests, and updated test documentation with the new test structure.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.3.0] - 2026-04-06
 
 ### Added

@@ -1,0 +1,5 @@
+- NEW: Select & manage directories in multi-select mode (delete, download).
+- NEW: WiFi-Only option for folder sync configurations.
+- Explicit connection cleanup for better stability.
+- Toolbar subtitle shows file/directory count separately.
+- Disk space check refactored for better reliability.
