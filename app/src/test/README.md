@@ -7,10 +7,11 @@ This directory contains test classes and utilities for testing the SambaLite app
 The test suite includes:
 
 1. A hybrid implementation of a Samba server for testing (`SambaContainer`), which automatically chooses between Docker (Testcontainers) and an in-memory mock.
-2. Basic tests for server connectivity (`SambaServerTest`).
-3. Comprehensive tests for the `SmbRepository` implementation (`SmbRepositoryTest`).
-4. Advanced integrity and performance tests in the package `de.schliweb.sambalite.data.repository`.
-5. A central `SmbTestHelper` for abstracting server provisioning.
+2. Comprehensive tests for the `SmbRepository` implementation (`SmbRepositoryTest`).
+3. Advanced edge case and error handling tests (`SmbRepositoryAdvancedTest`).
+4. Transactional operation tests (`SmbTransactionalTest`).
+5. File integrity tests (`FileIntegrityTest`).
+6. A central `SmbTestHelper` for abstracting server provisioning.
 
 ## Samba Server Testing Framework
 
@@ -27,15 +28,17 @@ Further details can be found in the central documentation at [docs/SAMBA_TESTING
 
 The tests use the `SmbTestHelper` with `AUTO_DETECT` mode.
 
-### SambaServerTest
-Validates the basic reachability of the server (Docker or Mock).
+### SmbRepositoryTest
+CRUD operations: connect, list, upload, download, delete, rename, createDirectory, fileExists, downloadFolder.
 
-### SmbRepository Tests
-The project contains extensive test suites to ensure data integrity:
-- `SmbRepositoryTest`: CRUD operations.
-- `SmbRepositoryAdvancedIntegrityTest`: Concurrency, ZIP handling, and deep structures.
-- `SmbRepositoryNetworkIntegrityTest`: Error injection and timeout handling.
-- `SmbRepositoryPerformanceTest`: Throughput measurements.
+### SmbRepositoryAdvancedTest
+Edge cases and error handling: special characters in filenames, deep nested directories, empty files, large files, concurrent operations, invalid credentials, invalid share names, file name collisions, very long file names.
+
+### SmbTransactionalTest
+Transactional operations: single file upload/download, batch upload/download, folder upload/download, network break retry.
+
+### FileIntegrityTest
+File integrity verification: MD5 hash comparison after upload/download, rename, folder operations, and multi-step operation sequences.
 
 ## Usage
 
@@ -66,12 +69,12 @@ The CI is configured to use Docker for all integration tests.
 
 When adding new tests:
 
-1. Follow the pattern established in the existing test classes
+1. Follow the pattern established in `SmbTransactionalTest` (no catch-all blocks, synchronous BackgroundSmbManager mock)
 2. Use the `SambaContainer` to set up the test environment
 3. Create test files and directories as needed
 4. Include appropriate assertions to verify the expected behavior
-5. Add debug logging to help diagnose issues
-6. Handle exceptions appropriately
+5. Declare exceptions in the test method signature (`throws Exception`) instead of catching them
+6. Configure the `BackgroundSmbManager` mock to execute operations synchronously
 
 ## Troubleshooting
 

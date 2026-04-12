@@ -8,9 +8,10 @@ import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
 import de.schliweb.sambalite.test.mock.MockSmbServer;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SambaContainer;
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,8 +47,8 @@ public class SmbTestHelper {
 
   private boolean isDockerAvailable() {
     try {
-      // Use reflection or check SambaContainer's logic
-      return new SambaContainer().getPort() > 0;
+      org.testcontainers.DockerClientFactory.instance().client();
+      return true;
     } catch (Throwable e) {
       return false;
     }
@@ -56,9 +57,16 @@ public class SmbTestHelper {
   private void setupContainer() {
     container = new SambaContainer()
         .withUsername("testuser")
-        .withPassword("testpass123")
+        .withPassword("testpassword")
         .withShare("testshare", "/testshare");
     container.start();
+
+    // Wait for Samba service to be fully ready (port listening != service ready)
+    try {
+      Thread.sleep(3000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
 
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
     CompletableFuture<Object> failedFuture = new CompletableFuture<>();
@@ -127,10 +135,17 @@ public class SmbTestHelper {
       return mockServer.downloadFile(mockConnection, filePath);
     } else {
       try {
-        File tempFile = File.createTempFile("smb-test-download", ".tmp");
-        tempFile.deleteOnExit();
-        smbRepository.downloadFile(createTestConnection(), filePath, tempFile);
-        return Files.newInputStream(tempFile.toPath());
+        // Use execInContainer to read file directly (avoids BackgroundSmbManager dependency)
+        String containerPath = "/testshare/" + filePath;
+        de.schliweb.sambalite.util.SambaContainer.ExecResult result =
+            container.execInContainer("cat", containerPath);
+        if (result.getExitCode() != 0) {
+          throw new RuntimeException(
+              "Failed to read file from container: " + result.getStderr());
+        }
+        return new ByteArrayInputStream(result.getStdout().getBytes(StandardCharsets.UTF_8));
+      } catch (RuntimeException e) {
+        throw e;
       } catch (Exception e) {
         throw new RuntimeException("Download failed", e);
       }
@@ -145,16 +160,19 @@ public class SmbTestHelper {
             mockServer.connect("mock.test.server", "testuser", "testpass", "testshare");
         mockServer.uploadFile(mockConnection, filePath, inputStream);
       } else {
-        File tempFile = File.createTempFile("smb-test-upload", ".tmp");
-        tempFile.deleteOnExit();
-        try (FileOutputStream out = new FileOutputStream(tempFile)) {
-          byte[] buffer = new byte[8192];
-          int read;
-          while ((read = inputStream.read(buffer)) != -1) {
-            out.write(buffer, 0, read);
-          }
+        // Read content from input stream
+        byte[] buffer = new byte[8192];
+        StringBuilder content = new StringBuilder();
+        int read;
+        while ((read = inputStream.read(buffer)) != -1) {
+          content.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
         }
-        smbRepository.uploadFile(createTestConnection(), tempFile, filePath);
+        // Use execInContainer to write file directly (avoids BackgroundSmbManager dependency)
+        String containerPath = "/testshare/" + filePath;
+        String parentDir = containerPath.substring(0, containerPath.lastIndexOf('/'));
+        container.execInContainer("sh", "-c", "mkdir -p '" + parentDir + "'");
+        container.execInContainer("sh", "-c",
+            "printf '%s' '" + content.toString().replace("'", "'\\''") + "' > '" + containerPath + "'");
       }
     } catch (Exception e) {
       LogUtils.d(TAG, "Failed to upload file: " + filePath + " - " + e.getMessage());
@@ -190,7 +208,7 @@ public class SmbTestHelper {
         String name = lastSlash < 0 ? dirPath : dirPath.substring(lastSlash + 1);
         smbRepository.createDirectory(createTestConnection(), parent, name);
       } catch (Exception e) {
-        throw new RuntimeException("Directory creation failed", e);
+        throw new RuntimeException("Directory creation failed for '" + dirPath + "': " + e.getMessage(), e);
       }
     }
   }

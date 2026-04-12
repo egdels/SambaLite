@@ -16,8 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,66 +58,89 @@ public class SmbRepositoryTest {
     // Create a test connection
     testConnection = new SmbConnection();
     testConnection.setServer(sambaContainer.getHost());
+    testConnection.setPort(sambaContainer.getPort());
     testConnection.setShare("testshare");
     testConnection.setUsername(sambaContainer.getUsername());
     testConnection.setPassword(sambaContainer.getPassword());
     testConnection.setDomain(sambaContainer.getDomain());
 
-    // Create the repository with mock BackgroundSmbManager
+    // Create the repository with mock BackgroundSmbManager that executes operations synchronously
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
-    // Configure mock to return a failed future (simulates no real service available)
-    CompletableFuture<Object> failedFuture = new CompletableFuture<>();
-    failedFuture.completeExceptionally(
-        new UnsupportedOperationException("No background service in test"));
     Mockito.when(
             mockBackgroundManager.executeBackgroundOperation(
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
-        .thenReturn(failedFuture);
+        .thenAnswer(
+            invocation -> {
+              BackgroundSmbManager.BackgroundOperation<?> operation = invocation.getArgument(2);
+              try {
+                Object result = operation.execute(new BackgroundSmbManager.ProgressCallback() {
+                  @Override
+                  public void updateProgress(String info) {}
+                });
+                return CompletableFuture.completedFuture(result);
+              } catch (Exception e) {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+              }
+            });
+    Mockito.when(
+            mockBackgroundManager.executeMultiFileOperation(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+        .thenAnswer(
+            invocation -> {
+              BackgroundSmbManager.MultiFileOperation<?> operation = invocation.getArgument(2);
+              try {
+                Object result = operation.execute(new BackgroundSmbManager.MultiFileProgressCallback() {
+                  @Override
+                  public void updateFileProgress(int current, int total, String name) {}
+                  @Override
+                  public void updateBytesProgress(long cur, long total, String name) {}
+                  @Override
+                  public void updateProgress(String info) {}
+                });
+                return CompletableFuture.completedFuture(result);
+              } catch (Exception e) {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+              }
+            });
     smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
   }
 
   @After
   public void tearDown() {
+    if (smbRepository != null) {
+      smbRepository.closeConnections();
+    }
     if (sambaContainer != null) {
       sambaContainer.stop();
     }
   }
 
   @Test
-  public void testConnectionToSambaServer() {
-    try {
-      // Test the connection
-      boolean connected = smbRepository.testConnection(testConnection);
-      assertTrue("Should be able to connect to the Samba server", connected);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      // since we're using a mock implementation
-      System.out.println("[DEBUG_LOG] Connection test exception: " + e.getMessage());
-      // We're expecting this to fail with the current implementation
-      // but we want to show how the test would be structured
-    }
+  public void testConnectionToSambaServer() throws Exception {
+    boolean connected = smbRepository.testConnection(testConnection);
+    assertTrue("Should be able to connect to the Samba server", connected);
   }
 
   @SuppressWarnings("MissingFail")
   @Test
-  public void testConnectionWithEmptyCredentials() {
+  public void testConnectionWithEmptyCredentials() throws Exception {
+    // Create a connection with empty credentials
+    SmbConnection emptyCredentialsConnection = new SmbConnection();
+    emptyCredentialsConnection.setServer(sambaContainer.getHost());
+    emptyCredentialsConnection.setShare("testshare");
+    emptyCredentialsConnection.setUsername("");
+    emptyCredentialsConnection.setPassword("");
+
     try {
-      // Create a connection with empty credentials
-      SmbConnection emptyCredentialsConnection = new SmbConnection();
-      emptyCredentialsConnection.setServer(sambaContainer.getHost());
-      emptyCredentialsConnection.setShare("testshare");
-      emptyCredentialsConnection.setUsername("");
-      emptyCredentialsConnection.setPassword("");
-
-      // Test the connection
       boolean connected = smbRepository.testConnection(emptyCredentialsConnection);
-
       // The connection might succeed or fail depending on the server configuration,
       // but the important thing is that it doesn't throw a NullPointerException
       System.out.println("[DEBUG_LOG] Connection with empty credentials result: " + connected);
     } catch (Exception e) {
-      System.out.println(
-          "[DEBUG_LOG] Connection with empty credentials exception: " + e.getMessage());
       // The test should not throw a NullPointerException related to SecretKey
       assertFalse(
           "Should not get a NullPointerException related to SecretKey",
@@ -130,72 +151,47 @@ public class SmbRepositoryTest {
   }
 
   @Test
-  public void testListFiles() {
-    try {
-      // List files in the root directory
-      List<SmbFileItem> files = smbRepository.listFiles(testConnection, "");
+  public void testListFiles() throws Exception {
+    List<SmbFileItem> files = smbRepository.listFiles(testConnection, "");
 
-      // Verify that the test file exists
-      boolean foundTestFile = false;
-      for (SmbFileItem file : files) {
-        if ("testfile.txt".equals(file.getName())) {
-          foundTestFile = true;
-          break;
-        }
+    boolean foundTestFile = false;
+    for (SmbFileItem file : files) {
+      if ("testfile.txt".equals(file.getName())) {
+        foundTestFile = true;
+        break;
       }
-      System.out.println("[DEBUG_LOG] Found test file: " + foundTestFile);
-
-      // For now, we'll just print debug info and pass the test
-      // since we're using a mock implementation
-      System.out.println("[DEBUG_LOG] Found files: " + files.size());
-      // We're expecting this to fail with the current implementation
-      // but we want to show how the test would be structured
-    } catch (Exception e) {
-      System.out.println("[DEBUG_LOG] List files exception: " + e.getMessage());
     }
+    assertTrue("Test file should be found", foundTestFile);
   }
 
   @Test
   public void testDownloadFile() throws Exception {
-    // Create a temporary file to download to
     Path tempFile = Files.createTempFile("download-test", ".txt");
     File localFile = tempFile.toFile();
     localFile.deleteOnExit();
 
     try {
-      // Download the test file
       smbRepository.downloadFile(testConnection, "testfile.txt", localFile);
 
-      // Verify the content
       String content = new String(Files.readAllBytes(tempFile), UTF_8);
       assertEquals("Test content\n", content);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      // since we're using a mock implementation
-      System.out.println("[DEBUG_LOG] Download file exception: " + e.getMessage());
-      // We're expecting this to fail with the current implementation
-      // but we want to show how the test would be structured
     } finally {
-      // Clean up
       Files.deleteIfExists(tempFile);
     }
   }
 
   @Test
   public void testUploadFile() throws Exception {
-    // Create a temporary file to upload
     Path tempFile = Files.createTempFile("upload-test", ".txt");
     File localFile = tempFile.toFile();
     localFile.deleteOnExit();
 
-    // Write some content to the file
     String testContent = "Upload test content";
     try (Writer writer = Files.newBufferedWriter(localFile.toPath(), UTF_8)) {
       writer.write(testContent);
     }
 
     try {
-      // Upload the file
       String remotePath = "uploaded-file.txt";
       smbRepository.uploadFile(testConnection, localFile, remotePath);
 
@@ -206,104 +202,77 @@ public class SmbRepositoryTest {
 
       smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
 
-      // Verify the content
       String downloadedContent = new String(Files.readAllBytes(downloadedFile), UTF_8);
       assertEquals(testContent, downloadedContent);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] Upload file exception: " + e.getMessage());
+
+      Files.deleteIfExists(downloadedFile);
     } finally {
-      // Clean up
       Files.deleteIfExists(tempFile);
     }
   }
 
   @Test
-  public void testDeleteFile() {
-    try {
-      // First, ensure the test file exists
-      smbRepository.fileExists(testConnection, "testfile.txt");
+  public void testDeleteFile() throws Exception {
+    // First, ensure the test file exists
+    assertTrue("Test file should exist before deletion",
+        smbRepository.fileExists(testConnection, "testfile.txt"));
 
-      // Delete the file
-      smbRepository.deleteFile(testConnection, "testfile.txt");
+    // Delete the file
+    smbRepository.deleteFile(testConnection, "testfile.txt");
 
-      // Verify the file was deleted
-      boolean stillExists = smbRepository.fileExists(testConnection, "testfile.txt");
-      assertFalse("File should be deleted", stillExists);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] Delete file exception: " + e.getMessage());
-    }
+    // Verify the file was deleted
+    boolean stillExists = smbRepository.fileExists(testConnection, "testfile.txt");
+    assertFalse("File should be deleted", stillExists);
   }
 
   @Test
-  public void testRenameFile() {
-    try {
-      // First, ensure the test file exists
-      smbRepository.fileExists(testConnection, "testfile.txt");
+  public void testRenameFile() throws Exception {
+    // First, ensure the test file exists
+    assertTrue("Test file should exist before rename",
+        smbRepository.fileExists(testConnection, "testfile.txt"));
 
-      // Rename the file
-      String newName = "renamed-file.txt";
-      smbRepository.renameFile(testConnection, "testfile.txt", newName);
+    // Rename the file
+    String newName = "renamed-file.txt";
+    smbRepository.renameFile(testConnection, "testfile.txt", newName);
 
-      // Verify the file was renamed
-      boolean oldExists = smbRepository.fileExists(testConnection, "testfile.txt");
-      boolean newExists = smbRepository.fileExists(testConnection, newName);
+    // Verify the file was renamed
+    boolean oldExists = smbRepository.fileExists(testConnection, "testfile.txt");
+    boolean newExists = smbRepository.fileExists(testConnection, newName);
 
-      assertFalse("Old file should not exist", oldExists);
-      assertTrue("New file should exist", newExists);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] Rename file exception: " + e.getMessage());
-    }
+    assertFalse("Old file should not exist", oldExists);
+    assertTrue("New file should exist", newExists);
   }
 
   @Test
-  public void testCreateDirectory() {
-    try {
-      // Create a new directory
-      String dirName = "test-directory";
-      smbRepository.createDirectory(testConnection, "", dirName);
+  public void testCreateDirectory() throws Exception {
+    String dirName = "test-directory";
+    smbRepository.createDirectory(testConnection, "", dirName);
 
-      // Verify the directory was created
-      boolean exists = smbRepository.fileExists(testConnection, dirName);
-      assertTrue("Directory should exist", exists);
-
-      // List files to verify the directory is included
-      List<SmbFileItem> files = smbRepository.listFiles(testConnection, "");
-      boolean foundDir = false;
-      for (SmbFileItem file : files) {
-        if (dirName.equals(file.getName()) && file.getType() == SmbFileItem.Type.DIRECTORY) {
-          foundDir = true;
-          break;
-        }
+    // Verify the directory was created by listing files
+    List<SmbFileItem> files = smbRepository.listFiles(testConnection, "");
+    boolean foundDir = false;
+    for (SmbFileItem file : files) {
+      if (dirName.equals(file.getName()) && file.getType() == SmbFileItem.Type.DIRECTORY) {
+        foundDir = true;
+        break;
       }
-      assertTrue("Directory should be in the file listing", foundDir);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] Create directory exception: " + e.getMessage());
     }
+    assertTrue("Directory should be in the file listing", foundDir);
   }
 
   @Test
-  public void testFileExists() {
-    try {
-      // Check if the test file exists
-      boolean exists = smbRepository.fileExists(testConnection, "testfile.txt");
-      assertTrue("Test file should exist", exists);
+  public void testFileExists() throws Exception {
+    // Check if the test file exists
+    boolean exists = smbRepository.fileExists(testConnection, "testfile.txt");
+    assertTrue("Test file should exist", exists);
 
-      // Check if a non-existent file exists
-      boolean nonExistentExists = smbRepository.fileExists(testConnection, "non-existent-file.txt");
-      assertFalse("Non-existent file should not exist", nonExistentExists);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] File exists exception: " + e.getMessage());
-    }
+    // Check if a non-existent file exists
+    boolean nonExistentExists = smbRepository.fileExists(testConnection, "non-existent-file.txt");
+    assertFalse("Non-existent file should not exist", nonExistentExists);
   }
 
   @Test
   public void testDownloadFolder() throws Exception {
-    // Create a temporary directory to download to
     Path tempDir = Files.createTempDirectory("download-folder-test");
     File localFolder = tempDir.toFile();
     localFolder.deleteOnExit();
@@ -343,19 +312,10 @@ public class SmbRepositoryTest {
 
       assertEquals("Test content 1", content1);
       assertEquals("Test content 2", content2);
-    } catch (Exception e) {
-      // For now, we'll just print the exception and pass the test
-      System.out.println("[DEBUG_LOG] Download folder exception: " + e.getMessage());
     } finally {
-      // Clean up
       deleteDirectory(localFolder);
     }
   }
-
-  // TODO: Ergänze Tests für:
-  // - Upload/Download kompletter Ordner als ZIP
-  // - atomare Umbenennung nach Upload
-  // - Fehlerfälle (abgebrochener Transfer, Cleanup)
 
   // Helper method to recursively delete a directory
   private void deleteDirectory(File directory) {

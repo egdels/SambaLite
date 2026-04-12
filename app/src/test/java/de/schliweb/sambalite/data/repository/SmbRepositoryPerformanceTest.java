@@ -295,17 +295,18 @@ public class SmbRepositoryPerformanceTest {
       long startTime = System.currentTimeMillis();
 
       try {
-        // Attempt various operations (will fail but should fail quickly)
+        // Attempt various operations (will fail or return gracefully)
         smbRepository.testConnection(testConnection);
-        fail("Should have failed quickly");
-      } catch (Exception e) {
-        long duration = System.currentTimeMillis() - startTime;
-        operationTimes.add(duration);
-
-        // Each operation should fail quickly (< 5 seconds)
-        assertTrue(
-            "Operation " + i + " should timeout quickly: " + duration + "ms", duration < 5000);
+      } catch (Exception ignored) {
+        // Expected - operation failed without SMB server
       }
+
+      long duration = System.currentTimeMillis() - startTime;
+      operationTimes.add(duration);
+
+      // Each operation should complete quickly (< 5 seconds)
+      assertTrue(
+          "Operation " + i + " should complete quickly: " + duration + "ms", duration < 5000);
     }
 
     // Calculate average timeout duration

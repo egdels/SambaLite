@@ -87,7 +87,7 @@ public class SambaContainer {
     if (useDocker) {
         // dperson/samba format: -s "name;path;browse;readonly;guest;users;admins;writelist"
         String shareConfig = String.format("%s;%s;yes;no;no;%s", shareName, path, username);
-        container.withCommand("-u", String.format("%s;%s", username, password), "-s", shareConfig);
+        container.withCommand("-p", "-u", String.format("%s;%s", username, password), "-s", shareConfig);
     } else {
         inMemoryShares.put(shareName, new InMemoryShare());
     }

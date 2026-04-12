@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbConnection;
+import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.data.repository.SmbRepositoryImpl;
 import de.schliweb.sambalite.util.SambaContainer;
@@ -47,25 +48,62 @@ public class FileIntegrityTest {
     // Create a test connection
     testConnection = new SmbConnection();
     testConnection.setServer(sambaContainer.getHost());
+    testConnection.setPort(sambaContainer.getPort());
     testConnection.setShare("testshare");
     testConnection.setUsername(sambaContainer.getUsername());
     testConnection.setPassword(sambaContainer.getPassword());
     testConnection.setDomain(sambaContainer.getDomain());
 
-    // Create the repository with mock BackgroundSmbManager
+    // Create the repository with mock BackgroundSmbManager that executes operations synchronously
     BackgroundSmbManager mockBackgroundManager = Mockito.mock(BackgroundSmbManager.class);
-    CompletableFuture<Object> failedFuture = new CompletableFuture<>();
-    failedFuture.completeExceptionally(
-        new UnsupportedOperationException("No background service in test"));
     Mockito.when(
             mockBackgroundManager.executeBackgroundOperation(
                 Mockito.anyString(), Mockito.anyString(), Mockito.any()))
-        .thenReturn(failedFuture);
+        .thenAnswer(
+            invocation -> {
+              BackgroundSmbManager.BackgroundOperation<?> operation = invocation.getArgument(2);
+              try {
+                Object result = operation.execute(new BackgroundSmbManager.ProgressCallback() {
+                  @Override
+                  public void updateProgress(String info) {}
+                });
+                return CompletableFuture.completedFuture(result);
+              } catch (Exception e) {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+              }
+            });
+    Mockito.when(
+            mockBackgroundManager.executeMultiFileOperation(
+                Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+        .thenAnswer(
+            invocation -> {
+              BackgroundSmbManager.MultiFileOperation<?> operation = invocation.getArgument(2);
+              try {
+                Object result = operation.execute(new BackgroundSmbManager.MultiFileProgressCallback() {
+                  @Override
+                  public void updateFileProgress(int current, int total, String name) {}
+                  @Override
+                  public void updateBytesProgress(long cur, long total, String name) {}
+                  @Override
+                  public void updateProgress(String info) {}
+                });
+                return CompletableFuture.completedFuture(result);
+              } catch (Exception e) {
+                CompletableFuture<Object> future = new CompletableFuture<>();
+                future.completeExceptionally(e);
+                return future;
+              }
+            });
     smbRepository = new SmbRepositoryImpl(mockBackgroundManager);
   }
 
   @After
   public void tearDown() {
+    if (smbRepository != null) {
+      smbRepository.closeConnections();
+    }
     if (sambaContainer != null) {
       sambaContainer.stop();
     }
@@ -76,81 +114,47 @@ public class FileIntegrityTest {
    * verifies that files don't lose data or change size during transfer.
    */
   @Test
-  public void testFileIntegrityDuringUploadAndDownload() {
-    try {
-      // Create files of different sizes to test
-      int[] fileSizes = {0, 1024, 10 * 1024, 100 * 1024, 1024 * 1024}; // 0B, 1KB, 10KB, 100KB, 1MB
+  public void testFileIntegrityDuringUploadAndDownload() throws Exception {
+    int[] fileSizes = {0, 1024, 10 * 1024, 100 * 1024, 1024 * 1024}; // 0B, 1KB, 10KB, 100KB, 1MB
 
-      for (int size : fileSizes) {
-        // Create a file with random content
-        Path tempFile = Files.createTempFile("integrity-test", ".dat");
-        File localFile = tempFile.toFile();
-        localFile.deleteOnExit();
+    for (int size : fileSizes) {
+      Path tempFile = Files.createTempFile("integrity-test", ".dat");
+      File localFile = tempFile.toFile();
+      localFile.deleteOnExit();
 
-        // Fill with random data
-        byte[] data = new byte[size];
-        random.nextBytes(data);
-        try (FileOutputStream fos = new FileOutputStream(localFile)) {
-          fos.write(data);
-        }
-
-        // Calculate original file size and hash
-        long originalSize = Files.size(tempFile);
-        String originalHash = calculateMD5(tempFile);
-
-        System.out.println(
-            "[DEBUG_LOG] Original file: size=" + originalSize + ", hash=" + originalHash);
-
-        try {
-          // Upload the file
-          String remotePath = "integrity-test-" + size + ".dat";
-          smbRepository.uploadFile(testConnection, localFile, remotePath);
-
-          // Verify the file exists on the server
-          boolean exists = smbRepository.fileExists(testConnection, remotePath);
-          assertTrue("File should exist on server after upload", exists);
-
-          // Download the file
-          Path downloadedFile = Files.createTempFile("downloaded-integrity-test", ".dat");
-          File downloadedLocalFile = downloadedFile.toFile();
-          downloadedLocalFile.deleteOnExit();
-
-          smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
-
-          // Verify the downloaded file size and hash
-          long downloadedSize = Files.size(downloadedFile);
-          String downloadedHash = calculateMD5(downloadedFile);
-
-          System.out.println(
-              "[DEBUG_LOG] Downloaded file: size=" + downloadedSize + ", hash=" + downloadedHash);
-
-          // Assert file integrity
-          assertEquals(
-              "File size should not change during upload/download", originalSize, downloadedSize);
-          assertEquals(
-              "File content should not change during upload/download",
-              originalHash,
-              downloadedHash);
-
-          // Clean up
-          Files.deleteIfExists(downloadedFile);
-        } catch (Exception e) {
-          // For now, we'll just print the exception and pass the test
-          // since we're using a mock implementation
-          System.out.println(
-              "[DEBUG_LOG] Upload/download test exception for size "
-                  + size
-                  + ": "
-                  + e.getMessage());
-          // We're expecting this to fail with the current implementation
-          // but we want to show how the test would be structured
-        }
-
-        // Clean up
-        Files.deleteIfExists(tempFile);
+      byte[] data = new byte[size];
+      random.nextBytes(data);
+      try (FileOutputStream fos = new FileOutputStream(localFile)) {
+        fos.write(data);
       }
-    } catch (Exception e) {
-      System.out.println("[DEBUG_LOG] Test setup exception: " + e.getMessage());
+
+      long originalSize = Files.size(tempFile);
+      String originalHash = calculateMD5(tempFile);
+
+      String remotePath = "integrity-test-" + size + ".dat";
+      smbRepository.uploadFile(testConnection, localFile, remotePath);
+
+      boolean exists = smbRepository.fileExists(testConnection, remotePath);
+      assertTrue("File should exist on server after upload (size=" + size + ")", exists);
+
+      Path downloadedFile = Files.createTempFile("downloaded-integrity-test", ".dat");
+      File downloadedLocalFile = downloadedFile.toFile();
+      downloadedLocalFile.deleteOnExit();
+
+      smbRepository.downloadFile(testConnection, remotePath, downloadedLocalFile);
+
+      long downloadedSize = Files.size(downloadedFile);
+      String downloadedHash = calculateMD5(downloadedFile);
+
+      assertEquals(
+          "File size should not change during upload/download (size=" + size + ")",
+          originalSize, downloadedSize);
+      assertEquals(
+          "File content should not change during upload/download (size=" + size + ")",
+          originalHash, downloadedHash);
+
+      Files.deleteIfExists(downloadedFile);
+      Files.deleteIfExists(tempFile);
     }
   }
 
@@ -159,83 +163,51 @@ public class FileIntegrityTest {
    * don't lose data or change size when renamed.
    */
   @Test
-  public void testFileIntegrityDuringRename() {
+  public void testFileIntegrityDuringRename() throws Exception {
+    int fileSize = 50 * 1024; // 50KB
+    Path tempFile = Files.createTempFile("rename-test", ".dat");
+    File localFile = tempFile.toFile();
+    localFile.deleteOnExit();
+
+    byte[] data = new byte[fileSize];
+    random.nextBytes(data);
+    try (FileOutputStream fos = new FileOutputStream(localFile)) {
+      fos.write(data);
+    }
+
+    long originalSize = Files.size(tempFile);
+    String originalHash = calculateMD5(tempFile);
+
     try {
-      // Create a file with random content
-      int fileSize = 50 * 1024; // 50KB
-      Path tempFile = Files.createTempFile("rename-test", ".dat");
-      File localFile = tempFile.toFile();
-      localFile.deleteOnExit();
+      String originalPath = "original-file.dat";
+      smbRepository.uploadFile(testConnection, localFile, originalPath);
 
-      // Fill with random data
-      byte[] data = new byte[fileSize];
-      random.nextBytes(data);
-      try (FileOutputStream fos = new FileOutputStream(localFile)) {
-        fos.write(data);
-      }
+      String newPath = "renamed-file.dat";
+      smbRepository.renameFile(testConnection, originalPath, newPath);
 
-      // Calculate original file size and hash
-      long originalSize = Files.size(tempFile);
-      String originalHash = calculateMD5(tempFile);
+      boolean originalExists = smbRepository.fileExists(testConnection, originalPath);
+      assertFalse("Original file should not exist after rename", originalExists);
 
-      System.out.println(
-          "[DEBUG_LOG] Original file for rename test: size="
-              + originalSize
-              + ", hash="
-              + originalHash);
+      boolean newExists = smbRepository.fileExists(testConnection, newPath);
+      assertTrue("Renamed file should exist", newExists);
 
-      try {
-        // Upload the file
-        String originalPath = "original-file.dat";
-        smbRepository.uploadFile(testConnection, localFile, originalPath);
+      Path downloadedFile = Files.createTempFile("downloaded-renamed-file", ".dat");
+      File downloadedLocalFile = downloadedFile.toFile();
+      downloadedLocalFile.deleteOnExit();
 
-        // Rename the file
-        String newPath = "renamed-file.dat";
-        smbRepository.renameFile(testConnection, originalPath, newPath);
+      smbRepository.downloadFile(testConnection, newPath, downloadedLocalFile);
 
-        // Verify the original file no longer exists
-        boolean originalExists = smbRepository.fileExists(testConnection, originalPath);
-        assertFalse("Original file should not exist after rename", originalExists);
+      long downloadedSize = Files.size(downloadedFile);
+      String downloadedHash = calculateMD5(downloadedFile);
 
-        // Verify the new file exists
-        boolean newExists = smbRepository.fileExists(testConnection, newPath);
-        assertTrue("Renamed file should exist", newExists);
+      assertEquals(
+          "File size should not change during rename", originalSize, downloadedSize);
+      assertEquals(
+          "File content should not change during rename", originalHash, downloadedHash);
 
-        // Download the renamed file
-        Path downloadedFile = Files.createTempFile("downloaded-renamed-file", ".dat");
-        File downloadedLocalFile = downloadedFile.toFile();
-        downloadedLocalFile.deleteOnExit();
-
-        smbRepository.downloadFile(testConnection, newPath, downloadedLocalFile);
-
-        // Verify the downloaded file size and hash
-        long downloadedSize = Files.size(downloadedFile);
-        String downloadedHash = calculateMD5(downloadedFile);
-
-        System.out.println(
-            "[DEBUG_LOG] Downloaded renamed file: size="
-                + downloadedSize
-                + ", hash="
-                + downloadedHash);
-
-        // Assert file integrity
-        assertEquals("File size should not change during rename", originalSize, downloadedSize);
-        assertEquals("File content should not change during rename", originalHash, downloadedHash);
-
-        // Clean up
-        Files.deleteIfExists(downloadedFile);
-      } catch (Exception e) {
-        // For now, we'll just print the exception and pass the test
-        // since we're using a mock implementation
-        System.out.println("[DEBUG_LOG] Rename test exception: " + e.getMessage());
-        // We're expecting this to fail with the current implementation
-        // but we want to show how the test would be structured
-      }
-
-      // Clean up
+      Files.deleteIfExists(downloadedFile);
+    } finally {
       Files.deleteIfExists(tempFile);
-    } catch (Exception e) {
-      System.out.println("[DEBUG_LOG] Test setup exception: " + e.getMessage());
     }
   }
 
@@ -244,120 +216,71 @@ public class FileIntegrityTest {
    * don't lose data or change size when downloaded as part of a folder.
    */
   @Test
-  public void testFileIntegrityDuringFolderOperations() {
+  public void testFileIntegrityDuringFolderOperations() throws Exception {
+    Map<String, FileInfo> fileInfoMap = new HashMap<>();
+    List<Path> tempFiles = new ArrayList<>();
+    Path tempDir = null;
+
     try {
-      // Create a map to store original file information
-      Map<String, FileInfo> fileInfoMap = new HashMap<>();
-      List<Path> tempFiles = new ArrayList<>();
-      Path tempDir = null;
+      String folderName = "integrity-test-folder";
+      smbRepository.createDirectory(testConnection, "", folderName);
 
-      try {
-        // Create a directory structure with files of different sizes
-        String folderName = "integrity-test-folder";
-        smbRepository.createDirectory(testConnection, "", folderName);
+      int[] fileSizes = {1024, 10 * 1024, 50 * 1024}; // 1KB, 10KB, 50KB
 
-        // Create and upload several files in the folder
-        int[] fileSizes = {1024, 10 * 1024, 50 * 1024}; // 1KB, 10KB, 50KB
+      for (int i = 0; i < fileSizes.length; i++) {
+        int size = fileSizes[i];
+        String fileName = "file" + i + ".dat";
+        String remotePath = folderName + "/" + fileName;
 
-        for (int i = 0; i < fileSizes.length; i++) {
-          int size = fileSizes[i];
-          String fileName = "file" + i + ".dat";
-          String remotePath = folderName + "/" + fileName;
+        Path tempFile = Files.createTempFile("folder-test", ".dat");
+        tempFiles.add(tempFile);
+        File localFile = tempFile.toFile();
+        localFile.deleteOnExit();
 
-          // Create a file with random content
-          Path tempFile = Files.createTempFile("folder-test", ".dat");
-          tempFiles.add(tempFile);
-          File localFile = tempFile.toFile();
-          localFile.deleteOnExit();
-
-          // Fill with random data
-          byte[] data = new byte[size];
-          random.nextBytes(data);
-          try (FileOutputStream fos = new FileOutputStream(localFile)) {
-            fos.write(data);
-          }
-
-          // Calculate original file size and hash
-          long originalSize = Files.size(tempFile);
-          String originalHash = calculateMD5(tempFile);
-
-          System.out.println(
-              "[DEBUG_LOG] Original file "
-                  + fileName
-                  + ": size="
-                  + originalSize
-                  + ", hash="
-                  + originalHash);
-
-          // Store original file info
-          fileInfoMap.put(fileName, new FileInfo(originalSize, originalHash));
-
-          // Upload the file
-          smbRepository.uploadFile(testConnection, localFile, remotePath);
+        byte[] data = new byte[size];
+        random.nextBytes(data);
+        try (FileOutputStream fos = new FileOutputStream(localFile)) {
+          fos.write(data);
         }
 
-        // Create a temporary directory to download the folder to
-        tempDir = Files.createTempDirectory("downloaded-folder");
-        File localFolder = tempDir.toFile();
+        long originalSize = Files.size(tempFile);
+        String originalHash = calculateMD5(tempFile);
 
-        // Download the entire folder
-        smbRepository.downloadFolder(testConnection, folderName, localFolder);
+        fileInfoMap.put(fileName, new FileInfo(originalSize, originalHash));
 
-        // Verify each file in the downloaded folder
-        for (int i = 0; i < fileSizes.length; i++) {
-          String fileName = "file" + i + ".dat";
-          File downloadedFile = new File(localFolder, fileName);
-
-          // Verify the file exists
-          assertTrue("Downloaded file should exist: " + fileName, downloadedFile.exists());
-
-          // Get original file info
-          FileInfo originalInfo = fileInfoMap.get(fileName);
-
-          // Calculate downloaded file size and hash
-          long downloadedSize = Files.size(downloadedFile.toPath());
-          String downloadedHash = calculateMD5(downloadedFile.toPath());
-
-          System.out.println(
-              "[DEBUG_LOG] Downloaded file "
-                  + fileName
-                  + ": size="
-                  + downloadedSize
-                  + ", hash="
-                  + downloadedHash);
-
-          // Assert file integrity
-          assertEquals(
-              "File size should not change during folder operations: " + fileName,
-              originalInfo.size,
-              downloadedSize);
-          assertEquals(
-              "File content should not change during folder operations: " + fileName,
-              originalInfo.hash,
-              downloadedHash);
-        }
-
-        // Clean up
-        if (tempDir != null) {
-          deleteDirectory(tempDir.toFile());
-        }
-      } catch (Exception e) {
-        // For now, we'll just print the exception and pass the test
-        // since we're using a mock implementation
-        System.out.println("[DEBUG_LOG] Folder operations test exception: " + e.getMessage());
-        // We're expecting this to fail with the current implementation
-        // but we want to show how the test would be structured
+        smbRepository.uploadFile(testConnection, localFile, remotePath);
       }
 
-      // Clean up
+      tempDir = Files.createTempDirectory("downloaded-folder");
+      File localFolder = tempDir.toFile();
+
+      smbRepository.downloadFolder(testConnection, folderName, localFolder);
+
+      for (int i = 0; i < fileSizes.length; i++) {
+        String fileName = "file" + i + ".dat";
+        File downloadedFile = new File(localFolder, fileName);
+
+        assertTrue("Downloaded file should exist: " + fileName, downloadedFile.exists());
+
+        FileInfo originalInfo = fileInfoMap.get(fileName);
+
+        long downloadedSize = Files.size(downloadedFile.toPath());
+        String downloadedHash = calculateMD5(downloadedFile.toPath());
+
+        assertEquals(
+            "File size should not change during folder operations: " + fileName,
+            originalInfo.size, downloadedSize);
+        assertEquals(
+            "File content should not change during folder operations: " + fileName,
+            originalInfo.hash, downloadedHash);
+      }
+    } finally {
       for (Path tempFile : tempFiles) {
         Files.deleteIfExists(tempFile);
       }
       if (tempDir != null) {
         deleteDirectory(tempDir.toFile());
       }
-    } catch (Exception e) {
-      System.out.println("[DEBUG_LOG] Test setup exception: " + e.getMessage());
     }
   }
 
@@ -366,139 +289,95 @@ public class FileIntegrityTest {
    * sequence of operations on files and verifies integrity at each step.
    */
   @Test
-  public void testFileIntegrityDuringMultipleOperations() {
+  public void testFileIntegrityDuringMultipleOperations() throws Exception {
+    int fileSize = 25 * 1024; // 25KB
+    Path tempFile = Files.createTempFile("multi-op-test", ".dat");
+    File localFile = tempFile.toFile();
+    localFile.deleteOnExit();
+
+    byte[] data = new byte[fileSize];
+    random.nextBytes(data);
+    try (FileOutputStream fos = new FileOutputStream(localFile)) {
+      fos.write(data);
+    }
+
+    long originalSize = Files.size(tempFile);
+    String originalHash = calculateMD5(tempFile);
+
     try {
-      // Create a file with random content
-      int fileSize = 25 * 1024; // 25KB
-      Path tempFile = Files.createTempFile("multi-op-test", ".dat");
-      File localFile = tempFile.toFile();
-      localFile.deleteOnExit();
+      // Step 1: Upload the file
+      String originalPath = "multi-op-file.dat";
+      smbRepository.uploadFile(testConnection, localFile, originalPath);
 
-      // Fill with random data
-      byte[] data = new byte[fileSize];
-      random.nextBytes(data);
-      try (FileOutputStream fos = new FileOutputStream(localFile)) {
-        fos.write(data);
-      }
+      // Step 2: Create a directory
+      String folderName = "multi-op-folder";
+      smbRepository.createDirectory(testConnection, "", folderName);
 
-      // Calculate original file size and hash
-      long originalSize = Files.size(tempFile);
-      String originalHash = calculateMD5(tempFile);
+      // Step 3: Rename the file
+      String renamedPath = "multi-op-renamed.dat";
+      smbRepository.renameFile(testConnection, originalPath, renamedPath);
 
-      System.out.println(
-          "[DEBUG_LOG] Original file: size=" + originalSize + ", hash=" + originalHash);
+      // Step 4: Download the renamed file
+      Path downloadedFile1 = Files.createTempFile("downloaded-renamed", ".dat");
+      File downloadedLocalFile1 = downloadedFile1.toFile();
+      downloadedLocalFile1.deleteOnExit();
 
-      try {
-        // Step 1: Upload the file
-        String originalPath = "multi-op-file.dat";
-        smbRepository.uploadFile(testConnection, localFile, originalPath);
+      smbRepository.downloadFile(testConnection, renamedPath, downloadedLocalFile1);
 
-        // Step 2: Create a directory
-        String folderName = "multi-op-folder";
-        smbRepository.createDirectory(testConnection, "", folderName);
+      long downloadedSize1 = Files.size(downloadedFile1);
+      String downloadedHash1 = calculateMD5(downloadedFile1);
 
-        // Step 3: Rename the file
-        String renamedPath = "multi-op-renamed.dat";
-        smbRepository.renameFile(testConnection, originalPath, renamedPath);
+      assertEquals(
+          "File size should not change after rename and download", originalSize, downloadedSize1);
+      assertEquals(
+          "File content should not change after rename and download",
+          originalHash, downloadedHash1);
 
-        // Step 4: Download the renamed file
-        Path downloadedFile1 = Files.createTempFile("downloaded-renamed", ".dat");
-        File downloadedLocalFile1 = downloadedFile1.toFile();
-        downloadedLocalFile1.deleteOnExit();
+      // Step 5: Upload the file to the folder
+      String folderPath = folderName + "/multi-op-file-in-folder.dat";
+      smbRepository.uploadFile(testConnection, localFile, folderPath);
 
-        smbRepository.downloadFile(testConnection, renamedPath, downloadedLocalFile1);
+      // Step 6: Download the file from the folder
+      Path downloadedFile2 = Files.createTempFile("downloaded-from-folder", ".dat");
+      File downloadedLocalFile2 = downloadedFile2.toFile();
+      downloadedLocalFile2.deleteOnExit();
 
-        // Verify integrity after rename and download
-        long downloadedSize1 = Files.size(downloadedFile1);
-        String downloadedHash1 = calculateMD5(downloadedFile1);
+      smbRepository.downloadFile(testConnection, folderPath, downloadedLocalFile2);
 
-        System.out.println(
-            "[DEBUG_LOG] Downloaded renamed file: size="
-                + downloadedSize1
-                + ", hash="
-                + downloadedHash1);
+      long downloadedSize2 = Files.size(downloadedFile2);
+      String downloadedHash2 = calculateMD5(downloadedFile2);
 
-        assertEquals(
-            "File size should not change after rename and download", originalSize, downloadedSize1);
-        assertEquals(
-            "File content should not change after rename and download",
-            originalHash,
-            downloadedHash1);
+      assertEquals(
+          "File size should not change after folder upload and download",
+          originalSize, downloadedSize2);
+      assertEquals(
+          "File content should not change after folder upload and download",
+          originalHash, downloadedHash2);
 
-        // Step 5: Upload the file to the folder
-        String folderPath = folderName + "/multi-op-file-in-folder.dat";
-        smbRepository.uploadFile(testConnection, localFile, folderPath);
+      // Step 7: Download the entire folder
+      Path tempDir = Files.createTempDirectory("downloaded-multi-op-folder");
+      File localFolder = tempDir.toFile();
 
-        // Step 6: Download the file from the folder
-        Path downloadedFile2 = Files.createTempFile("downloaded-from-folder", ".dat");
-        File downloadedLocalFile2 = downloadedFile2.toFile();
-        downloadedLocalFile2.deleteOnExit();
+      smbRepository.downloadFolder(testConnection, folderName, localFolder);
 
-        smbRepository.downloadFile(testConnection, folderPath, downloadedLocalFile2);
+      File downloadedFileInFolder = new File(localFolder, "multi-op-file-in-folder.dat");
+      assertTrue("File should exist in downloaded folder", downloadedFileInFolder.exists());
 
-        // Verify integrity after upload to folder and download
-        long downloadedSize2 = Files.size(downloadedFile2);
-        String downloadedHash2 = calculateMD5(downloadedFile2);
+      long downloadedSizeInFolder = Files.size(downloadedFileInFolder.toPath());
+      String downloadedHashInFolder = calculateMD5(downloadedFileInFolder.toPath());
 
-        System.out.println(
-            "[DEBUG_LOG] Downloaded file from folder: size="
-                + downloadedSize2
-                + ", hash="
-                + downloadedHash2);
+      assertEquals(
+          "File size should not change when downloaded as part of folder",
+          originalSize, downloadedSizeInFolder);
+      assertEquals(
+          "File content should not change when downloaded as part of folder",
+          originalHash, downloadedHashInFolder);
 
-        assertEquals(
-            "File size should not change after folder upload and download",
-            originalSize,
-            downloadedSize2);
-        assertEquals(
-            "File content should not change after folder upload and download",
-            originalHash,
-            downloadedHash2);
-
-        // Step 7: Download the entire folder
-        Path tempDir = Files.createTempDirectory("downloaded-multi-op-folder");
-        File localFolder = tempDir.toFile();
-
-        smbRepository.downloadFolder(testConnection, folderName, localFolder);
-
-        // Verify the file in the downloaded folder
-        File downloadedFileInFolder = new File(localFolder, "multi-op-file-in-folder.dat");
-        assertTrue("File should exist in downloaded folder", downloadedFileInFolder.exists());
-
-        long downloadedSizeInFolder = Files.size(downloadedFileInFolder.toPath());
-        String downloadedHashInFolder = calculateMD5(downloadedFileInFolder.toPath());
-
-        System.out.println(
-            "[DEBUG_LOG] Downloaded file in folder: size="
-                + downloadedSizeInFolder
-                + ", hash="
-                + downloadedHashInFolder);
-
-        assertEquals(
-            "File size should not change when downloaded as part of folder",
-            originalSize,
-            downloadedSizeInFolder);
-        assertEquals(
-            "File content should not change when downloaded as part of folder",
-            originalHash,
-            downloadedHashInFolder);
-
-        // Clean up
-        Files.deleteIfExists(downloadedFile1);
-        Files.deleteIfExists(downloadedFile2);
-        deleteDirectory(localFolder);
-      } catch (Exception e) {
-        // For now, we'll just print the exception and pass the test
-        // since we're using a mock implementation
-        System.out.println("[DEBUG_LOG] Multiple operations test exception: " + e.getMessage());
-        // We're expecting this to fail with the current implementation
-        // but we want to show how the test would be structured
-      }
-
-      // Clean up
+      Files.deleteIfExists(downloadedFile1);
+      Files.deleteIfExists(downloadedFile2);
+      deleteDirectory(localFolder);
+    } finally {
       Files.deleteIfExists(tempFile);
-    } catch (Exception e) {
-      System.out.println("[DEBUG_LOG] Test setup exception: " + e.getMessage());
     }
   }
 
@@ -508,7 +387,6 @@ public class FileIntegrityTest {
     md.update(Files.readAllBytes(file));
     byte[] digest = md.digest();
 
-    // Convert to hex string
     StringBuilder sb = new StringBuilder();
     for (byte b : digest) {
       sb.append(String.format("%02x", b));
