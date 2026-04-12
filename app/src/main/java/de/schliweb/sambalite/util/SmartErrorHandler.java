@@ -170,6 +170,19 @@ public class SmartErrorHandler {
               TAG,
               "Uncaught exception in thread " + thread.getName() + ": " + exception.getMessage());
 
+          // For SQLiteFullException on WorkManager threads, swallow the exception
+          // to prevent app crash. WorkManager internal DB operations (e.g.
+          // SystemIdInfoDao.removeSystemIdInfo) can throw SQLITE_FULL when disk is
+          // full, and we cannot prevent WorkManager from attempting these operations.
+          if (isSQLiteFullOnWorkerThread(thread, exception)) {
+            LogUtils.w(
+                TAG,
+                "Swallowing SQLiteFullException on WorkManager thread "
+                    + thread.getName()
+                    + " to prevent app crash");
+            return;
+          }
+
           // Call previous handler
           if (previousHandler != null) {
             previousHandler.uncaughtException(thread, exception);
@@ -177,6 +190,19 @@ public class SmartErrorHandler {
         });
 
     LogUtils.i(TAG, "Global error handler set up");
+  }
+
+  private boolean isSQLiteFullOnWorkerThread(Thread thread, Throwable exception) {
+    if (exception == null) return false;
+    String exName = exception.getClass().getSimpleName();
+    boolean isSQLiteFull = exName.contains("SQLiteFull") || exName.contains("SQLiteDiskIO");
+    if (!isSQLiteFull) {
+      String msg = exception.getMessage();
+      isSQLiteFull = msg != null && (msg.contains("SQLITE_FULL") || msg.contains("disk is full"));
+    }
+    boolean isWorkerThread =
+        thread.getName().startsWith("WM.") || thread.getName().contains("WorkManager");
+    return isSQLiteFull && isWorkerThread;
   }
 
   private ErrorCategory categorizeError(Throwable error) {

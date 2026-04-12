@@ -44,10 +44,12 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.sync.db.FileSyncState;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
+import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.StorageCapabilityResolver;
 import de.schliweb.sambalite.util.TimestampCapability;
 import de.schliweb.sambalite.util.TimestampUtils;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.EnumSet;
@@ -65,6 +67,7 @@ public class FolderSyncWorker extends Worker {
 
   private static final String TAG = "FolderSyncWorker";
   private static final int BUFFER_SIZE = 65536;
+  private static final long DISK_CHECK_INTERVAL = 10L * 1024 * 1024;
   public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
   private static final int SYNC_NOTIFICATION_ID = 2001;
@@ -213,13 +216,32 @@ public class FolderSyncWorker extends Worker {
         continue;
       }
 
+      // Check disk space before starting sync for this config
+      if (!hasEnoughDiskSpace()) {
+        LogUtils.e(
+            TAG, "Insufficient disk space \u2013 aborting sync for config: " + config.getId());
+        anyFailure = true;
+        break;
+      }
+
       try {
         syncFolder(config, connection);
         syncRepository.updateLastSyncTimestamp(config.getId(), System.currentTimeMillis());
         LogUtils.i(TAG, "Sync completed for config: " + config.getId());
+      } catch (InsufficientDiskSpaceException e) {
+        LogUtils.e(TAG, "Sync aborted for config " + config.getId() + ": insufficient disk space");
+        anyFailure = true;
+        break;
       } catch (Exception e) {
         LogUtils.e(TAG, "Sync failed for config " + config.getId() + ": " + e.getMessage());
         anyFailure = true;
+      }
+
+      // Check disk space between configs to avoid futile attempts
+      if (!hasEnoughDiskSpace()) {
+        LogUtils.e(TAG, "Insufficient disk space \u2013 aborting remaining sync configs");
+        anyFailure = true;
+        break;
       }
     }
 
@@ -397,6 +419,11 @@ public class FolderSyncWorker extends Worker {
             syncRemoteToLocal(share, localSubDir, remoteFilePath, rootUri, childRelPath);
           }
         } else {
+          // Check disk space before each file download
+          if (!hasEnoughDiskSpace()) {
+            throw new InsufficientDiskSpaceException(
+                "Insufficient disk space before downloading: " + name);
+          }
           try {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
             long remoteSize = getRemoteFileSize(share, remoteFilePath);
@@ -438,9 +465,16 @@ public class FolderSyncWorker extends Worker {
                     SyncActionLog.Action.SKIPPED, name, "local newer or within tolerance");
               }
             }
+          } catch (InsufficientDiskSpaceException e) {
+            throw e;
           } catch (Exception e) {
             LogUtils.e(TAG, "Error syncing remote file " + name + ": " + e.getMessage());
             actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
+            // Check if the failure was caused by low disk space
+            if (!hasEnoughDiskSpace()) {
+              throw new InsufficientDiskSpaceException(
+                  "Insufficient disk space after failed download: " + name);
+            }
           }
         }
       }
@@ -579,8 +613,17 @@ public class FolderSyncWorker extends Worker {
 
         byte[] buffer = new byte[BUFFER_SIZE];
         int bytesRead;
+        long bytesSinceLastDiskCheck = 0;
         while ((bytesRead = is.read(buffer)) != -1) {
           os.write(buffer, 0, bytesRead);
+          bytesSinceLastDiskCheck += bytesRead;
+          if (bytesSinceLastDiskCheck >= DISK_CHECK_INTERVAL) {
+            if (!hasEnoughDiskSpace()) {
+              LogUtils.e(TAG, "Download aborted \u2013 disk space low: " + localFile.getName());
+              throw new InsufficientDiskSpaceException("Insufficient disk space");
+            }
+            bytesSinceLastDiskCheck = 0;
+          }
         }
       }
     }
@@ -826,6 +869,29 @@ public class FolderSyncWorker extends Worker {
   /** Returns a MIME type for a file based on its extension. */
   String getMimeType(String fileName) {
     return de.schliweb.sambalite.util.MimeTypeUtils.getMimeType(fileName);
+  }
+
+  /**
+   * Checks whether the device has enough free disk space to continue sync operations.
+   *
+   * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
+   */
+  private boolean hasEnoughDiskSpace() {
+    boolean internalOk =
+        EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
+    boolean externalOk =
+        EnhancedFileUtils.hasEnoughDiskSpace(android.os.Environment.getExternalStorageDirectory());
+    return internalOk && externalOk;
+  }
+
+  /**
+   * Exception thrown when disk space is insufficient, used to propagate the abort through recursive
+   * sync calls.
+   */
+  private static class InsufficientDiskSpaceException extends IOException {
+    InsufficientDiskSpaceException(String message) {
+      super(message);
+    }
   }
 
   /** Checks if the device is currently connected to a WiFi network. */
