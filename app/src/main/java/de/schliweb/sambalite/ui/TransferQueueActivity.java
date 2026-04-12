@@ -123,6 +123,32 @@ public class TransferQueueActivity extends AppCompatActivity
                       + (transfers != null ? transfers.size() : 0));
               this.onTransfersChanged(transfers);
             });
+
+    // Observe stats counts separately (accurate even when list is limited)
+    viewModel
+        .getPendingStatusCount()
+        .observe(this, count -> countPending.setText(String.valueOf(count != null ? count : 0)));
+    viewModel
+        .getActiveStatusCount()
+        .observe(this, count -> countActive.setText(String.valueOf(count != null ? count : 0)));
+    viewModel
+        .getCompletedStatusCount()
+        .observe(this, count -> countCompleted.setText(String.valueOf(count != null ? count : 0)));
+    viewModel
+        .getFailedStatusCount()
+        .observe(this, count -> countFailed.setText(String.valueOf(count != null ? count : 0)));
+    viewModel
+        .getTotalActiveCount()
+        .observe(
+            this,
+            count -> {
+              if (count != null && count > 0) {
+                queueInfoText.setText(
+                    getResources().getQuantityString(R.plurals.transfer_queue_count, count, count));
+              } else {
+                queueInfoText.setText(getString(R.string.transfer_queue_empty));
+              }
+            });
   }
 
   private void selectAllTransfers() {
@@ -222,20 +248,8 @@ public class TransferQueueActivity extends AppCompatActivity
         }
         updateSelectionUI();
       }
-      long pending = transfers.stream().filter(t -> "PENDING".equals(t.status)).count();
-      long active = transfers.stream().filter(t -> "ACTIVE".equals(t.status)).count();
-      long completed = transfers.stream().filter(t -> "COMPLETED".equals(t.status)).count();
-      long failed = transfers.stream().filter(t -> "FAILED".equals(t.status)).count();
 
-      countPending.setText(String.valueOf(pending));
-      countActive.setText(String.valueOf(active));
-      countCompleted.setText(String.valueOf(completed));
-      countFailed.setText(String.valueOf(failed));
-
-      queueInfoText.setText(
-          getResources()
-              .getQuantityString(
-                  R.plurals.transfer_queue_count, transfers.size(), transfers.size()));
+      // Stats counts are now observed separately via LiveData COUNT queries
 
       List<PendingTransfer> filtered =
           hideCompleted
@@ -245,7 +259,6 @@ public class TransferQueueActivity extends AppCompatActivity
               : transfers;
       adapter.submitList(sortTransfers(filtered));
     } else {
-      queueInfoText.setText(getString(R.string.transfer_queue_empty));
       adapter.submitList(null);
     }
   }

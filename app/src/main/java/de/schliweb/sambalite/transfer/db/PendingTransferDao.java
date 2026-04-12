@@ -22,7 +22,10 @@ import java.util.List;
 @Dao
 public interface PendingTransferDao {
 
-  /** Observes all transfers for the queue UI (active + recently completed within 1 hour). */
+  /**
+   * Observes transfers for the queue UI (active + recently completed within 1 hour). Limited to
+   * avoid CursorWindow overflow on large queues.
+   */
   @Query(
       "SELECT * FROM pending_transfer WHERE status NOT IN ('CANCELLED')"
           + " AND (status != 'COMPLETED' OR updated_at > :cutoff)"
@@ -31,9 +34,38 @@ public interface PendingTransferDao {
           + "   WHEN 'PENDING' THEN 1"
           + "   WHEN 'FAILED' THEN 2"
           + "   WHEN 'COMPLETED' THEN 3"
-          + "   ELSE 4 END, sort_order, created_at")
+          + "   ELSE 4 END, sort_order, created_at"
+          + " LIMIT 500")
   @NonNull
   LiveData<List<PendingTransfer>> observeActiveTransfers(long cutoff);
+
+  /** Observes the count of transfers with PENDING status (for stats display). */
+  @Query("SELECT COUNT(*) FROM pending_transfer WHERE status = 'PENDING'")
+  @NonNull
+  LiveData<Integer> observePendingStatusCount();
+
+  /** Observes the count of transfers with ACTIVE status (for stats display). */
+  @Query("SELECT COUNT(*) FROM pending_transfer WHERE status = 'ACTIVE'")
+  @NonNull
+  LiveData<Integer> observeActiveStatusCount();
+
+  /** Observes the count of completed transfers within the cutoff (for stats display). */
+  @Query(
+      "SELECT COUNT(*) FROM pending_transfer WHERE status = 'COMPLETED' AND updated_at > :cutoff")
+  @NonNull
+  LiveData<Integer> observeCompletedStatusCount(long cutoff);
+
+  /** Observes the count of transfers with FAILED status (for stats display). */
+  @Query("SELECT COUNT(*) FROM pending_transfer WHERE status = 'FAILED'")
+  @NonNull
+  LiveData<Integer> observeFailedStatusCount();
+
+  /** Observes the total count of non-cancelled transfers (for queue info display). */
+  @Query(
+      "SELECT COUNT(*) FROM pending_transfer WHERE status NOT IN ('CANCELLED')"
+          + " AND (status != 'COMPLETED' OR updated_at > :cutoff)")
+  @NonNull
+  LiveData<Integer> observeTotalActiveCount(long cutoff);
 
   /** Observes all transfers belonging to a specific batch. */
   @Query("SELECT * FROM pending_transfer WHERE batch_id = :batchId ORDER BY sort_order")

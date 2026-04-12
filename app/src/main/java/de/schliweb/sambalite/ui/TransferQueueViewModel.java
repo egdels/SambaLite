@@ -39,6 +39,11 @@ public class TransferQueueViewModel extends AndroidViewModel {
   private final ExecutorService executor = Executors.newSingleThreadExecutor();
   private final LiveData<List<PendingTransfer>> activeTransfers;
   private final LiveData<Integer> pendingCount;
+  private final LiveData<Integer> pendingStatusCount;
+  private final LiveData<Integer> activeStatusCount;
+  private final LiveData<Integer> completedStatusCount;
+  private final LiveData<Integer> failedStatusCount;
+  private final LiveData<Integer> totalActiveCount;
 
   public TransferQueueViewModel(@NonNull Application application) {
     super(application);
@@ -46,6 +51,11 @@ public class TransferQueueViewModel extends AndroidViewModel {
     long cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
     activeTransfers = dao.observeActiveTransfers(cutoff);
     pendingCount = dao.observePendingCount();
+    pendingStatusCount = dao.observePendingStatusCount();
+    activeStatusCount = dao.observeActiveStatusCount();
+    completedStatusCount = dao.observeCompletedStatusCount(cutoff);
+    failedStatusCount = dao.observeFailedStatusCount();
+    totalActiveCount = dao.observeTotalActiveCount(cutoff);
   }
 
   /** Observes all non-completed transfers for the queue list. */
@@ -58,6 +68,36 @@ public class TransferQueueViewModel extends AndroidViewModel {
   @NonNull
   public LiveData<Integer> getPendingCount() {
     return pendingCount;
+  }
+
+  /** Observes the count of transfers with PENDING status. */
+  @NonNull
+  public LiveData<Integer> getPendingStatusCount() {
+    return pendingStatusCount;
+  }
+
+  /** Observes the count of transfers with ACTIVE status. */
+  @NonNull
+  public LiveData<Integer> getActiveStatusCount() {
+    return activeStatusCount;
+  }
+
+  /** Observes the count of transfers with COMPLETED status. */
+  @NonNull
+  public LiveData<Integer> getCompletedStatusCount() {
+    return completedStatusCount;
+  }
+
+  /** Observes the count of transfers with FAILED status. */
+  @NonNull
+  public LiveData<Integer> getFailedStatusCount() {
+    return failedStatusCount;
+  }
+
+  /** Observes the total count of non-cancelled transfers. */
+  @NonNull
+  public LiveData<Integer> getTotalActiveCount() {
+    return totalActiveCount;
   }
 
   /** Cancels a single transfer. */
