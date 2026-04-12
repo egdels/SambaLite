@@ -19,7 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Selection Subtitle**: Toolbar subtitle now shows the count of selected files and directories separately during multi-select mode.
 - **Disk Space Check Refactoring**: Moved disk space check logic to `EnhancedFileUtils` for better separation of concerns.
+- **Directory Download moved to TransferWorker**: Recursive directory download logic moved from `FileOperationsViewModel` into `TransferWorker`. A single `DOWNLOAD_DIRECTORY` placeholder is enqueued, and the worker resolves directory contents using its own SMB connection — avoiding dependency on the (possibly closed) UI-layer SMB session.
+- **TransferWorker Work Policy**: Changed `ExistingWorkPolicy` from `REPLACE` to `KEEP` to prevent restarting an already running transfer worker when new transfers are enqueued.
 - **Test Infrastructure Overhaul**: Reworked `SmbTestHelper` and `SambaContainer`, updated and stabilized existing repository tests, and updated test documentation with the new test structure.
+
+### Fixed
+- **Disk Space Protection in TransferWorker**: Added comprehensive disk space checks before, during, and after transfers. The worker now stops immediately when disk space is insufficient instead of retrying endlessly, and returns `Result.failure()` when disk is full.
+- **Disk Space Protection in FolderSyncWorker**: Added disk space checks before each sync config, before each file download, and periodically during downloads (every 10 MB). Sync aborts gracefully via `InsufficientDiskSpaceException` when disk space runs low.
+- **SQLiteFullException Crash Prevention**: `SmartErrorHandler` now catches `SQLiteFullException` on WorkManager threads (caused by WorkManager internal DB operations when disk is full) and swallows them to prevent app crashes.
+- **Robust DB Error Handling in TransferWorker**: Wrapped transfer status updates in try-catch to prevent secondary crashes when the database is full.
+- **System Monitor Disk Info**: `SystemMonitorActivity` now displays internal and external storage usage with free/total space and a low disk space warning.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 
