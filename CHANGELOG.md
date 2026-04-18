@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SQLiteFullException Crash Prevention**: `SmartErrorHandler` now catches `SQLiteFullException` on WorkManager threads (caused by WorkManager internal DB operations when disk is full) and swallows them to prevent app crashes.
 - **Robust DB Error Handling in TransferWorker**: Wrapped transfer status updates in try-catch to prevent secondary crashes when the database is full.
 - **System Monitor Disk Info**: `SystemMonitorActivity` now displays internal and external storage usage with free/total space and a low disk space warning.
+- **Sort Dialog Crash in Landscape Mode**: Fixed a `NullPointerException` crash when opening the sort dialog in landscape orientation. The landscape layout (`dialog_sort.xml`) was missing the `show_thumbnails_checkbox`, and `getDirectoriesFirst().getValue()` could return `null` causing an unboxing crash.
+- **Upload Crash After ViewModel Cleared**: Fixed a `RejectedExecutionException` crash in `FileOperationsViewModel` when tasks were submitted to the background executor after the ViewModel had been cleared. All executor submissions now use a safe wrapper that catches rejected tasks gracefully.
+- **Battery Dialog Crash**: Fixed a `BadTokenException` crash when showing the battery optimization dialog after the activity was already finishing or destroyed. Added lifecycle checks before displaying the dialog.
+- **Unnecessary Refresh on Download**: Removed redundant file list refreshes after each completed download. Since downloads don't modify the remote directory, the per-file refresh was wasting resources — especially during batch downloads with many small files. Refreshes now only occur after uploads.
 
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 

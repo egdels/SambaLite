@@ -3,3 +3,7 @@
 - Explicit connection cleanup for better stability.
 - Toolbar subtitle shows file/directory count separately.
 - Disk space check refactored for better reliability.
+- Fixed: Sort dialog crash in landscape mode.
+- Fixed: Crash when submitting tasks after ViewModel cleared.
+- Fixed: Battery dialog crash on destroyed activity.
+- Fixed: Unnecessary file list refresh after each download.
