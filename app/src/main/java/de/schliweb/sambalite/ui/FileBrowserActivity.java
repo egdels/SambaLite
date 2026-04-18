@@ -135,7 +135,10 @@ public class FileBrowserActivity extends AppCompatActivity
           if (progressController != null) {
             progressController.showSuccess(label);
           }
-          if (fileListViewModel != null) {
+          // Only refresh the file list for uploads (remote directory changed).
+          // Downloads don't modify the remote directory, so refreshing is unnecessary
+          // and wastes resources — especially during batch downloads.
+          if (fileListViewModel != null && "UPLOAD".equals(transferType)) {
             fileListViewModel.refreshCurrentDirectory();
           }
         }
