@@ -42,6 +42,11 @@ public class BatteryOptimizationUtils {
 
     LogUtils.d(TAG, "Requesting battery optimization exemption");
 
+    if (activity.isFinishing() || activity.isDestroyed()) {
+      LogUtils.w(TAG, "Activity is finishing or destroyed, skipping dialog");
+      return;
+    }
+
     new AlertDialog.Builder(activity)
         .setTitle(activity.getString(R.string.battery_optimization_title))
         .setMessage(activity.getString(R.string.battery_optimization_message))
