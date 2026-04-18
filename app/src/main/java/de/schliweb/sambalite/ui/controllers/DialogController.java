@@ -383,7 +383,8 @@ public class DialogController {
 
     // Set initial values
     FileSortOption currentSortOption = fileListViewModel.getSortOption().getValue();
-    boolean directoriesFirst = fileListViewModel.getDirectoriesFirst().getValue();
+    boolean directoriesFirst =
+        Boolean.TRUE.equals(fileListViewModel.getDirectoriesFirst().getValue());
     boolean showHiddenFiles =
         Boolean.TRUE.equals(fileListViewModel.getShowHiddenFiles().getValue());
     boolean showThumbnails = Boolean.TRUE.equals(fileListViewModel.getShowThumbnails().getValue());
