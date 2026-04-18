@@ -256,7 +256,7 @@ public class FileOperationsViewModel extends ViewModel {
     String initialStatus = ProgressFormat.Op.DOWNLOAD.label() + ": " + file.getName();
     emitProgress(initialStatus, 0, file.getName());
 
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             final ProgressThrottler throttle = new ProgressThrottler(PROGRESS_THROTTLE_MS);
@@ -390,7 +390,7 @@ public class FileOperationsViewModel extends ViewModel {
     String dlOpName = "Downloading: " + file.getName();
     backgroundSmbManager.startOperation(dlOpName);
     incDownload();
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             state.setDownloadCancelled(false);
@@ -537,7 +537,7 @@ public class FileOperationsViewModel extends ViewModel {
     String folderDlOpName = "Downloading folder: " + folder.getName();
     backgroundSmbManager.startOperation(folderDlOpName);
     incDownload();
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             state.setDownloadCancelled(false);
@@ -718,7 +718,7 @@ public class FileOperationsViewModel extends ViewModel {
     backgroundSmbManager.startOperation(createOpName);
     state.setLoading(true);
 
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             smbRepository.createDirectory(
@@ -784,7 +784,7 @@ public class FileOperationsViewModel extends ViewModel {
     backgroundSmbManager.startOperation(deleteOpName);
     state.setLoading(true);
 
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             smbRepository.deleteFile(state.getConnection(), file.getPath());
@@ -873,7 +873,7 @@ public class FileOperationsViewModel extends ViewModel {
     backgroundSmbManager.startOperation(renameOpName);
     state.setLoading(true);
 
-    executor.execute(
+    safeExecute(
         () -> {
           try {
             smbRepository.renameFile(state.getConnection(), file.getPath(), newName);
@@ -980,7 +980,7 @@ public class FileOperationsViewModel extends ViewModel {
       @NonNull String displayName,
       long fileSize,
       @NonNull String batchId) {
-    executor.execute(
+    safeExecute(
         () -> {
           if (state.getConnection() == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot enqueue upload: no connection");
@@ -1022,7 +1022,7 @@ public class FileOperationsViewModel extends ViewModel {
   public @NonNull String enqueueFolderUpload(@NonNull Uri folderUri) {
     String batchId = UUID.randomUUID().toString();
 
-    executor.execute(
+    safeExecute(
         () -> {
           if (state.getConnection() == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot enqueue folder: no connection");
@@ -1109,7 +1109,7 @@ public class FileOperationsViewModel extends ViewModel {
       @NonNull String remoteFolderPath, @NonNull Uri destFolderUri, @NonNull String folderName) {
     String batchId = UUID.randomUUID().toString();
 
-    executor.execute(
+    safeExecute(
         () -> {
           if (state.getConnection() == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot enqueue folder download: no connection");
@@ -1159,7 +1159,7 @@ public class FileOperationsViewModel extends ViewModel {
       @NonNull List<SmbFileItem> files, @NonNull Uri destFolderUri) {
     String batchId = UUID.randomUUID().toString();
 
-    executor.execute(
+    safeExecute(
         () -> {
           if (state.getConnection() == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot enqueue multi-download: no connection");
@@ -1260,7 +1260,7 @@ public class FileOperationsViewModel extends ViewModel {
       @NonNull String displayName,
       long fileSize,
       @NonNull String batchId) {
-    executor.execute(
+    safeExecute(
         () -> {
           if (state.getConnection() == null) {
             LogUtils.w("FileOperationsViewModel", "Cannot enqueue download: no connection");
@@ -1306,6 +1306,23 @@ public class FileOperationsViewModel extends ViewModel {
     WorkManager.getInstance(context)
         .enqueueUniqueWork("transfer_queue", ExistingWorkPolicy.KEEP, request);
     LogUtils.d("FileOperationsViewModel", "TransferWorker enqueued (KEEP policy)");
+  }
+
+  /**
+   * Safely submits a task to the background executor. If the ViewModel has been cleared or the
+   * executor has been shut down, the task is silently dropped.
+   */
+  private void safeExecute(@NonNull Runnable task) {
+    if (cleared) {
+      LogUtils.w("FileOperationsViewModel", "Ignoring task submission: ViewModel already cleared");
+      return;
+    }
+    try {
+      executor.execute(task);
+    } catch (java.util.concurrent.RejectedExecutionException e) {
+      LogUtils.w(
+          "FileOperationsViewModel", "Task rejected (executor shut down): " + e.getMessage());
+    }
   }
 
   @Override
