@@ -19,6 +19,21 @@ The name refers solely to the supported SMB/CIFS network protocols.
 
 Or download the latest APK from the [Releases Section](https://github.com/egdels/SambaLite/releases/latest).
 
+## APK Verification
+
+All official releases of SambaLite are signed with one of the following certificates:
+
+- **Upload key** (used for GitHub releases, F-Droid, and sideload APKs)  
+  SHA-256: AE:32:2D:3F:B7:1A:FE:21:DF:47:27:E3:7A:5C:68:03:51:1D:5A:2F:E1:FC:31:35:43:0C:EE:06:99:FA:1B:34
+
+- **Google Play App Signing key** (used for Play Store releases)  
+  SHA-256: 51:97:00:8E:6A:6E:9E:03:31:FD:0D:B2:0E:A7:3F:DB:4C:5A:C1:AC:95:E8:C0:8E:0D:7C:F2:66:1D:46:BE:78
+
+### Verify with apksigner
+```bash
+apksigner verify --print-certs SambaLite-vX.Y.Z.apk
+```
+
 ## Features
 
 | Feature                | Status | Description                                     |
