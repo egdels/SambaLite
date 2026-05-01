@@ -1,3 +1,12 @@
+/*
+ * Copyright 2025 Christian Kierdorf
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ */
 package de.schliweb.sambalite.ui;
 
 import static org.junit.Assert.*;
@@ -37,95 +46,45 @@ public class ShareReceiverActivityTest {
     activity = Robolectric.buildActivity(ShareReceiverActivity.class, intent).get();
   }
 
-  // --- getConnectionNameFromTargetFolder tests ---
+  // --- buildDisplayFolder tests (Issue #27) ---
+  // The persisted folder is the *internal* path (without the share-name prefix). The display
+  // string for the confirmation dialog is rebuilt at runtime from share + path, so the share
+  // name is no longer accidentally treated as a connection name.
 
   @Test
-  public void getConnectionNameFromTargetFolder_withSlash_returnsPrefix() throws Exception {
+  public void buildDisplayFolder_unknownConnectionId_returnsPath() throws Exception {
     Method method =
         ShareReceiverActivity.class.getDeclaredMethod(
-            "getConnectionNameFromTargetFolder", String.class);
+            "buildDisplayFolder", String.class, String.class);
     method.setAccessible(true);
 
-    assertEquals("MyServer", method.invoke(activity, "MyServer/share/docs"));
+    // Without DI the connection repository is null/empty -> share resolves to "" and we just
+    // return the (possibly empty) internal path.
+    assertEquals("docs", method.invoke(activity, "missing-id", "docs"));
+    assertEquals("a/b/c", method.invoke(activity, "missing-id", "a/b/c"));
+    assertEquals("", method.invoke(activity, "missing-id", ""));
+    assertEquals("", method.invoke(activity, "missing-id", null));
   }
 
   @Test
-  public void getConnectionNameFromTargetFolder_withoutSlash_returnsFullString() throws Exception {
+  public void buildDisplayFolder_stripsLeadingSlash() throws Exception {
     Method method =
         ShareReceiverActivity.class.getDeclaredMethod(
-            "getConnectionNameFromTargetFolder", String.class);
+            "buildDisplayFolder", String.class, String.class);
     method.setAccessible(true);
 
-    assertEquals("MyServer", method.invoke(activity, "MyServer"));
+    assertEquals("docs/sub", method.invoke(activity, "missing-id", "/docs/sub"));
   }
 
   @Test
-  public void getConnectionNameFromTargetFolder_null_returnsEmpty() throws Exception {
+  public void buildDisplayFolder_emptyConnectionId_returnsPath() throws Exception {
     Method method =
         ShareReceiverActivity.class.getDeclaredMethod(
-            "getConnectionNameFromTargetFolder", String.class);
+            "buildDisplayFolder", String.class, String.class);
     method.setAccessible(true);
 
-    assertEquals("", method.invoke(activity, (String) null));
-  }
-
-  @Test
-  public void getConnectionNameFromTargetFolder_empty_returnsEmpty() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod(
-            "getConnectionNameFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    assertEquals("", method.invoke(activity, ""));
-  }
-
-  @Test
-  public void getConnectionNameFromTargetFolder_startsWithSlash_returnsEmpty() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod(
-            "getConnectionNameFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    // indexOf("/") == 0, which is not > 0, so returns the full string
-    assertEquals("/share", method.invoke(activity, "/share"));
-  }
-
-  // --- getPathFromTargetFolder tests ---
-
-  @Test
-  public void getPathFromTargetFolder_withSlash_returnsPathAfterSlash() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod("getPathFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    assertEquals("share/docs", method.invoke(activity, "MyServer/share/docs"));
-  }
-
-  @Test
-  public void getPathFromTargetFolder_withSlashOnly_returnsSlash() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod("getPathFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    assertEquals("/", method.invoke(activity, "MyServer/"));
-  }
-
-  @Test
-  public void getPathFromTargetFolder_withoutSlash_returnsSlash() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod("getPathFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    assertEquals("/", method.invoke(activity, "MyServer"));
-  }
-
-  @Test
-  public void getPathFromTargetFolder_null_returnsSlash() throws Exception {
-    Method method =
-        ShareReceiverActivity.class.getDeclaredMethod("getPathFromTargetFolder", String.class);
-    method.setAccessible(true);
-
-    assertEquals("/", method.invoke(activity, (String) null));
+    assertEquals("docs", method.invoke(activity, "", "docs"));
+    assertEquals("docs", method.invoke(activity, (String) null, "docs"));
   }
 
   // --- createTempTextFile tests ---
