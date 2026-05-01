@@ -1,0 +1,4 @@
+- Fixed: Share upload to share root and duplicated path segments (Issue #27).
+- Fixed: Wrong target for subfolders with the same name as the share (delete/rename/create).
+- Fixed: Consistent persistence of the current folder when changing directories.
+- Simplified share receiver flow with clearer target path display.
