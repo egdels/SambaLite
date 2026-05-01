@@ -5,6 +5,19 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-05-01
+
+### Fixed
+- **Share upload to share root and duplicated path segments (Issue #27)**: When sharing files to SambaLite via the Android "Share" menu, uploads could fail or land at the wrong target if the share root or a subfolder with the same name as the share was selected. The share receiver incorrectly interpreted the first path segment as the connection name, producing paths such as `share/share/...` (e.g. `AA/AA`). The connection is now unambiguously referenced via the persisted connection ID, and the stored path is treated as a share-relative internal path (empty for the share root).
+- **Wrong target for subfolders with the same name as the share in `SmbRepositoryImpl`**: `getPathWithoutShare()` stripped the first path segment when it matched the active share name. For a subfolder with the same name as the share (e.g. share `music` containing a subfolder `music`), this caused `delete`, `rename`, and `create` operations to silently act on the share root instead of the subfolder. The method now only normalizes leading slashes and leaves the path otherwise unchanged.
+- **Consistent persistence of the current folder in `FileBrowserActivity`**: When changing the remote folder, the internal path (without the share prefix) is now stored together with the connection ID, so subsequent share handoffs can reconstruct the correct upload target.
+
+### Changed
+- **Simplified share receiver flow**: Heuristics for deriving the connection from the target path (`getConnectionFromTargetPath`, `getConnectionNameFromTargetFolder`, `getPathFromTargetFolder`) have been removed. The confirmation dialog still shows a readable "share/sub/path" label, composed from the connection ID and the internal path.
+- **Tests**: Extended and stabilized unit tests for `ShareReceiverActivity`, `FileBrowserActivity` (new path normalization and upload target helpers), and `PathProcessingTest`.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.4.0] - 2026-04-12
 
 ### Added
