@@ -113,14 +113,22 @@ public class ShareReceiverActivity extends AppCompatActivity {
         return;
       }
 
+      String connectionId = PreferenceUtils.getCurrentSmbConnectionId(this);
       String currentFolder = PreferenceUtils.getCurrentSmbFolder(this);
-      LogUtils.d(TAG, "Retrieved saved folder from preferences: " + currentFolder);
+      LogUtils.d(
+          TAG,
+          "Retrieved saved context from preferences: connectionId="
+              + connectionId
+              + ", folder='"
+              + currentFolder
+              + "'");
 
-      if (currentFolder == null || currentFolder.isEmpty()) {
-        LogUtils.d(TAG, "No saved folder found in preferences");
+      // A target requires a connection id (the folder may be empty for the share root).
+      if (connectionId == null || connectionId.isEmpty()) {
+        LogUtils.d(TAG, "No saved connection id found in preferences");
         showNeedsTargetFolderDialog();
       } else {
-        showShareDialog(currentFolder);
+        showShareDialog(buildDisplayFolder(connectionId, currentFolder));
       }
     }
   }
@@ -134,14 +142,46 @@ public class ShareReceiverActivity extends AppCompatActivity {
     super.onResume();
     if (folderChangeInProgress) {
       folderChangeInProgress = false;
+      String connectionId = PreferenceUtils.getCurrentSmbConnectionId(this);
       String newFolder = PreferenceUtils.getCurrentSmbFolder(this);
-      LogUtils.d(TAG, "Returned from folder selection, new folder: " + newFolder);
-      if (newFolder != null && !newFolder.isEmpty() && !shareUris.isEmpty()) {
-        showShareDialog(newFolder);
+      LogUtils.d(
+          TAG,
+          "Returned from folder selection, connectionId="
+              + connectionId
+              + ", folder='"
+              + newFolder
+              + "'");
+      if (connectionId != null && !connectionId.isEmpty() && !shareUris.isEmpty()) {
+        showShareDialog(buildDisplayFolder(connectionId, newFolder));
       } else {
         showNeedsTargetFolderDialog();
       }
     }
+  }
+
+  /**
+   * Builds a human-readable folder label of the form "share/sub/path" for the confirmation dialog.
+   * The internal path persisted in preferences does not include the share name, so we resolve the
+   * share name from the connection id.
+   */
+  private String buildDisplayFolder(String connectionId, String internalPath) {
+    SmbConnection conn = null;
+    if (connectionId != null && !connectionId.isEmpty() && connectionRepository != null) {
+      List<SmbConnection> all = connectionRepository.getAllConnections();
+      if (all != null) {
+        for (SmbConnection c : all) {
+          if (connectionId.equals(c.getId())) {
+            conn = c;
+            break;
+          }
+        }
+      }
+    }
+    String share = (conn != null && conn.getShare() != null) ? conn.getShare() : "";
+    String path = internalPath == null ? "" : internalPath;
+    if (path.startsWith("/")) path = path.substring(1);
+    if (path.isEmpty()) return share;
+    return share.isEmpty() ? path : share + "/" + path;
   }
 
   private void showShareDialog(String currentFolder) {
@@ -214,47 +254,20 @@ public class ShareReceiverActivity extends AppCompatActivity {
     startActivity(intent);
   }
 
-  private SmbConnection getConnectionFromTargetPath(String smbTargetFolder) {
-    String connectionName = getConnectionNameFromTargetFolder(smbTargetFolder);
-    LogUtils.d(TAG, "Extracted connection name from target folder: " + connectionName);
-
-    List<SmbConnection> connections = connectionRepository.getAllConnections();
-    if (connections == null || connections.isEmpty()) return null;
-
-    String target = connectionName == null ? "" : connectionName.trim();
-    for (SmbConnection conn : connections) {
-      String name = conn.getName() == null ? "" : conn.getName().trim();
-      if (name.equalsIgnoreCase(target)) return conn;
-    }
-
-    if (connections.size() == 1) {
-      LogUtils.w(
-          TAG,
-          "No match for connection '"
-              + connectionName
-              + "'. Falling back to the only saved connection '"
-              + connections.get(0).getName()
-              + "'");
-      return connections.get(0);
-    }
-    return null;
-  }
-
   private void startUploadsViaFileBrowser() throws IOException {
     LogUtils.d(
         TAG, "Preparing Share handoff to FileBrowserActivity for " + shareUris.size() + " items");
-    targetSmbFolder = PreferenceUtils.getCurrentSmbFolder(this);
-    if (targetSmbFolder == null || targetSmbFolder.isEmpty())
-      throw new IOException("No target folder set");
 
+    // The connection id is the authoritative reference to the target connection. The folder
+    // string holds the *internal* remote path (without the share-name prefix); it may be empty
+    // when the share root was selected (Issue #27).
     String connectionId = PreferenceUtils.getCurrentSmbConnectionId(this);
     if (connectionId == null || connectionId.isEmpty()) {
-      SmbConnection conn = getConnectionFromTargetPath(targetSmbFolder);
-      if (conn == null) throw new IOException("Connection not found for target folder");
-      connectionId = conn.getId();
+      throw new IOException("Connection not found for target folder");
     }
 
-    String directoryPath = getPathFromTargetFolder(targetSmbFolder);
+    targetSmbFolder = PreferenceUtils.getCurrentSmbFolder(this);
+    String directoryPath = targetSmbFolder == null ? "" : targetSmbFolder;
     ArrayList<Uri> uris = new ArrayList<>(shareUris);
 
     // Propagate URI read grants to our app and the next Activity
@@ -284,23 +297,6 @@ public class ShareReceiverActivity extends AppCompatActivity {
 
     startActivity(intent);
     finish();
-  }
-
-  private String getConnectionNameFromTargetFolder(String targetFolder) {
-    if (targetFolder == null || targetFolder.isEmpty()) return "";
-    int slashIdx = targetFolder.indexOf("/");
-    if (slashIdx > 0) return targetFolder.substring(0, slashIdx);
-    return targetFolder;
-  }
-
-  private String getPathFromTargetFolder(String targetFolder) {
-    if (targetFolder == null) return "/";
-    int slashIdx = targetFolder.indexOf("/");
-    if (slashIdx > 0) {
-      String path = targetFolder.substring(slashIdx + 1);
-      return path.isEmpty() ? "/" : path;
-    }
-    return "/";
   }
 
   private Uri createTempTextFile(String text, String subject) {

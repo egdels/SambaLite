@@ -1018,16 +1018,20 @@ public class FileBrowserActivity extends AppCompatActivity
 
   private void onRemoteFolderChanged(String newRemotePath) {
     LogUtils.d("FileBrowserActivity", "Remote folder changed to: " + newRemotePath);
-    // Persist both the connection ID and the path to make uploads robust across renames
+    // Persist both the connection ID and the *internal* path (without share-name prefix) so
+    // share-handoff uploads can build the correct remote target. Issue #27: previously the
+    // display path (share/sub) was persisted and the ShareReceiver mis-interpreted the first
+    // segment as a connection name, leading to duplicated path segments such as "AA/AA".
     SmbConnection conn = fileListViewModel.getConnection();
+    String internalPath = fileListViewModel.getCurrentPathInternal();
     if (conn != null) {
-      PreferenceUtils.setCurrentSmbContext(this, conn.getId(), newRemotePath);
+      PreferenceUtils.setCurrentSmbContext(this, conn.getId(), internalPath);
     } else {
       // Fallback for safety
-      PreferenceUtils.setCurrentSmbFolder(this, newRemotePath);
+      PreferenceUtils.setCurrentSmbFolder(this, internalPath);
     }
     // Update sync direction markers for the current folder (use internal path without share name)
-    updateSyncDirections(fileListViewModel.getCurrentPathInternal());
+    updateSyncDirections(internalPath);
   }
 
   /**
@@ -1208,6 +1212,48 @@ public class FileBrowserActivity extends AppCompatActivity
     }
   }
 
+  /**
+   * Normalizes the *internal* directory path coming from a Share handoff intent. The internal path
+   * does not contain the share-name prefix and may be {@code null}, empty, "/", or carry
+   * leading/trailing slashes (Issue #27).
+   *
+   * @param directoryPath raw path from the handoff intent
+   * @return a path without leading/trailing slashes; empty string for the share root
+   */
+  static String normalizeInternalPath(String directoryPath) {
+    String p = directoryPath == null ? "" : directoryPath;
+    if ("/".equals(p)) return "";
+    if (p.startsWith("/")) p = p.substring(1);
+    if (p.endsWith("/")) p = p.substring(0, p.length() - 1);
+    return p;
+  }
+
+  /**
+   * Builds the upload target path for a Share handoff. Returns the *share-relative* path (without
+   * share-name prefix) because downstream upload logic ({@link
+   * de.schliweb.sambalite.ui.controllers.FileOperationsController#handleMultipleFileUploads(java.util.List,
+   * String)} and {@link de.schliweb.sambalite.transfer.TransferWorker}) treats the supplied target
+   * as relative to the already-connected SMB share. Issue #27: previously the share name was
+   * prepended, which led to {@code share/share/...} duplication on the server.
+   *
+   * @param share share name of the active connection (kept for API/test compatibility — currently
+   *     unused since the path is share-relative)
+   * @param normalizedInternal already normalized internal path (see {@link
+   *     #normalizeInternalPath(String)})
+   * @return the share-relative target directory path, or {@code null} when neither a share nor a
+   *     path is available (signals "use ViewModel's current path")
+   */
+  static String buildShareUploadTargetPath(String share, String normalizedInternal) {
+    String path = normalizedInternal == null ? "" : normalizedInternal;
+    if (!path.isEmpty()) {
+      return path;
+    }
+    // Share root: returning "" so handleMultipleFileUploads treats it as "no override" and falls
+    // back to the ViewModel's current path (which is also the share root after navigation).
+    // We still return null to keep behaviour identical when neither share nor path is set.
+    return (share != null && !share.isEmpty()) ? "" : null;
+  }
+
   /** Handles a Share handoff intent to start uploads in this activity (foreground UI). */
   private void checkAndHandleShareUpload() {
     Intent intent = getIntent();
@@ -1218,8 +1264,12 @@ public class FileBrowserActivity extends AppCompatActivity
       java.util.ArrayList<android.net.Uri> uris =
           IntentCompat.getParcelableArrayListExtra(intent, EXTRA_SHARE_URIS, android.net.Uri.class);
 
-      if (directoryPath != null && !directoryPath.isEmpty()) {
-        fileListViewModel.navigateToPathWithHierarchy(directoryPath);
+      // Normalize: directoryPath here is the *internal* path (without share-name prefix).
+      // It may be null, "" or "/" to address the share root.
+      String normalizedInternalPath = normalizeInternalPath(directoryPath);
+
+      if (!normalizedInternalPath.isEmpty()) {
+        fileListViewModel.navigateToPathWithHierarchy(normalizedInternalPath);
       }
 
       if (uris != null && !uris.isEmpty()) {
@@ -1248,16 +1298,12 @@ public class FileBrowserActivity extends AppCompatActivity
           }
         }
 
-        // Build the full remote path (share/subdir) for the upload target
-        String uploadTargetPath = null;
-        if (directoryPath != null && !directoryPath.isEmpty() && !"/".equals(directoryPath)) {
-          SmbConnection conn = fileListViewModel.getConnection();
-          if (conn != null && conn.getShare() != null && !conn.getShare().isEmpty()) {
-            uploadTargetPath = conn.getShare() + "/" + directoryPath;
-          } else {
-            uploadTargetPath = directoryPath;
-          }
-        }
+        // Build the full remote path (share/subdir) for the upload target. Always include the
+        // share name so downstream upload logic can resolve the remote location even when the
+        // user picked the share root (Issue #27).
+        SmbConnection conn = fileListViewModel.getConnection();
+        String share = conn != null ? conn.getShare() : null;
+        String uploadTargetPath = buildShareUploadTargetPath(share, normalizedInternalPath);
         LogUtils.i(
             "FileBrowserActivity",
             "Starting Share uploads for " + uris.size() + " items to " + uploadTargetPath);

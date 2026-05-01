@@ -376,67 +376,28 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   /**
-   * Gets the path without the share name. This method extracts and removes the share name from the
-   * path.
+   * Normalizes a share-relative path by removing leading slashes.
    *
-   * <p>Note: This method is conservative about removing path segments to avoid incorrectly removing
-   * folder names that might look like share names.
+   * <p>All callers in the codebase pass share-relative paths (i.e., paths relative to the connected
+   * share root, without the share name as the first segment). Stripping a leading segment that
+   * happens to equal the active share name was a heuristic that misbehaved when a subfolder had the
+   * same name as the share (e.g. share "christian" containing a folder "christian"). It caused
+   * delete/rename/create operations to silently target the wrong path. This method now only
+   * normalizes leading slashes and returns the path otherwise unchanged.
    */
   private String getPathWithoutShare(String fullPath) {
-    LogUtils.d("SmbRepositoryImpl", "Getting path without share from: " + fullPath);
+    LogUtils.d("SmbRepositoryImpl", "Normalizing share-relative path: " + fullPath);
     if (fullPath == null || fullPath.isEmpty()) {
       LogUtils.w("SmbRepositoryImpl", "Full path is null or empty");
       return "";
     }
 
-    // Remove leading slashes
+    // Remove leading slashes (both forward and backward)
     String path = fullPath;
     while (path.startsWith("/") || path.startsWith("\\")) {
       path = path.substring(1);
     }
-
-    // If we know the active share name, strip it when present as the first segment
-    // (case-insensitive)
-    String activeShare = currentShareName.get();
-    if (activeShare != null && !activeShare.isEmpty()) {
-      // Normalize to forward slashes for comparison
-      String normalized = path.replace('\\', '/');
-      String shareNorm = activeShare.replace('\\', '/');
-      // Also strip any leading slashes on share name just in case
-      while (shareNorm.startsWith("/")) {
-        shareNorm = shareNorm.substring(1);
-      }
-      if (normalized.equalsIgnoreCase(shareNorm) && !normalized.contains("/")) {
-        // Single segment matching share name — ambiguous: could be the share root
-        // or a subfolder with the same name. Return as-is so callers operate on the
-        // subfolder rather than accidentally targeting the share root.
-        LogUtils.d(
-            "SmbRepositoryImpl",
-            "Path '" + normalized + "' equals active share name — returning as-is");
-        return path;
-      }
-      if (normalized
-          .toLowerCase(Locale.ROOT)
-          .startsWith((shareNorm + "/").toLowerCase(Locale.ROOT))) {
-        String stripped = normalized.substring(shareNorm.length() + 1);
-        LogUtils.d(
-            "SmbRepositoryImpl",
-            "Stripped active share '" + activeShare + "' from path -> " + stripped);
-        return stripped;
-      }
-    }
-
-    // Fallback: if there is no slash, return as-is (single segment)
-    int slashIndex = Math.max(path.indexOf('/'), path.indexOf('\\'));
-    if (slashIndex == -1) {
-      LogUtils.d("SmbRepositoryImpl", "Path without share: " + path);
-      return path;
-    }
-
-    // Conservative fallback (keep original behavior without hardcoded names): do not strip unknown
-    // first segment
-    LogUtils.d(
-        "SmbRepositoryImpl", "No active share match for first segment; using path as-is: " + path);
+    LogUtils.d("SmbRepositoryImpl", "Normalized path: " + path);
     return path;
   }
 
