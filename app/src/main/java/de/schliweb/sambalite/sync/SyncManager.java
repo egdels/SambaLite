@@ -74,7 +74,9 @@ public class SyncManager {
         localFolderDisplayName,
         direction,
         intervalMinutes,
-        false);
+        false,
+        false,
+        true);
   }
 
   /**
@@ -87,6 +89,13 @@ public class SyncManager {
    * @param direction the sync direction
    * @param intervalMinutes the sync interval in minutes (minimum 15)
    * @param wifiOnly whether to sync on WiFi only
+   * @param mirror whether to enable mirror mode (delete entries on the target that no longer exist
+   *     at the source); only meaningful for one-way directions, ignored for {@link
+   *     SyncDirection#BIDIRECTIONAL}.
+   * @param mirrorUseTrash if {@code true} and {@code mirror} is enabled, removed entries are moved
+   *     into a per-run trash folder ({@code .sambalite-trash/<timestamp>/}) at the target root
+   *     instead of being permanently deleted; falls back to permanent delete if the storage
+   *     provider does not support move.
    * @return the saved SyncConfig
    */
   public @NonNull SyncConfig addSyncConfig(
@@ -96,7 +105,9 @@ public class SyncManager {
       @NonNull String localFolderDisplayName,
       @NonNull SyncDirection direction,
       int intervalMinutes,
-      boolean wifiOnly) {
+      boolean wifiOnly,
+      boolean mirror,
+      boolean mirrorUseTrash) {
     LogUtils.d(TAG, "Adding sync config for connection: " + connectionId);
 
     // Take persistable URI permission
@@ -120,6 +131,9 @@ public class SyncManager {
     config.setIntervalMinutes(
         intervalMinutes <= 0 ? 0 : Math.max(intervalMinutes, MIN_INTERVAL_MINUTES));
     config.setWifiOnly(wifiOnly);
+    // Mirror is only meaningful for one-way directions; force off for BIDIRECTIONAL.
+    config.setMirror(mirror && direction != SyncDirection.BIDIRECTIONAL);
+    config.setMirrorUseTrash(mirrorUseTrash);
 
     SyncConfig saved = syncRepository.saveSyncConfig(config);
     LogUtils.i(TAG, "Sync config added: " + saved.getId());

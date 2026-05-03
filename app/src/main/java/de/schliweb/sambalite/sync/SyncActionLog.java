@@ -37,6 +37,9 @@ public class SyncActionLog {
     CREATED_DIR("📁 Created dir"),
     ERROR("✗ Error"),
     DELETED("🗑 Deleted"),
+    MIRROR_DELETED("🪞 Mirror deleted"),
+    MIRROR_TRASHED("🪞 Mirror trashed"),
+    MIRROR_ABORTED("🪞 Mirror aborted"),
     TIMESTAMP_SET("🕐 Timestamp set"),
     TIMESTAMP_FAILED("⚠ Timestamp failed");
 
@@ -139,6 +142,7 @@ public class SyncActionLog {
 
     // Summary counts
     int uploaded = 0, downloaded = 0, skipped = 0, errors = 0, dirs = 0, deleted = 0;
+    int mirrorDeleted = 0, mirrorTrashed = 0, mirrorAborted = 0;
     int timestampsSet = 0, timestampsFailed = 0;
     for (String entry : getEntries()) {
       if (entry.contains(Action.UPLOADED.getSymbol())) uploaded++;
@@ -146,6 +150,9 @@ public class SyncActionLog {
       else if (entry.contains(Action.SKIPPED.getSymbol())) skipped++;
       else if (entry.contains(Action.ERROR.getSymbol())) errors++;
       else if (entry.contains(Action.CREATED_DIR.getSymbol())) dirs++;
+      else if (entry.contains(Action.MIRROR_DELETED.getSymbol())) mirrorDeleted++;
+      else if (entry.contains(Action.MIRROR_TRASHED.getSymbol())) mirrorTrashed++;
+      else if (entry.contains(Action.MIRROR_ABORTED.getSymbol())) mirrorAborted++;
       else if (entry.contains(Action.DELETED.getSymbol())) deleted++;
       else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
       else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
@@ -162,6 +169,12 @@ public class SyncActionLog {
         .append(" dirs created, ")
         .append(deleted)
         .append(" deleted, ")
+        .append(mirrorDeleted)
+        .append(" mirror deleted, ")
+        .append(mirrorTrashed)
+        .append(" mirror trashed, ")
+        .append(mirrorAborted)
+        .append(" mirror aborted, ")
         .append(errors)
         .append(" errors, ")
         .append(timestampsSet)

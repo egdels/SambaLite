@@ -260,6 +260,8 @@ public class SyncRepository {
     json.put("direction", config.getDirection().name());
     json.put("intervalMinutes", config.getIntervalMinutes());
     json.put("wifiOnly", config.isWifiOnly());
+    json.put("mirror", config.isMirror());
+    json.put("mirrorUseTrash", config.isMirrorUseTrash());
     return json;
   }
 
@@ -276,6 +278,8 @@ public class SyncRepository {
     config.setDirection(SyncDirection.valueOf(json.optString("direction", "BIDIRECTIONAL")));
     config.setIntervalMinutes(json.optInt("intervalMinutes", 60));
     config.setWifiOnly(json.optBoolean("wifiOnly", false));
+    config.setMirror(json.optBoolean("mirror", false));
+    config.setMirrorUseTrash(json.optBoolean("mirrorUseTrash", true));
     return config;
   }
 }

@@ -28,8 +28,8 @@ public class SyncStateStore {
     this.dao = SyncDatabase.getInstance(context).fileSyncStateDao();
   }
 
-  /** Constructor for testing with injected DAO. */
-  SyncStateStore(@NonNull FileSyncStateDao dao) {
+  /** Constructor for testing with an injected DAO (allows non-Android unit/integration tests). */
+  public SyncStateStore(@NonNull FileSyncStateDao dao) {
     this.dao = dao;
   }
 
