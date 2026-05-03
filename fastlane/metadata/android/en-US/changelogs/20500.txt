@@ -1,0 +1,4 @@
+- Added: Mirror Sync Mode (one-way) with optional trash safeguard (.sambalite-trash) and safety limits.
+- Added: Mirror logging, UI options, trash exclusion, tests, and translations.
+- Changed: Sync worker reworked; configs persist mirror settings.
+- Fixed: Docker API tests and unnecessary file list refresh.
