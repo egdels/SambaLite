@@ -127,6 +127,7 @@ public class FileBrowserActivity extends AppCompatActivity
         public void onReceive(Context context, Intent intent) {
           String displayName = intent.getStringExtra(TransferWorker.EXTRA_DISPLAY_NAME);
           String transferType = intent.getStringExtra(TransferWorker.EXTRA_TRANSFER_TYPE);
+          String remotePath = intent.getStringExtra(TransferWorker.EXTRA_REMOTE_PATH);
           String label =
               "UPLOAD".equals(transferType)
                   ? getString(R.string.transfer_upload_success, displayName)
@@ -135,14 +136,70 @@ public class FileBrowserActivity extends AppCompatActivity
           if (progressController != null) {
             progressController.showSuccess(label);
           }
-          // Only refresh the file list for uploads (remote directory changed).
-          // Downloads don't modify the remote directory, so refreshing is unnecessary
-          // and wastes resources — especially during batch downloads.
+          // Only refresh the file list for uploads (remote directory changed) AND only when the
+          // upload target directory matches the directory currently displayed. Otherwise we
+          // would needlessly reload the user's current view (and invalidate caches) on every
+          // upload to an unrelated folder — e.g. during background sync. (Issue: UI refreshed
+          // on every upload even when not in the affected folder.)
           if (fileListViewModel != null && "UPLOAD".equals(transferType)) {
-            fileListViewModel.refreshCurrentDirectory();
+            if (isUploadInCurrentDirectory(remotePath)) {
+              fileListViewModel.refreshCurrentDirectory();
+            } else {
+              LogUtils.d(
+                  "FileBrowserActivity",
+                  "Skipping refresh: upload target is not the currently displayed directory ("
+                      + remotePath
+                      + ")");
+            }
           }
         }
       };
+
+  /**
+   * Returns {@code true} when the parent directory of {@code remotePath} (as published by {@link
+   * TransferWorker}) is the directory currently displayed by the file browser.
+   *
+   * <p>The {@code remotePath} broadcast extra is of the form {@code <share>/<internal>/<file>}
+   * (forward slashes), while the ViewModel exposes the share-relative internal path. We strip the
+   * share-name prefix (when known) and compare normalized parent paths.
+   */
+  private boolean isUploadInCurrentDirectory(@Nullable String remotePath) {
+    if (fileListViewModel == null) return false;
+    SmbConnection conn = fileListViewModel.getConnection();
+    String share = conn != null ? conn.getShare() : null;
+    return isUploadInDirectory(remotePath, share, fileListViewModel.getCurrentPathInternal());
+  }
+
+  /**
+   * Pure helper for {@link #isUploadInCurrentDirectory(String)} — extracted for unit tests.
+   *
+   * @param remotePath full remote path of the uploaded file (as published in the broadcast), e.g.
+   *     {@code "share/sub/dir/file.txt"} (forward or back slashes accepted)
+   * @param share share-name of the active connection, may be {@code null}/empty
+   * @param currentInternal current share-relative path displayed by the browser ({@code ""} for
+   *     share root), may be {@code null}
+   * @return {@code true} when {@code remotePath}'s parent directory equals {@code currentInternal}
+   */
+  static boolean isUploadInDirectory(
+      @Nullable String remotePath, @Nullable String share, @Nullable String currentInternal) {
+    if (remotePath == null || remotePath.isEmpty()) return false;
+    String normalized = remotePath.replace('\\', '/');
+    while (normalized.startsWith("/")) normalized = normalized.substring(1);
+    while (normalized.endsWith("/")) normalized = normalized.substring(0, normalized.length() - 1);
+    int lastSlash = normalized.lastIndexOf('/');
+    String parent = lastSlash >= 0 ? normalized.substring(0, lastSlash) : "";
+    if (share != null && !share.isEmpty()) {
+      if (parent.equals(share)) {
+        parent = "";
+      } else if (parent.startsWith(share + "/")) {
+        parent = parent.substring(share.length() + 1);
+      }
+    }
+    String current = currentInternal == null ? "" : currentInternal;
+    while (current.startsWith("/")) current = current.substring(1);
+    while (current.endsWith("/")) current = current.substring(0, current.length() - 1);
+    return parent.equals(current);
+  }
 
   /**
    * Creates an intent to start this activity.
@@ -773,8 +830,14 @@ public class FileBrowserActivity extends AppCompatActivity
         new DialogController.SyncSetupCallback() {
           @Override
           public void onSyncSetupRequested(
-              SyncDirection direction, int intervalMinutes, String remotePath, boolean wifiOnly) {
-            handleSyncSetupConfirmed(direction, intervalMinutes, remotePath, wifiOnly);
+              SyncDirection direction,
+              int intervalMinutes,
+              String remotePath,
+              boolean wifiOnly,
+              boolean mirror,
+              boolean mirrorUseTrash) {
+            handleSyncSetupConfirmed(
+                direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
           }
 
           @Override
@@ -1756,7 +1819,12 @@ public class FileBrowserActivity extends AppCompatActivity
   private static final int MAX_SYNC_CONFIGS = 5;
 
   void handleSyncSetupConfirmed(
-      SyncDirection direction, int intervalMinutes, String remotePath, boolean wifiOnly) {
+      SyncDirection direction,
+      int intervalMinutes,
+      String remotePath,
+      boolean wifiOnly,
+      boolean mirror,
+      boolean mirrorUseTrash) {
     Uri folderUri = uiState.getSyncFolderUri();
     if (folderUri == null) {
       progressController.showError(getString(R.string.sync_select_folder_first), null);
@@ -1814,7 +1882,9 @@ public class FileBrowserActivity extends AppCompatActivity
         displayName,
         direction,
         intervalMinutes,
-        wifiOnly);
+        wifiOnly,
+        mirror,
+        mirrorUseTrash);
 
     progressController.showSuccess(getString(R.string.sync_config_saved));
 

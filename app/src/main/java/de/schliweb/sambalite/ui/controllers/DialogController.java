@@ -731,7 +731,9 @@ public class DialogController {
         @NonNull SyncDirection direction,
         int intervalMinutes,
         @NonNull String remotePath,
-        boolean wifiOnly);
+        boolean wifiOnly,
+        boolean mirror,
+        boolean mirrorUseTrash);
 
     /** Called when the user wants to select a local folder for sync. */
     void onSyncFolderPickRequested();
@@ -754,9 +756,31 @@ public class DialogController {
     Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
     com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
         dialogView.findViewById(R.id.sync_wifi_only_switch);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorSwitch =
+        dialogView.findViewById(R.id.sync_mirror_switch);
+    TextView mirrorWarning = dialogView.findViewById(R.id.sync_mirror_warning);
+    View mirrorTrashRow = dialogView.findViewById(R.id.sync_mirror_trash_row);
+    View mirrorTrashHint = dialogView.findViewById(R.id.sync_mirror_trash_hint);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorTrashSwitch =
+        dialogView.findViewById(R.id.sync_mirror_use_trash_switch);
     TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
+
+    // Mirror warning + trash row are only meaningful for one-way mirror; visibility follows state.
+    Runnable updateMirrorWarning =
+        () -> {
+          int checked = directionGroup.getCheckedRadioButtonId();
+          boolean oneWay =
+              checked == R.id.radio_local_to_remote || checked == R.id.radio_remote_to_local;
+          boolean active = mirrorSwitch.isChecked() && oneWay;
+          mirrorWarning.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashRow.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashHint.setVisibility(active ? View.VISIBLE : View.GONE);
+        };
+    mirrorSwitch.setOnCheckedChangeListener((b, c) -> updateMirrorWarning.run());
+    directionGroup.setOnCheckedChangeListener((g, id) -> updateMirrorWarning.run());
+    updateMirrorWarning.run();
 
     // Pre-fill remote path and make it non-editable
     if (currentRemotePath != null && !currentRemotePath.isEmpty()) {
@@ -814,12 +838,16 @@ public class DialogController {
               // Get wifiOnly
               boolean wifiOnly = wifiOnlySwitch.isChecked();
 
+              // Get mirror flag (ignored for BIDIRECTIONAL)
+              boolean mirror = mirrorSwitch.isChecked() && direction != SyncDirection.BIDIRECTIONAL;
+              boolean mirrorUseTrash = mirrorTrashSwitch.isChecked();
+
               // Get remote path
               String remotePath = remotePathField.getText().toString().trim();
 
               if (syncSetupCallback != null) {
                 syncSetupCallback.onSyncSetupRequested(
-                    direction, intervalMinutes, remotePath, wifiOnly);
+                    direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
               }
             })
         .setNegativeButton(R.string.cancel, null)
@@ -843,9 +871,29 @@ public class DialogController {
     Spinner intervalSpinner = dialogView.findViewById(R.id.sync_interval_spinner);
     com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
         dialogView.findViewById(R.id.sync_wifi_only_switch);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorSwitch =
+        dialogView.findViewById(R.id.sync_mirror_switch);
+    TextView mirrorWarning = dialogView.findViewById(R.id.sync_mirror_warning);
+    View mirrorTrashRow = dialogView.findViewById(R.id.sync_mirror_trash_row);
+    View mirrorTrashHint = dialogView.findViewById(R.id.sync_mirror_trash_hint);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorTrashSwitch =
+        dialogView.findViewById(R.id.sync_mirror_use_trash_switch);
     TextView remotePathField = dialogView.findViewById(R.id.sync_remote_path);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     View selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
+
+    Runnable updateMirrorWarning =
+        () -> {
+          int checked = directionGroup.getCheckedRadioButtonId();
+          boolean oneWay =
+              checked == R.id.radio_local_to_remote || checked == R.id.radio_remote_to_local;
+          boolean active = mirrorSwitch.isChecked() && oneWay;
+          mirrorWarning.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashRow.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashHint.setVisibility(active ? View.VISIBLE : View.GONE);
+        };
+    mirrorSwitch.setOnCheckedChangeListener((b, c) -> updateMirrorWarning.run());
+    directionGroup.setOnCheckedChangeListener((g, id) -> updateMirrorWarning.run());
 
     // Pre-fill remote path and make it non-editable in edit mode
     if (config.getRemotePath() != null && !config.getRemotePath().isEmpty()) {
@@ -898,6 +946,11 @@ public class DialogController {
     // Pre-fill wifiOnly
     wifiOnlySwitch.setChecked(config.isWifiOnly());
 
+    // Pre-fill mirror
+    mirrorSwitch.setChecked(config.isMirror());
+    mirrorTrashSwitch.setChecked(config.isMirrorUseTrash());
+    updateMirrorWarning.run();
+
     // Pre-fill local folder display
     if (config.getLocalFolderDisplayName() != null
         && !config.getLocalFolderDisplayName().isEmpty()) {
@@ -940,12 +993,16 @@ public class DialogController {
               // Get wifiOnly
               boolean wifiOnly = wifiOnlySwitch.isChecked();
 
+              // Get mirror flag (ignored for BIDIRECTIONAL)
+              boolean mirror = mirrorSwitch.isChecked() && direction != SyncDirection.BIDIRECTIONAL;
+              boolean mirrorUseTrash = mirrorTrashSwitch.isChecked();
+
               // Get remote path
               String remotePath = remotePathField.getText().toString().trim();
 
               if (syncSetupCallback != null) {
                 syncSetupCallback.onSyncSetupRequested(
-                    direction, intervalMinutes, remotePath, wifiOnly);
+                    direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
               }
             })
         .setNegativeButton(

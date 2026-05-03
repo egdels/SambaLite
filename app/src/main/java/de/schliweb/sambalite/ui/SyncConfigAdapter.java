@@ -149,6 +149,7 @@ public class SyncConfigAdapter
     private final TextView statusTextView;
     private final TextView directionTextView;
     private final TextView wifiOnlyIndicator;
+    private final TextView mirrorIndicator;
     private final View moreOptionsButton;
     private final View syncIcon;
     private final View syncProgressBar;
@@ -161,6 +162,7 @@ public class SyncConfigAdapter
       statusTextView = itemView.findViewById(R.id.sync_status);
       directionTextView = itemView.findViewById(R.id.sync_direction);
       wifiOnlyIndicator = itemView.findViewById(R.id.sync_wifi_only_indicator);
+      mirrorIndicator = itemView.findViewById(R.id.sync_mirror_indicator);
       moreOptionsButton = itemView.findViewById(R.id.sync_more_options);
       syncIcon = itemView.findViewById(R.id.sync_icon);
       syncProgressBar = itemView.findViewById(R.id.sync_progress);
@@ -218,6 +220,14 @@ public class SyncConfigAdapter
         wifiOnlyIndicator.setVisibility(View.VISIBLE);
       } else {
         wifiOnlyIndicator.setVisibility(View.GONE);
+      }
+
+      // Update mirror indicator (mirror is only meaningful for one-way directions)
+      if (config.isMirror() && direction != SyncDirection.BIDIRECTIONAL) {
+        mirrorIndicator.setText(R.string.sync_mirror_indicator);
+        mirrorIndicator.setVisibility(View.VISIBLE);
+      } else {
+        mirrorIndicator.setVisibility(View.GONE);
       }
 
       // Update running status

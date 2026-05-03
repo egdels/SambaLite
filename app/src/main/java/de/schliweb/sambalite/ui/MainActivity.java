@@ -647,6 +647,13 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.sync_remote_path);
     com.google.android.material.materialswitch.MaterialSwitch wifiOnlySwitch =
         dialogView.findViewById(R.id.sync_wifi_only_switch);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorSwitch =
+        dialogView.findViewById(R.id.sync_mirror_switch);
+    TextView mirrorWarning = dialogView.findViewById(R.id.sync_mirror_warning);
+    View mirrorTrashRow = dialogView.findViewById(R.id.sync_mirror_trash_row);
+    View mirrorTrashHint = dialogView.findViewById(R.id.sync_mirror_trash_hint);
+    com.google.android.material.materialswitch.MaterialSwitch mirrorTrashSwitch =
+        dialogView.findViewById(R.id.sync_mirror_use_trash_switch);
     TextView folderDisplay = dialogView.findViewById(R.id.sync_local_folder_display);
     Button selectFolderButton = dialogView.findViewById(R.id.sync_select_folder_button);
 
@@ -701,6 +708,23 @@ public class MainActivity extends AppCompatActivity
     // Pre-fill wifiOnly
     wifiOnlySwitch.setChecked(config.isWifiOnly());
 
+    // Pre-fill mirror + warning visibility logic
+    mirrorSwitch.setChecked(config.isMirror());
+    mirrorTrashSwitch.setChecked(config.isMirrorUseTrash());
+    Runnable updateMirrorWarning =
+        () -> {
+          int checked = directionGroup.getCheckedRadioButtonId();
+          boolean oneWay =
+              checked == R.id.radio_local_to_remote || checked == R.id.radio_remote_to_local;
+          boolean active = mirrorSwitch.isChecked() && oneWay;
+          mirrorWarning.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashRow.setVisibility(active ? View.VISIBLE : View.GONE);
+          mirrorTrashHint.setVisibility(active ? View.VISIBLE : View.GONE);
+        };
+    mirrorSwitch.setOnCheckedChangeListener((b, c) -> updateMirrorWarning.run());
+    directionGroup.setOnCheckedChangeListener((g, id) -> updateMirrorWarning.run());
+    updateMirrorWarning.run();
+
     // Pre-fill local folder display
     if (config.getLocalFolderDisplayName() != null
         && !config.getLocalFolderDisplayName().isEmpty()) {
@@ -731,10 +755,16 @@ public class MainActivity extends AppCompatActivity
               // Get wifiOnly
               boolean wifiOnly = wifiOnlySwitch.isChecked();
 
+              // Get mirror flag (ignored for BIDIRECTIONAL)
+              boolean mirror = mirrorSwitch.isChecked() && direction != SyncDirection.BIDIRECTIONAL;
+              boolean mirrorUseTrash = mirrorTrashSwitch.isChecked();
+
               // Update config
               config.setDirection(direction);
               config.setIntervalMinutes(intervalMinutes);
               config.setWifiOnly(wifiOnly);
+              config.setMirror(mirror);
+              config.setMirrorUseTrash(mirrorUseTrash);
 
               viewModel.updateSyncConfig(config);
               EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));
