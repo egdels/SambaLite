@@ -20,7 +20,7 @@ android {
         minSdk 28
         targetSdk = 36
         
-        versionCode 20401
+        versionCode 20500
         versionName project.version.toString()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -252,6 +252,8 @@ dependencies {
     // Testcontainers for real Samba server testing
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    // Note: API negotiation pinned to 1.44 via app/src/test/resources/docker-java.properties
+    // (required for Docker Engine 29+ / OrbStack which rejects the default 1.32).
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
     testImplementation 'org.junit.vintage:junit-vintage-engine:5.10.2' // Support for existing JUnit 4 tests
