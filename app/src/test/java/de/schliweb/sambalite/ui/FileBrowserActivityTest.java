@@ -10,7 +10,9 @@
 package de.schliweb.sambalite.ui;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -144,5 +146,64 @@ public class FileBrowserActivityTest {
         "sub1/sub2",
         FileBrowserActivity.buildShareUploadTargetPath(
             "myshare", FileBrowserActivity.normalizeInternalPath("/sub1/sub2/")));
+  }
+
+  // --- isUploadInDirectory ---
+  // Decides whether a transfer-completed broadcast must trigger a refresh of the currently
+  // displayed directory. Without this filter every upload (including background syncs to
+  // unrelated folders) would invalidate the cache and reload the user's view.
+
+  @Test
+  public void isUploadInDirectory_uploadToSharedRoot_whileViewingRoot_matches() {
+    // Browser at share-root ("") receives upload "share/file.txt" → parent "share" → ""
+    assertTrue(FileBrowserActivity.isUploadInDirectory("share/file.txt", "share", ""));
+  }
+
+  @Test
+  public void isUploadInDirectory_uploadToSubfolder_whileViewingRoot_doesNotMatch() {
+    // Reproducer for the reported issue: viewing root, sync uploads into "share/TEST/scans/...".
+    assertFalse(
+        FileBrowserActivity.isUploadInDirectory(
+            "share/TEST/scans/file.pdf", "share", ""));
+  }
+
+  @Test
+  public void isUploadInDirectory_uploadAndViewMatchSubfolder_matches() {
+    assertTrue(
+        FileBrowserActivity.isUploadInDirectory(
+            "share/TEST/scans/file.pdf", "share", "TEST/scans"));
+  }
+
+  @Test
+  public void isUploadInDirectory_uploadInDifferentSubfolder_doesNotMatch() {
+    assertFalse(
+        FileBrowserActivity.isUploadInDirectory(
+            "share/TEST/scans/file.pdf", "share", "TEST/other"));
+  }
+
+  @Test
+  public void isUploadInDirectory_handlesBackslashesAndLeadingSlashes() {
+    // TransferWorker logs "TEST\\TEST\\scans" (Windows-style); the helper must be tolerant.
+    assertTrue(
+        FileBrowserActivity.isUploadInDirectory(
+            "share\\TEST\\scans\\file.pdf", "share", "TEST/scans"));
+    assertTrue(
+        FileBrowserActivity.isUploadInDirectory(
+            "/share/TEST/scans/file.pdf", "share", "/TEST/scans/"));
+  }
+
+  @Test
+  public void isUploadInDirectory_nullOrEmptyRemotePath_doesNotMatch() {
+    assertFalse(FileBrowserActivity.isUploadInDirectory(null, "share", ""));
+    assertFalse(FileBrowserActivity.isUploadInDirectory("", "share", ""));
+  }
+
+  @Test
+  public void isUploadInDirectory_unknownShare_stillCanMatchByExactParent() {
+    // Without a known share, the helper compares the raw parent. This is a defensive fallback
+    // (e.g. when the connection has no share configured) and only matches when the caller's
+    // currentInternal already includes the leading segment.
+    assertTrue(FileBrowserActivity.isUploadInDirectory("a/b/file.txt", null, "a/b"));
+    assertFalse(FileBrowserActivity.isUploadInDirectory("a/b/file.txt", null, "b"));
   }
 }
