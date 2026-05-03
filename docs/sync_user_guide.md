@@ -1,6 +1,6 @@
 # User Guide: Folder Synchronization in SambaLite
 
-Last updated: 2026-03-31
+Last updated: 2026-05-03
 
 This guide explains how to set up and manage automatic folder synchronization between your Android device and an SMB network share.
 
@@ -32,6 +32,7 @@ Folder Sync lets you keep a local folder on your device in sync with a remote fo
 | **Sync Interval** | How often the sync runs in the background (15 min – 24 hours). |
 | **Remote Path** | The folder path on the SMB share (e.g. `Photos/Backup`). Automatically set to the selected folder's path and **not editable**. |
 | **Local Folder** | Tap "Select Local Folder" to pick a folder on your device using the system folder picker. |
+| **Mirror Mode** | Optional, off by default. When enabled, files and folders that were previously synced but are no longer present on the source side are also deleted on the target side. See *Mirror Mode* below. Only takes effect for one-way directions (Local→Remote or Remote→Local); ignored for Bidirectional. |
 
 6. Tap **"Save"** to create the sync configuration.
 
@@ -81,7 +82,7 @@ To manage an existing sync configuration:
 - The sync processes files **recursively**, including all subfolders.
 - Only **new or modified** files are transferred — unchanged files (same size and modification time) are skipped.
 - **Timestamp preservation**: After uploading a file, SambaLite sets the remote file's modification time to match the local file. After downloading, it attempts to set the local file's modification time to match the remote file (best-effort via Android's Storage Access Framework — may not succeed on all storage types).
-- Files are **never deleted** by the sync. If you delete a file on one side, it will be re-synced from the other side on the next run.
+- By default, files are **never deleted** by the sync. If you delete a file on one side, it will be re-synced from the other side on the next run. To propagate deletions and renames from the source to the target, enable **Mirror Mode** (see below).
 
 ## Sync Behavior After App Exit and Device Restart
 
@@ -107,6 +108,66 @@ SambaLite uses a **"Newer Wins"** (last-writer-wins) strategy with a small times
 - A file is only considered "newer" if its modification time differs by more than the 3-second tolerance.
 - In bidirectional mode, both directions are checked — the newer file always takes precedence.
 - There is no file merging. If the same file is modified on both sides between syncs, the newer version wins and the older changes are lost.
+
+## Mirror Mode
+
+Mirror Mode is an opt-in setting that turns a one-way sync into a true mirror: after each successful sync run, files and directories that previously existed on the **source** side but are no longer present there are also removed on the **target** side.
+
+This solves the most common complaint about the default sync: when you rename or delete a folder on the source (for example renaming `U2 - Achtung Baby` to `U2 (1991) Achtung Baby` on your NAS), the old entry is no longer recreated on the target on every run.
+
+### When to use it
+
+- **Remote → Local + Mirror**: keep a local copy that exactly matches the SMB share. Renames and deletions on the share are propagated to the device.
+- **Local → Remote + Mirror**: keep a remote backup that exactly matches a local folder (e.g. an export folder). Files removed locally are also removed on the share.
+- **Bidirectional**: Mirror Mode is **ignored** in bidirectional mode. Mirroring in both directions at the same time is not safe and is intentionally not supported.
+
+### What Mirror Mode does and does not do
+
+Mirror Mode only deletes entries that **SambaLite itself previously synced** — it tracks every transferred file and directory in an internal database (the *sync state*). Files that exist on the target but were never synced by SambaLite (for example a file you manually copied to the local folder, or a file another user placed on the share) are **never** deleted by Mirror Mode.
+
+The sweep runs **after** the regular file transfer phase, so Mirror Mode never deletes anything that is still being downloaded or uploaded in the same run.
+
+### Safeguards
+
+To minimise the risk of accidental data loss, Mirror Mode applies several protections automatically:
+
+| Safeguard | Behaviour |
+|-----------|-----------|
+| **Incomplete source listing** | If SambaLite cannot fully enumerate the source side (e.g. due to a network error during listing), the sweep is **skipped** for that run. Nothing is deleted on the target. |
+| **Empty source listing protection** | If the source listing comes back completely empty but SambaLite previously tracked at least one file there, the sweep is **skipped**. This prevents wiping the target when the source is temporarily inaccessible or misconfigured. |
+| **Sanity threshold** | If the planned number of deletions exceeds **both** 50% of the previously tracked entries **and** 100 entries in absolute terms, the sweep is **aborted** for that run and an error entry is added to the Sync Activity Log. The target is left untouched. |
+| **Untracked files** | Entries on the target that SambaLite never synced itself are never considered for deletion, even if Mirror Mode is on. |
+
+When a sweep is skipped or aborted, the regular add/update transfer still happens — only the deletion phase is suppressed. The next run will re-evaluate the situation.
+
+### Trash folder
+
+By default, Mirror Mode does **not** delete entries permanently. Instead, it **moves** them into a hidden, timestamped trash folder at the root of the sync target (the same root the sync runs against):
+
+```
+<targetRoot>/.sambalite-trash/<unix-timestamp>/<original-relative-path>
+```
+
+This applies to both directions:
+
+- **Local → Remote + Mirror**: removed entries on the SMB share are moved into `<remotePath>/.sambalite-trash/<timestamp>/…` via SMB rename.
+- **Remote → Local + Mirror**: removed entries in the local SAF folder are moved into `<localFolder>/.sambalite-trash/<timestamp>/…` via the Storage Access Framework's `moveDocument`.
+
+A new timestamped subfolder is created for every sweep run, so multiple removed versions never overwrite each other. You can inspect or restore entries by browsing into `.sambalite-trash` on the corresponding side. Cleaning up the trash is a manual operation; SambaLite never empties it on its own. The trash folder itself is excluded from sync traversal, so it is neither uploaded to the remote nor mirrored back into the source side.
+
+If the move into the trash folder fails for any reason (for example a permission error on SMB, or a SAF provider that does not support `moveDocument` for that location), Mirror Mode falls back to a regular delete and logs a warning, so the sweep itself does not get stuck.
+
+#### Disabling the trash folder
+
+The setup and edit dialogs expose a **Move to trash folder** switch directly underneath the Mirror Mode warning. The switch is only visible while Mirror Mode is enabled and a one-way direction is selected. With the switch turned off, Mirror Mode deletes entries immediately on both sides — there is no recovery beyond what the underlying storage offers (NAS snapshots, SAF provider's own trash, etc.). The default is **on**.
+
+### Recommended workflow
+
+1. Run the sync at least once **without** Mirror Mode so the sync state database is populated and you can verify the basic sync behaviour.
+2. Open the sync configuration and enable the **Mirror mode** switch in the setup dialog. A red warning text is shown while the switch is active to remind you of the deletion semantics.
+3. Save the configuration. The sync list shows a small `Mirror` badge on every configuration that has Mirror Mode enabled.
+4. Run the sync (manually or wait for the next scheduled run) and inspect the **Sync Activity Log**. Mirror activity is reported under the dedicated actions `🪞 Mirror trashed`, `🪞 Mirror deleted`, and `🪞 Mirror aborted` (see *Sync Activity Log* below).
+5. Always keep a backup of important data before enabling Mirror Mode for the first time. Once Mirror Mode deletes a file (or moves it to the trash folder, depending on direction), recovery depends on the underlying storage (e.g. NAS snapshots, recycle bins, version history) or on the `.sambalite-trash` folder for remote targets.
 
 ## Deleting a Connection
 
@@ -137,7 +198,10 @@ SambaLite records all sync actions with timestamps. You can view the log in the 
 - **↓ Downloaded**: Files received from the SMB share to your device.
 - **⊘ Skipped**: Files that were unchanged (same size and modification time) and not transferred.
 - **📁 Created dir**: New directories created during sync.
-- **🗑 Deleted**: Database entries for files or directories that no longer exist on the remote share. Note: SambaLite never deletes your actual files on your device or the SMB share during sync.
+- **🗑 Deleted**: Internal database entries for files or directories that no longer exist on the remote share — with the default add/update sync, SambaLite does **not** delete your actual files.
+- **🪞 Mirror trashed**: A previously synced entry was moved into the `.sambalite-trash/<timestamp>/` folder by Mirror Mode. This applies to both directions when the trash option is enabled (the default): on the SMB share for `Local → Remote + Mirror`, and inside the local SAF folder for `Remote → Local + Mirror`. The original path is shown in the detail column.
+- **🪞 Mirror deleted**: A previously synced entry was permanently deleted by Mirror Mode. This happens when the trash option is disabled, or as a fallback when the move into `.sambalite-trash/` fails (for example because the SAF provider does not support `moveDocument`).
+- **🪞 Mirror aborted**: A mirror sweep was aborted by the sanity threshold or another safeguard. No entries were deleted in that run; the detail column shows how many would have been deleted out of how many tracked.
 - **🕐 Timestamp set**: File modification timestamps successfully synchronized.
 - **⚠ Timestamp failed**: File modification timestamps could not be set (e.g. due to filesystem limitations).
 - **✗ Error**: Files that failed to sync, with an error description.
@@ -150,7 +214,7 @@ The log displays the 25 most recent entries (newest first) along with a summary 
 
 - **Clock differences** between your device and the SMB server may lead to incorrect sync decisions. Ensure both devices have accurate time settings (NTP recommended).
 - **Large files** may take longer than the WorkManager execution window. Very large files might not complete in a single sync cycle.
-- **Deleted files reappear**: Since the sync does not track deletions, a file deleted on one side will be restored from the other side on the next sync.
+- **Deleted files reappear (without Mirror Mode)**: With the default add/update sync, deletions are not propagated, so a file deleted on one side will be restored from the other side on the next sync. Enable **Mirror Mode** if you want one-way deletions to be propagated to the target.
 - **No file merging**: Simultaneous edits to the same file on both sides will result in the newer version overwriting the older one.
 - **Uncommon file extensions**: Files with extensions not recognized by Android may have their file names altered during download (see *Supported File Types* above).
 

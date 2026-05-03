@@ -5,6 +5,30 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-05-03
+
+### Added
+- **Mirror Sync Mode**: One-way folder sync configurations (Local → Remote, Remote → Local) can now be run in mirror mode. After a successful sync, files and directories that previously existed on the source (tracked in the local sync state DB) but are no longer present in the source's current listing are removed on the target side as well. Mirror mode is implemented by the new `MirrorSweeper` class and is ignored for bidirectional sync.
+- **Mirror Trash Safeguard**: When mirror mode is enabled, removed entries are by default moved into a hidden, per-run trash folder (`.sambalite-trash/<timestamp>/<relPath>`) at the target root instead of being permanently deleted. If the storage provider does not support move, the entry is deleted as a fallback. The behavior can be toggled via the new "Move to trash folder" option.
+- **Mirror Sweep Sanity Limits**: To prevent catastrophic data loss from misconfigured shares or temporarily empty source listings, mirror sweeps abort automatically when the source listing is empty, or when the planned number of deletions exceeds 50% of the previously tracked entries AND more than 100 entries.
+- **Mirror Action Logging**: New action types in `SyncActionLog` (`MIRROR_DELETED` 🪞, `MIRROR_TRASHED` 🪞, `MIRROR_ABORTED` 🪞) and corresponding counters in the sync run summary.
+- **UI for Mirror Mode**: The sync setup and edit dialogs (`dialog_sync_setup.xml`) now offer a "Mirror mode" switch, a nested "Move to trash folder" switch, and a clear warning text explaining the destructive nature of the option. The sync configuration list (`item_sync_config.xml`) shows a "Mirror" indicator for configurations with mirror mode enabled.
+- **Trash Exclusion**: The sync engine now skips the `.sambalite-trash` folder during scans so that mirror trash from previous runs is never re-uploaded, re-downloaded, or counted against the sweep sanity limits.
+- **Tests**: New `MirrorIntegrationTest` (end-to-end mirror behavior against a Samba container) and `TrashExclusionTest`. `SyncStateStore` now exposes a public DAO-injection constructor to make mirror logic testable without the Android runtime.
+- Translations for all new mirror-mode strings in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- **`FolderSyncWorker` rework**: Significantly extended (~700 added lines) to integrate `MirrorSweeper`, track per-run state, log mirror actions, and exclude the trash folder from scans on both local and remote sides.
+- **`SyncManager.addSyncConfig` signature**: Extended with `mirror` and `mirrorUseTrash` parameters. The legacy 6-argument overload is preserved and now defaults mirror to `false` and `mirrorUseTrash` to `true`. Mirror is automatically disabled when the direction is `BIDIRECTIONAL`.
+- **`SyncRepository` persistence**: `SyncConfig` JSON serialization now persists `mirror` and `mirrorUseTrash` (default: mirror off, trash on).
+- **Documentation**: `docs/sync_user_guide.md` updated with a dedicated section on mirror mode, the trash safeguard, and the sanity limits.
+
+### Fixed
+- **Docker API compatibility for integration tests**: Testcontainers-based SMB tests previously failed against Docker Engine 29+ / OrbStack, which reject the default Docker Java client API version (1.32). The Docker API version is now pinned to 1.44 via `app/src/test/resources/docker-java.properties`, restoring CI and local integration test runs.
+- **Unnecessary File List Refresh on Unrelated Uploads**: `FileBrowserActivity` previously refreshed the currently displayed directory after every completed upload, even when the upload target was an entirely different folder (e.g. background sync or share uploads to another path). The refresh now only triggers when the upload's parent directory matches the directory currently shown in the browser. The new helper `isUploadInDirectory(...)` normalizes the broadcast `remotePath`, strips the share-name prefix, and compares it against the share-relative current path. The `TransferWorker` upload-success broadcast carries the `EXTRA_REMOTE_PATH` extra used for this comparison.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.4.1] - 2026-05-01
 
 ### Fixed
