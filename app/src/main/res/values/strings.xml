@@ -273,6 +273,11 @@
     <string name="sync_direction_remote_to_local">Remote → Local</string>
     <string name="sync_direction_bidirectional">Bidirectional</string>
     <string name="sync_wifi_only">WiFi only</string>
+    <string name="sync_mirror_mode">Mirror mode</string>
+    <string name="sync_mirror_indicator">Mirror</string>
+    <string name="sync_mirror_warning">Warning: Mirror mode deletes files on the target that are missing from the source. When the trash option is on, removed entries are moved into a hidden trash folder (.sambalite-trash) under the target root where supported; otherwise they are permanently deleted.</string>
+    <string name="sync_mirror_use_trash">Move to trash folder</string>
+    <string name="sync_mirror_use_trash_hint">Removed entries are moved into .sambalite-trash/&lt;timestamp&gt;/ under the target root instead of being deleted. If the storage provider does not support move, the entry is permanently deleted as fallback.</string>
     <string name="sync_interval">Sync Interval</string>
     <string name="sync_interval_manual">Manual only</string>
     <string name="sync_interval_15min">Every 15 minutes</string>

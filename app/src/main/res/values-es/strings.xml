@@ -309,6 +309,11 @@
     <string name="sync_direction_remote_to_local">Remoto → Local</string>
     <string name="sync_direction_bidirectional">Bidireccional</string>
     <string name="sync_wifi_only">Solo por WiFi</string>
+    <string name="sync_mirror_mode">Modo espejo</string>
+    <string name="sync_mirror_indicator">Espejo</string>
+    <string name="sync_mirror_warning">Advertencia: el modo espejo elimina en el destino los archivos que faltan en el origen. Cuando la opción de papelera está activada, las entradas eliminadas se mueven a una carpeta de papelera oculta (.sambalite-trash) bajo la raíz del destino si está soportado; de lo contrario, se eliminan permanentemente.</string>
+    <string name="sync_mirror_use_trash">Mover a la carpeta de papelera</string>
+    <string name="sync_mirror_use_trash_hint">Las entradas eliminadas se mueven a .sambalite-trash/&lt;marca_de_tiempo&gt;/ bajo la raíz del destino en lugar de eliminarse. Si el proveedor de almacenamiento no admite el movimiento, la entrada se elimina permanentemente como alternativa.</string>
     <string name="sync_interval">Intervalo de sincronización</string>
     <string name="sync_interval_manual">Solo manual</string>
     <string name="sync_interval_15min">Cada 15 minutos</string>

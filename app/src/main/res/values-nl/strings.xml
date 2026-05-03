@@ -306,6 +306,11 @@
     <string name="sync_direction_remote_to_local">Extern → Lokaal</string>
     <string name="sync_direction_bidirectional">Bidirectioneel</string>
     <string name="sync_wifi_only">Alleen via wifi</string>
+    <string name="sync_mirror_mode">Spiegelmodus</string>
+    <string name="sync_mirror_indicator">Spiegel</string>
+    <string name="sync_mirror_warning">Waarschuwing: in de spiegelmodus worden bestanden op de doellocatie verwijderd die niet meer in de bron aanwezig zijn. Als de prullenbak-optie aan staat, worden verwijderde items verplaatst naar een verborgen prullenbak-map (.sambalite-trash) onder de doelhoofdmap, indien ondersteund; anders worden ze permanent verwijderd.</string>
+    <string name="sync_mirror_use_trash">Naar prullenbakmap verplaatsen</string>
+    <string name="sync_mirror_use_trash_hint">Verwijderde items worden verplaatst naar .sambalite-trash/&lt;tijdstempel&gt;/ onder de doelhoofdmap in plaats van verwijderd te worden. Als de opslagprovider verplaatsen niet ondersteunt, wordt het item als terugvaloptie permanent verwijderd.</string>
     <string name="sync_interval">Synchronisatie-interval</string>
     <string name="sync_interval_manual">Alleen handmatig</string>
     <string name="sync_interval_15min">Elke 15 minuten</string>

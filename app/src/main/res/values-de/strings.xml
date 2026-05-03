@@ -306,6 +306,11 @@
     <string name="sync_direction_remote_to_local">Remote → Lokal</string>
     <string name="sync_direction_bidirectional">Bidirektional</string>
     <string name="sync_wifi_only">Nur über WLAN</string>
+    <string name="sync_mirror_mode">Spiegelmodus</string>
+    <string name="sync_mirror_indicator">Spiegel</string>
+    <string name="sync_mirror_warning">Warnung: Im Spiegelmodus werden Dateien auf der Zielseite gelöscht, die in der Quelle fehlen. Bei aktivierter Papierkorb-Option werden entfernte Einträge in einen versteckten Papierkorb-Ordner (.sambalite-trash) unter dem Zielwurzel-Ordner verschoben, sofern unterstützt; andernfalls werden sie endgültig gelöscht.</string>
+    <string name="sync_mirror_use_trash">In Papierkorb-Ordner verschieben</string>
+    <string name="sync_mirror_use_trash_hint">Entfernte Einträge werden in .sambalite-trash/&lt;Zeitstempel&gt;/ unter dem Zielwurzel-Ordner verschoben, statt gelöscht zu werden. Unterstützt der Speicheranbieter kein Verschieben, wird der Eintrag als Fallback endgültig gelöscht.</string>
     <string name="sync_interval">Sync-Intervall</string>
     <string name="sync_interval_manual">Nur manuell</string>
     <string name="sync_interval_15min">Alle 15 Minuten</string>

@@ -304,6 +304,11 @@
     <string name="sync_direction_remote_to_local">远程 → 本地</string>
     <string name="sync_direction_bidirectional">双向</string>
     <string name="sync_wifi_only">仅限 WiFi</string>
+    <string name="sync_mirror_mode">镜像模式</string>
+    <string name="sync_mirror_indicator">镜像</string>
+    <string name="sync_mirror_warning">警告：镜像模式会在目标上删除源中缺失的文件。启用回收站选项后，在支持的情况下，被删除的条目会被移动到目标根目录下的隐藏回收站文件夹（.sambalite-trash）；否则将被永久删除。</string>
+    <string name="sync_mirror_use_trash">移到回收站文件夹</string>
+    <string name="sync_mirror_use_trash_hint">被删除的条目会被移动到目标根目录下的 .sambalite-trash/&lt;时间戳&gt;/，而不是被删除。如果存储提供者不支持移动，则作为后备方案将该条目永久删除。</string>
     <string name="sync_interval">同步间隔</string>
     <string name="sync_interval_manual">仅手动</string>
     <string name="sync_interval_15min">每15分钟</string>

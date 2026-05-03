@@ -314,6 +314,11 @@
     <string name="sync_direction_remote_to_local">Zdalny → Lokalny</string>
     <string name="sync_direction_bidirectional">Dwukierunkowy</string>
     <string name="sync_wifi_only">Tylko przez WiFi</string>
+    <string name="sync_mirror_mode">Tryb lustra</string>
+    <string name="sync_mirror_indicator">Lustro</string>
+    <string name="sync_mirror_warning">Uwaga: tryb lustra usuwa po stronie celu pliki, których brak w źródle. Gdy opcja kosza jest włączona, usunięte wpisy są przenoszone do ukrytego folderu kosza (.sambalite-trash) pod katalogiem głównym celu, jeśli jest to obsługiwane; w przeciwnym razie są trwale usuwane.</string>
+    <string name="sync_mirror_use_trash">Przenieś do folderu kosza</string>
+    <string name="sync_mirror_use_trash_hint">Usunięte wpisy są przenoszone do .sambalite-trash/&lt;znacznik_czasu&gt;/ pod katalogiem głównym celu zamiast być usuwane. Jeśli dostawca pamięci nie obsługuje przenoszenia, wpis zostanie trwale usunięty jako rozwiązanie awaryjne.</string>
     <string name="sync_interval">Interwał synchronizacji</string>
     <string name="sync_interval_manual">Tylko ręcznie</string>
     <string name="sync_interval_15min">Co 15 minut</string>
