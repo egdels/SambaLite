@@ -1,6 +1,6 @@
 # User Guide: Folder Synchronization in SambaLite
 
-Last updated: 2026-05-03
+Last updated: 2026-05-06
 
 This guide explains how to set up and manage automatic folder synchronization between your Android device and an SMB network share.
 
@@ -140,6 +140,20 @@ To minimise the risk of accidental data loss, Mirror Mode applies several protec
 
 When a sweep is skipped or aborted, the regular add/update transfer still happens — only the deletion phase is suppressed. The next run will re-evaluate the situation.
 
+### Android trash / recycle bin caveat
+
+SambaLite reads the local source folder through Android's Storage Access Framework (SAF). Depending on the storage provider that backs the selected folder — most notably Media/Gallery-backed locations on Android 11+ and several vendor file managers (e.g. Files by Google, Samsung My Files, Xiaomi/MIUI, Oppo/ColorOS) — files you "delete" may first be moved to an **Android-side trash / recycle bin** and continue to be reported as present by SAF until the trash is emptied.
+
+While a deleted file still lives in that Android trash:
+
+- It is included in the local listing the mirror sweep sees.
+- Mirror Mode therefore considers the file to be "still on the source" and does **not** remove it on the target.
+- The remote file count and size on the SMB share will not decrease.
+
+Once the Android trash is emptied (or the file is removed by an app that performs a permanent delete bypassing the system trash), the next sync run correctly mirrors the deletion to the target.
+
+> **Tip:** If a deleted file does not get mirrored to the target, open your file manager / Gallery app and empty the Android **Trash / Recycle Bin** for that folder, then run the sync again.
+
 ### Trash folder
 
 By default, Mirror Mode does **not** delete entries permanently. Instead, it **moves** them into a hidden, timestamped trash folder at the root of the sync target (the same root the sync runs against):
@@ -228,3 +242,4 @@ The log displays the 25 most recent entries (newest first) along with a summary 
 | Sync doesn't resume after reboot | Some manufacturers block background jobs. Exclude SambaLite from battery optimization and check that "Auto-start" is enabled (if your device has this setting). |
 | Sync keeps running after quitting the app | This is expected — WorkManager runs independently. Remove your sync configurations if you want to stop sync completely. |
 | Old files overwrite newer ones | Check that the clocks on your device and SMB server are synchronized. |
+| Mirror Mode does not delete files I removed locally | The file may still be in the Android **Trash / Recycle Bin** on your device. Empty the trash in your file manager / Gallery app and run the sync again. See *Mirror Mode → Android trash / recycle bin caveat*. |
