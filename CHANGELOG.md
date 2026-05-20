@@ -5,6 +5,18 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-05-20
+
+### Added
+- **Battery Optimization Reminder Controls**: The battery optimization reminder now offers a dedicated "Do not show again" action and snoozes the prompt for 14 days when users choose "Later". These choices are persisted so the reminder no longer appears on every launch when the app is still subject to Android battery optimization.
+- **Modern Battery Optimization Dialog**: Added a Material Design 3 custom dialog layout with a battery icon, subtitle, explanatory card, and full-width action buttons for better readability and touch handling.
+- Translations for the updated battery optimization reminder in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- **Battery Optimization Messaging**: The reminder text now explicitly covers background uploads, downloads, and scheduled syncs, while clarifying that users who mostly run manual sync can postpone or hide the reminder.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.5.0] - 2026-05-03
 
 ### Added
