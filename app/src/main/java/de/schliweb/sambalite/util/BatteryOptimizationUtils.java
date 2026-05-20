@@ -11,12 +11,16 @@ package de.schliweb.sambalite.util;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.view.LayoutInflater;
+import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 
 /**
@@ -26,6 +30,11 @@ import de.schliweb.sambalite.R;
 public class BatteryOptimizationUtils {
 
   private static final String TAG = "BatteryOptimizationUtils";
+  private static final String PREFS_NAME = "battery_optimization";
+  private static final String KEY_PROMPT_DISABLED = "battery_optimization_prompt_disabled";
+  private static final String KEY_PROMPT_SNOOZED_UNTIL =
+      "battery_optimization_prompt_snoozed_until";
+  private static final long SNOOZE_MILLIS = 14L * 24L * 60L * 60L * 1000L;
 
   /** Checks if the app is exempt from battery optimizations */
   public static boolean isIgnoringBatteryOptimizations(@NonNull Context context) {
@@ -47,21 +56,52 @@ public class BatteryOptimizationUtils {
       return;
     }
 
-    new AlertDialog.Builder(activity)
-        .setTitle(activity.getString(R.string.battery_optimization_title))
-        .setMessage(activity.getString(R.string.battery_optimization_message))
-        .setPositiveButton(
-            activity.getString(R.string.open_settings),
-            (dialog, which) -> {
+    View dialogView =
+        LayoutInflater.from(activity).inflate(R.layout.dialog_battery_optimization, null, false);
+
+    AlertDialog dialog =
+        new MaterialAlertDialogBuilder(activity).setView(dialogView).setCancelable(true).show();
+
+    dialogView
+        .findViewById(R.id.button_open_settings)
+        .setOnClickListener(
+            view -> {
+              dialog.dismiss();
               openBatteryOptimizationSettings(activity);
-            })
-        .setNegativeButton(
-            activity.getString(R.string.later),
-            (dialog, which) -> {
+            });
+    dialogView
+        .findViewById(R.id.button_later)
+        .setOnClickListener(
+            view -> {
+              snoozePrompt(activity);
               LogUtils.d(TAG, "Battery optimization exemption declined by user");
-            })
-        .setCancelable(true)
-        .show();
+              dialog.dismiss();
+            });
+    dialogView
+        .findViewById(R.id.button_do_not_show_again)
+        .setOnClickListener(
+            view -> {
+              disablePrompt(activity);
+              LogUtils.d(TAG, "Battery optimization reminder disabled by user");
+              dialog.dismiss();
+            });
+  }
+
+  private static void snoozePrompt(@NonNull Context context) {
+    long snoozedUntil = System.currentTimeMillis() + SNOOZE_MILLIS;
+    getPreferences(context).edit().putLong(KEY_PROMPT_SNOOZED_UNTIL, snoozedUntil).apply();
+  }
+
+  private static void disablePrompt(@NonNull Context context) {
+    getPreferences(context)
+        .edit()
+        .putBoolean(KEY_PROMPT_DISABLED, true)
+        .remove(KEY_PROMPT_SNOOZED_UNTIL)
+        .apply();
+  }
+
+  private static SharedPreferences getPreferences(@NonNull Context context) {
+    return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
   }
 
   /** Opens the Battery Optimization settings */
@@ -89,7 +129,16 @@ public class BatteryOptimizationUtils {
 
   /** Checks if Battery Optimization dialog should be shown */
   public static boolean shouldShowBatteryOptimizationDialog(@NonNull Context context) {
-    // Only show if app is not yet exempted
-    return !isIgnoringBatteryOptimizations(context);
+    if (isIgnoringBatteryOptimizations(context)) {
+      return false;
+    }
+
+    SharedPreferences preferences = getPreferences(context);
+    if (preferences.getBoolean(KEY_PROMPT_DISABLED, false)) {
+      return false;
+    }
+
+    long snoozedUntil = preferences.getLong(KEY_PROMPT_SNOOZED_UNTIL, 0L);
+    return System.currentTimeMillis() >= snoozedUntil;
   }
 }
