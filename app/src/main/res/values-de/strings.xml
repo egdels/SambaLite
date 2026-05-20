@@ -211,9 +211,11 @@
     <string name="guest_access">Gast-Zugang</string>
 
     <string name="battery_optimization_title">Background-Operationen optimieren</string>
-    <string name="battery_optimization_message">Für zuverlässige SMB-Downloads und -Uploads im Hintergrund wird empfohlen, die App von den Akku-Optimierungen auszuschließen.\n\nDies stellt sicher, dass Downloads auch dann fortgesetzt werden, wenn die App in den Hintergrund wechselt.</string>
+    <string name="battery_optimization_subtitle">Übertragungen zuverlässig halten</string>
+    <string name="battery_optimization_message">Android kann SMB-Uploads, Downloads oder geplante Synchronisierungen im Hintergrund beenden, um Akku zu sparen. Wenn SambaLite von der Akku-Optimierung ausgenommen wird, laufen diese Vorgänge zuverlässiger.\n\nWenn du SambaLite hauptsächlich manuell synchronisierst, kannst du diese Erinnerung verschieben oder ausblenden.</string>
     <string name="open_settings">Einstellungen öffnen</string>
     <string name="later">Später</string>
+    <string name="do_not_show_again">Nicht mehr anzeigen</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">Zielordner erforderlich</string>

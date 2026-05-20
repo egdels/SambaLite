@@ -210,9 +210,11 @@
 
 
     <string name="battery_optimization_title">优化后台操作</string>
-    <string name="battery_optimization_message">为了可靠的 SMB 后台下载和上传，建议将本应用排除在电池优化之外。\n\n这确保即使应用移到后台下载仍然会继续。</string>
+    <string name="battery_optimization_subtitle">保持传输可靠</string>
+    <string name="battery_optimization_message">Android 可能会为了省电而停止后台 SMB 上传、下载或计划同步。将 SambaLite 排除在电池优化之外可以提高可靠性。\n\n如果你主要手动同步，可以推迟或隐藏此提醒。</string>
     <string name="open_settings">打开设置</string>
     <string name="later">之后再说</string>
+    <string name="do_not_show_again">不再显示</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">需要目标文件夹</string>

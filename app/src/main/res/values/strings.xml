@@ -189,9 +189,11 @@
 
 
     <string name="battery_optimization_title">Optimize Background Operations</string>
-    <string name="battery_optimization_message">For reliable SMB downloads and uploads in the background, we recommend excluding the app from battery optimizations.\n\nThis ensures that downloads continue even when the app moves to the background.</string>
+    <string name="battery_optimization_subtitle">Keep transfers reliable</string>
+    <string name="battery_optimization_message">Android may stop background SMB uploads, downloads or scheduled syncs to save battery. Excluding SambaLite from battery optimization improves reliability.\n\nIf you mostly use manual sync, you can postpone or hide this reminder.</string>
     <string name="open_settings">Open Settings</string>
     <string name="later">Later</string>
+    <string name="do_not_show_again">Do not show again</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">Target folder required</string>

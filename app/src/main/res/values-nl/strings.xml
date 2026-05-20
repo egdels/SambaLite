@@ -211,9 +211,11 @@
     <string name="guest_access">Gasttoegang</string>
 
     <string name="battery_optimization_title">Achtergrondoperaties optimaliseren</string>
-    <string name="battery_optimization_message">Voor betrouwbare SMB-downloads en uploads op de achtergrond raden we aan de app uit te sluiten van batterijoptimalisaties.\n\nDit zorgt ervoor dat downloads doorgaan zelfs wanneer de app naar de achtergrond gaat.</string>
+    <string name="battery_optimization_subtitle">Overdrachten betrouwbaar houden</string>
+    <string name="battery_optimization_message">Android kan SMB-uploads, downloads of geplande synchronisaties op de achtergrond stoppen om batterij te besparen. SambaLite uitsluiten van batterijoptimalisatie verbetert de betrouwbaarheid.\n\nAls je vooral handmatig synchroniseert, kun je deze herinnering uitstellen of verbergen.</string>
     <string name="open_settings">Instellingen openen</string>
     <string name="later">Later</string>
+    <string name="do_not_show_again">Niet meer tonen</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">Doelmap vereist</string>

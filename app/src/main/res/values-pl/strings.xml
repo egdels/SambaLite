@@ -217,9 +217,11 @@
     <string name="guest_access">Dostęp gościnny</string>
 
     <string name="battery_optimization_title">Optymalizuj operacje w tle</string>
-    <string name="battery_optimization_message">Aby zapewnić niezawodne pobieranie i wysyłanie SMB w tle, zalecamy wykluczenie aplikacji z optymalizacji baterii.\n\nZapewnia to kontynuację pobierania, nawet gdy aplikacja przechodzi w tło.</string>
+    <string name="battery_optimization_subtitle">Zadbaj o niezawodne transfery</string>
+    <string name="battery_optimization_message">Android może zatrzymywać wysyłanie, pobieranie lub zaplanowane synchronizacje SMB w tle, aby oszczędzać baterię. Wykluczenie SambaLite z optymalizacji baterii poprawia niezawodność.\n\nJeśli najczęściej synchronizujesz ręcznie, możesz odłożyć lub ukryć to przypomnienie.</string>
     <string name="open_settings">Otwórz ustawienia</string>
     <string name="later">Później</string>
+    <string name="do_not_show_again">Nie pokazuj ponownie</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">Wymagany folder docelowy</string>

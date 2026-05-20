@@ -213,9 +213,11 @@
     <string name="guest_access">Acceso de invitado</string>
 
     <string name="battery_optimization_title">Optimizar operaciones en segundo plano</string>
-    <string name="battery_optimization_message">Para descargas y subidas SMB confiables en segundo plano, recomendamos excluir la aplicación de las optimizaciones de batería.\n\nEsto garantiza que las descargas continúen incluso cuando la aplicación pase a segundo plano.</string>
+    <string name="battery_optimization_subtitle">Mantener transferencias fiables</string>
+    <string name="battery_optimization_message">Android puede detener subidas, descargas o sincronizaciones SMB programadas en segundo plano para ahorrar batería. Excluir SambaLite de la optimización de batería mejora la fiabilidad.\n\nSi usas sobre todo la sincronización manual, puedes posponer u ocultar este recordatorio.</string>
     <string name="open_settings">Abrir configuración</string>
     <string name="later">Más tarde</string>
+    <string name="do_not_show_again">No volver a mostrar</string>
 
     <!-- Robust Connection Messages -->
     <string name="share_needs_target_folder_title">Se requiere carpeta de destino</string>
