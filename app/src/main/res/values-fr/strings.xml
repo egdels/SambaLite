@@ -50,6 +50,9 @@
     <string name="error_name_required">Le nom de la connexion est requis</string>
     <string name="error_server_required">Le serveur est requis</string>
     <string name="error_share_required">Le nom du partage est requis</string>
+    <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \ : * ? &quot; &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>
+    <string name="invalid_share_name_title">Nom de partage invalide</string>
+    <string name="invalid_existing_share_name_message">La connexion « %1$s » contient un nom de partage invalide. Veuillez la modifier et utiliser uniquement le nom du partage SMB, pas un chemin.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Supprimer la connexion</string>

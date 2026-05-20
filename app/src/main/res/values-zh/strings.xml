@@ -50,6 +50,9 @@
     <string name="error_name_required">连接名是必需的</string>
     <string name="error_server_required">服务器是必需的</string>
     <string name="error_share_required">分享名是必需的</string>
+    <string name="error_share_invalid">分享名不能包含 / \ : * ? &quot; &lt; &gt; |。请只使用 SMB 分享名，不要使用路径。</string>
+    <string name="invalid_share_name_title">分享名无效</string>
+    <string name="invalid_existing_share_name_message">连接“%1$s”包含无效的分享名。请编辑它，并只使用 SMB 分享名，不要使用路径。</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">删除连接</string>

@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Battery Optimization Messaging**: The reminder text now explicitly covers background uploads, downloads, and scheduled syncs, while clarifying that users who mostly run manual sync can postpone or hide the reminder.
 
+### Fixed
+- **Invalid SMB share names**: The add/edit connection dialogs now reject share names containing path separators or characters that are invalid for SMB shares (`/ \ : * ? " < > |`). Existing saved connections with invalid share names are blocked from opening and guide users to edit the connection instead of failing later in the file browser.
+
 If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
 
 ## [2.5.0] - 2026-05-03

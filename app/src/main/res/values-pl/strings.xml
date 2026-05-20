@@ -50,6 +50,9 @@
     <string name="error_name_required">Nazwa połączenia jest wymagana</string>
     <string name="error_server_required">Serwer jest wymagany</string>
     <string name="error_share_required">Nazwa udziału jest wymagana</string>
+    <string name="error_share_invalid">Nazwa udziału nie może zawierać / \ : * ? &quot; &lt; &gt; |. Użyj tylko nazwy udziału SMB, a nie ścieżki.</string>
+    <string name="invalid_share_name_title">Nieprawidłowa nazwa udziału</string>
+    <string name="invalid_existing_share_name_message">Połączenie „%1$s” zawiera nieprawidłową nazwę udziału. Edytuj je i użyj tylko nazwy udziału SMB, a nie ścieżki.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Usuń połączenie</string>

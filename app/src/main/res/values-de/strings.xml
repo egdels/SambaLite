@@ -49,6 +49,9 @@
     <string name="error_name_required">Verbindungsname ist erforderlich</string>
     <string name="error_server_required">Server ist erforderlich</string>
     <string name="error_share_required">Freigabe-Name ist erforderlich</string>
+    <string name="error_share_invalid">Der Freigabe-Name darf / \ : * ? &quot; &lt; &gt; | nicht enthalten. Verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
+    <string name="invalid_share_name_title">Ungültiger Freigabe-Name</string>
+    <string name="invalid_existing_share_name_message">Die Verbindung „%1$s“ enthält einen ungültigen Freigabe-Namen. Bitte bearbeiten Sie sie und verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbindung löschen</string>

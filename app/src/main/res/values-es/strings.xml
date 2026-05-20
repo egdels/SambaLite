@@ -50,6 +50,9 @@
     <string name="error_name_required">El nombre de la conexión es obligatorio</string>
     <string name="error_server_required">El servidor es obligatorio</string>
     <string name="error_share_required">El nombre del recurso compartido es obligatorio</string>
+    <string name="error_share_invalid">El nombre del recurso compartido no debe contener / \ : * ? &quot; &lt; &gt; |. Usa solo el nombre del recurso SMB, no una ruta.</string>
+    <string name="invalid_share_name_title">Nombre de recurso compartido no válido</string>
+    <string name="invalid_existing_share_name_message">La conexión “%1$s” contiene un nombre de recurso compartido no válido. Edítala y usa solo el nombre del recurso SMB, no una ruta.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Eliminar conexión</string>

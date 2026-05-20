@@ -49,6 +49,9 @@
     <string name="error_name_required">Verbindingsnaam is vereist</string>
     <string name="error_server_required">Server is vereist</string>
     <string name="error_share_required">Share naam is vereist</string>
+    <string name="error_share_invalid">Share naam mag geen / \ : * ? &quot; &lt; &gt; | bevatten. Gebruik alleen de SMB-share naam, geen pad.</string>
+    <string name="invalid_share_name_title">Ongeldige share naam</string>
+    <string name="invalid_existing_share_name_message">De verbinding “%1$s” bevat een ongeldige share naam. Bewerk deze en gebruik alleen de SMB-share naam, geen pad.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbinding verwijderen</string>

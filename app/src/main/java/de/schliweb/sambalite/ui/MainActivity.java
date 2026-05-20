@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -23,6 +24,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -63,6 +65,8 @@ import javax.inject.Inject;
  */
 public class MainActivity extends AppCompatActivity
     implements ConnectionAdapter.OnConnectionClickListener {
+
+  private static final String INVALID_SHARE_NAME_CHARS = "/\\:*?\"<>|";
 
   @Inject ViewModelProvider.Factory viewModelFactory;
 
@@ -563,7 +567,68 @@ public class MainActivity extends AppCompatActivity
 
   void proceedWithConnection(@NonNull SmbConnection connection) {
 
+    if (!isValidShareName(connection.getShare())) {
+      showInvalidExistingShareDialog(connection);
+      return;
+    }
+
     openFileBrowser(connection);
+  }
+
+  private boolean isValidShareName(@Nullable String share) {
+    if (share == null || share.trim().isEmpty()) {
+      return false;
+    }
+    for (int i = 0; i < share.length(); i++) {
+      if (INVALID_SHARE_NAME_CHARS.indexOf(share.charAt(i)) >= 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean validateShareName(
+      @NonNull com.google.android.material.textfield.TextInputLayout shareLayout,
+      @Nullable String share,
+      @NonNull String logPrefix) {
+    if (share == null || share.isEmpty()) {
+      LogUtils.d("MainActivity", logPrefix + ": share is empty");
+      shareLayout.setError(getString(R.string.error_share_required));
+      return false;
+    }
+    if (!isValidShareName(share)) {
+      LogUtils.d("MainActivity", logPrefix + ": share contains invalid characters");
+      shareLayout.setError(getString(R.string.error_share_invalid));
+      return false;
+    }
+    shareLayout.setError(null);
+    return true;
+  }
+
+  private void focusFirstInvalidField(@Nullable EditText firstInvalidField) {
+    if (firstInvalidField == null) {
+      return;
+    }
+    firstInvalidField.post(
+        () -> {
+          firstInvalidField.requestFocus();
+          firstInvalidField.setSelection(firstInvalidField.getText().length());
+          InputMethodManager imm =
+              (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+          if (imm != null) {
+            imm.showSoftInput(firstInvalidField, InputMethodManager.SHOW_IMPLICIT);
+          }
+        });
+  }
+
+  private void showInvalidExistingShareDialog(@NonNull SmbConnection connection) {
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.invalid_share_name_title)
+        .setMessage(getString(R.string.invalid_existing_share_name_message, connection.getName()))
+        .setPositiveButton(
+            R.string.edit_connection, (dialog, which) -> showEditConnectionDialog(connection))
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   private void openFileBrowser(@NonNull SmbConnection connection) {
@@ -949,11 +1014,13 @@ public class MainActivity extends AppCompatActivity
           // Validate input
           LogUtils.d("MainActivity", "Validating connection input");
           boolean isValid = true;
+          EditText firstInvalidField = null;
 
           String name = nameEditText.getText().toString().trim();
           if (name.isEmpty()) {
             LogUtils.d("MainActivity", "Validation failed: name is empty");
             nameLayout.setError(getString(R.string.error_name_required));
+            if (firstInvalidField == null) firstInvalidField = nameEditText;
             isValid = false;
           } else {
             nameLayout.setError(null);
@@ -963,18 +1030,16 @@ public class MainActivity extends AppCompatActivity
           if (server.isEmpty()) {
             LogUtils.d("MainActivity", "Validation failed: server is empty");
             serverLayout.setError(getString(R.string.error_server_required));
+            if (firstInvalidField == null) firstInvalidField = serverEditText;
             isValid = false;
           } else {
             serverLayout.setError(null);
           }
 
           String share = shareEditText.getText().toString().trim();
-          if (share.isEmpty()) {
-            LogUtils.d("MainActivity", "Validation failed: share is empty");
-            shareLayout.setError(getString(R.string.error_share_required));
+          if (!validateShareName(shareLayout, share, "Validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = shareEditText;
             isValid = false;
-          } else {
-            shareLayout.setError(null);
           }
 
           // If validation passes, save the connection
@@ -996,6 +1061,8 @@ public class MainActivity extends AppCompatActivity
             viewModel.saveConnection(connection);
             KeyboardUtils.hideKeyboard(dialog);
             dialog.dismiss();
+          } else {
+            focusFirstInvalidField(firstInvalidField);
           }
         });
 
@@ -1005,23 +1072,22 @@ public class MainActivity extends AppCompatActivity
           // Validate input
           LogUtils.d("MainActivity", "Validating connection for testing");
           boolean isValid = true;
+          EditText firstInvalidField = null;
 
           String server = serverEditText.getText().toString().trim();
           if (server.isEmpty()) {
             LogUtils.d("MainActivity", "Test validation failed: server is empty");
             serverLayout.setError(getString(R.string.error_server_required));
+            if (firstInvalidField == null) firstInvalidField = serverEditText;
             isValid = false;
           } else {
             serverLayout.setError(null);
           }
 
           String share = shareEditText.getText().toString().trim();
-          if (share.isEmpty()) {
-            LogUtils.d("MainActivity", "Test validation failed: share is empty");
-            shareLayout.setError(getString(R.string.error_share_required));
+          if (!validateShareName(shareLayout, share, "Test validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = shareEditText;
             isValid = false;
-          } else {
-            shareLayout.setError(null);
           }
 
           // If validation passes, test the connection
@@ -1040,6 +1106,8 @@ public class MainActivity extends AppCompatActivity
 
             LogUtils.i("MainActivity", "Testing connection to server: " + server);
             testConnection(testConnection);
+          } else {
+            focusFirstInvalidField(firstInvalidField);
           }
         });
 
@@ -1329,11 +1397,13 @@ public class MainActivity extends AppCompatActivity
           // Validate input
           LogUtils.d("MainActivity", "Validating edited connection input");
           boolean isValid = true;
+          EditText firstInvalidField = null;
 
           String name = nameEditText.getText().toString().trim();
           if (name.isEmpty()) {
             LogUtils.d("MainActivity", "Edit validation failed: name is empty");
             nameLayout.setError(getString(R.string.error_name_required));
+            if (firstInvalidField == null) firstInvalidField = nameEditText;
             isValid = false;
           } else {
             nameLayout.setError(null);
@@ -1343,18 +1413,16 @@ public class MainActivity extends AppCompatActivity
           if (server.isEmpty()) {
             LogUtils.d("MainActivity", "Edit validation failed: server is empty");
             serverLayout.setError(getString(R.string.error_server_required));
+            if (firstInvalidField == null) firstInvalidField = serverEditText;
             isValid = false;
           } else {
             serverLayout.setError(null);
           }
 
           String share = shareEditText.getText().toString().trim();
-          if (share.isEmpty()) {
-            LogUtils.d("MainActivity", "Edit validation failed: share is empty");
-            shareLayout.setError(getString(R.string.error_share_required));
+          if (!validateShareName(shareLayout, share, "Edit validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = shareEditText;
             isValid = false;
-          } else {
-            shareLayout.setError(null);
           }
 
           // If validation passes, update the connection
@@ -1381,6 +1449,8 @@ public class MainActivity extends AppCompatActivity
             viewModel.saveConnection(updatedConnection);
             KeyboardUtils.hideKeyboard(dialog);
             dialog.dismiss();
+          } else {
+            focusFirstInvalidField(firstInvalidField);
           }
         });
 
@@ -1390,23 +1460,22 @@ public class MainActivity extends AppCompatActivity
           // Validate input
           LogUtils.d("MainActivity", "Validating connection for testing (edit dialog)");
           boolean isValid = true;
+          EditText firstInvalidField = null;
 
           String server = serverEditText.getText().toString().trim();
           if (server.isEmpty()) {
             LogUtils.d("MainActivity", "Edit test validation failed: server is empty");
             serverLayout.setError(getString(R.string.error_server_required));
+            if (firstInvalidField == null) firstInvalidField = serverEditText;
             isValid = false;
           } else {
             serverLayout.setError(null);
           }
 
           String share = shareEditText.getText().toString().trim();
-          if (share.isEmpty()) {
-            LogUtils.d("MainActivity", "Edit test validation failed: share is empty");
-            shareLayout.setError(getString(R.string.error_share_required));
+          if (!validateShareName(shareLayout, share, "Edit test validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = shareEditText;
             isValid = false;
-          } else {
-            shareLayout.setError(null);
           }
 
           // If validation passes, test the connection
@@ -1429,6 +1498,8 @@ public class MainActivity extends AppCompatActivity
             if (asyncTransportSwitchEdit != null)
               testConnection.setAsyncTransport(asyncTransportSwitchEdit.isChecked());
             testConnection(testConnection);
+          } else {
+            focusFirstInvalidField(firstInvalidField);
           }
         });
   }

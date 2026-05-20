@@ -1,3 +1,4 @@
 - Added: Battery optimization reminder controls with 14-day snooze and “Do not show again”.
 - Added: Modern Material Design 3 battery optimization dialog with updated icon and layout.
 - Changed: Reminder text now explains background upload, download, and scheduled sync reliability more clearly.
+- Fixed: Invalid SMB share names are now caught in add/edit dialogs, and existing invalid connections prompt users to edit them.

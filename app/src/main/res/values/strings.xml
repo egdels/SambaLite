@@ -49,6 +49,9 @@
     <string name="error_name_required">Connection name is required</string>
     <string name="error_server_required">Server is required</string>
     <string name="error_share_required">Share name is required</string>
+    <string name="error_share_invalid">Share name must not contain / \ : * ? &quot; &lt; &gt; |. Use only the SMB share name, not a path.</string>
+    <string name="invalid_share_name_title">Invalid share name</string>
+    <string name="invalid_existing_share_name_message">The connection “%1$s” contains an invalid share name. Please edit it and use only the SMB share name, not a path.</string>
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Delete Connection</string>
