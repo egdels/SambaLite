@@ -319,6 +319,14 @@ public class FolderSyncWorker extends Worker {
 
     DocumentFile[] localFilesArray = localFolder.listFiles();
 
+    // Performance (issue #21): fetch all remote metadata for this directory in a single
+    // share.list() round-trip instead of opening every remote file multiple times
+    // (fileExists + getRemoteFileLastModified + getRemoteFileSize) per file. This mirrors the
+    // approach already used by syncRemoteToLocal and dramatically reduces SMB round-trips,
+    // which dominate sync time on high-latency connections.
+    Map<String, FileIdBothDirectoryInformation> remoteMetadata =
+        listRemoteMetadata(share, remotePath);
+
     for (DocumentFile localFile : localFilesArray) {
       if (isStopped()) return;
 
@@ -335,20 +343,21 @@ public class FolderSyncWorker extends Worker {
       } else {
         try {
           long localModified = localFile.lastModified();
-          boolean remoteExists = share.fileExists(remoteFilePath);
+          FileIdBothDirectoryInformation remoteInfo = remoteMetadata.get(name);
+          boolean remoteExists = remoteInfo != null;
 
           String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
 
           if (!remoteExists) {
-            uploadFile(share, localFile, remoteFilePath);
+            long remoteSize = uploadFile(share, localFile, remoteFilePath);
             actionLog.log(SyncActionLog.Action.UPLOADED, name);
-            long remoteModified = getRemoteFileLastModified(share, remoteFilePath);
-            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            // After upload the remote lastWriteTime is set to the local file's lastModified
+            // (see uploadFile), so no extra round-trips are needed to read it back.
             syncStateStore.saveRemoteState(
-                rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+                rootUri, fileRelPath, remoteFilePath, remoteSize, localFile.lastModified(), false);
           } else {
-            long remoteModified = getRemoteFileLastModified(share, remoteFilePath);
-            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            long remoteModified = remoteInfo.getLastWriteTime().toEpochMillis();
+            long remoteSize = remoteInfo.getEndOfFile();
             long localSize = localFile.length();
 
             // Check stored DB state first – SAF timestamps are unreliable
@@ -366,12 +375,15 @@ public class FolderSyncWorker extends Worker {
               LogUtils.d(TAG, "Skipping upload (same): " + name);
               actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
             } else if (syncComparator.isLocalNewer(localModified, remoteModified)) {
-              uploadFile(share, localFile, remoteFilePath);
+              long newRemoteSize = uploadFile(share, localFile, remoteFilePath);
               actionLog.log(SyncActionLog.Action.UPLOADED, name);
-              remoteModified = getRemoteFileLastModified(share, remoteFilePath);
-              remoteSize = getRemoteFileSize(share, remoteFilePath);
               syncStateStore.saveRemoteState(
-                  rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+                  rootUri,
+                  fileRelPath,
+                  remoteFilePath,
+                  newRemoteSize,
+                  localFile.lastModified(),
+                  false);
             } else {
               LogUtils.d(TAG, "Skipping upload (remote is newer or within tolerance): " + name);
               actionLog.log(SyncActionLog.Action.SKIPPED, name, "remote newer or within tolerance");
@@ -383,6 +395,27 @@ public class FolderSyncWorker extends Worker {
         }
       }
     }
+  }
+
+  /**
+   * Lists a remote directory once and returns a map of file name to its metadata ({@link
+   * FileIdBothDirectoryInformation}), which already contains existence, size ({@code
+   * getEndOfFile()}) and timestamp ({@code getLastWriteTime()}). Returns an empty map if the
+   * directory does not exist yet or cannot be listed.
+   */
+  private Map<String, FileIdBothDirectoryInformation> listRemoteMetadata(
+      DiskShare share, String remotePath) {
+    Map<String, FileIdBothDirectoryInformation> result = new HashMap<>();
+    try {
+      for (FileIdBothDirectoryInformation info : share.list(remotePath)) {
+        String name = info.getFileName();
+        if (".".equals(name) || "..".equals(name)) continue;
+        result.put(name, info);
+      }
+    } catch (Exception e) {
+      LogUtils.d(TAG, "Could not list remote directory " + remotePath + ": " + e.getMessage());
+    }
+    return result;
   }
 
   /**
@@ -502,8 +535,12 @@ public class FolderSyncWorker extends Worker {
     }
   }
 
-  /** Uploads a local DocumentFile to the remote SMB share. */
-  private void uploadFile(DiskShare share, DocumentFile localFile, String remotePath)
+  /**
+   * Uploads a local DocumentFile to the remote SMB share.
+   *
+   * @return the verified remote file size in bytes (from the integrity check)
+   */
+  private long uploadFile(DiskShare share, DocumentFile localFile, String remotePath)
       throws Exception {
     LogUtils.d(TAG, "Uploading: " + localFile.getName() + " -> " + remotePath);
 
@@ -564,6 +601,7 @@ public class FolderSyncWorker extends Worker {
     setRemoteFileLastModified(share, remotePath, localFile.lastModified());
 
     LogUtils.d(TAG, "Upload completed: " + localFile.getName());
+    return remoteSize;
   }
 
   /** Downloads a remote file to a local DocumentFile (SAF). */
@@ -727,27 +765,6 @@ public class FolderSyncWorker extends Worker {
     } catch (Exception e) {
       LogUtils.w(TAG, "Could not get file size for: " + remotePath);
       return -1;
-    }
-  }
-
-  /** Gets the last modified time of a remote file in epoch millis. */
-  private long getRemoteFileLastModified(DiskShare share, String remotePath) {
-    try (File remoteFile =
-        share.openFile(
-            remotePath,
-            EnumSet.of(AccessMask.GENERIC_READ),
-            null,
-            SMB2ShareAccess.ALL,
-            SMB2CreateDisposition.FILE_OPEN,
-            null)) {
-      return remoteFile
-          .getFileInformation()
-          .getBasicInformation()
-          .getLastWriteTime()
-          .toEpochMillis();
-    } catch (Exception e) {
-      LogUtils.w(TAG, "Could not get last modified time for: " + remotePath);
-      return 0;
     }
   }
 
