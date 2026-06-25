@@ -1,0 +1,3 @@
+- Changed: Much faster folder sync on slow or high-latency connections (Issue #21). Remote file metadata for a directory is now fetched in a single listing instead of opening every file multiple times, drastically reducing SMB round-trips.
+- Changed: Idle syncs (many files, few or no changes) that previously took minutes now complete in seconds.
+- Changed: Reduced per-file overhead during uploads by avoiding redundant post-upload metadata reads.
