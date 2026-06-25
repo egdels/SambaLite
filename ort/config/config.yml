@@ -7,6 +7,13 @@ ort:
       - PIP
       - NuGet
       - Bazel
+    packageManagers:
+      GradleInspector:
+        options:
+          # ORT >= 89 is built with Java 25 and defaults the Gradle daemon to
+          # that version, which Gradle/Groovy of this project cannot parse yet.
+          # Pin the Java version used for dependency resolution to 21.
+          javaVersion: "21"
   scanner:
     skipExcluded: true
     detectedLicenseMapping:

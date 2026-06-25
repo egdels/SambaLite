@@ -23,7 +23,9 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          # ORT >= 89 is built with and requires Java 25. The Gradle Inspector
+          # is pinned to Java 21 via ort/config/config.yml (javaVersion option).
+          java-version: "25"
 
       - name: Install ORT
         run: |
