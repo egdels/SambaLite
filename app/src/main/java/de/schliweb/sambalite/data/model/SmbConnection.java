@@ -25,6 +25,8 @@ public class SmbConnection implements Serializable {
   private String server;
   private int port = 445;
   private String share;
+  // Optional default folder inside the share (share-relative path) opened on connect
+  private String initialPath;
   private String username;
   private String password;
   private String domain;
@@ -54,6 +56,9 @@ public class SmbConnection implements Serializable {
         + '\''
         + ", share='"
         + share
+        + '\''
+        + ", initialPath='"
+        + initialPath
         + '\''
         + ", username='"
         + username

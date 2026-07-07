@@ -103,6 +103,20 @@ public interface SmbRepository {
       throws Exception;
 
   /**
+   * Reads the complete content of a remote file into memory using a single file handle. This is
+   * significantly faster than repeated {@link #readRange} calls because the remote file is opened
+   * only once.
+   *
+   * @param connection The SMB connection to use
+   * @param remotePath The path to the file on the SMB server
+   * @param maxBytes The maximum allowed file size in bytes (values &lt;= 0 disable the check)
+   * @return A byte array containing the complete file content
+   * @throws Exception if an error occurs during reading or the file exceeds maxBytes
+   */
+  byte[] readFileBytes(@NonNull SmbConnection connection, @NonNull String remotePath, long maxBytes)
+      throws Exception;
+
+  /**
    * Downloads a file from the SMB server.
    *
    * @param connection The SMB connection to use
@@ -210,6 +224,16 @@ public interface SmbRepository {
    * @throws Exception if an error occurs during the check
    */
   boolean fileExists(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
+
+  /**
+   * Checks if a folder exists on the SMB server.
+   *
+   * @param connection The SMB connection to use
+   * @param path The share-relative path to the folder on the SMB server
+   * @return true if the folder exists, false otherwise
+   * @throws Exception if an error occurs during the check
+   */
+  boolean folderExists(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
    * Returns the size of a remote file in bytes.

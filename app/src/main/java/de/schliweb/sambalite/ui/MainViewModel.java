@@ -260,6 +260,36 @@ public class MainViewModel extends ViewModel {
         });
   }
 
+  /**
+   * Checks whether the given default folder exists on the server. If the existence check itself
+   * fails (e.g. server unreachable), the folder is treated as existing so saving is not blocked.
+   *
+   * @param connection The connection to check the folder on
+   * @param path The share-relative folder path to check
+   * @param callback Callback to be called with the result
+   */
+  public void checkDefaultFolder(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @NonNull DefaultFolderCheckCallback callback) {
+    LogUtils.d("MainViewModel", "Checking default folder existence: " + path);
+    isLoading.setValue(true);
+
+    executor.execute(
+        () -> {
+          boolean exists;
+          try {
+            exists = smbRepository.folderExists(connection, path);
+          } catch (Exception e) {
+            LogUtils.w("MainViewModel", "Default folder check failed: " + e.getMessage());
+            // Cannot verify (e.g. server offline): do not block saving
+            exists = true;
+          }
+          isLoading.postValue(false);
+          callback.onResult(exists);
+        });
+  }
+
   /** Lists shares available on the specified server. */
   public void listShares(@NonNull SmbConnection connection, @Nullable ShareListCallback callback) {
     LogUtils.d("MainViewModel", "Listing shares for server: " + connection.getServer());
@@ -284,6 +314,11 @@ public class MainViewModel extends ViewModel {
             callback.onError(error);
           }
         });
+  }
+
+  /** Callback interface for default folder existence checks. */
+  public interface DefaultFolderCheckCallback {
+    void onResult(boolean exists);
   }
 
   /** Callback interface for connection testing. */

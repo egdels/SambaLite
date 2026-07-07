@@ -49,15 +49,24 @@ import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.StorageCapabilityResolver;
 import de.schliweb.sambalite.util.TimestampCapability;
 import de.schliweb.sambalite.util.TimestampUtils;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.Normalizer;
+import java.util.ArrayDeque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * WorkManager Worker that performs folder synchronization in the background. Iterates over all
@@ -66,7 +75,55 @@ import java.util.Set;
 public class FolderSyncWorker extends Worker {
 
   private static final String TAG = "FolderSyncWorker";
-  private static final int BUFFER_SIZE = 65536;
+  private static final int BUFFER_SIZE = 256 * 1024;
+
+  /**
+   * Process-wide locks per sync config ID. WorkManager's unique work names do not prevent a
+   * manual per-config sync ("sambalite_folder_sync_&lt;configId&gt;") from running concurrently
+   * with the periodic or "sync all" worker ("sambalite_folder_sync"), so two workers could sync
+   * the same folder pair at the same time and race (e.g. creating duplicate "B (1)" entries via
+   * SAF). These locks serialize sync runs per config within the app process.
+   */
+  private static final ConcurrentHashMap<String, ReentrantLock> CONFIG_LOCKS =
+      new ConcurrentHashMap<>();
+
+  /** Returns the process-wide lock for the given sync config ID. */
+  static ReentrantLock lockForConfig(String configId) {
+    return CONFIG_LOCKS.computeIfAbsent(configId, id -> new ReentrantLock());
+  }
+
+  /**
+   * Requested SMB2 read/write/transact buffer size (8 MB). Larger buffers reduce the number of SMB2
+   * packets per transfer; the effective size is capped by server negotiation.
+   */
+  private static final int TRANSFER_BUFFER_SIZE = 8 * 1024 * 1024;
+
+  /**
+   * Files at or above this size are downloaded with multiple concurrently outstanding SMB READ
+   * requests (pipelined). Smaller files use the simple streamed path.
+   */
+  private static final long PARALLEL_DOWNLOAD_THRESHOLD = 16L * 1024 * 1024;
+
+  /**
+   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request
+   * (must stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
+   */
+  private static final int PARALLEL_CHUNK_SIZE = 4 * 1024 * 1024;
+
+  /**
+   * Number of concurrently outstanding SMB READ requests during parallel downloads. The SMB
+   * connection is multiplexed, so multiple requests are pipelined over the same TCP connection,
+   * hiding network round-trip latency.
+   */
+  private static final int PARALLEL_READERS = 6;
+
+  /**
+   * Maximum number of chunk writes that may be queued behind the dedicated writer thread during
+   * parallel downloads. Decouples slow SAF/disk writes from the SMB read pipeline while keeping
+   * memory usage bounded (PARALLEL_WRITE_QUEUE * PARALLEL_CHUNK_SIZE additional bytes at most).
+   */
+  private static final int PARALLEL_WRITE_QUEUE = 2;
+
   private static final long DISK_CHECK_INTERVAL = 10L * 1024 * 1024;
   public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
@@ -224,6 +281,21 @@ public class FolderSyncWorker extends Worker {
         break;
       }
 
+      // Guard against parallel sync runs on the same config: manual per-config syncs, the
+      // "sync all" trigger and the periodic worker use different WorkManager unique names and
+      // can therefore run concurrently. Two workers syncing the same folder pair at the same
+      // time can race and create duplicate entries (e.g. "B (1)" via SAF).
+      ReentrantLock lock = lockForConfig(config.getId());
+      if (!lock.tryLock()) {
+        LogUtils.w(
+            TAG,
+            "Skipping config " + config.getId() + ": another sync is already running for it");
+        if (specificConfigId != null) {
+          // Manual sync: request a retry so the user's request is not silently dropped
+          anyFailure = true;
+        }
+        continue;
+      }
       try {
         syncFolder(config, connection);
         syncRepository.updateLastSyncTimestamp(config.getId(), System.currentTimeMillis());
@@ -235,6 +307,8 @@ public class FolderSyncWorker extends Worker {
       } catch (Exception e) {
         LogUtils.e(TAG, "Sync failed for config " + config.getId() + ": " + e.getMessage());
         anyFailure = true;
+      } finally {
+        lock.unlock();
       }
 
       // Check disk space between configs to avoid futile attempts
@@ -432,13 +506,20 @@ public class FolderSyncWorker extends Worker {
     try {
       List<FileIdBothDirectoryInformation> remoteFiles = share.list(remotePath);
 
-      // Cache local files to avoid expensive findFile calls which can cause duplicates in SAF
+      // Cache local files to avoid expensive findFile calls which can cause duplicates in SAF.
+      // Keys are Unicode-normalized (NFC); a lowercase fallback map covers case-insensitive
+      // matches, since SMB is case-insensitive but HashMap lookups are not. Without this,
+      // a missed lookup would trigger createDirectory/createFile and the SAF provider would
+      // silently create a duplicate like "B (1)".
       DocumentFile[] localFilesArray = localFolder.listFiles();
       Map<String, DocumentFile> localFilesMap = new HashMap<>();
+      Map<String, DocumentFile> localFilesMapLower = new HashMap<>();
       for (DocumentFile f : localFilesArray) {
         String n = f.getName();
         if (n != null) {
-          localFilesMap.put(n, f);
+          String key = normalizeName(n);
+          localFilesMap.put(key, f);
+          localFilesMapLower.put(key.toLowerCase(Locale.ROOT), f);
         }
       }
 
@@ -455,9 +536,9 @@ public class FolderSyncWorker extends Worker {
                 != 0;
 
         if (isDirectory) {
-          DocumentFile localSubDir = localFilesMap.get(name);
+          DocumentFile localSubDir = lookupLocal(localFilesMap, localFilesMapLower, name);
           if (localSubDir == null) {
-            localSubDir = localFolder.createDirectory(name);
+            localSubDir = createDirectorySafe(localFolder, name);
             actionLog.log(SyncActionLog.Action.CREATED_DIR, name);
           }
           if (localSubDir != null) {
@@ -474,7 +555,7 @@ public class FolderSyncWorker extends Worker {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
             long remoteSize = getRemoteFileSize(share, remoteFilePath);
             String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
-            DocumentFile localFile = localFilesMap.get(name);
+            DocumentFile localFile = lookupLocal(localFilesMap, localFilesMapLower, name);
 
             if (localFile == null) {
               String mimeType = getMimeType(name);
@@ -535,6 +616,67 @@ public class FolderSyncWorker extends Worker {
     }
   }
 
+  /** Normalizes a file name to Unicode NFC so SMB (often NFD) and SAF names compare equal. */
+  static String normalizeName(String name) {
+    return Normalizer.normalize(name, Normalizer.Form.NFC);
+  }
+
+  /**
+   * Looks up a local DocumentFile by name using NFC normalization, falling back to a
+   * case-insensitive match (SMB is case-insensitive, HashMap lookups are not).
+   */
+  static DocumentFile lookupLocal(
+      Map<String, DocumentFile> byName, Map<String, DocumentFile> byLowerName, String name) {
+    String key = normalizeName(name);
+    DocumentFile f = byName.get(key);
+    if (f == null) {
+      f = byLowerName.get(key.toLowerCase(Locale.ROOT));
+    }
+    return f;
+  }
+
+  /**
+   * Creates a subdirectory and guards against the SAF provider silently deduplicating the name
+   * (e.g. creating "B (1)" because an entry named "B" already exists). In that case the duplicate
+   * is removed and the existing directory is reused.
+   */
+  private DocumentFile createDirectorySafe(DocumentFile parent, String name) {
+    DocumentFile created = parent.createDirectory(name);
+    if (created != null && !name.equals(created.getName())) {
+      LogUtils.w(
+          TAG,
+          "Provider renamed new directory '"
+              + name
+              + "' to '"
+              + created.getName()
+              + "'; looking for existing entry to reuse");
+      DocumentFile existing = findDirectoryByNameInsensitive(parent, name, created);
+      if (existing != null) {
+        created.delete();
+        return existing;
+      }
+    }
+    return created;
+  }
+
+  /**
+   * Finds an existing directory in {@code parent} whose name matches {@code name} after NFC
+   * normalization and ignoring case, excluding {@code exclude}.
+   */
+  private static DocumentFile findDirectoryByNameInsensitive(
+      DocumentFile parent, String name, DocumentFile exclude) {
+    String key = normalizeName(name).toLowerCase(Locale.ROOT);
+    for (DocumentFile f : parent.listFiles()) {
+      if (!f.isDirectory()) continue;
+      if (exclude != null && f.getUri().equals(exclude.getUri())) continue;
+      String n = f.getName();
+      if (n != null && normalizeName(n).toLowerCase(Locale.ROOT).equals(key)) {
+        return f;
+      }
+    }
+    return null;
+  }
+
   /**
    * Uploads a local DocumentFile to the remote SMB share.
    *
@@ -544,31 +686,50 @@ public class FolderSyncWorker extends Worker {
       throws Exception {
     LogUtils.d(TAG, "Uploading: " + localFile.getName() + " -> " + remotePath);
 
+    long remoteSize = -1;
+    // Performance (issue #21): use a single file handle for writing, the post-upload size check
+    // and setting the lastWriteTime instead of re-opening the remote file two more times.
+    // FILE_READ_ATTRIBUTES/FILE_WRITE_ATTRIBUTES are requested in addition to GENERIC_WRITE so
+    // that getFileInformation()/setFileInformation() work on the same handle.
     try (File remoteFile =
-            share.openFile(
-                remotePath,
-                EnumSet.of(AccessMask.GENERIC_WRITE),
-                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                SMB2ShareAccess.ALL,
-                SMB2CreateDisposition.FILE_OVERWRITE_IF,
-                null);
-        InputStream is =
-            getApplicationContext().getContentResolver().openInputStream(localFile.getUri());
-        OutputStream os = remoteFile.getOutputStream()) {
+        share.openFile(
+            remotePath,
+            EnumSet.of(
+                AccessMask.GENERIC_WRITE,
+                AccessMask.FILE_READ_ATTRIBUTES,
+                AccessMask.FILE_WRITE_ATTRIBUTES),
+            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+            SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OVERWRITE_IF,
+            null)) {
 
-      if (is == null) {
-        throw new Exception("Could not open input stream for: " + localFile.getUri());
+      try (InputStream is =
+              getApplicationContext().getContentResolver().openInputStream(localFile.getUri());
+          OutputStream os = remoteFile.getOutputStream()) {
+
+        if (is == null) {
+          throw new Exception("Could not open input stream for: " + localFile.getUri());
+        }
+
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int bytesRead;
+        while ((bytesRead = is.read(buffer)) != -1) {
+          os.write(buffer, 0, bytesRead);
+        }
       }
 
-      byte[] buffer = new byte[BUFFER_SIZE];
-      int bytesRead;
-      while ((bytesRead = is.read(buffer)) != -1) {
-        os.write(buffer, 0, bytesRead);
+      // Integrity check on the same handle: read the remote size without an extra file open
+      try {
+        remoteSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+      } catch (Exception e) {
+        LogUtils.w(TAG, "Could not get file size for: " + remotePath + ": " + e.getMessage());
       }
+
+      // Set remote file's lastWriteTime to match local file's lastModified
+      // to prevent re-uploading on next sync cycle (same handle, no extra open)
+      setLastModifiedOnHandle(remoteFile, remotePath, localFile.lastModified());
     }
 
-    // Integrity check: compare actual remote file size against local file size
-    long remoteSize = getRemoteFileSize(share, remotePath);
     long localSize = localFile.length();
     LogUtils.i(
         TAG,
@@ -595,10 +756,6 @@ public class FolderSyncWorker extends Worker {
               + ", file="
               + localFile.getName());
     }
-
-    // Set remote file's lastWriteTime to match local file's lastModified
-    // to prevent re-uploading on next sync cycle
-    setRemoteFileLastModified(share, remotePath, localFile.lastModified());
 
     LogUtils.d(TAG, "Upload completed: " + localFile.getName());
     return remoteSize;
@@ -632,28 +789,30 @@ public class FolderSyncWorker extends Worker {
               + remoteTimestamp
               + "ms)");
 
-      try (InputStream is = remoteFile.getInputStream();
-          OutputStream os =
-              getApplicationContext().getContentResolver().openOutputStream(localFile.getUri())) {
+      long fileSize =
+          remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
 
-        if (os == null) {
-          throw new Exception("Could not open output stream for: " + localFile.getUri());
-        }
+      OutputStream rawOut =
+          getApplicationContext().getContentResolver().openOutputStream(localFile.getUri());
+      if (rawOut == null) {
+        throw new Exception("Could not open output stream for: " + localFile.getUri());
+      }
 
-        byte[] buffer = new byte[BUFFER_SIZE];
-        int bytesRead;
-        long bytesSinceLastDiskCheck = 0;
-        while ((bytesRead = is.read(buffer)) != -1) {
-          os.write(buffer, 0, bytesRead);
-          bytesSinceLastDiskCheck += bytesRead;
-          if (bytesSinceLastDiskCheck >= DISK_CHECK_INTERVAL) {
-            if (!hasEnoughDiskSpace()) {
-              LogUtils.e(TAG, "Download aborted \u2013 disk space low: " + localFile.getName());
-              throw new InsufficientDiskSpaceException("Insufficient disk space");
-            }
-            bytesSinceLastDiskCheck = 0;
-          }
+      try (OutputStream out = new BufferedOutputStream(rawOut, BUFFER_SIZE)) {
+        if (fileSize >= PARALLEL_DOWNLOAD_THRESHOLD) {
+          LogUtils.i(
+              TAG,
+              "Using parallel download ("
+                  + PARALLEL_READERS
+                  + " readers, "
+                  + PARALLEL_CHUNK_SIZE
+                  + " byte chunks) for: "
+                  + localFile.getName());
+          downloadParallel(remoteFile, out, fileSize, localFile.getName());
+        } else {
+          downloadStreamed(remoteFile, out, localFile.getName());
         }
+        out.flush();
       }
     }
 
@@ -724,16 +883,129 @@ public class FolderSyncWorker extends Worker {
     }
   }
 
-  /** Sets the last modified time of a remote file. */
-  private void setRemoteFileLastModified(DiskShare share, String remotePath, long timeMillis) {
-    try (File remoteFile =
-        share.openFile(
-            remotePath,
-            EnumSet.of(AccessMask.FILE_READ_ATTRIBUTES, AccessMask.FILE_WRITE_ATTRIBUTES),
-            null,
-            SMB2ShareAccess.ALL,
-            SMB2CreateDisposition.FILE_OPEN,
-            null)) {
+  /**
+   * Downloads a file using multiple concurrently outstanding SMB READ requests. The SMB connection
+   * multiplexes the requests over the same TCP connection, hiding network round-trip latency and
+   * keeping the pipe full. Chunks are written to the output stream strictly in order.
+   */
+  private void downloadParallel(File remoteFile, OutputStream out, long fileSize, String name)
+      throws Exception {
+    ExecutorService pool = Executors.newFixedThreadPool(PARALLEL_READERS);
+    ExecutorService writer = Executors.newSingleThreadExecutor();
+    try {
+      ArrayDeque<Future<byte[]>> inFlight = new ArrayDeque<>(PARALLEL_READERS);
+      ArrayDeque<Future<?>> pendingWrites = new ArrayDeque<>(PARALLEL_WRITE_QUEUE + 1);
+      long submitOffset = 0;
+      long bytesSinceLastDiskCheck = 0;
+
+      while (submitOffset < fileSize || !inFlight.isEmpty()) {
+        // Keep the read pipeline full
+        while (inFlight.size() < PARALLEL_READERS && submitOffset < fileSize) {
+          final long offset = submitOffset;
+          final int length = (int) Math.min(PARALLEL_CHUNK_SIZE, fileSize - offset);
+          submitOffset += length;
+          inFlight.add(pool.submit(() -> readChunk(remoteFile, offset, length)));
+        }
+
+        final byte[] chunk = inFlight.remove().get();
+
+        // Hand the chunk to the dedicated writer thread so slow SAF/disk writes never stall
+        // the SMB read pipeline. Writes stay strictly in order (single writer thread).
+        pendingWrites.add(
+            writer.submit(
+                () -> {
+                  out.write(chunk);
+                  return null;
+                }));
+        // Bound the write queue to cap memory usage and surface write errors early
+        while (pendingWrites.size() > PARALLEL_WRITE_QUEUE) {
+          pendingWrites.remove().get();
+        }
+
+        bytesSinceLastDiskCheck += chunk.length;
+        if (bytesSinceLastDiskCheck >= DISK_CHECK_INTERVAL) {
+          if (!hasEnoughDiskSpace()) {
+            for (Future<byte[]> f : inFlight) {
+              f.cancel(true);
+            }
+            LogUtils.e(TAG, "Download aborted \u2013 disk space low: " + name);
+            throw new InsufficientDiskSpaceException("Insufficient disk space");
+          }
+          bytesSinceLastDiskCheck = 0;
+        }
+      }
+
+      // Wait for all outstanding writes to hit the output stream before returning
+      while (!pendingWrites.isEmpty()) {
+        pendingWrites.remove().get();
+      }
+    } finally {
+      pool.shutdownNow();
+      writer.shutdownNow();
+    }
+  }
+
+  /** Reads exactly {@code length} bytes starting at {@code offset} from the remote file. */
+  private static byte[] readChunk(File remoteFile, long offset, int length) throws IOException {
+    byte[] buf = new byte[length];
+    int pos = 0;
+    while (pos < length) {
+      int read = remoteFile.read(buf, offset + pos, pos, length - pos);
+      if (read < 0) {
+        throw new IOException("Unexpected EOF at offset " + (offset + pos));
+      }
+      pos += read;
+    }
+    return buf;
+  }
+
+  /**
+   * Downloads a file via a sequential input stream with a single-buffer prefetch (used for small
+   * files or when the remote size is unknown).
+   */
+  private void downloadStreamed(File remoteFile, OutputStream out, String name) throws Exception {
+    try (InputStream in = remoteFile.getInputStream()) {
+      byte[] bufferA = new byte[BUFFER_SIZE];
+      byte[] bufferB = new byte[BUFFER_SIZE];
+      long bytesSinceLastDiskCheck = 0;
+
+      ExecutorService prefetchExecutor = Executors.newSingleThreadExecutor();
+      try {
+        int read = in.read(bufferA);
+        while (read != -1) {
+          final byte[] nextBuf = bufferB;
+          Future<Integer> prefetchFuture = prefetchExecutor.submit(() -> in.read(nextBuf));
+
+          out.write(bufferA, 0, read);
+
+          bytesSinceLastDiskCheck += read;
+          if (bytesSinceLastDiskCheck >= DISK_CHECK_INTERVAL) {
+            if (!hasEnoughDiskSpace()) {
+              prefetchFuture.cancel(true);
+              LogUtils.e(TAG, "Download aborted \u2013 disk space low: " + name);
+              throw new InsufficientDiskSpaceException("Insufficient disk space");
+            }
+            bytesSinceLastDiskCheck = 0;
+          }
+
+          read = prefetchFuture.get();
+
+          byte[] tmp = bufferA;
+          bufferA = bufferB;
+          bufferB = tmp;
+        }
+      } finally {
+        prefetchExecutor.shutdownNow();
+      }
+    }
+  }
+
+  /**
+   * Sets the last modified time on an already open remote file handle. Avoids an extra SMB file
+   * open when a handle is already available (e.g. right after an upload).
+   */
+  private void setLastModifiedOnHandle(File remoteFile, String remotePath, long timeMillis) {
+    try {
       FileBasicInformation currentInfo = remoteFile.getFileInformation().getBasicInformation();
       FileTime newTime = FileTime.ofEpochMillis(timeMillis);
       FileBasicInformation newInfo =
@@ -808,12 +1080,20 @@ public class FolderSyncWorker extends Worker {
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign && !async) {
-      return new SMBClient();
-    }
-
     SmbConfig.Builder builder =
         SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+
+    // Performance (issue #21): larger read/write/transact buffers reduce the number of SMB2
+    // READ/WRITE packets per transfer, which lowers per-packet overhead (especially with SMB3
+    // encryption). The effective size is still capped by what the server negotiates.
+    try {
+      builder
+          .withReadBufferSize(TRANSFER_BUFFER_SIZE)
+          .withWriteBufferSize(TRANSFER_BUFFER_SIZE)
+          .withTransactBufferSize(TRANSFER_BUFFER_SIZE);
+    } catch (Throwable ignored) {
+      /* keep SMBJ defaults if the running SMBJ version rejects these values */
+    }
 
     if (async) {
       builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());

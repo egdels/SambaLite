@@ -67,6 +67,8 @@ public class MainActivity extends AppCompatActivity
     implements ConnectionAdapter.OnConnectionClickListener {
 
   private static final String INVALID_SHARE_NAME_CHARS = "/\\:*?\"<>|";
+  // Like share names but '/' and '\' are allowed as folder separators
+  private static final String INVALID_INITIAL_PATH_CHARS = ":*?\"<>|";
 
   @Inject ViewModelProvider.Factory viewModelFactory;
 
@@ -587,6 +589,47 @@ public class MainActivity extends AppCompatActivity
     return true;
   }
 
+  /**
+   * Normalizes an optional default folder path inside the share: converts backslashes to forward
+   * slashes, trims whitespace and strips leading/trailing/duplicate slashes. Returns an empty
+   * string when no path is set.
+   */
+  static String normalizeInitialPath(@Nullable String path) {
+    if (path == null) {
+      return "";
+    }
+    String p = path.trim().replace('\\', '/');
+    while (p.contains("//")) {
+      p = p.replace("//", "/");
+    }
+    while (p.startsWith("/")) {
+      p = p.substring(1);
+    }
+    while (p.endsWith("/")) {
+      p = p.substring(0, p.length() - 1);
+    }
+    return p;
+  }
+
+  private boolean validateInitialPath(
+      @NonNull com.google.android.material.textfield.TextInputLayout initialPathLayout,
+      @Nullable String path,
+      @NonNull String logPrefix) {
+    if (path == null || path.trim().isEmpty()) {
+      initialPathLayout.setError(null);
+      return true;
+    }
+    for (int i = 0; i < path.length(); i++) {
+      if (INVALID_INITIAL_PATH_CHARS.indexOf(path.charAt(i)) >= 0) {
+        LogUtils.d("MainActivity", logPrefix + ": default folder contains invalid characters");
+        initialPathLayout.setError(getString(R.string.error_default_folder_invalid));
+        return false;
+      }
+    }
+    initialPathLayout.setError(null);
+    return true;
+  }
+
   private boolean validateShareName(
       @NonNull com.google.android.material.textfield.TextInputLayout shareLayout,
       @Nullable String share,
@@ -619,6 +662,53 @@ public class MainActivity extends AppCompatActivity
             imm.showSoftInput(firstInvalidField, InputMethodManager.SHOW_IMPLICIT);
           }
         });
+  }
+
+  /**
+   * Verifies that the configured default folder exists on the server before saving the
+   * connection. When no default folder is set, the connection is saved immediately. If the folder
+   * cannot be found on the server, the dialog stays open and an error is shown on the default
+   * folder field. When the existence check itself fails (e.g. server unreachable), the connection
+   * is saved anyway.
+   */
+  private void saveConnectionAfterDefaultFolderCheck(
+      @NonNull SmbConnection connection,
+      @NonNull AlertDialog dialog,
+      @NonNull com.google.android.material.textfield.TextInputLayout defaultFolderLayout,
+      @NonNull com.google.android.material.textfield.TextInputEditText defaultFolderEditText) {
+    String defaultFolder = connection.getInitialPath();
+    if (defaultFolder == null || defaultFolder.isEmpty()) {
+      persistConnectionAndDismiss(connection, dialog);
+      return;
+    }
+    viewModel.checkDefaultFolder(
+        connection,
+        defaultFolder,
+        exists ->
+            runOnUiThread(
+                () -> {
+                  if (isFinishing() || isDestroyed() || !dialog.isShowing()) {
+                    return;
+                  }
+                  if (exists) {
+                    defaultFolderLayout.setError(null);
+                    persistConnectionAndDismiss(connection, dialog);
+                  } else {
+                    LogUtils.d(
+                        "MainActivity", "Default folder not found on server: " + defaultFolder);
+                    defaultFolderLayout.setError(
+                        getString(R.string.error_default_folder_not_found, defaultFolder));
+                    focusFirstInvalidField(defaultFolderEditText);
+                  }
+                }));
+  }
+
+  private void persistConnectionAndDismiss(
+      @NonNull SmbConnection connection, @NonNull AlertDialog dialog) {
+    LogUtils.i("MainActivity", "Saving connection: " + connection.getName());
+    viewModel.saveConnection(connection);
+    KeyboardUtils.hideKeyboard(dialog);
+    dialog.dismiss();
   }
 
   private void showInvalidExistingShareDialog(@NonNull SmbConnection connection) {
@@ -882,6 +972,10 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.server_edit_text);
     com.google.android.material.textfield.TextInputEditText shareEditText =
         dialogView.findViewById(R.id.share_edit_text);
+    com.google.android.material.textfield.TextInputLayout defaultFolderLayout =
+        dialogView.findViewById(R.id.default_folder_layout);
+    com.google.android.material.textfield.TextInputEditText defaultFolderEditText =
+        dialogView.findViewById(R.id.default_folder_edit_text);
     com.google.android.material.textfield.TextInputEditText usernameEditText =
         dialogView.findViewById(R.id.username_edit_text);
     com.google.android.material.textfield.TextInputEditText passwordEditText =
@@ -1042,6 +1136,12 @@ public class MainActivity extends AppCompatActivity
             isValid = false;
           }
 
+          String defaultFolder = defaultFolderEditText.getText().toString();
+          if (!validateInitialPath(defaultFolderLayout, defaultFolder, "Validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = defaultFolderEditText;
+            isValid = false;
+          }
+
           // If validation passes, save the connection
           if (isValid) {
             LogUtils.d("MainActivity", "Validation passed, creating connection object");
@@ -1049,6 +1149,7 @@ public class MainActivity extends AppCompatActivity
             connection.setName(name);
             connection.setServer(server);
             connection.setShare(share);
+            connection.setInitialPath(normalizeInitialPath(defaultFolder));
             connection.setUsername(usernameEditText.getText().toString().trim());
             connection.setPassword(passwordEditText.getText().toString().trim());
             connection.setDomain(domainEditText.getText().toString().trim());
@@ -1058,9 +1159,8 @@ public class MainActivity extends AppCompatActivity
               connection.setAsyncTransport(asyncTransportSwitch.isChecked());
 
             LogUtils.i("MainActivity", "Saving new connection: " + name);
-            viewModel.saveConnection(connection);
-            KeyboardUtils.hideKeyboard(dialog);
-            dialog.dismiss();
+            saveConnectionAfterDefaultFolderCheck(
+                connection, dialog, defaultFolderLayout, defaultFolderEditText);
           } else {
             focusFirstInvalidField(firstInvalidField);
           }
@@ -1208,6 +1308,10 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.server_edit_text);
     com.google.android.material.textfield.TextInputEditText shareEditText =
         dialogView.findViewById(R.id.share_edit_text);
+    com.google.android.material.textfield.TextInputLayout defaultFolderLayout =
+        dialogView.findViewById(R.id.default_folder_layout);
+    com.google.android.material.textfield.TextInputEditText defaultFolderEditText =
+        dialogView.findViewById(R.id.default_folder_edit_text);
     com.google.android.material.textfield.TextInputEditText usernameEditText =
         dialogView.findViewById(R.id.username_edit_text);
     com.google.android.material.textfield.TextInputEditText passwordEditText =
@@ -1353,6 +1457,7 @@ public class MainActivity extends AppCompatActivity
     nameEditText.setText(connection.getName());
     serverEditText.setText(connection.getServer());
     shareEditText.setText(connection.getShare());
+    defaultFolderEditText.setText(connection.getInitialPath());
     usernameEditText.setText(connection.getUsername());
     passwordEditText.setText(connection.getPassword());
     domainEditText.setText(connection.getDomain());
@@ -1425,6 +1530,12 @@ public class MainActivity extends AppCompatActivity
             isValid = false;
           }
 
+          String defaultFolder = defaultFolderEditText.getText().toString();
+          if (!validateInitialPath(defaultFolderLayout, defaultFolder, "Edit validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = defaultFolderEditText;
+            isValid = false;
+          }
+
           // If validation passes, update the connection
           if (isValid) {
             LogUtils.d("MainActivity", "Edit validation passed, updating connection object");
@@ -1434,6 +1545,7 @@ public class MainActivity extends AppCompatActivity
             updatedConnection.setName(name);
             updatedConnection.setServer(server);
             updatedConnection.setShare(share);
+            updatedConnection.setInitialPath(normalizeInitialPath(defaultFolder));
             updatedConnection.setUsername(usernameEditText.getText().toString().trim());
             updatedConnection.setPassword(passwordEditText.getText().toString().trim());
             updatedConnection.setDomain(domainEditText.getText().toString().trim());
@@ -1446,9 +1558,8 @@ public class MainActivity extends AppCompatActivity
               updatedConnection.setAsyncTransport(asyncTransportSwitchEdit.isChecked());
 
             LogUtils.i("MainActivity", "Updating connection: " + name);
-            viewModel.saveConnection(updatedConnection);
-            KeyboardUtils.hideKeyboard(dialog);
-            dialog.dismiss();
+            saveConnectionAfterDefaultFolderCheck(
+                updatedConnection, dialog, defaultFolderLayout, defaultFolderEditText);
           } else {
             focusFirstInvalidField(firstInvalidField);
           }

@@ -120,6 +120,8 @@ public class FileBrowserActivity extends AppCompatActivity
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
       fabSelectFolder;
   private boolean folderPickerMode = false;
+  // True until the connection's default folder has been applied on a fresh start
+  private boolean navigateToDefaultFolderPending = false;
 
   private final BroadcastReceiver transferCompletedReceiver =
       new BroadcastReceiver() {
@@ -142,6 +144,9 @@ public class FileBrowserActivity extends AppCompatActivity
           // upload to an unrelated folder — e.g. during background sync. (Issue: UI refreshed
           // on every upload even when not in the affected folder.)
           if (fileListViewModel != null && "UPLOAD".equals(transferType)) {
+            // Handled live while in the foreground — clear the flag set by TransferWorker so we
+            // don't needlessly reload again on the next onResume.
+            PreferenceUtils.setNeedsRefresh(context, false);
             if (isUploadInCurrentDirectory(remotePath)) {
               fileListViewModel.refreshCurrentDirectory();
             } else {
@@ -334,6 +339,8 @@ public class FileBrowserActivity extends AppCompatActivity
     // Skip reset on configuration changes (e.g. rotation) where savedInstanceState is non-null.
     if (savedInstanceState == null) {
       fileListViewModel.resetNavigation();
+      // Only apply the connection's default folder on a fresh start, not after rotation
+      navigateToDefaultFolderPending = true;
     }
 
     // Load connection from intent
@@ -1046,6 +1053,9 @@ public class FileBrowserActivity extends AppCompatActivity
                   checkAndHandleUploadNotification();
                   checkAndHandleDownloadNotification();
                   checkAndHandleShareUpload();
+
+                  // Open the connection's default folder on a plain fresh start
+                  maybeNavigateToDefaultFolder(connection);
                   return;
                 }
               }
@@ -1055,6 +1065,72 @@ public class FileBrowserActivity extends AppCompatActivity
               progressController.showError("Error", "Connection not found");
               finish();
             });
+  }
+
+  /**
+   * Navigates to the connection's configured default folder (share-relative) when the activity was
+   * opened normally, i.e. not from a notification or Share handoff that navigates to its own target
+   * directory. Applied only once per fresh start (Issue #27 follow-up).
+   *
+   * @param connection the active connection
+   */
+  private void maybeNavigateToDefaultFolder(@NonNull SmbConnection connection) {
+    if (!navigateToDefaultFolderPending) {
+      return;
+    }
+    navigateToDefaultFolderPending = false;
+
+    Intent intent = getIntent();
+    if (intent.getBooleanExtra(EXTRA_FROM_SEARCH_NOTIFICATION, false)
+        || intent.getBooleanExtra(EXTRA_FROM_UPLOAD_NOTIFICATION, false)
+        || intent.getBooleanExtra(EXTRA_FROM_DOWNLOAD_NOTIFICATION, false)
+        || intent.getBooleanExtra(EXTRA_FROM_SHARE_UPLOAD, false)) {
+      // These flows navigate to their own target directory
+      return;
+    }
+
+    String defaultFolder = normalizeInternalPath(connection.getInitialPath());
+    if (defaultFolder.isEmpty()) {
+      return;
+    }
+
+    // Verify the folder still exists on the server before navigating (it may have been
+    // renamed or deleted since the connection was configured). Stay at the share root and
+    // inform the user if it is missing.
+    new Thread(
+            () -> {
+              boolean exists;
+              try {
+                exists = smbRepository.folderExists(connection, defaultFolder);
+              } catch (Exception e) {
+                LogUtils.w(
+                    "FileBrowserActivity",
+                    "Failed to check default folder existence: " + e.getMessage());
+                // On check failure, fall back to the previous behavior and try to navigate
+                exists = true;
+              }
+              final boolean folderExists = exists;
+              runOnUiThread(
+                  () -> {
+                    if (isFinishing() || isDestroyed()) {
+                      return;
+                    }
+                    if (folderExists) {
+                      LogUtils.i(
+                          "FileBrowserActivity", "Navigating to default folder: " + defaultFolder);
+                      fileListViewModel.navigateToPathWithHierarchy(defaultFolder);
+                    } else {
+                      LogUtils.w(
+                          "FileBrowserActivity",
+                          "Default folder does not exist, staying at share root: " + defaultFolder);
+                      de.schliweb.sambalite.ui.utils.UIHelper.showInfo(
+                          FileBrowserActivity.this,
+                          getString(R.string.default_folder_not_found, defaultFolder));
+                    }
+                  });
+            },
+            "DefaultFolderCheck")
+        .start();
   }
 
   /**
