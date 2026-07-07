@@ -1,0 +1,4 @@
+- Added: Optional default folder per connection, opened automatically on connect.
+- Added: Downloads keep the remote file's last-modified timestamp where possible.
+- Changed: Much faster SMB transfers and reworked thumbnail loading.
+- Fixed: Duplicate "(1)" folders during sync; files with accented names no longer missed.

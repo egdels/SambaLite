@@ -5,6 +5,23 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2026-07-07
+
+### Added
+- **Default folder per connection**: Connections can now define an optional default folder inside the share (e.g. `Photos/2024`) that is opened automatically when connecting. The add/edit connection dialog validates the path (rejecting `\ : * ? " < > |`) and verifies on save that the folder actually exists on the server; if the existence check itself fails (e.g. server unreachable), the connection is still saved. The file browser navigates to the default folder only on a normal fresh start — not when opened from a notification or a Share handoff — and falls back to the share root with a hint if the folder no longer exists.
+- **Timestamp preservation on downloads**: Downloaded files now keep the remote file's last-modified timestamp where possible. The new `MediaStorePathResolver` resolves `content://` URIs (MediaStore, external storage documents, `file://`) to real filesystem paths on which `File.setLastModified()` works, complementing the existing `utimensat()`-based SAF strategy in `TimestampUtils`. Authorities where both strategies fail are remembered per session to avoid repeated syscalls and warning spam during large syncs.
+- Translations for the new default folder strings in all 7 supported languages (EN, DE, ES, FR, NL, PL, ZH).
+
+### Changed
+- **Faster SMB transfers**: SMB read/write/transact buffers are now requested at 8 MB (capped by server negotiation), copy buffers were increased from 64 KB to 256 KB (transfers) and 1 MB (`TransferWorker`), and large files (≥ 16 MB) are downloaded with multiple concurrently outstanding, pipelined SMB READ requests (6 readers, 4 MB chunks) with a dedicated writer thread. Progress updates during folder uploads are throttled using the same scheme as regular transfers. New `SmbRepository` methods `folderExists(...)` and `readFileBytes(...)` support the default folder check and single-handle thumbnail downloads.
+- **Thumbnail loading rework**: Thumbnails are now downloaded once via a single SMB file handle (`readFileBytes`) and decoded from memory instead of streaming through the removed `SmbInputStream`. The disk cache is compressed (JPEG quality 85), trimmed at most once per minute on a dedicated executor, negative "no cover" markers expire after 7 days, and dropped queue tasks clear their pending marker so thumbnails can be requested again. View references are checked in a short-lived stack frame to avoid leaking Activity contexts from background threads.
+
+### Fixed
+- **Duplicate "B (1)" folders during sync**: Two sync workers could run concurrently for the same configuration (manual per-config sync vs. periodic/"sync all" worker) because WorkManager's unique work names differ. Sync runs are now serialized per configuration via process-wide locks. Additionally, directory creation guards against SAF providers silently deduplicating names: if a duplicate like `B (1)` is created, it is removed and the existing directory is reused.
+- **Sync misses files with accented or differently-cased names**: Local file lookups during sync now normalize names to Unicode NFC (SMB servers often deliver NFD) and fall back to a case-insensitive match (SMB is case-insensitive, HashMap lookups are not), preventing unnecessary re-downloads and duplicate entries.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.5.2] - 2026-06-24
 
 ### Changed
