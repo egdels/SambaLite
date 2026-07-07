@@ -51,6 +51,11 @@
     <string name="error_server_required">Le serveur est requis</string>
     <string name="error_share_required">Le nom du partage est requis</string>
     <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \ : * ? &quot; &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>
+    <string name="default_folder">Dossier par défaut (optionnel)</string>
+    <string name="default_folder_helper">Sous-dossier du partage ouvert lors de la connexion, p. ex. Photos/2024</string>
+    <string name="error_default_folder_invalid">Le dossier par défaut ne doit pas contenir \ : * ? &quot; &lt; &gt; |. Utilisez / pour séparer les sous-dossiers.</string>
+    <string name="default_folder_not_found">Le dossier par défaut « %1$s » est introuvable. La racine du partage sera ouverte à la place.</string>
+    <string name="error_default_folder_not_found">Le dossier par défaut « %1$s » est introuvable sur le serveur. Vérifiez le chemin.</string>
     <string name="invalid_share_name_title">Nom de partage invalide</string>
     <string name="invalid_existing_share_name_message">La connexion « %1$s » contient un nom de partage invalide. Veuillez la modifier et utiliser uniquement le nom du partage SMB, pas un chemin.</string>
 

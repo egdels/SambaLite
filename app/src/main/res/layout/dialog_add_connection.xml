@@ -224,6 +224,25 @@
 
         </LinearLayout>
 
+        <!-- Default Folder (optional) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/default_folder_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="@string/default_folder"
+            app:helperText="@string/default_folder_helper"
+            app:startIconDrawable="@android:drawable/ic_menu_more"
+            app:startIconTint="?attr/colorOnSurface">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/default_folder_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Credentials Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"

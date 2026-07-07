@@ -50,6 +50,11 @@
     <string name="error_server_required">Server is required</string>
     <string name="error_share_required">Share name is required</string>
     <string name="error_share_invalid">Share name must not contain / \ : * ? &quot; &lt; &gt; |. Use only the SMB share name, not a path.</string>
+    <string name="default_folder">Default folder (optional)</string>
+    <string name="default_folder_helper">Subfolder inside the share that is opened when connecting, e.g. Photos/2024</string>
+    <string name="error_default_folder_invalid">Default folder must not contain \ : * ? &quot; &lt; &gt; |. Use / to separate subfolders.</string>
+    <string name="default_folder_not_found">Default folder “%1$s” was not found. Opening share root instead.</string>
+    <string name="error_default_folder_not_found">Default folder “%1$s” was not found on the server. Please check the path.</string>
     <string name="invalid_share_name_title">Invalid share name</string>
     <string name="invalid_existing_share_name_message">The connection “%1$s” contains an invalid share name. Please edit it and use only the SMB share name, not a path.</string>
 

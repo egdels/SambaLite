@@ -51,6 +51,11 @@
     <string name="error_server_required">服务器是必需的</string>
     <string name="error_share_required">分享名是必需的</string>
     <string name="error_share_invalid">分享名不能包含 / \ : * ? &quot; &lt; &gt; |。请只使用 SMB 分享名，不要使用路径。</string>
+    <string name="default_folder">默认文件夹（可选）</string>
+    <string name="default_folder_helper">连接后打开的分享内子文件夹，例如 照片/2024</string>
+    <string name="error_default_folder_invalid">默认文件夹不能包含 \ : * ? &quot; &lt; &gt; |。请使用 / 分隔子文件夹。</string>
+    <string name="default_folder_not_found">未找到默认文件夹“%1$s”，将改为打开共享根目录。</string>
+    <string name="error_default_folder_not_found">在服务器上未找到默认文件夹“%1$s”。请检查路径。</string>
     <string name="invalid_share_name_title">分享名无效</string>
     <string name="invalid_existing_share_name_message">连接“%1$s”包含无效的分享名。请编辑它，并只使用 SMB 分享名，不要使用路径。</string>
 

@@ -50,6 +50,11 @@
     <string name="error_server_required">Server ist erforderlich</string>
     <string name="error_share_required">Freigabe-Name ist erforderlich</string>
     <string name="error_share_invalid">Der Freigabe-Name darf / \ : * ? &quot; &lt; &gt; | nicht enthalten. Verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
+    <string name="default_folder">Standardordner (optional)</string>
+    <string name="default_folder_helper">Unterordner in der Freigabe, der beim Verbinden geöffnet wird, z. B. Fotos/2024</string>
+    <string name="error_default_folder_invalid">Der Standardordner darf \ : * ? &quot; &lt; &gt; | nicht enthalten. Verwenden Sie / zum Trennen von Unterordnern.</string>
+    <string name="default_folder_not_found">Der Standardordner „%1$s“ wurde nicht gefunden. Stattdessen wird das Freigabe-Stammverzeichnis geöffnet.</string>
+    <string name="error_default_folder_not_found">Der Standardordner „%1$s“ wurde auf dem Server nicht gefunden. Bitte prüfen Sie den Pfad.</string>
     <string name="invalid_share_name_title">Ungültiger Freigabe-Name</string>
     <string name="invalid_existing_share_name_message">Die Verbindung „%1$s“ enthält einen ungültigen Freigabe-Namen. Bitte bearbeiten Sie sie und verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
 

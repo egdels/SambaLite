@@ -50,6 +50,11 @@
     <string name="error_server_required">Server is vereist</string>
     <string name="error_share_required">Share naam is vereist</string>
     <string name="error_share_invalid">Share naam mag geen / \ : * ? &quot; &lt; &gt; | bevatten. Gebruik alleen de SMB-share naam, geen pad.</string>
+    <string name="default_folder">Standaardmap (optioneel)</string>
+    <string name="default_folder_helper">Submap binnen de share die bij het verbinden wordt geopend, bijv. Foto\'s/2024</string>
+    <string name="error_default_folder_invalid">De standaardmap mag geen \ : * ? &quot; &lt; &gt; | bevatten. Gebruik / om submappen te scheiden.</string>
+    <string name="default_folder_not_found">De standaardmap ‘%1$s’ is niet gevonden. In plaats daarvan wordt de hoofdmap van de share geopend.</string>
+    <string name="error_default_folder_not_found">De standaardmap ‘%1$s’ is niet gevonden op de server. Controleer het pad.</string>
     <string name="invalid_share_name_title">Ongeldige share naam</string>
     <string name="invalid_existing_share_name_message">De verbinding “%1$s” bevat een ongeldige share naam. Bewerk deze en gebruik alleen de SMB-share naam, geen pad.</string>
 

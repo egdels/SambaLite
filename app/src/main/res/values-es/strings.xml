@@ -51,6 +51,11 @@
     <string name="error_server_required">El servidor es obligatorio</string>
     <string name="error_share_required">El nombre del recurso compartido es obligatorio</string>
     <string name="error_share_invalid">El nombre del recurso compartido no debe contener / \ : * ? &quot; &lt; &gt; |. Usa solo el nombre del recurso SMB, no una ruta.</string>
+    <string name="default_folder">Carpeta predeterminada (opcional)</string>
+    <string name="default_folder_helper">Subcarpeta dentro del recurso compartido que se abre al conectar, p. ej. Fotos/2024</string>
+    <string name="error_default_folder_invalid">La carpeta predeterminada no debe contener \ : * ? &quot; &lt; &gt; |. Usa / para separar subcarpetas.</string>
+    <string name="default_folder_not_found">No se encontró la carpeta predeterminada «%1$s». Se abrirá la raíz del recurso compartido.</string>
+    <string name="error_default_folder_not_found">No se encontró la carpeta predeterminada «%1$s» en el servidor. Comprueba la ruta.</string>
     <string name="invalid_share_name_title">Nombre de recurso compartido no válido</string>
     <string name="invalid_existing_share_name_message">La conexión “%1$s” contiene un nombre de recurso compartido no válido. Edítala y usa solo el nombre del recurso SMB, no una ruta.</string>
 
