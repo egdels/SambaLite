@@ -45,13 +45,17 @@ import de.schliweb.sambalite.data.repository.ConnectionRepositoryImpl;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
+import de.schliweb.sambalite.ui.operations.TransferActionLog;
+import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -72,8 +76,41 @@ import java.util.concurrent.TimeUnit;
 public class TransferWorker extends Worker {
 
   private static final String TAG = "TransferWorker";
-  private static final int BUFFER_SIZE = 262144;
+  private static final int BUFFER_SIZE = 1024 * 1024;
+
+  /**
+   * SMB read/write/transact buffer size (8 MB). Modern servers negotiate maxReadSize/maxWriteSize
+   * of 8 MB (SMB 3.x); requesting the maximum reduces round-trips and speeds up large transfers.
+   * SMBJ caps the effective value at the server-negotiated maximum.
+   */
+  private static final int TRANSFER_BUFFER_SIZE = 8 * 1024 * 1024;
   private static final long PROGRESS_SAVE_INTERVAL = 2 * 1024 * 1024;
+
+  /**
+   * Files at or above this size are downloaded with multiple concurrently outstanding SMB READ
+   * requests (pipelined). Smaller files use the simple streamed path.
+   */
+  private static final long PARALLEL_DOWNLOAD_THRESHOLD = 16L * 1024 * 1024;
+
+  /**
+   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request
+   * (must stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
+   */
+  private static final int PARALLEL_CHUNK_SIZE = 4 * 1024 * 1024;
+
+  /**
+   * Number of concurrently outstanding SMB READ requests during parallel downloads. The SMB
+   * connection is multiplexed, so multiple requests are pipelined over the same TCP connection,
+   * hiding network round-trip latency.
+   */
+  private static final int PARALLEL_READERS = 6;
+
+  /**
+   * Maximum number of chunk writes that may be queued behind the dedicated writer thread during
+   * parallel downloads. Decouples slow SAF/disk writes from the SMB read pipeline while keeping
+   * memory usage bounded (PARALLEL_WRITE_QUEUE * PARALLEL_CHUNK_SIZE additional bytes at most).
+   */
+  private static final int PARALLEL_WRITE_QUEUE = 2;
 
   /** Interval between disk space checks during downloads (10 MB). */
   private static final long DISK_CHECK_INTERVAL = 10 * 1024 * 1024;
@@ -94,9 +131,11 @@ public class TransferWorker extends Worker {
 
   private NotificationManager notificationManager;
   private long lastNotificationUpdateMs;
+  private final TransferActionLog transferActionLog;
 
   public TransferWorker(@NonNull Context context, @NonNull WorkerParameters params) {
     super(context, params);
+    this.transferActionLog = new TransferActionLog(context.getApplicationContext());
   }
 
   @NonNull
@@ -383,13 +422,21 @@ public class TransferWorker extends Worker {
     updateNotification(
         getApplicationContext().getString(R.string.transfer_title), transfer.displayName);
 
+    boolean isUpload = "UPLOAD".equals(transfer.transferType);
+    transferActionLog.log(
+        isUpload
+            ? TransferActionLog.Action.UPLOAD_STARTED
+            : TransferActionLog.Action.DOWNLOAD_STARTED,
+        transfer.displayName);
+
     try {
-      if ("UPLOAD".equals(transfer.transferType)) {
+      if (isUpload) {
         processUpload(dao, share, transfer);
       } else if ("DOWNLOAD_DIRECTORY".equals(transfer.transferType)) {
         processDirectoryDownload(dao, share, transfer);
         // Directory placeholder is deleted inside processDirectoryDownload;
         // skip normal completion handling.
+        transferActionLog.log(TransferActionLog.Action.DOWNLOAD_COMPLETED, transfer.displayName);
         return true;
       } else {
         processDownload(dao, share, transfer);
@@ -403,6 +450,11 @@ public class TransferWorker extends Worker {
 
       dao.updateStatus(transfer.id, "COMPLETED", System.currentTimeMillis());
       LogUtils.i(TAG, "Transfer completed: " + transfer.displayName);
+      transferActionLog.log(
+          isUpload
+              ? TransferActionLog.Action.UPLOAD_COMPLETED
+              : TransferActionLog.Action.DOWNLOAD_COMPLETED,
+          transfer.displayName);
       cleanupSharedTextSourceFile(transfer);
       sendTransferCompletedBroadcast(transfer);
       return true;
@@ -411,6 +463,12 @@ public class TransferWorker extends Worker {
       // Don't overwrite CANCELLED status with FAILED
       if (!isTransferCancelled(dao, transfer.id)) {
         dao.markFailed(transfer.id, e.getMessage(), System.currentTimeMillis());
+        transferActionLog.log(
+            isUpload
+                ? TransferActionLog.Action.UPLOAD_FAILED
+                : TransferActionLog.Action.DOWNLOAD_FAILED,
+            transfer.displayName,
+            e.getMessage());
       }
       return false;
     }
@@ -830,6 +888,7 @@ public class TransferWorker extends Worker {
     // Always start fresh
     transfer.bytesTransferred = 0;
     long downloadStartTime = System.currentTimeMillis();
+    long remoteTimestamp = 0;
 
     try (File remoteFile =
         share.openFile(
@@ -840,97 +899,47 @@ public class TransferWorker extends Worker {
             SMB2CreateDisposition.FILE_OPEN,
             null)) {
 
-      InputStream in = remoteFile.getInputStream();
+      // Capture the remote lastWriteTime for timestamp preservation after the download
+      try {
+        remoteTimestamp =
+            remoteFile
+                .getFileInformation()
+                .getBasicInformation()
+                .getLastWriteTime()
+                .toEpochMillis();
+      } catch (Exception e) {
+        LogUtils.w(
+            TAG,
+            "Could not read remote lastWriteTime for: "
+                + transfer.displayName
+                + ": "
+                + e.getMessage());
+      }
+
       OutputStream rawOut = resolver.openOutputStream(targetUri, "w");
       if (rawOut == null) {
         throw new IOException("Cannot open SAF output stream for: " + transfer.displayName);
       }
-      OutputStream out = new BufferedOutputStream(rawOut, BUFFER_SIZE);
 
-      try {
-        byte[] bufferA = new byte[BUFFER_SIZE];
-        byte[] bufferB = new byte[BUFFER_SIZE];
-        long bytesSinceLastSave = 0;
-        long bytesSinceLastDiskCheck = 0;
-
-        final InputStream finalIn = in;
-        ExecutorService prefetchExecutor = Executors.newSingleThreadExecutor();
-
-        try {
-          int read = finalIn.read(bufferA);
-          if (read == -1) {
-            // Empty file
-          } else {
-            while (read != -1) {
-              final byte[] nextBuf = bufferB;
-              Future<Integer> prefetchFuture = prefetchExecutor.submit(() -> finalIn.read(nextBuf));
-
-              out.write(bufferA, 0, read);
-
-              transfer.bytesTransferred += read;
-              bytesSinceLastSave += read;
-              bytesSinceLastDiskCheck += read;
-
-              if (bytesSinceLastSave >= PROGRESS_SAVE_INTERVAL) {
-                if (bytesSinceLastDiskCheck >= DISK_CHECK_INTERVAL) {
-                  if (!hasEnoughDiskSpace()) {
-                    dao.updateProgress(
-                        transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
-                    dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
-                    LogUtils.e(
-                        TAG,
-                        "Download aborted \u2013 disk space low at byte "
-                            + transfer.bytesTransferred
-                            + ": "
-                            + transfer.displayName);
-                    throw new IOException("Insufficient disk space");
-                  }
-                  bytesSinceLastDiskCheck = 0;
-                }
-                dao.updateProgress(
-                    transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
-                updateTransferNotification(transfer);
-                bytesSinceLastSave = 0;
-              }
-
-              if (isStopped() || isTransferCancelled(dao, transfer.id)) {
-                prefetchFuture.cancel(true);
-                dao.updateProgress(
-                    transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
-                if (isTransferCancelled(dao, transfer.id)) {
-                  LogUtils.i(
-                      TAG,
-                      "Download cancelled by user at byte "
-                          + transfer.bytesTransferred
-                          + ": "
-                          + transfer.displayName);
-                  return;
-                }
-                dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
-                LogUtils.i(
-                    TAG,
-                    "Download paused at byte "
-                        + transfer.bytesTransferred
-                        + ": "
-                        + transfer.displayName);
-                return;
-              }
-
-              read = prefetchFuture.get();
-
-              byte[] tmp = bufferA;
-              bufferA = bufferB;
-              bufferB = tmp;
-            }
-          }
-        } finally {
-          prefetchExecutor.shutdownNow();
+      try (OutputStream out = new BufferedOutputStream(rawOut, BUFFER_SIZE)) {
+        boolean finished;
+        if (remoteSize >= PARALLEL_DOWNLOAD_THRESHOLD) {
+          LogUtils.i(
+              TAG,
+              "Using parallel download ("
+                  + PARALLEL_READERS
+                  + " readers, "
+                  + PARALLEL_CHUNK_SIZE
+                  + " byte chunks) for: "
+                  + transfer.displayName);
+          finished = downloadParallel(dao, transfer, remoteFile, out, remoteSize);
+        } else {
+          finished = downloadStreamed(dao, transfer, remoteFile, out);
         }
-
+        if (!finished) {
+          return; // cancelled or paused; state has already been persisted
+        }
         out.flush();
-      } finally {
-        out.close();
-        in.close();
       }
     }
 
@@ -982,8 +991,200 @@ public class TransferWorker extends Worker {
               + transfer.displayName);
     }
 
+    // Preserve the remote timestamp on the downloaded local file (best-effort via SAF/MediaStore)
+    if (remoteTimestamp > 0) {
+      TimestampUtils.trySetLastModified(getApplicationContext(), targetUri, remoteTimestamp);
+    } else {
+      LogUtils.w(
+          TAG,
+          "[TIMESTAMP] Download completed without valid remote timestamp: "
+              + transfer.displayName);
+    }
+
     // Final progress update
     dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+  }
+
+  /**
+   * Downloads a file using multiple concurrently outstanding SMB READ requests. The SMB connection
+   * multiplexes the requests over the same TCP connection, hiding network round-trip latency and
+   * keeping the pipe full. Chunks are written to the output stream strictly in order.
+   *
+   * @return true if the download finished, false if it was cancelled or paused (state persisted)
+   */
+  private boolean downloadParallel(
+      PendingTransferDao dao,
+      PendingTransfer transfer,
+      File remoteFile,
+      OutputStream out,
+      long fileSize)
+      throws Exception {
+    ExecutorService pool = Executors.newFixedThreadPool(PARALLEL_READERS);
+    ExecutorService writer = Executors.newSingleThreadExecutor();
+    try {
+      ArrayDeque<Future<byte[]>> inFlight = new ArrayDeque<>(PARALLEL_READERS);
+      ArrayDeque<Future<?>> pendingWrites = new ArrayDeque<>(PARALLEL_WRITE_QUEUE + 1);
+      long submitOffset = 0;
+      long[] counters = new long[2]; // [0]=bytesSinceLastSave, [1]=bytesSinceLastDiskCheck
+
+      while (submitOffset < fileSize || !inFlight.isEmpty()) {
+        // Keep the read pipeline full
+        while (inFlight.size() < PARALLEL_READERS && submitOffset < fileSize) {
+          final long offset = submitOffset;
+          final int length = (int) Math.min(PARALLEL_CHUNK_SIZE, fileSize - offset);
+          submitOffset += length;
+          inFlight.add(pool.submit(() -> readChunk(remoteFile, offset, length)));
+        }
+
+        final byte[] chunk = inFlight.remove().get();
+
+        // Hand the chunk to the dedicated writer thread so slow SAF/disk writes never stall
+        // the SMB read pipeline. Writes stay strictly in order (single writer thread).
+        pendingWrites.add(
+            writer.submit(
+                () -> {
+                  out.write(chunk);
+                  return null;
+                }));
+        // Bound the write queue to cap memory usage and surface write errors early
+        while (pendingWrites.size() > PARALLEL_WRITE_QUEUE) {
+          pendingWrites.remove().get();
+        }
+
+        transfer.bytesTransferred += chunk.length;
+        counters[0] += chunk.length;
+        counters[1] += chunk.length;
+
+        if (!downloadCheckpoint(dao, transfer, counters)) {
+          for (Future<byte[]> f : inFlight) {
+            f.cancel(true);
+          }
+          return false;
+        }
+      }
+
+      // Wait for all outstanding writes to hit the output stream before returning
+      while (!pendingWrites.isEmpty()) {
+        pendingWrites.remove().get();
+      }
+      return true;
+    } finally {
+      pool.shutdownNow();
+      writer.shutdownNow();
+    }
+  }
+
+  /** Reads exactly {@code length} bytes starting at {@code offset} from the remote file. */
+  private static byte[] readChunk(File remoteFile, long offset, int length) throws IOException {
+    byte[] buf = new byte[length];
+    int pos = 0;
+    while (pos < length) {
+      int read = remoteFile.read(buf, offset + pos, pos, length - pos);
+      if (read < 0) {
+        throw new IOException("Unexpected EOF at offset " + (offset + pos));
+      }
+      pos += read;
+    }
+    return buf;
+  }
+
+  /**
+   * Downloads a file via a sequential input stream with a single-buffer prefetch (used for small
+   * files or when the remote size is unknown).
+   *
+   * @return true if the download finished, false if it was cancelled or paused (state persisted)
+   */
+  private boolean downloadStreamed(
+      PendingTransferDao dao, PendingTransfer transfer, File remoteFile, OutputStream out)
+      throws Exception {
+    try (InputStream in = remoteFile.getInputStream()) {
+      byte[] bufferA = new byte[BUFFER_SIZE];
+      byte[] bufferB = new byte[BUFFER_SIZE];
+      long[] counters = new long[2]; // [0]=bytesSinceLastSave, [1]=bytesSinceLastDiskCheck
+
+      ExecutorService prefetchExecutor = Executors.newSingleThreadExecutor();
+      try {
+        int read = in.read(bufferA);
+        while (read != -1) {
+          final byte[] nextBuf = bufferB;
+          Future<Integer> prefetchFuture = prefetchExecutor.submit(() -> in.read(nextBuf));
+
+          out.write(bufferA, 0, read);
+
+          transfer.bytesTransferred += read;
+          counters[0] += read;
+          counters[1] += read;
+
+          if (!downloadCheckpoint(dao, transfer, counters)) {
+            prefetchFuture.cancel(true);
+            return false;
+          }
+
+          read = prefetchFuture.get();
+
+          byte[] tmp = bufferA;
+          bufferA = bufferB;
+          bufferB = tmp;
+        }
+      } finally {
+        prefetchExecutor.shutdownNow();
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Periodic checkpoint during a download: persists progress, updates the notification, verifies
+   * available disk space and evaluates stop/cancellation requests.
+   *
+   * @param counters mutable pair of [bytesSinceLastSave, bytesSinceLastDiskCheck]
+   * @return true if the download should continue, false if it was cancelled or paused (progress
+   *     and status have already been persisted)
+   * @throws IOException if the device is running out of disk space
+   */
+  private boolean downloadCheckpoint(
+      PendingTransferDao dao, PendingTransfer transfer, long[] counters) throws IOException {
+    if (counters[0] >= PROGRESS_SAVE_INTERVAL) {
+      if (counters[1] >= DISK_CHECK_INTERVAL) {
+        if (!hasEnoughDiskSpace()) {
+          dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+          dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
+          LogUtils.e(
+              TAG,
+              "Download aborted \u2013 disk space low at byte "
+                  + transfer.bytesTransferred
+                  + ": "
+                  + transfer.displayName);
+          throw new IOException("Insufficient disk space");
+        }
+        counters[1] = 0;
+      }
+      dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+      updateTransferNotification(transfer);
+      counters[0] = 0;
+    }
+
+    if (isStopped() || isTransferCancelled(dao, transfer.id)) {
+      dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
+      if (isTransferCancelled(dao, transfer.id)) {
+        LogUtils.i(
+            TAG,
+            "Download cancelled by user at byte "
+                + transfer.bytesTransferred
+                + ": "
+                + transfer.displayName);
+        return false;
+      }
+      dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
+      LogUtils.i(
+          TAG,
+          "Download paused at byte "
+              + transfer.bytesTransferred
+              + ": "
+              + transfer.displayName);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -1107,6 +1308,12 @@ public class TransferWorker extends Worker {
   }
 
   private void sendTransferCompletedBroadcast(PendingTransfer transfer) {
+    // Uploads change the remote directory contents. Mark the file browser as stale so it
+    // refreshes on the next resume — the live broadcast below is only received while the
+    // browser is in the foreground (e.g. not while the user is in the transfer queue UI).
+    if ("UPLOAD".equals(transfer.transferType)) {
+      PreferenceUtils.setNeedsRefresh(getApplicationContext(), true);
+    }
     Intent intent = new Intent(ACTION_TRANSFER_COMPLETED);
     intent.setPackage(getApplicationContext().getPackageName());
     intent.putExtra(EXTRA_DISPLAY_NAME, transfer.displayName);
@@ -1142,12 +1349,9 @@ public class TransferWorker extends Worker {
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign && !async) {
-      return new SMBClient();
-    }
-
     SmbConfig.Builder builder =
         SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+    applyTransferBufferSizes(builder);
 
     if (async) {
       builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());
@@ -1167,6 +1371,21 @@ public class TransferWorker extends Worker {
     LogUtils.d(
         TAG, "SMB client config: encrypt=" + encrypt + ", sign=" + sign + ", async=" + async);
     return new SMBClient(builder.build());
+  }
+
+  /**
+   * Applies the larger transfer buffer sizes to the given config builder. Falls back to SMBJ
+   * defaults if the running SMBJ version rejects these values.
+   */
+  private static void applyTransferBufferSizes(SmbConfig.Builder builder) {
+    try {
+      builder
+          .withReadBufferSize(TRANSFER_BUFFER_SIZE)
+          .withWriteBufferSize(TRANSFER_BUFFER_SIZE)
+          .withTransactBufferSize(TRANSFER_BUFFER_SIZE);
+    } catch (Throwable ignored) {
+      /* keep SMBJ defaults if the running SMBJ version rejects these values */
+    }
   }
 
   /**
