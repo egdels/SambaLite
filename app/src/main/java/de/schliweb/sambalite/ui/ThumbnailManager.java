@@ -23,9 +23,9 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import de.schliweb.sambalite.data.model.SmbConnection;
-import de.schliweb.sambalite.data.repository.SmbInputStream;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.util.LogUtils;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +49,9 @@ public class ThumbnailManager {
   private static final int THUMBNAIL_SIZE_PX = 96;
   private static final long MAX_THUMBNAIL_FILE_SIZE = 20 * 1024 * 1024; // 20 MB limit
   private static final long MAX_DISK_CACHE_SIZE = 50 * 1024 * 1024; // 50 MB disk cache limit
+  private static final long DISK_TRIM_INTERVAL_MS = 60_000; // Trim disk cache at most once/minute
+  private static final long NOCOVER_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000; // 7 days
+  private static final int THUMBNAIL_COMPRESS_QUALITY = 85;
   private static final Set<String> IMAGE_EXTENSIONS =
       Set.of(
           "jpg", "jpeg", "png", "gif", "bmp", "webp", "heif", "heic", "avif", "wbmp", "ico", "tiff",
@@ -65,7 +68,10 @@ public class ThumbnailManager {
   @NonNull private final File cacheDir;
   @NonNull private final LruCache<String, Bitmap> memoryCache;
   @NonNull private final ExecutorService executor;
+  @NonNull private final ExecutorService diskExecutor;
   @NonNull private final Handler mainHandler;
+
+  private volatile long lastDiskTrimTime = 0;
 
   @NonNull
   private final Set<String> pendingKeys = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -93,13 +99,27 @@ public class ThumbnailManager {
             // Insert at front so newest items are picked up first (LIFO)
             if (!offerFirst(r)) {
               // Queue full — drop oldest (last element = oldest submitted)
-              pollLast();
+              Runnable dropped = pollLast();
+              if (dropped instanceof ThumbnailTask) {
+                ((ThumbnailTask) dropped).onDropped();
+              }
               offerFirst(r);
             }
             return true;
           }
         };
     this.executor = new ThreadPoolExecutor(3, 3, 0L, TimeUnit.MILLISECONDS, lifoQueue);
+    // Separate executor for fast disk-cache decodes so cached thumbnails are not
+    // queued behind slow network downloads (fast path when scrolling).
+    LinkedBlockingDeque<Runnable> diskLifoQueue =
+        new LinkedBlockingDeque<Runnable>() {
+          @Override
+          public boolean offer(Runnable r) {
+            // Insert at front so newest items are picked up first (LIFO)
+            return offerFirst(r);
+          }
+        };
+    this.diskExecutor = new ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, diskLifoQueue);
     this.mainHandler = new Handler(Looper.getMainLooper());
 
     // Use 1/8th of available memory for thumbnail cache
@@ -209,32 +229,115 @@ public class ThumbnailManager {
     WeakReference<ImageView> imageViewRef = new WeakReference<>(imageView);
     SmbConnection conn = this.connection;
 
-    executor.execute(
+    // Fast path: check the disk cache on a dedicated executor first, so cached
+    // thumbnails appear immediately and are not queued behind slow downloads.
+    diskExecutor.execute(
         () -> {
+          boolean handedOff = false;
           try {
-            // Check if the ImageView was recycled before starting the expensive download
-            ImageView iv = imageViewRef.get();
-            if (iv == null || !cacheKey.equals(iv.getTag())) {
+            if (isViewRecycled(imageViewRef, cacheKey)) {
               return;
             }
-            Bitmap bitmap = loadOrDownloadThumbnail(conn, remotePath, cacheKey, fileSize);
-            mainHandler.post(
-                () -> {
-                  ImageView iv2 = imageViewRef.get();
-                  if (iv2 != null && cacheKey.equals(iv2.getTag())) {
-                    if (bitmap != null) {
-                      iv2.setImageBitmap(bitmap);
-                    } else {
-                      iv2.setImageResource(fallbackResId);
-                    }
-                  }
-                });
+
+            // Check negative cache marker (no thumbnail available for this file)
+            if (new File(cacheDir, cacheKey + ".nocover").exists()) {
+              LogUtils.d(TAG, "Skipping thumbnail (cached negative result): " + remotePath);
+              postResult(imageViewRef, cacheKey, null, fallbackResId);
+              return;
+            }
+
+            Bitmap diskBitmap = loadFromDiskCache(cacheKey);
+            if (diskBitmap != null) {
+              postResult(imageViewRef, cacheKey, diskBitmap, fallbackResId);
+              return;
+            }
+
+            // Slow path: download via SMB on the network executor
+            handedOff = true;
+            executor.execute(
+                new ThumbnailTask(
+                    cacheKey,
+                    () -> {
+                      try {
+                        // Check if the ImageView was recycled before the expensive download.
+                        // The check is done in a helper method so no strong ImageView
+                        // reference stays on this thread's stack during the long download
+                        // (would otherwise leak the view and its Activity context).
+                        if (isViewRecycled(imageViewRef, cacheKey)) {
+                          return;
+                        }
+                        Bitmap bitmap = downloadThumbnail(conn, remotePath, cacheKey);
+                        postResult(imageViewRef, cacheKey, bitmap, fallbackResId);
+                      } catch (Exception e) {
+                        LogUtils.d(
+                            TAG,
+                            "Failed to load thumbnail for: " + remotePath + " - " + e.getMessage());
+                      } finally {
+                        pendingKeys.remove(cacheKey);
+                      }
+                    }));
           } catch (Exception e) {
             LogUtils.d(TAG, "Failed to load thumbnail for: " + remotePath + " - " + e.getMessage());
           } finally {
-            pendingKeys.remove(cacheKey);
+            if (!handedOff) {
+              pendingKeys.remove(cacheKey);
+            }
           }
         });
+  }
+
+  /**
+   * Checks whether the ImageView referenced by the given WeakReference has been garbage collected
+   * or recycled for a different item. Kept in a separate method so the strong ImageView reference
+   * only exists within this short-lived stack frame and never lingers as a Java local on a
+   * background thread during long-running work (which would leak the view's Activity context).
+   */
+  private static boolean isViewRecycled(
+      @NonNull WeakReference<ImageView> imageViewRef, @NonNull String cacheKey) {
+    ImageView iv = imageViewRef.get();
+    return iv == null || !cacheKey.equals(iv.getTag());
+  }
+
+  /** Posts the loaded bitmap (or the fallback icon) to the ImageView on the main thread. */
+  private void postResult(
+      @NonNull WeakReference<ImageView> imageViewRef,
+      @NonNull String cacheKey,
+      @Nullable Bitmap bitmap,
+      int fallbackResId) {
+    mainHandler.post(
+        () -> {
+          ImageView iv = imageViewRef.get();
+          if (iv != null && cacheKey.equals(iv.getTag())) {
+            if (bitmap != null) {
+              iv.setImageBitmap(bitmap);
+            } else {
+              iv.setImageResource(fallbackResId);
+            }
+          }
+        });
+  }
+
+  /**
+   * Runnable wrapper for the network executor that clears the pending marker when the task is
+   * dropped from the bounded LIFO queue, so the thumbnail can be requested again later.
+   */
+  private final class ThumbnailTask implements Runnable {
+    private final String cacheKey;
+    private final Runnable delegate;
+
+    ThumbnailTask(String cacheKey, Runnable delegate) {
+      this.cacheKey = cacheKey;
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void run() {
+      delegate.run();
+    }
+
+    void onDropped() {
+      pendingKeys.remove(cacheKey);
+    }
   }
 
   /**
@@ -276,21 +379,12 @@ public class ThumbnailManager {
         });
   }
 
+  /**
+   * Loads a thumbnail from the compressed disk cache, if present. Also refreshes the file's
+   * last-modified timestamp (LRU) and populates the memory cache on a hit.
+   */
   @Nullable
-  private Bitmap loadOrDownloadThumbnail(
-      @NonNull SmbConnection conn,
-      @NonNull String remotePath,
-      @NonNull String cacheKey,
-      long fileSize) {
-    File noCoverMarker = new File(cacheDir, cacheKey + ".nocover");
-
-    // Check negative cache marker (no thumbnail available for this file)
-    if (noCoverMarker.exists()) {
-      LogUtils.d(TAG, "Skipping thumbnail (cached negative result): " + remotePath);
-      return null;
-    }
-
-    // Check disk cache (.thumb file with compressed thumbnail)
+  private Bitmap loadFromDiskCache(@NonNull String cacheKey) {
     File thumbFile = new File(cacheDir, cacheKey + ".thumb");
     if (thumbFile.exists() && thumbFile.length() > 0) {
       Bitmap bitmap = BitmapFactory.decodeFile(thumbFile.getAbsolutePath());
@@ -300,121 +394,112 @@ public class ThumbnailManager {
         return bitmap;
       }
     }
+    return null;
+  }
 
-    // For image files, use stream-based decoding to avoid downloading the whole file
-    if (isImageFile(remotePath)) {
-      Bitmap bitmap = decodeSampledBitmapFromStream(conn, remotePath, fileSize);
-      if (bitmap != null) {
-        saveThumbnailToDisk(bitmap, thumbFile);
-        memoryCache.put(cacheKey, bitmap);
-        trimDiskCache();
-        return bitmap;
-      } else {
-        try {
-          noCoverMarker.createNewFile();
-        } catch (Exception ignored) {
-        }
-        LogUtils.d(TAG, "No thumbnail extracted from stream: " + remotePath);
-        return null;
-      }
+  /**
+   * Downloads the remote file once (single SMB file handle) and decodes the thumbnail from the
+   * in-memory data. Caches the result on disk and in memory, or writes a negative cache marker.
+   */
+  @Nullable
+  private Bitmap downloadThumbnail(
+      @NonNull SmbConnection conn, @NonNull String remotePath, @NonNull String cacheKey) {
+    File noCoverMarker = new File(cacheDir, cacheKey + ".nocover");
+    File thumbFile = new File(cacheDir, cacheKey + ".thumb");
+
+    // Read the file once into memory using a single SMB file handle. Bounds decoding,
+    // sampled decoding and EXIF parsing all reuse this buffer (no repeated network reads).
+    byte[] data;
+    try {
+      data = smbRepository.readFileBytes(conn, remotePath, MAX_THUMBNAIL_FILE_SIZE);
+    } catch (Exception e) {
+      LogUtils.d(TAG, "Download failed for thumbnail: " + remotePath + " - " + e.getMessage());
+      return null;
     }
 
-    // Legacy/Fallback: Download from SMB (still needed for PDF)
-    File cachedFile = new File(cacheDir, cacheKey);
+    Bitmap bitmap;
+    if (isPdfFile(remotePath)) {
+      bitmap = renderPdfThumbnailFromBytes(data, cacheKey);
+    } else {
+      bitmap = decodeSampledBitmapFromBytes(data);
+    }
+
+    if (bitmap != null) {
+      saveThumbnailToDisk(bitmap, thumbFile);
+      memoryCache.put(cacheKey, bitmap);
+      trimDiskCacheIfNeeded();
+    } else {
+      // Cache negative result to avoid re-downloading
+      try {
+        noCoverMarker.createNewFile();
+      } catch (Exception ignored) {
+        // Best effort
+      }
+      LogUtils.d(TAG, "No thumbnail extracted, cached negative result: " + remotePath);
+    }
+    return bitmap;
+  }
+
+  @Nullable
+  private Bitmap decodeSampledBitmapFromBytes(@NonNull byte[] data) {
     try {
-      smbRepository.downloadFile(conn, remotePath, cachedFile);
-      Bitmap bitmap = decodeThumbnail(remotePath, cachedFile);
+      // Step 1: Decode bounds only
+      BitmapFactory.Options options = new BitmapFactory.Options();
+      options.inJustDecodeBounds = true;
+      BitmapFactory.decodeByteArray(data, 0, data.length, options);
 
-      // Always clean up the downloaded original file
-      cachedFile.delete();
+      // Step 2: Calculate inSampleSize
+      options.inSampleSize = calculateInSampleSize(options, THUMBNAIL_SIZE_PX, THUMBNAIL_SIZE_PX);
+      options.inJustDecodeBounds = false;
+      // RGB_565 halves the per-bitmap memory footprint; transparency is
+      // irrelevant for small thumbnails.
+      options.inPreferredConfig = Bitmap.Config.RGB_565;
 
-      if (bitmap != null) {
-        // Save compressed thumbnail to disk cache
-        saveThumbnailToDisk(bitmap, thumbFile);
-        memoryCache.put(cacheKey, bitmap);
-        trimDiskCache();
-      } else {
-        // Cache negative result to avoid re-downloading
-        try {
-          noCoverMarker.createNewFile();
-        } catch (Exception ignored) {
-          // Best effort
+      // Step 3: Decode the actual sampled bitmap
+      Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+      if (bitmap == null) return null;
+
+      // Step 4: Apply EXIF rotation from the same in-memory data (no extra I/O)
+      int rotation = 0;
+      try {
+        ExifInterface exif = new ExifInterface(new ByteArrayInputStream(data));
+        int orientation =
+            exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+        rotation = orientationToRotation(orientation);
+      } catch (Exception e) {
+        // Ignore EXIF errors
+      }
+      if (rotation != 0) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(rotation);
+        Bitmap rotated =
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+        if (rotated != bitmap) {
+          bitmap.recycle();
         }
-        LogUtils.d(TAG, "No thumbnail extracted, cached negative result: " + remotePath);
+        return rotated;
       }
       return bitmap;
     } catch (Exception e) {
-      LogUtils.d(TAG, "Download failed for thumbnail: " + remotePath + " - " + e.getMessage());
+      LogUtils.d(TAG, "Failed to decode thumbnail from bytes: " + e.getMessage());
       return null;
     }
   }
 
   @Nullable
-  private Bitmap decodeSampledBitmapFromStream(
-      @NonNull SmbConnection conn, @NonNull String remotePath, long fileSize) {
+  private Bitmap renderPdfThumbnailFromBytes(@NonNull byte[] data, @NonNull String cacheKey) {
+    // PdfRenderer requires a seekable file descriptor, so write to a temp file first
+    File tempFile = new File(cacheDir, cacheKey + ".tmp");
     try {
-      BitmapFactory.Options options = new BitmapFactory.Options();
-
-      // Step 1: Decode bounds only
-      // We need a fresh stream for this
-      try (SmbInputStream stream = new SmbInputStream(smbRepository, conn, remotePath, fileSize)) {
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(stream, null, options);
+      try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+        fos.write(data);
       }
-
-      // Step 2: Calculate inSampleSize
-      options.inSampleSize = calculateInSampleSize(options, THUMBNAIL_SIZE_PX, THUMBNAIL_SIZE_PX);
-      options.inJustDecodeBounds = false;
-
-      // Step 3: Decode the actual sampled bitmap
-      // We need another fresh stream
-      try (SmbInputStream stream = new SmbInputStream(smbRepository, conn, remotePath, fileSize)) {
-        Bitmap bitmap = BitmapFactory.decodeStream(stream, null, options);
-        if (bitmap == null) return null;
-
-        // Note: For stream-based decoding, we can't easily get EXIF rotation
-        // because ExifInterface requires a file path or a specialized stream.
-        // On Android 7.0 (API 24)+, ExifInterface supports InputStream.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-          try (SmbInputStream exifStream =
-              new SmbInputStream(smbRepository, conn, remotePath, fileSize)) {
-            ExifInterface exif = new ExifInterface(exifStream);
-            int orientation =
-                exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            int rotation = 0;
-            switch (orientation) {
-              case ExifInterface.ORIENTATION_ROTATE_90:
-                rotation = 90;
-                break;
-              case ExifInterface.ORIENTATION_ROTATE_180:
-                rotation = 180;
-                break;
-              case ExifInterface.ORIENTATION_ROTATE_270:
-                rotation = 270;
-                break;
-            }
-            if (rotation != 0) {
-              Matrix matrix = new Matrix();
-              matrix.postRotate(rotation);
-              Bitmap rotated =
-                  Bitmap.createBitmap(
-                      bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-              if (rotated != bitmap) {
-                bitmap.recycle();
-              }
-              return rotated;
-            }
-          } catch (Exception e) {
-            // Ignore EXIF errors
-          }
-        }
-
-        return bitmap;
-      }
+      return renderPdfThumbnail(tempFile);
     } catch (Exception e) {
-      LogUtils.d(TAG, "Stream decoding failed: " + e.getMessage());
+      LogUtils.d(TAG, "Failed to write temp PDF for thumbnail: " + e.getMessage());
       return null;
+    } finally {
+      tempFile.delete();
     }
   }
 
@@ -458,18 +543,22 @@ public class ThumbnailManager {
       ExifInterface exif = new ExifInterface(filePath);
       int orientation =
           exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-      switch (orientation) {
-        case ExifInterface.ORIENTATION_ROTATE_90:
-          return 90;
-        case ExifInterface.ORIENTATION_ROTATE_180:
-          return 180;
-        case ExifInterface.ORIENTATION_ROTATE_270:
-          return 270;
-        default:
-          return 0;
-      }
+      return orientationToRotation(orientation);
     } catch (Exception e) {
       return 0;
+    }
+  }
+
+  private static int orientationToRotation(int orientation) {
+    switch (orientation) {
+      case ExifInterface.ORIENTATION_ROTATE_90:
+        return 90;
+      case ExifInterface.ORIENTATION_ROTATE_180:
+        return 180;
+      case ExifInterface.ORIENTATION_ROTATE_270:
+        return 270;
+      default:
+        return 0;
     }
   }
 
@@ -524,15 +613,41 @@ public class ThumbnailManager {
 
   private void saveThumbnailToDisk(@NonNull Bitmap bitmap, @NonNull File thumbFile) {
     try (java.io.FileOutputStream fos = new java.io.FileOutputStream(thumbFile)) {
-      bitmap.compress(Bitmap.CompressFormat.PNG, 90, fos);
+      // Lossy compression is much faster and smaller than PNG for small thumbnails
+      Bitmap.CompressFormat format =
+          android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R
+              ? Bitmap.CompressFormat.WEBP_LOSSY
+              : Bitmap.CompressFormat.JPEG;
+      bitmap.compress(format, THUMBNAIL_COMPRESS_QUALITY, fos);
     } catch (Exception e) {
       LogUtils.d(
           TAG, "Failed to save thumbnail to disk: " + thumbFile.getName() + " - " + e.getMessage());
     }
   }
 
+  /** Trims the disk cache, but at most once per {@link #DISK_TRIM_INTERVAL_MS}. */
+  private void trimDiskCacheIfNeeded() {
+    long now = System.currentTimeMillis();
+    if (now - lastDiskTrimTime < DISK_TRIM_INTERVAL_MS) {
+      return;
+    }
+    lastDiskTrimTime = now;
+    trimDiskCache();
+  }
+
   private void trimDiskCache() {
     try {
+      // Clean up stale negative cache markers
+      File[] markers = cacheDir.listFiles((dir, name) -> name.endsWith(".nocover"));
+      if (markers != null) {
+        long cutoff = System.currentTimeMillis() - NOCOVER_MAX_AGE_MS;
+        for (File marker : markers) {
+          if (marker.lastModified() < cutoff) {
+            marker.delete();
+          }
+        }
+      }
+
       File[] files = cacheDir.listFiles((dir, name) -> name.endsWith(".thumb"));
       if (files == null || files.length == 0) return;
 
@@ -593,8 +708,9 @@ public class ThumbnailManager {
     }
   }
 
-  /** Shuts down the background executor. Call when the manager is no longer needed. */
+  /** Shuts down the background executors. Call when the manager is no longer needed. */
   public void shutdown() {
     executor.shutdownNow();
+    diskExecutor.shutdownNow();
   }
 }
