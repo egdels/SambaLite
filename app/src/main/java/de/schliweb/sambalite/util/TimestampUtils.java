@@ -118,9 +118,9 @@ public class TimestampUtils {
    * provider and device. The metadata database should always be updated independently of this
    * result.
    *
-   * <p>If both strategies fail for a given URI authority, that authority is remembered for the
-   * rest of the session and subsequent calls are skipped with a debug log to avoid repeated
-   * syscalls and warning spam.
+   * <p>If both strategies fail for a given URI authority, that authority is remembered for the rest
+   * of the session and subsequent calls are skipped with a debug log to avoid repeated syscalls and
+   * warning spam.
    *
    * @param context the application context for content resolver access
    * @param uri the document URI
@@ -219,8 +219,8 @@ public class TimestampUtils {
 
   /**
    * Second strategy: resolve the URI to a real filesystem path (MediaStore {@code DATA} column,
-   * external storage document ID or {@code file://} URI) and call {@code File.setLastModified()}
-   * on it. Works for files owned by the app that are reachable via the FUSE-backed path on Android
+   * external storage document ID or {@code file://} URI) and call {@code File.setLastModified()} on
+   * it. Works for files owned by the app that are reachable via the FUSE-backed path on Android
    * 10+.
    *
    * @param context the application context for content resolver access
@@ -275,9 +275,7 @@ public class TimestampUtils {
               + e.getMessage());
       SmartErrorHandler.getInstance()
           .recordError(
-              e,
-              "TimestampUtils.trySetLastModified(path)",
-              SmartErrorHandler.ErrorSeverity.LOW);
+              e, "TimestampUtils.trySetLastModified(path)", SmartErrorHandler.ErrorSeverity.LOW);
       return false;
     }
   }

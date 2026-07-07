@@ -102,7 +102,8 @@ public class MediaStorePathResolver {
    * @return the resolved {@link File}, or {@code null} if the document ID is invalid
    */
   @Nullable
-  public static File resolveExternalStorageDocId(@Nullable String docId, @NonNull File primaryRoot) {
+  public static File resolveExternalStorageDocId(
+      @Nullable String docId, @NonNull File primaryRoot) {
     if (docId == null) {
       return null;
     }
@@ -133,8 +134,7 @@ public class MediaStorePathResolver {
   @Nullable
   private static File queryDataColumn(@NonNull Context context, @NonNull Uri uri) {
     String[] projection = {MediaStore.MediaColumns.DATA};
-    try (Cursor cursor =
-        context.getContentResolver().query(uri, projection, null, null, null)) {
+    try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
       if (cursor != null && cursor.moveToFirst()) {
         int columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
         if (columnIndex >= 0) {

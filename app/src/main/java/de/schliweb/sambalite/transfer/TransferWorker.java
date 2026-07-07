@@ -84,6 +84,7 @@ public class TransferWorker extends Worker {
    * SMBJ caps the effective value at the server-negotiated maximum.
    */
   private static final int TRANSFER_BUFFER_SIZE = 8 * 1024 * 1024;
+
   private static final long PROGRESS_SAVE_INTERVAL = 2 * 1024 * 1024;
 
   /**
@@ -93,8 +94,8 @@ public class TransferWorker extends Worker {
   private static final long PARALLEL_DOWNLOAD_THRESHOLD = 16L * 1024 * 1024;
 
   /**
-   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request
-   * (must stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
+   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request (must
+   * stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
    */
   private static final int PARALLEL_CHUNK_SIZE = 4 * 1024 * 1024;
 
@@ -997,8 +998,7 @@ public class TransferWorker extends Worker {
     } else {
       LogUtils.w(
           TAG,
-          "[TIMESTAMP] Download completed without valid remote timestamp: "
-              + transfer.displayName);
+          "[TIMESTAMP] Download completed without valid remote timestamp: " + transfer.displayName);
     }
 
     // Final progress update
@@ -1138,8 +1138,8 @@ public class TransferWorker extends Worker {
    * available disk space and evaluates stop/cancellation requests.
    *
    * @param counters mutable pair of [bytesSinceLastSave, bytesSinceLastDiskCheck]
-   * @return true if the download should continue, false if it was cancelled or paused (progress
-   *     and status have already been persisted)
+   * @return true if the download should continue, false if it was cancelled or paused (progress and
+   *     status have already been persisted)
    * @throws IOException if the device is running out of disk space
    */
   private boolean downloadCheckpoint(
@@ -1178,10 +1178,7 @@ public class TransferWorker extends Worker {
       dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
       LogUtils.i(
           TAG,
-          "Download paused at byte "
-              + transfer.bytesTransferred
-              + ": "
-              + transfer.displayName);
+          "Download paused at byte " + transfer.bytesTransferred + ": " + transfer.displayName);
       return false;
     }
     return true;

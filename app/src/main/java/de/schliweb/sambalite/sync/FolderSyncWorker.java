@@ -78,11 +78,11 @@ public class FolderSyncWorker extends Worker {
   private static final int BUFFER_SIZE = 256 * 1024;
 
   /**
-   * Process-wide locks per sync config ID. WorkManager's unique work names do not prevent a
-   * manual per-config sync ("sambalite_folder_sync_&lt;configId&gt;") from running concurrently
-   * with the periodic or "sync all" worker ("sambalite_folder_sync"), so two workers could sync
-   * the same folder pair at the same time and race (e.g. creating duplicate "B (1)" entries via
-   * SAF). These locks serialize sync runs per config within the app process.
+   * Process-wide locks per sync config ID. WorkManager's unique work names do not prevent a manual
+   * per-config sync ("sambalite_folder_sync_&lt;configId&gt;") from running concurrently with the
+   * periodic or "sync all" worker ("sambalite_folder_sync"), so two workers could sync the same
+   * folder pair at the same time and race (e.g. creating duplicate "B (1)" entries via SAF). These
+   * locks serialize sync runs per config within the app process.
    */
   private static final ConcurrentHashMap<String, ReentrantLock> CONFIG_LOCKS =
       new ConcurrentHashMap<>();
@@ -105,8 +105,8 @@ public class FolderSyncWorker extends Worker {
   private static final long PARALLEL_DOWNLOAD_THRESHOLD = 16L * 1024 * 1024;
 
   /**
-   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request
-   * (must stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
+   * Chunk size for parallel downloads. Each chunk is fetched with a single SMB READ request (must
+   * stay at or below the negotiated maxReadSize, typically 8 MB on SMB 3.x servers).
    */
   private static final int PARALLEL_CHUNK_SIZE = 4 * 1024 * 1024;
 
@@ -288,8 +288,7 @@ public class FolderSyncWorker extends Worker {
       ReentrantLock lock = lockForConfig(config.getId());
       if (!lock.tryLock()) {
         LogUtils.w(
-            TAG,
-            "Skipping config " + config.getId() + ": another sync is already running for it");
+            TAG, "Skipping config " + config.getId() + ": another sync is already running for it");
         if (specificConfigId != null) {
           // Manual sync: request a retry so the user's request is not silently dropped
           anyFailure = true;
@@ -789,8 +788,7 @@ public class FolderSyncWorker extends Worker {
               + remoteTimestamp
               + "ms)");
 
-      long fileSize =
-          remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+      long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
 
       OutputStream rawOut =
           getApplicationContext().getContentResolver().openOutputStream(localFile.getUri());

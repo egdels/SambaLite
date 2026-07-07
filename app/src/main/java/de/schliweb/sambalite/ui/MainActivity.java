@@ -665,11 +665,11 @@ public class MainActivity extends AppCompatActivity
   }
 
   /**
-   * Verifies that the configured default folder exists on the server before saving the
-   * connection. When no default folder is set, the connection is saved immediately. If the folder
-   * cannot be found on the server, the dialog stays open and an error is shown on the default
-   * folder field. When the existence check itself fails (e.g. server unreachable), the connection
-   * is saved anyway.
+   * Verifies that the configured default folder exists on the server before saving the connection.
+   * When no default folder is set, the connection is saved immediately. If the folder cannot be
+   * found on the server, the dialog stays open and an error is shown on the default folder field.
+   * When the existence check itself fails (e.g. server unreachable), the connection is saved
+   * anyway.
    */
   private void saveConnectionAfterDefaultFolderCheck(
       @NonNull SmbConnection connection,
