@@ -86,7 +86,9 @@ public class SmbRepositoryImpl implements SmbRepository {
     } catch (Throwable ignored) {
     }
 
-    if (!encrypt && !sign && !async) {
+    boolean anonymous = isAnonymousConnection(connection);
+
+    if (!encrypt && !sign && !async && !anonymous) {
       return this.smbClient; // shared default client
     }
 
@@ -99,16 +101,30 @@ public class SmbRepositoryImpl implements SmbRepository {
       LogUtils.i("SmbRepositoryImpl", "Using AsyncDirectTcpTransport for improved performance");
     }
 
-    // Optional, prevents fallback to NT1:
-    try {
-      builder.withDialects(
-          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1,
-          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2,
-          com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0,
-          com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1,
-          com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2);
-    } catch (Throwable ignored) {
-      /* older SMBJ versions do not support these dialects */
+    if (anonymous) {
+      // Anonymous/guest sessions: restrict to SMB2 dialects. SMBJ 0.14.0 crashes with a
+      // NullPointerException when deriving SMB3 signing keys for anonymous sessions if the
+      // server does not set the IS_NULL/IS_GUEST session flags (hierynomus/smbj#792).
+      // SMB3 signing/encryption offers no protection for anonymous sessions anyway.
+      try {
+        builder.withDialects(
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1, com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2);
+      } catch (Throwable ignored) {
+        /* keep SMBJ defaults if the running SMBJ version rejects these values */
+      }
+      LogUtils.i("SmbRepositoryImpl", "Anonymous connection: restricting to SMB2 dialects");
+    } else {
+      // Optional, prevents fallback to NT1:
+      try {
+        builder.withDialects(
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1,
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2,
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0,
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1,
+            com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2);
+      } catch (Throwable ignored) {
+        /* older SMBJ versions do not support these dialects */
+      }
     }
 
     LogUtils.d(
@@ -354,8 +370,18 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   /**
+   * Returns true if the connection has neither username nor password, i.e. anonymous/guest access
+   * is requested.
+   */
+  private static boolean isAnonymousConnection(SmbConnection connection) {
+    String username = connection.getUsername() != null ? connection.getUsername() : "";
+    String password = connection.getPassword() != null ? connection.getPassword() : "";
+    return username.isEmpty() && password.isEmpty();
+  }
+
+  /**
    * Creates an AuthenticationContext from the connection details. If both username and password are
-   * empty, uses guest authentication.
+   * empty, uses anonymous authentication (behaves like {@code mount.cifs -o guest}, see issue #32).
    */
   private AuthenticationContext createAuthContext(SmbConnection connection) {
     LogUtils.d(
@@ -371,10 +397,10 @@ public class SmbRepositoryImpl implements SmbRepository {
       LogUtils.d("SmbRepositoryImpl", "Using domain: " + domain);
     }
 
-    // If both username and password are empty, use guest authentication
+    // If both username and password are empty, use anonymous authentication
     if (username.isEmpty() && password.isEmpty()) {
-      LogUtils.d("SmbRepositoryImpl", "Using guest authentication");
-      return AuthenticationContext.guest();
+      LogUtils.d("SmbRepositoryImpl", "Using anonymous (guest) authentication");
+      return new AuthenticationContext("", new char[0], domain);
     }
 
     return new AuthenticationContext(username, password.toCharArray(), domain);
