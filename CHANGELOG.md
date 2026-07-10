@@ -5,6 +5,17 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.4] - 2026-07-10
+
+### Fixed
+- **Guest login fails (issue #32)**: Connections without username and password previously used `AuthenticationContext.guest()`, which sends the username `Guest`. Samba servers with a guest-accessible share but without `map to guest = Bad User` (the Samba default is `map to guest = Never`) reject this login with `NT_STATUS_NO_SUCH_USER` / `NT_STATUS_LOGON_FAILURE`. SambaLite now performs a true anonymous login (empty username and password), matching the behavior of `mount.cifs -o guest`.
+- **SMB3 crash on anonymous sessions**: Anonymous/guest connections are now restricted to SMB2 dialects (SMB 2.1 / 2.0.2). SMBJ 0.14.0 crashes with a `NullPointerException` when deriving SMB3 signing keys for anonymous sessions if the server does not set the IS_NULL/IS_GUEST session flags (hierynomus/smbj#792); SMB3 signing/encryption offers no protection for anonymous sessions anyway.
+
+### Added
+- **Tests**: New `GuestLoginIntegrationTest` reproducing the reporter's setup (Samba 4.23.x, guest-accessible share, no `map to guest` mapping) against a real Samba container, verifying that anonymous login succeeds where the old `guest()` login fails, and that the documented `map to guest = Bad User` workaround still works.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.5.3] - 2026-07-07
 
 ### Added
