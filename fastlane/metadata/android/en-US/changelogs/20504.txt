@@ -1,0 +1,2 @@
+- Fixed: Guest login (issue #32) — connections without credentials now use true anonymous login instead of "Guest", so Samba servers without "map to guest = Bad User" no longer reject them.
+- Fixed: Anonymous sessions are restricted to SMB2 dialects to avoid a crash in the SMB library (smbj#792).
