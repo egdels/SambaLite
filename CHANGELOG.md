@@ -5,6 +5,17 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.5] - 2026-09-26
+
+### Fixed
+- **Folder sync skips same-size local file replacements (issue #39)**: The database fast path only compared the stored remote metadata and checked that the local size matched the remote size. Replacing a local file with different content of the same size was therefore treated as unchanged and the remote copy stayed stale. The sync state now records size and modification time of both the local and the remote side, and the fast path is used only when both sides still match the last successful sync. Same-size local updates are uploaded, while the "Newer Wins" rule is preserved: a local file that became older than the remote (e.g. restored from a backup) is never uploaded over the newer remote version, and the 3-second timestamp tolerance is applied to the local side as well to avoid spurious re-uploads caused by SAF timestamp jitter. The sync database is migrated from schema version 1 to 2 without discarding existing state. Contributed by @RubenSDev10 (PR #38).
+- **Queued uploads fail with "Permission Denial" after app restart**: The upload file and folder pickers did not request persistable URI permissions, unlike the download paths. If the app process was stopped before a queued upload started, `TransferWorker` could no longer open the content URI and the transfer failed permanently. Both upload picker intents now request persistable read access, and the result handlers take the permission. Contributed by @mattbasta (PR #35).
+
+### Changed
+- **Tests**: `GuestLoginIntegrationTest` is pinned to the `dockurr/samba:4.23.8` image because the mutable `latest` tag no longer exposes the expected guest share.
+
+If you like this update, support SambaLite here: https://ko-fi.com/egdels • https://www.paypal.com/paypalme/egdels
+
 ## [2.5.4] - 2026-07-10
 
 ### Fixed

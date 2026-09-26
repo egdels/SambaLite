@@ -1,0 +1,3 @@
+- Fixed: Folder sync no longer skips local files that were replaced with different content of the same size (issue #39). Sync state now tracks both sides; older local files never overwrite newer remote files.
+- Fixed: Queued uploads no longer fail with "Permission Denial" when the app is restarted before the transfer starts (SAF permissions are now persisted).
+- Thanks to @RubenSDev10 and @mattbasta for contributing these fixes!
