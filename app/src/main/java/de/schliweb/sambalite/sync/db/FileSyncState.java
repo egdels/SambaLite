@@ -16,9 +16,8 @@ import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 /**
- * Room entity representing the sync state of a file. Stores remote metadata to enable robust sync
- * comparisons independent of local filesystem timestamps (especially important for SAF/DocumentFile
- * where timestamps are unreliable).
+ * Room entity representing the last successfully synchronized state of a file. Stores metadata for
+ * both sides so the worker can distinguish a local update from a remote timestamp mismatch.
  */
 @Entity(
     tableName = "file_sync_state",
@@ -46,6 +45,14 @@ public class FileSyncState {
   @ColumnInfo(name = "remote_path")
   @NonNull
   public String remotePath = "";
+
+  /** Local file size in bytes at the last successful sync. */
+  @ColumnInfo(name = "local_size", defaultValue = "-1")
+  public long localSize = -1;
+
+  /** Local last modified time at the last successful sync. */
+  @ColumnInfo(name = "local_last_modified", defaultValue = "-1")
+  public long localLastModified = -1;
 
   /** Remote file size in bytes. */
   @ColumnInfo(name = "remote_size")

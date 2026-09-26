@@ -34,11 +34,13 @@ public class SyncStateStore {
   }
 
   /**
-   * Saves the remote state after a successful sync (download or upload).
+   * Saves the local and remote state after a successful sync (download or upload).
    *
    * @param rootUri the root URI of the sync target
    * @param relativePath the relative path within the sync root
    * @param remotePath the full remote SMB path
+   * @param localSize the local file size in bytes
+   * @param localLastModified the local last modified time in epoch millis
    * @param remoteSize the remote file size in bytes
    * @param remoteLastModified the remote last modified time in epoch millis
    * @param timestampPreserved whether the local timestamp was successfully set
@@ -47,6 +49,8 @@ public class SyncStateStore {
       @NonNull String rootUri,
       @NonNull String relativePath,
       @NonNull String remotePath,
+      long localSize,
+      long localLastModified,
       long remoteSize,
       long remoteLastModified,
       boolean timestampPreserved) {
@@ -55,6 +59,8 @@ public class SyncStateStore {
       state.rootUri = rootUri;
       state.relativePath = relativePath;
       state.remotePath = remotePath;
+      state.localSize = localSize;
+      state.localLastModified = localLastModified;
       state.remoteSize = remoteSize;
       state.remoteLastModified = remoteLastModified;
       state.syncedAt = System.currentTimeMillis();
@@ -71,7 +77,11 @@ public class SyncStateStore {
           TAG,
           "[TIMESTAMP] Saved sync state: "
               + relativePath
-              + " (size="
+              + " (localSize="
+              + localSize
+              + ", localModified="
+              + localLastModified
+              + ", remoteSize="
               + remoteSize
               + ", remoteModified="
               + remoteLastModified

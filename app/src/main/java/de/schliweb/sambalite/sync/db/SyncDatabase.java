@@ -14,16 +14,29 @@ import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 /** Room database for sync metadata persistence. */
 @Database(
     entities = {FileSyncState.class},
-    version = 1,
+    version = 2,
     exportSchema = false)
 public abstract class SyncDatabase extends RoomDatabase {
 
   private static final String DATABASE_NAME = "sambalite_sync.db";
   private static volatile SyncDatabase instance;
+
+  static final Migration MIGRATION_1_2 =
+      new Migration(1, 2) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          database.execSQL(
+              "ALTER TABLE file_sync_state ADD COLUMN local_size INTEGER NOT NULL DEFAULT -1");
+          database.execSQL(
+              "ALTER TABLE file_sync_state ADD COLUMN local_last_modified INTEGER NOT NULL DEFAULT -1");
+        }
+      };
 
   /** Returns the DAO for file sync state operations. */
   @NonNull
@@ -38,6 +51,7 @@ public abstract class SyncDatabase extends RoomDatabase {
           instance =
               Room.databaseBuilder(
                       context.getApplicationContext(), SyncDatabase.class, DATABASE_NAME)
+                  .addMigrations(MIGRATION_1_2)
                   .fallbackToDestructiveMigration(true)
                   .build();
         }

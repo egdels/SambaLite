@@ -38,13 +38,23 @@ public class SyncStateStoreTest {
     when(mockDao.findByPath("root://uri", "docs/file.txt")).thenReturn(null);
     when(mockDao.upsert(any())).thenReturn(1L);
 
-    store.saveRemoteState("root://uri", "docs/file.txt", "/share/docs/file.txt", 1024, 1700000000000L, true);
+    store.saveRemoteState(
+        "root://uri",
+        "docs/file.txt",
+        "/share/docs/file.txt",
+        1024,
+        1699999999000L,
+        1024,
+        1700000000000L,
+        true);
 
     verify(mockDao).findByPath("root://uri", "docs/file.txt");
     verify(mockDao).upsert(argThat(state ->
         "root://uri".equals(state.rootUri)
             && "docs/file.txt".equals(state.relativePath)
             && "/share/docs/file.txt".equals(state.remotePath)
+            && state.localSize == 1024
+            && state.localLastModified == 1699999999000L
             && state.remoteSize == 1024
             && state.remoteLastModified == 1700000000000L
             && state.timestampPreserved
@@ -62,9 +72,24 @@ public class SyncStateStoreTest {
     when(mockDao.findByPath("root://uri", "docs/file.txt")).thenReturn(existing);
     when(mockDao.upsert(any())).thenReturn(42L);
 
-    store.saveRemoteState("root://uri", "docs/file.txt", "/share/docs/file.txt", 2048, 1700000001000L, false);
+    store.saveRemoteState(
+        "root://uri",
+        "docs/file.txt",
+        "/share/docs/file.txt",
+        2048,
+        1700000000500L,
+        2048,
+        1700000001000L,
+        false);
 
-    verify(mockDao).upsert(argThat(state -> state.id == 42 && state.remoteSize == 2048));
+    verify(mockDao)
+        .upsert(
+            argThat(
+                state ->
+                    state.id == 42
+                        && state.localSize == 2048
+                        && state.localLastModified == 1700000000500L
+                        && state.remoteSize == 2048));
   }
 
   @Test
@@ -72,7 +97,8 @@ public class SyncStateStoreTest {
     when(mockDao.findByPath(anyString(), anyString())).thenThrow(new RuntimeException("DB error"));
 
     // Should not throw
-    store.saveRemoteState("root://uri", "file.txt", "/share/file.txt", 100, 100L, false);
+    store.saveRemoteState(
+        "root://uri", "file.txt", "/share/file.txt", 100, 100L, 100, 100L, false);
   }
 
   @Test

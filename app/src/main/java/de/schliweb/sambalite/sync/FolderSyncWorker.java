@@ -416,46 +416,74 @@ public class FolderSyncWorker extends Worker {
       } else {
         try {
           long localModified = localFile.lastModified();
+          long localSize = localFile.length();
           FileIdBothDirectoryInformation remoteInfo = remoteMetadata.get(name);
           boolean remoteExists = remoteInfo != null;
 
           String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
 
           if (!remoteExists) {
-            long remoteSize = uploadFile(share, localFile, remoteFilePath);
+            long remoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
             actionLog.log(SyncActionLog.Action.UPLOADED, name);
             // After upload the remote lastWriteTime is set to the local file's lastModified
             // (see uploadFile), so no extra round-trips are needed to read it back.
             syncStateStore.saveRemoteState(
-                rootUri, fileRelPath, remoteFilePath, remoteSize, localFile.lastModified(), false);
+                rootUri,
+                fileRelPath,
+                remoteFilePath,
+                localSize,
+                localModified,
+                remoteSize,
+                localModified,
+                false);
           } else {
             long remoteModified = remoteInfo.getLastWriteTime().toEpochMillis();
             long remoteSize = remoteInfo.getEndOfFile();
-            long localSize = localFile.length();
 
-            // Check stored DB state first – SAF timestamps are unreliable
+            // Compare each side with the last successful sync. This preserves the SAF timestamp
+            // fallback without treating every same-size local file as unchanged.
             var storedState = syncStateStore.getRemoteState(rootUri, fileRelPath);
-            if (storedState != null
-                && storedState.remoteSize == remoteSize
-                && Math.abs(storedState.remoteLastModified - remoteModified)
-                    < SyncComparator.DEFAULT_TIMESTAMP_TOLERANCE_MS
-                && localSize == remoteSize) {
-              LogUtils.d(
-                  TAG, "Skipping upload (DB state matches remote, local size same): " + name);
+            if (SyncStateComparator.bothMatch(
+                storedState, localSize, localModified, remoteSize, remoteModified)) {
+              LogUtils.d(TAG, "Skipping upload (both sides match sync state): " + name);
               actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (DB state)");
-            } else if (syncComparator.isSame(
-                localSize, localModified, remoteSize, remoteModified)) {
-              LogUtils.d(TAG, "Skipping upload (same): " + name);
-              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
-            } else if (syncComparator.isLocalNewer(localModified, remoteModified)) {
-              long newRemoteSize = uploadFile(share, localFile, remoteFilePath);
+            } else if (SyncStateComparator.localChangedWhileRemoteMatches(
+                storedState, localSize, localModified, remoteSize, remoteModified)) {
+              long newRemoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
               actionLog.log(SyncActionLog.Action.UPLOADED, name);
               syncStateStore.saveRemoteState(
                   rootUri,
                   fileRelPath,
                   remoteFilePath,
+                  localSize,
+                  localModified,
                   newRemoteSize,
-                  localFile.lastModified(),
+                  localModified,
+                  false);
+            } else if (syncComparator.isSame(
+                localSize, localModified, remoteSize, remoteModified)) {
+              LogUtils.d(TAG, "Skipping upload (same): " + name);
+              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+              syncStateStore.saveRemoteState(
+                  rootUri,
+                  fileRelPath,
+                  remoteFilePath,
+                  localSize,
+                  localModified,
+                  remoteSize,
+                  remoteModified,
+                  false);
+            } else if (syncComparator.isLocalNewer(localModified, remoteModified)) {
+              long newRemoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
+              actionLog.log(SyncActionLog.Action.UPLOADED, name);
+              syncStateStore.saveRemoteState(
+                  rootUri,
+                  fileRelPath,
+                  remoteFilePath,
+                  localSize,
+                  localModified,
+                  newRemoteSize,
+                  localModified,
                   false);
             } else {
               LogUtils.d(TAG, "Skipping upload (remote is newer or within tolerance): " + name);
@@ -563,7 +591,14 @@ public class FolderSyncWorker extends Worker {
                 downloadFile(share, remoteFilePath, newFile);
                 actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                 syncStateStore.saveRemoteState(
-                    rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+                    rootUri,
+                    fileRelPath,
+                    remoteFilePath,
+                    newFile.length(),
+                    newFile.lastModified(),
+                    remoteSize,
+                    remoteModified,
+                    false);
               }
             } else {
               // Use stored metadata as fallback for SAF timestamp comparison
@@ -571,20 +606,35 @@ public class FolderSyncWorker extends Worker {
               long localSize = localFile.length();
 
               FileSyncState storedState = syncStateStore.getRemoteState(rootUri, fileRelPath);
-              if (storedState != null
-                  && storedState.remoteSize == remoteSize
-                  && storedState.remoteLastModified == remoteModified) {
+              if (SyncStateComparator.bothMatch(
+                  storedState, localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (unchanged per stored metadata): " + name);
                 actionLog.log(SyncActionLog.Action.SKIPPED, name, "unchanged (stored metadata)");
               } else if (syncComparator.isSame(
                   localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (same): " + name);
                 actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+                syncStateStore.saveRemoteState(
+                    rootUri,
+                    fileRelPath,
+                    remoteFilePath,
+                    localSize,
+                    localModified,
+                    remoteSize,
+                    remoteModified,
+                    false);
               } else if (syncComparator.isRemoteNewer(localModified, remoteModified)) {
                 downloadFile(share, remoteFilePath, localFile);
                 actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                 syncStateStore.saveRemoteState(
-                    rootUri, fileRelPath, remoteFilePath, remoteSize, remoteModified, false);
+                    rootUri,
+                    fileRelPath,
+                    remoteFilePath,
+                    localFile.length(),
+                    localFile.lastModified(),
+                    remoteSize,
+                    remoteModified,
+                    false);
               } else {
                 LogUtils.d(TAG, "Skipping download (local is newer or within tolerance): " + name);
                 actionLog.log(
@@ -681,7 +731,8 @@ public class FolderSyncWorker extends Worker {
    *
    * @return the verified remote file size in bytes (from the integrity check)
    */
-  private long uploadFile(DiskShare share, DocumentFile localFile, String remotePath)
+  private long uploadFile(
+      DiskShare share, DocumentFile localFile, String remotePath, long localLastModified)
       throws Exception {
     LogUtils.d(TAG, "Uploading: " + localFile.getName() + " -> " + remotePath);
 
@@ -726,7 +777,7 @@ public class FolderSyncWorker extends Worker {
 
       // Set remote file's lastWriteTime to match local file's lastModified
       // to prevent re-uploading on next sync cycle (same handle, no extra open)
-      setLastModifiedOnHandle(remoteFile, remotePath, localFile.lastModified());
+      setLastModifiedOnHandle(remoteFile, remotePath, localLastModified);
     }
 
     long localSize = localFile.length();
