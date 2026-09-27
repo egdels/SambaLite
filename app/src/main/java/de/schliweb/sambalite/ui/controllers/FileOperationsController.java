@@ -20,7 +20,10 @@ import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
+import de.schliweb.sambalite.ui.operations.UploadConflictFinder;
+import de.schliweb.sambalite.ui.operations.UploadRequest;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SafFolderScanner;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -342,108 +345,125 @@ public class FileOperationsController {
   }
 
   public void handleFolderContentsUpload(@NonNull Uri folderUri) {
-    DocumentFile docFolder = DocumentFile.fromTreeUri(context, folderUri);
-    String folderName = getDocumentFileName(docFolder, "folder");
+    String folderName = getDocumentFileName(DocumentFile.fromTreeUri(context, folderUri), "folder");
+    showInfo(context.getString(de.schliweb.sambalite.R.string.folder_scan_in_progress));
 
-    // Scan folder and check for existing files on a background thread
+    // Scan folder and check for conflicts on a background thread
     new Thread(
             () -> {
-              if (docFolder == null || !docFolder.isDirectory()) {
-                LogUtils.w("FileOperationsController", "Invalid folder URI: " + folderUri);
-                return;
-              }
-
-              // Collect all files from the folder recursively
               String basePath = fileListViewModel.getCurrentPathInternal();
               if (basePath == null) basePath = "";
-              java.util.List<FileToUpload> allFiles = new java.util.ArrayList<>();
-              scanFolderFiles(docFolder, basePath, "", allFiles);
+
+              // One projected query per directory instead of several queries per file
+              java.util.List<UploadRequest> allFiles =
+                  SafFolderScanner.forResolver(context.getContentResolver())
+                      .scan(folderUri, basePath, null);
+              LogUtils.i(
+                  "FileOperationsController",
+                  "Scanned folder " + folderName + ": " + allFiles.size() + " files");
 
               if (allFiles.isEmpty()) {
-                new android.os.Handler(android.os.Looper.getMainLooper())
-                    .post(
-                        () ->
-                            showSuccess(
-                                context.getString(
-                                    de.schliweb.sambalite.R.string.transfer_added_to_queue)));
+                runOnMain(
+                    () ->
+                        showInfo(
+                            context.getString(
+                                de.schliweb.sambalite.R.string.multi_no_files_selected)));
                 return;
               }
 
-              // Check which files already exist on the server or are already queued
-              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-              java.util.List<FileToUpload> existingFiles = new java.util.ArrayList<>();
-              java.util.List<FileToUpload> queuedFiles = new java.util.ArrayList<>();
-              for (FileToUpload f : allFiles) {
-                if (dao.countActiveForPath(f.remotePath) > 0) {
-                  queuedFiles.add(f);
-                }
-                if (operationsViewModel.checkFileExists(f.remotePath)) {
-                  existingFiles.add(f);
-                }
-              }
-
-              new android.os.Handler(android.os.Looper.getMainLooper())
-                  .post(
-                      () -> {
-                        // Determine which conflicts to show
-                        boolean hasQueued = !queuedFiles.isEmpty();
-                        boolean hasExisting = !existingFiles.isEmpty();
-
-                        java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
-                            (excludedNames) -> {
-                              String batchId = java.util.UUID.randomUUID().toString();
-                              int count = 0;
-                              for (FileToUpload f : allFiles) {
-                                if (excludedNames != null
-                                    && excludedNames.contains(f.displayName)) {
-                                  continue;
-                                }
-                                operationsViewModel.enqueueUpload(
-                                    f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
-                                count++;
-                              }
-                              if (count > 0) {
-                                showSuccess(
-                                    context.getString(
-                                        de.schliweb.sambalite.R.string.transfer_added_to_queue));
-                              }
-                              LogUtils.i(
-                                  "FileOperationsController",
-                                  "Enqueued folder upload: "
-                                      + folderName
-                                      + " (batch="
-                                      + batchId
-                                      + ")");
-                              LogUtils.i(
-                                  "FileOperationsController",
-                                  "Folder upload: user selected "
-                                      + count
-                                      + " of "
-                                      + allFiles.size()
-                                      + " existing files to overwrite");
-                            };
-
-                        Runnable doEnqueue = () -> doEnqueueFiltered.accept(null);
-
-                        if (hasQueued) {
-                          String queuedNames = buildConflictNames(queuedFiles);
-                          showDuplicateQueueDialog(
-                              queuedNames,
-                              () -> {
-                                if (hasExisting) {
-                                  showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
-                                } else {
-                                  doEnqueue.run();
-                                }
-                              });
-                        } else if (hasExisting) {
-                          showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
-                        } else {
-                          doEnqueue.run();
-                        }
-                      });
+              UploadConflictFinder.Result conflicts = findUploadConflicts(allFiles);
+              runOnMain(
+                  () ->
+                      resolveConflictsAndEnqueue(
+                          allFiles, conflicts, folderUri, "folder upload: " + folderName));
             })
         .start();
+  }
+
+  /**
+   * Finds uploads that collide with queued transfers or with files on the server. The server is
+   * listed once per remote directory; the queue is read once.
+   */
+  private UploadConflictFinder.Result findUploadConflicts(java.util.List<UploadRequest> files) {
+    java.util.Set<String> directories = new java.util.HashSet<>();
+    for (UploadRequest f : files) directories.add(f.remoteDirectory());
+    final int fileCount = files.size();
+    final int dirCount = directories.size();
+    runOnMain(
+        () ->
+            showInfo(
+                context.getString(
+                    de.schliweb.sambalite.R.string.upload_conflict_check_in_progress,
+                    fileCount,
+                    dirCount)));
+
+    PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
+    return UploadConflictFinder.find(
+        files, dao.getActiveRemotePaths(), operationsViewModel::listRemoteFileNames, null);
+  }
+
+  /**
+   * Shows the conflict dialogs (already queued, already on the server) and enqueues the remaining
+   * uploads as one batch. Must be called on the main thread.
+   *
+   * @param grantUri The picked tree URI whose persisted grant covers all files, or {@code null}
+   *     when every file carries its own grant
+   */
+  private void resolveConflictsAndEnqueue(
+      java.util.List<UploadRequest> allFiles,
+      UploadConflictFinder.Result conflicts,
+      @Nullable Uri grantUri,
+      String what) {
+    boolean hasQueued = !conflicts.queued.isEmpty();
+    boolean hasExisting = !conflicts.existing.isEmpty();
+
+    java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
+        (excludedNames) -> {
+          java.util.List<UploadRequest> selected = new java.util.ArrayList<>();
+          for (UploadRequest f : allFiles) {
+            if (excludedNames != null && excludedNames.contains(f.displayName)) continue;
+            selected.add(f);
+          }
+          String batchId = java.util.UUID.randomUUID().toString();
+          if (!selected.isEmpty()) {
+            operationsViewModel.enqueueUploads(selected, grantUri, batchId);
+            showSuccess(context.getString(de.schliweb.sambalite.R.string.transfer_added_to_queue));
+          }
+          LogUtils.i(
+              "FileOperationsController",
+              "Enqueued "
+                  + selected.size()
+                  + " of "
+                  + allFiles.size()
+                  + " files, "
+                  + what
+                  + " (batch="
+                  + batchId
+                  + ")");
+        };
+
+    Runnable doEnqueue = () -> doEnqueueFiltered.accept(null);
+
+    if (hasQueued) {
+      String queuedNames = buildConflictNames(conflicts.queued);
+      showDuplicateQueueDialog(
+          queuedNames,
+          () -> {
+            if (hasExisting) {
+              showMultiFileExistsDialog(conflicts.existing, doEnqueueFiltered);
+            } else {
+              doEnqueue.run();
+            }
+          });
+    } else if (hasExisting) {
+      showMultiFileExistsDialog(conflicts.existing, doEnqueueFiltered);
+    } else {
+      doEnqueue.run();
+    }
+  }
+
+  private static void runOnMain(Runnable r) {
+    new android.os.Handler(android.os.Looper.getMainLooper()).post(r);
   }
 
   /**
@@ -451,13 +471,13 @@ public class FileOperationsController {
    * files. Unselected existing files are excluded from the upload.
    */
   private void showMultiFileExistsDialog(
-      java.util.List<FileToUpload> existingFiles,
+      java.util.List<UploadRequest> existingFiles,
       java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered) {
     if (existingFiles.size() == 1) {
       showOverwriteDialog(existingFiles.get(0).displayName, () -> doEnqueueFiltered.accept(null));
     } else {
       java.util.List<String> names = new java.util.ArrayList<>();
-      for (FileToUpload f : existingFiles) {
+      for (UploadRequest f : existingFiles) {
         names.add(f.displayName);
       }
       de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
@@ -467,7 +487,7 @@ public class FileOperationsController {
             // Build set of existing file names that were NOT selected (to exclude)
             java.util.Set<String> selectedSet = new java.util.HashSet<>(selectedNames);
             java.util.Set<String> excludedNames = new java.util.HashSet<>();
-            for (FileToUpload f : existingFiles) {
+            for (UploadRequest f : existingFiles) {
               if (!selectedSet.contains(f.displayName)) {
                 excludedNames.add(f.displayName);
               }
@@ -485,7 +505,7 @@ public class FileOperationsController {
           () -> {
             // Skip all existing files, but still upload non-existing ones
             java.util.Set<String> allExistingNames = new java.util.HashSet<>();
-            for (FileToUpload f : existingFiles) {
+            for (UploadRequest f : existingFiles) {
               allExistingNames.add(f.displayName);
             }
             doEnqueueFiltered.accept(allExistingNames);
@@ -497,7 +517,7 @@ public class FileOperationsController {
   }
 
   /** Builds a display string of conflicting file names (max 3 + count). */
-  private static String buildConflictNames(java.util.List<FileToUpload> files) {
+  private static String buildConflictNames(java.util.List<UploadRequest> files) {
     StringBuilder names = new StringBuilder();
     for (int i = 0; i < files.size(); i++) {
       if (i > 0) names.append(", ");
@@ -511,45 +531,6 @@ public class FileOperationsController {
   }
 
   /** Helper class to hold file info during folder scan for existence check. */
-  private static class FileToUpload {
-    final Uri uri;
-    final String remotePath;
-    final String displayName;
-    final long fileSize;
-
-    FileToUpload(Uri uri, String remotePath, String displayName, long fileSize) {
-      this.uri = uri;
-      this.remotePath = remotePath;
-      this.displayName = displayName;
-      this.fileSize = fileSize;
-    }
-  }
-
-  /** Recursively scans a DocumentFile folder and collects file info for existence checking. */
-  private void scanFolderFiles(
-      DocumentFile folder,
-      String remoteBasePath,
-      String relativePath,
-      java.util.List<FileToUpload> result) {
-    DocumentFile[] files = folder.listFiles();
-    if (files == null) return;
-
-    for (DocumentFile file : files) {
-      String fileName = file.getName();
-      if (fileName == null) continue;
-
-      String currentRelative = relativePath.isEmpty() ? fileName : relativePath + "/" + fileName;
-
-      if (file.isDirectory()) {
-        scanFolderFiles(file, remoteBasePath, currentRelative, result);
-      } else if (file.isFile()) {
-        String remotePath =
-            remoteBasePath.isEmpty() ? currentRelative : remoteBasePath + "/" + currentRelative;
-        result.add(new FileToUpload(file.getUri(), remotePath, fileName, file.length()));
-      }
-    }
-  }
-
   /** Batch upload multiple URIs. Files are enqueued into the persistent transfer queue. */
   public void handleMultipleFileUploads(@NonNull java.util.List<Uri> uris) {
     handleMultipleFileUploads(uris, null);
@@ -565,7 +546,7 @@ public class FileOperationsController {
     if (uris == null || uris.isEmpty()) return;
 
     // Collect file info on the calling thread (URIs are lightweight)
-    java.util.List<FileToUpload> filesToUpload = new java.util.ArrayList<>();
+    java.util.List<UploadRequest> filesToUpload = new java.util.ArrayList<>();
     for (Uri uri : uris) {
       trySelfGrantRead(uri);
       final String fileNameFromUri = getFileNameFromUri(uri);
@@ -576,77 +557,20 @@ public class FileOperationsController {
               ? targetDirectoryPath + "/" + fileName
               : buildRemotePath(fileName);
       long fileSize = getFileSizeFromUri(uri);
-      filesToUpload.add(new FileToUpload(uri, remotePath, fileName, fileSize));
+      filesToUpload.add(new UploadRequest(uri, remotePath, fileName, fileSize));
     }
 
     // Check for conflicts on a background thread
     new Thread(
             () -> {
-              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-              java.util.List<FileToUpload> existingFiles = new java.util.ArrayList<>();
-              java.util.List<FileToUpload> queuedFiles = new java.util.ArrayList<>();
-
-              for (FileToUpload f : filesToUpload) {
-                if (dao.countActiveForPath(f.remotePath) > 0) {
-                  queuedFiles.add(f);
-                }
-                if (operationsViewModel.checkFileExists(f.remotePath)) {
-                  existingFiles.add(f);
-                }
-              }
-
-              new android.os.Handler(android.os.Looper.getMainLooper())
-                  .post(
-                      () -> {
-                        boolean hasQueued = !queuedFiles.isEmpty();
-                        boolean hasExisting = !existingFiles.isEmpty();
-
-                        java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
-                            (excludedNames) -> {
-                              String batchId = java.util.UUID.randomUUID().toString();
-                              int count = 0;
-                              for (FileToUpload f : filesToUpload) {
-                                if (excludedNames != null
-                                    && excludedNames.contains(f.displayName)) {
-                                  continue;
-                                }
-                                operationsViewModel.enqueueUpload(
-                                    f.uri, f.remotePath, f.displayName, f.fileSize, batchId);
-                                count++;
-                              }
-                              if (count > 0) {
-                                showSuccess(
-                                    context.getString(
-                                        de.schliweb.sambalite.R.string.transfer_added_to_queue));
-                              }
-                              LogUtils.i(
-                                  "FileOperationsController",
-                                  "Enqueued "
-                                      + count
-                                      + " files for upload (batch="
-                                      + batchId
-                                      + ")");
-                            };
-
-                        Runnable doEnqueue = () -> doEnqueueFiltered.accept(null);
-
-                        if (hasQueued) {
-                          String queuedNames = buildConflictNames(queuedFiles);
-                          showDuplicateQueueDialog(
-                              queuedNames,
-                              () -> {
-                                if (hasExisting) {
-                                  showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
-                                } else {
-                                  doEnqueue.run();
-                                }
-                              });
-                        } else if (hasExisting) {
-                          showMultiFileExistsDialog(existingFiles, doEnqueueFiltered);
-                        } else {
-                          doEnqueue.run();
-                        }
-                      });
+              UploadConflictFinder.Result conflicts = findUploadConflicts(filesToUpload);
+              runOnMain(
+                  () ->
+                      resolveConflictsAndEnqueue(
+                          filesToUpload,
+                          conflicts,
+                          null,
+                          "multi-file upload of " + filesToUpload.size() + " files"));
             })
         .start();
   }
@@ -982,6 +906,11 @@ public class FileOperationsController {
   }
 
   // ---- Feedback shims ----
+  private void showInfo(String message) {
+    if (userFeedbackProvider != null) userFeedbackProvider.showInfo(message);
+    else if (progressCallback != null) progressCallback.showInfo(message);
+  }
+
   private void showSuccess(String message) {
     if (userFeedbackProvider != null) userFeedbackProvider.showSuccess(message);
     else if (progressCallback != null) progressCallback.showSuccess(message);

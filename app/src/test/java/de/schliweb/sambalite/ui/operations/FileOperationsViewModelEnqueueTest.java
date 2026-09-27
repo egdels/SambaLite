@@ -187,6 +187,69 @@ public class FileOperationsViewModelEnqueueTest {
     assertTrue(ids.contains("conn-B"));
   }
 
+  /**
+   * enqueueUploads inserts all rows in one batch, in order, and re-takes the persisted read grant
+   * of the picked folder tree so a concurrently completing upload cannot leave the new rows
+   * without a grant.
+   */
+  @Test
+  public void enqueueUploads_insertsBatchAndRetainsTreeGrant() throws Exception {
+    android.content.ContentResolver resolver = context.getContentResolver();
+    for (android.content.UriPermission p :
+        new java.util.ArrayList<>(resolver.getPersistedUriPermissions())) {
+      resolver.releasePersistableUriPermission(
+          p.getUri(),
+          android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+              | android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+    }
+    androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(context);
+    android.net.Uri tree =
+        android.net.Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADCIM");
+    java.util.List<UploadRequest> requests =
+        java.util.Arrays.asList(
+            new UploadRequest(
+                android.net.Uri.parse(tree + "/document/primary%3ADCIM%2Fa.jpg"),
+                "docs/a.jpg",
+                "a.jpg",
+                10),
+            new UploadRequest(
+                android.net.Uri.parse(tree + "/document/primary%3ADCIM%2Fb.jpg"),
+                "docs/b.jpg",
+                "b.jpg",
+                20));
+    PendingTransferDao appDao = TransferDatabase.getInstance(context).pendingTransferDao();
+    java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
+    try {
+      int before = io.submit(appDao::countAll).get(10, TimeUnit.SECONDS);
+
+      viewModel.enqueueUploads(requests, tree, "batch-folder");
+
+      long deadline = System.currentTimeMillis() + 10_000;
+      while (io.submit(appDao::countAll).get(10, TimeUnit.SECONDS) < before + 2
+          && System.currentTimeMillis() < deadline) {
+        Thread.sleep(20);
+      }
+      assertEquals(
+          "both rows inserted",
+          before + 2,
+          (int) io.submit(appDao::countAll).get(10, TimeUnit.SECONDS));
+      PendingTransfer first = io.submit(appDao::getNextPending).get(10, TimeUnit.SECONDS);
+      assertNotNull(first);
+      assertEquals("a.jpg", first.displayName);
+      assertEquals("batch-folder", first.batchId);
+      assertEquals("test-conn-1", first.connectionId);
+      assertEquals(tree + "/document/primary%3ADCIM%2Fa.jpg", first.localUri);
+    } finally {
+      io.shutdownNow();
+    }
+
+    boolean treeGrant = false;
+    for (android.content.UriPermission p : resolver.getPersistedUriPermissions()) {
+      if (p.getUri().equals(tree) && p.isReadPermission()) treeGrant = true;
+    }
+    assertTrue("tree grant must be (re-)taken after the insert", treeGrant);
+  }
+
   @Test
   public void scanFolderForQueue_buildsCorrectTransferEntries() {
     // Test that the scanFolderForQueue method is accessible and the ViewModel

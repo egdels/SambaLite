@@ -80,6 +80,8 @@
     <string name="transfer_retry_failed">Échec de la nouvelle tentative</string>
     <string name="transfer_cancel_all">Tout annuler</string>
     <string name="transfer_added_to_queue">Ajouté à la file de transfert</string>
+    <string name="folder_scan_in_progress">Analyse du dossier…</string>
+    <string name="upload_conflict_check_in_progress">Vérification de %1$d fichiers dans %2$d dossiers sur le serveur…</string>
     <string name="transfer_upload_success">Téléversement terminé : %1$s</string>
     <string name="transfer_download_success">Téléchargement terminé : %1$s</string>
     <string name="transfer_status_pending">En attente</string>

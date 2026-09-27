@@ -230,6 +230,11 @@ public interface PendingTransferDao {
           + " AND status IN ('PENDING', 'ACTIVE')")
   int countActiveForPath(@NonNull String remotePath);
 
+  /** Remote paths of all PENDING/ACTIVE transfers (duplicate detection for batch uploads). */
+  @Query("SELECT remote_path FROM pending_transfer WHERE status IN ('PENDING', 'ACTIVE')")
+  @NonNull
+  List<String> getActiveRemotePaths();
+
   /**
    * Returns local URIs of uploads that may still need their persisted SAF source grant
    * (PENDING/ACTIVE, or FAILED which can be retried). Used to decide when a persisted upload URI

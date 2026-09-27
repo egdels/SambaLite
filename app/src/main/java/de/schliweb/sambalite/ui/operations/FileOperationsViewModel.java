@@ -1014,92 +1014,85 @@ public class FileOperationsViewModel extends ViewModel {
   }
 
   /**
-   * Scans a folder (via SAF DocumentFile) and enqueues all contained files as a batch upload.
-   * Folder structure is preserved via the remote path hierarchy; the TransferWorker creates
-   * directories automatically.
+   * Enqueues several uploads as one batch: one database transaction, one grant refresh and one
+   * worker start, instead of one of each per file.
    *
-   * @param folderUri SAF URI of the local folder
-   * @return the generated batch ID for observing progress
+   * @param requests The files to upload
+   * @param grantUri The picked folder tree URI whose persisted read grant covers all files, or
+   *     {@code null} when every file carries its own grant (file picker, share intent)
+   * @param batchId Batch identifier grouping the transfers
    */
-  public @NonNull String enqueueFolderUpload(@NonNull Uri folderUri) {
-    String batchId = UUID.randomUUID().toString();
-
+  public void enqueueUploads(
+      @NonNull List<UploadRequest> requests, @Nullable Uri grantUri, @NonNull String batchId) {
+    if (requests.isEmpty()) return;
+    List<UploadRequest> copy = new ArrayList<>(requests);
     safeExecute(
         () -> {
           if (state.getConnection() == null) {
-            LogUtils.w("FileOperationsViewModel", "Cannot enqueue folder: no connection");
+            LogUtils.w("FileOperationsViewModel", "Cannot enqueue uploads: no connection");
             return;
           }
-
-          DocumentFile folder = DocumentFile.fromTreeUri(context, folderUri);
-          if (folder == null || !folder.isDirectory()) {
-            LogUtils.w("FileOperationsViewModel", "Invalid folder URI: " + folderUri);
-            return;
-          }
-
-          List<PendingTransfer> transfers = new ArrayList<>();
-          scanFolderForQueue(folder, state.getCurrentPathString(), "", transfers, batchId, 0);
-
-          if (transfers.isEmpty()) {
-            LogUtils.i("FileOperationsViewModel", "No files found in folder for upload");
-            return;
+          String connectionId = state.getConnection().getId();
+          long now = System.currentTimeMillis();
+          List<PendingTransfer> transfers = new ArrayList<>(copy.size());
+          int sortOrder = 0;
+          for (UploadRequest r : copy) {
+            PendingTransfer t = new PendingTransfer();
+            t.transferType = "UPLOAD";
+            t.localUri = r.uri.toString();
+            t.remotePath = r.remotePath;
+            t.connectionId = connectionId;
+            t.displayName = r.displayName;
+            t.fileSize = r.fileSize;
+            t.bytesTransferred = 0;
+            t.status = "PENDING";
+            t.createdAt = now;
+            t.updatedAt = now;
+            t.batchId = batchId;
+            t.sortOrder = sortOrder++;
+            transfers.add(t);
           }
 
           PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-          // Insert and re-take the tree grant under the grant lock: scanning a large folder takes
-          // a while, and a completing upload from the same tree must not release the grant before
-          // the child rows exist in the database
+          // Insert and re-take the grant under the grant lock: scanning and checking a large
+          // folder takes a while, and a completing upload from the same source must not release
+          // the grant before these rows exist in the database
           synchronized (UploadSourceGrants.lock()) {
             dao.insertAll(transfers);
-            UploadSourceGrants.retain(context, folderUri);
+            if (grantUri != null) {
+              UploadSourceGrants.retain(context, grantUri);
+            } else {
+              for (UploadRequest r : copy) UploadSourceGrants.retain(context, r.uri);
+            }
           }
           LogUtils.i(
               "FileOperationsViewModel",
-              "Enqueued " + transfers.size() + " files from folder (batch=" + batchId + ")");
+              "Enqueued " + transfers.size() + " uploads (batch=" + batchId + ")");
 
           startTransferWorker();
         });
-
-    return batchId;
   }
 
-  /** Recursively scans a DocumentFile folder and builds PendingTransfer entries for each file. */
-  private void scanFolderForQueue(
-      DocumentFile folder,
-      String remoteBasePath,
-      String relativePath,
-      List<PendingTransfer> transfers,
-      String batchId,
-      int sortOrderStart) {
-    DocumentFile[] files = folder.listFiles();
-    if (files == null) return;
-
-    int sortOrder = sortOrderStart;
-    for (DocumentFile file : files) {
-      String fileName = file.getName();
-      if (fileName == null) continue;
-
-      String currentRelative = relativePath.isEmpty() ? fileName : relativePath + "/" + fileName;
-
-      if (file.isDirectory()) {
-        scanFolderForQueue(file, remoteBasePath, currentRelative, transfers, batchId, sortOrder);
-      } else if (file.isFile()) {
-        PendingTransfer t = new PendingTransfer();
-        t.transferType = "UPLOAD";
-        t.localUri = file.getUri().toString();
-        t.remotePath = remoteBasePath + "/" + currentRelative;
-        t.connectionId = state.getConnection().getId();
-        t.displayName = fileName;
-        t.mimeType = file.getType();
-        t.fileSize = file.length();
-        t.bytesTransferred = 0;
-        t.status = "PENDING";
-        t.createdAt = System.currentTimeMillis();
-        t.updatedAt = System.currentTimeMillis();
-        t.batchId = batchId;
-        t.sortOrder = sortOrder++;
-        transfers.add(t);
+  /**
+   * Lists the entry names of a share-relative remote directory, for conflict checks of batch
+   * uploads.
+   *
+   * @return The names, or {@code null} if there is no connection or the directory cannot be listed
+   */
+  @Nullable
+  public Set<String> listRemoteFileNames(@NonNull String remoteDirectory) {
+    if (state.getConnection() == null) return null;
+    try {
+      Set<String> names = new HashSet<>();
+      for (SmbFileItem item : smbRepository.listFiles(state.getConnection(), remoteDirectory)) {
+        names.add(item.getName());
       }
+      return names;
+    } catch (Exception e) {
+      LogUtils.w(
+          "FileOperationsViewModel",
+          "Could not list remote directory '" + remoteDirectory + "': " + e.getMessage());
+      return null;
     }
   }
 

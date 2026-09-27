@@ -79,6 +79,8 @@
     <string name="transfer_retry_failed">Nieuwe poging mislukt</string>
     <string name="transfer_cancel_all">Alles annuleren</string>
     <string name="transfer_added_to_queue">Toegevoegd aan overdrachtswachtrij</string>
+    <string name="folder_scan_in_progress">Map wordt doorzocht…</string>
+    <string name="upload_conflict_check_in_progress">%1$d bestanden in %2$d mappen worden op de server gecontroleerd…</string>
     <string name="transfer_upload_success">Upload voltooid: %1$s</string>
     <string name="transfer_download_success">Download voltooid: %1$s</string>
     <string name="transfer_status_pending">Wachtend</string>

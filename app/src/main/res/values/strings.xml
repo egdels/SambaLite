@@ -403,6 +403,8 @@
     <string name="transfer_retry_failed">Retry failed</string>
     <string name="transfer_cancel_all">Cancel all</string>
     <string name="transfer_added_to_queue">Added to transfer queue</string>
+    <string name="folder_scan_in_progress">Scanning folder…</string>
+    <string name="upload_conflict_check_in_progress">Checking %1$d files in %2$d folders on the server…</string>
     <string name="transfer_upload_success">Upload complete: %1$s</string>
     <string name="transfer_download_success">Download complete: %1$s</string>
     <string name="transfer_status_pending">Pending</string>
