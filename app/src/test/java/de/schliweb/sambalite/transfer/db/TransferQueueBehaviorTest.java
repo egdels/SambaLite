@@ -176,6 +176,85 @@ public class TransferQueueBehaviorTest {
     assertEquals(1, dao.countAll());
   }
 
+  /**
+   * Verifies that a restart makes a failed transfer available again if it has retries available.
+   * SambaLiteApp calls resetFailedToRetry() at each app start.
+   */
+  @Test
+  public void testResetFailedToRetry_revivesTransferWithRetriesAvailable() {
+    PendingTransfer transfer = createTestTransfer("retryable.txt");
+    transfer.maxRetries = 3;
+    long id = dao.insert(transfer);
+
+    dao.markFailed(id, "Error 1", System.currentTimeMillis());
+
+    int resetCount = dao.resetFailedToRetry(System.currentTimeMillis());
+    assertEquals(1, resetCount);
+    assertEquals("PENDING", dao.getStatus(id));
+  }
+
+  /**
+   * Verifies that a restart does not make a transfer available again after its last retry. Such a
+   * transfer must stay FAILED. If it became PENDING again, each worker run failed again and
+   * WorkManager increased the retry backoff of the transfer queue.
+   */
+  @Test
+  public void testResetFailedToRetry_ignoresTransferWithoutRetriesAvailable() {
+    PendingTransfer transfer = createTestTransfer("permanent_failure.txt");
+    transfer.maxRetries = 3;
+    long id = dao.insert(transfer);
+
+    dao.markFailed(id, "Error 1", System.currentTimeMillis());
+    dao.markFailed(id, "Error 2", System.currentTimeMillis());
+    dao.markFailed(id, "Error 3", System.currentTimeMillis());
+
+    int resetCount = dao.resetFailedToRetry(System.currentTimeMillis());
+    assertEquals(0, resetCount);
+    assertEquals("FAILED", dao.getStatus(id));
+    assertNull("Transfer must not become available again", dao.getNextPending());
+  }
+
+  /**
+   * Verifies that the reset keeps the retry count. The transfer thus stops after its last retry,
+   * also if the user starts the app again many times.
+   */
+  @Test
+  public void testResetFailedToRetry_keepsRetryCount() {
+    PendingTransfer transfer = createTestTransfer("count_kept.txt");
+    transfer.maxRetries = 3;
+    long id = dao.insert(transfer);
+
+    dao.markFailed(id, "Error 1", System.currentTimeMillis());
+    dao.resetFailedToRetry(System.currentTimeMillis());
+
+    PendingTransfer fetched = dao.getNextPending();
+    assertNotNull(fetched);
+    assertEquals(1, fetched.retryCount);
+  }
+
+  /**
+   * Verifies that the manual retry function in the transfer queue screen gives new attempts to a
+   * transfer that has no retries available.
+   */
+  @Test
+  public void testResetToPending_givesNewAttemptsAfterLastRetry() {
+    PendingTransfer transfer = createTestTransfer("manual_retry.txt");
+    transfer.maxRetries = 3;
+    long id = dao.insert(transfer);
+
+    dao.markFailed(id, "Error 1", System.currentTimeMillis());
+    dao.markFailed(id, "Error 2", System.currentTimeMillis());
+    dao.markFailed(id, "Error 3", System.currentTimeMillis());
+    assertNull(dao.getNextPending());
+
+    dao.resetToPending(id, System.currentTimeMillis());
+
+    PendingTransfer fetched = dao.getNextPending();
+    assertNotNull("Manual retry must make the transfer available again", fetched);
+    assertEquals(0, fetched.retryCount);
+    assertEquals("PENDING", fetched.status);
+  }
+
   private PendingTransfer createTestTransfer(String name) {
     PendingTransfer t = new PendingTransfer();
     t.transferType = "UPLOAD";

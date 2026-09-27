@@ -13,10 +13,6 @@ import android.app.Application;
 import android.os.StatFs;
 import androidx.annotation.NonNull;
 import androidx.work.Configuration;
-import androidx.work.Constraints;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.di.AppComponent;
@@ -46,8 +42,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
 
   /** -- GETTER -- Gets the error handler instance. */
   @Getter private SmartErrorHandler errorHandler;
-
-  private static final String TRANSFER_WORK_NAME = "transfer_queue";
 
   SambaLiteLifecycleTracker lifecycleTracker;
 
@@ -110,15 +104,7 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
                   LogUtils.i(
                       "SambaLiteApp",
                       "Found " + pendingCount + " pending transfers, starting worker");
-                  OneTimeWorkRequest request =
-                      new OneTimeWorkRequest.Builder(TransferWorker.class)
-                          .setConstraints(
-                              new Constraints.Builder()
-                                  .setRequiredNetworkType(NetworkType.CONNECTED)
-                                  .build())
-                          .build();
-                  WorkManager.getInstance(this)
-                      .enqueueUniqueWork(TRANSFER_WORK_NAME, ExistingWorkPolicy.KEEP, request);
+                  TransferWorker.enqueueQueueProcessing(this);
                 } else {
                   LogUtils.i("SambaLiteApp", "No pending transfers found");
                 }

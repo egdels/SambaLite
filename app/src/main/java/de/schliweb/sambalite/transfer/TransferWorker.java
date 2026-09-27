@@ -23,7 +23,13 @@ import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.documentfile.provider.DocumentFile;
+import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.ForegroundInfo;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 import com.hierynomus.msdtyp.AccessMask;
@@ -74,6 +80,9 @@ import java.util.concurrent.TimeUnit;
  * streaming (no temp copy), and resume after app kill via persisted progress in Room DB.
  */
 public class TransferWorker extends Worker {
+
+  /** Unique WorkManager name for the queue-processing work. */
+  public static final String WORK_NAME = "transfer_queue";
 
   private static final String TAG = "TransferWorker";
   private static final int BUFFER_SIZE = 1024 * 1024;
@@ -189,6 +198,47 @@ public class TransferWorker extends Worker {
     if (notificationManager != null) {
       notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content));
     }
+  }
+
+  /**
+   * Enqueues queue processing with a policy that retry backoff cannot starve.
+   *
+   * <p>A failed run makes WorkManager schedule this unique work again with exponential backoff, up
+   * to five hours. With the KEEP policy, transfers that the user adds during that period wait for
+   * the backoff timer. This method uses REPLACE when the work is not RUNNING, because a new request
+   * has no backoff and starts immediately. It uses KEEP when the work is RUNNING, because the
+   * running worker does not stop and its loop finds the new transfers in the database.
+   *
+   * <p>This method reads the work state and can block for up to two seconds. Call it from a
+   * background thread.
+   *
+   * @param context The context that gives access to WorkManager
+   */
+  public static void enqueueQueueProcessing(@NonNull Context context) {
+    WorkManager workManager = WorkManager.getInstance(context);
+
+    ExistingWorkPolicy policy = ExistingWorkPolicy.REPLACE;
+    try {
+      for (WorkInfo info :
+          workManager.getWorkInfosForUniqueWork(WORK_NAME).get(2, TimeUnit.SECONDS)) {
+        if (info.getState() == WorkInfo.State.RUNNING) {
+          policy = ExistingWorkPolicy.KEEP;
+          break;
+        }
+      }
+    } catch (Exception e) {
+      // If the state is unknown, keep the existing work to protect a running transfer
+      LogUtils.w(TAG, "Could not read transfer work state, keeps existing work: " + e.getMessage());
+      policy = ExistingWorkPolicy.KEEP;
+    }
+
+    OneTimeWorkRequest request =
+        new OneTimeWorkRequest.Builder(TransferWorker.class)
+            .setConstraints(
+                new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build();
+    workManager.enqueueUniqueWork(WORK_NAME, policy, request);
+    LogUtils.d(TAG, "TransferWorker enqueued (" + policy + " policy)");
   }
 
   @NonNull

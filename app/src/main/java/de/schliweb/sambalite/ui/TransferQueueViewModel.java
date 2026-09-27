@@ -14,10 +14,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
-import androidx.work.Constraints;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import de.schliweb.sambalite.transfer.TransferWorker;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
@@ -111,7 +107,7 @@ public class TransferQueueViewModel extends AndroidViewModel {
     executor.execute(
         () -> {
           dao.cancelAll(System.currentTimeMillis());
-          WorkManager.getInstance(getApplication()).cancelUniqueWork("transfer_queue");
+          WorkManager.getInstance(getApplication()).cancelUniqueWork(TransferWorker.WORK_NAME);
         });
   }
 
@@ -167,13 +163,7 @@ public class TransferQueueViewModel extends AndroidViewModel {
 
   /** Starts the TransferWorker to process pending transfers. */
   private void startTransferWorker() {
-    OneTimeWorkRequest request =
-        new OneTimeWorkRequest.Builder(TransferWorker.class)
-            .setConstraints(
-                new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .build();
-    WorkManager.getInstance(getApplication())
-        .enqueueUniqueWork("transfer_queue", ExistingWorkPolicy.KEEP, request);
+    TransferWorker.enqueueQueueProcessing(getApplication());
   }
 
   /** Cancels multiple transfers by their IDs. */
@@ -185,7 +175,7 @@ public class TransferQueueViewModel extends AndroidViewModel {
           Log.d(TAG, "cancelTransfers: starting execution for ids=" + idsCopy);
           long now = System.currentTimeMillis();
           dao.cancelByIds(idsCopy, now);
-          WorkManager.getInstance(getApplication()).cancelUniqueWork("transfer_queue");
+          WorkManager.getInstance(getApplication()).cancelUniqueWork(TransferWorker.WORK_NAME);
           Log.d(TAG, "cancelTransfers: execution finished");
         });
   }

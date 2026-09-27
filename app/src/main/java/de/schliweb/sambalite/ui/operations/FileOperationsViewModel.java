@@ -19,11 +19,6 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.work.Constraints;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
@@ -1292,20 +1287,12 @@ public class FileOperationsViewModel extends ViewModel {
   }
 
   /**
-   * Starts the TransferWorker via WorkManager. Uses KEEP policy so that a running worker is NOT
-   * cancelled when new transfers are enqueued. The worker loops internally to pick up newly added
-   * transfers from the DB.
+   * Starts the TransferWorker with WorkManager. The helper keeps a worker that runs, because its
+   * loop finds the new transfers. The helper replaces a worker that only waits, because the retry
+   * backoff must not delay a transfer that the user starts.
    */
   void startTransferWorker() {
-    OneTimeWorkRequest request =
-        new OneTimeWorkRequest.Builder(TransferWorker.class)
-            .setConstraints(
-                new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .build();
-
-    WorkManager.getInstance(context)
-        .enqueueUniqueWork("transfer_queue", ExistingWorkPolicy.KEEP, request);
-    LogUtils.d("FileOperationsViewModel", "TransferWorker enqueued (KEEP policy)");
+    TransferWorker.enqueueQueueProcessing(context);
   }
 
   /**
