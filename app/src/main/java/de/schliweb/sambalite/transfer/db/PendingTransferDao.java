@@ -266,6 +266,23 @@ public interface PendingTransferDao {
   @NonNull
   List<String> getUploadLocalUrisByIds(@NonNull java.util.List<Long> ids);
 
+  /**
+   * Returns local target URIs of single-file downloads that may still need their persisted SAF
+   * grant (PENDING/ACTIVE, or FAILED which can be retried).
+   */
+  @Query(
+      "SELECT DISTINCT local_uri FROM pending_transfer WHERE transfer_type = 'DOWNLOAD'"
+          + " AND status IN ('PENDING', 'ACTIVE', 'FAILED')")
+  @NonNull
+  List<String> getUnfinishedDownloadLocalUris();
+
+  /** Returns local target URIs of the single-file downloads among the given transfer IDs. */
+  @Query(
+      "SELECT DISTINCT local_uri FROM pending_transfer WHERE transfer_type = 'DOWNLOAD'"
+          + " AND id IN (:ids)")
+  @NonNull
+  List<String> getDownloadLocalUrisByIds(@NonNull java.util.List<Long> ids);
+
   /** Returns the total count of all transfer entries. */
   @Query("SELECT COUNT(*) FROM pending_transfer")
   int countAll();

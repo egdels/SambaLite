@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 import androidx.annotation.NonNull;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.util.LogUtils;
@@ -23,18 +24,20 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Manages the persisted SAF read grants of upload sources.
+ * Manages the persisted SAF grants of transfer endpoints: the read grants of upload sources and the
+ * read/write grants of single-file download targets.
  *
  * <p>When the user picks a file or folder for upload, a persistable read grant is taken so that
  * queued uploads survive an app restart. Android limits the number of persisted grants per app, so
  * a grant is released again once no unfinished upload depends on it any more. Grants are released
  * when an upload completes, when uploads are cancelled and when they are removed from the queue.
  *
- *
- * <p>Only read-only grants are ever released. Read/write grants belong to download targets and sync
- * folders and are never touched. For folder uploads the grant lives on the picked tree URI, which
- * covers all child documents, so it is released only after the last unfinished child upload from
- * that tree is done.
+ * <p>Read/write grants on tree URIs belong to download folders and sync folders and are never
+ * touched. The read/write grant on a single-file download target (a document created with {@code
+ * ACTION_CREATE_DOCUMENT}) is released once the download is finished, cancelled or removed, so that
+ * downloads do not eat into the grant budget of {@link PersistedGrantBudget}. For folder uploads
+ * the grant lives on the picked tree URI, which covers all child documents, so it is released only
+ * after the last unfinished child upload from that tree is done.
  *
  * <p>All operations run under a process-wide lock, together with the enqueue path in {@code
  * FileOperationsViewModel} which inserts the queue rows and re-takes the grant under the same lock.
@@ -46,6 +49,8 @@ public final class UploadSourceGrants {
   private static final String TAG = "UploadSourceGrants";
 
   private static final int READ = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+  private static final int READ_WRITE =
+      Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
 
   private static final Object LOCK = new Object();
 
@@ -193,8 +198,53 @@ public final class UploadSourceGrants {
   }
 
   /**
-   * Cancels the given transfers and releases the grants of the cancelled uploads that no other
-   * unfinished upload still needs.
+   * Releases the read/write grants of single-file download targets, unless another unfinished
+   * download still writes to the same target. Tree URIs (download folders, sync folders) are never
+   * released.
+   *
+   * @param context Any context; the application context is used
+   * @param dao The transfer DAO used to look up unfinished downloads
+   * @param targetUris Local target URIs of downloads that no longer need their grant
+   */
+  public static void releaseDownloadTargetsIfUnused(
+      @NonNull Context context,
+      @NonNull PendingTransferDao dao,
+      @NonNull Collection<String> targetUris) {
+    if (targetUris.isEmpty()) {
+      return;
+    }
+    synchronized (LOCK) {
+      try {
+        ContentResolver resolver = context.getApplicationContext().getContentResolver();
+        List<String> unfinished = dao.getUnfinishedDownloadLocalUris();
+
+        for (UriPermission perm : new ArrayList<>(resolver.getPersistedUriPermissions())) {
+          if (!perm.isWritePermission() || DocumentsContract.isTreeUri(perm.getUri())) {
+            continue;
+          }
+          String grant = perm.getUri().toString();
+          if (!targetUris.contains(grant) || unfinished.contains(grant)) {
+            continue;
+          }
+          release(resolver, perm.getUri(), READ_WRITE, "download target");
+        }
+      } catch (Exception e) {
+        LogUtils.w(TAG, "Could not release download target permissions: " + e.getMessage());
+      }
+    }
+  }
+
+  /**
+   * Releases the grant of a single completed download, see {@link #releaseDownloadTargetsIfUnused}.
+   */
+  public static void releaseDownloadTargetIfUnused(
+      @NonNull Context context, @NonNull PendingTransferDao dao, @NonNull String targetUri) {
+    releaseDownloadTargetsIfUnused(context, dao, Collections.singletonList(targetUri));
+  }
+
+  /**
+   * Cancels the given transfers and releases the grants of the cancelled uploads and downloads that
+   * no other unfinished transfer still needs.
    */
   public static void cancelAndRelease(
       @NonNull Context context,
@@ -202,27 +252,33 @@ public final class UploadSourceGrants {
       @NonNull List<Long> ids,
       long now) {
     List<String> uploadUris = dao.getUploadLocalUrisByIds(ids);
+    List<String> downloadUris = dao.getDownloadLocalUrisByIds(ids);
     dao.cancelByIds(ids, now);
     releaseIfUnused(context, dao, uploadUris);
+    releaseDownloadTargetsIfUnused(context, dao, downloadUris);
   }
 
-  /** Cancels all pending and active transfers and releases the grants of the cancelled uploads. */
+  /** Cancels all pending and active transfers and releases the grants of the cancelled ones. */
   public static void cancelAllAndRelease(
       @NonNull Context context, @NonNull PendingTransferDao dao, long now) {
     List<String> uploadUris = dao.getUnfinishedUploadLocalUris();
+    List<String> downloadUris = dao.getUnfinishedDownloadLocalUris();
     dao.cancelAll(now);
     releaseIfUnused(context, dao, uploadUris);
+    releaseDownloadTargetsIfUnused(context, dao, downloadUris);
   }
 
   /**
-   * Deletes the given transfers from the queue and releases the grants of the removed uploads that
-   * no other unfinished upload still needs.
+   * Deletes the given transfers from the queue and releases the grants of the removed uploads and
+   * downloads that no other unfinished transfer still needs.
    */
   public static void deleteAndRelease(
       @NonNull Context context, @NonNull PendingTransferDao dao, @NonNull List<Long> ids) {
     List<String> uploadUris = dao.getUploadLocalUrisByIds(ids);
+    List<String> downloadUris = dao.getDownloadLocalUrisByIds(ids);
     dao.deleteByIds(ids);
     releaseIfUnused(context, dao, uploadUris);
+    releaseDownloadTargetsIfUnused(context, dao, downloadUris);
   }
 
   private static void release(ContentResolver resolver, Uri uri, int modeFlags, String what) {

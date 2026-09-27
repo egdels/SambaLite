@@ -523,6 +523,9 @@ public class TransferWorker extends Worker {
       cleanupSharedTextSourceFile(transfer);
       if (isUpload) {
         UploadSourceGrants.releaseIfUnused(getApplicationContext(), dao, transfer.localUri);
+      } else {
+        UploadSourceGrants.releaseDownloadTargetIfUnused(
+            getApplicationContext(), dao, transfer.localUri);
       }
       sendTransferCompletedBroadcast(transfer);
       return true;

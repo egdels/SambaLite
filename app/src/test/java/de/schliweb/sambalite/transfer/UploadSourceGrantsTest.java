@@ -51,6 +51,8 @@ public class UploadSourceGrantsTest {
   private static final String TREE_SIBLING = TREE + "2";
   private static final String TREE_SIBLING_CHILD = TREE_SIBLING + "/document/primary%3ADCIM2%2Fc.jpg";
   private static final String DOWNLOAD_TARGET = "content://com.android.externalstorage.documents/tree/primary%3ADownload";
+  /** A single-file download target created with ACTION_CREATE_DOCUMENT. */
+  private static final String DOWNLOAD_FILE = "content://com.android.externalstorage.documents/document/primary%3ADownload%2Freport.pdf";
 
   private Context context;
   private ContentResolver resolver;
@@ -361,6 +363,85 @@ public class UploadSourceGrantsTest {
     assertTrue(hasGrant(TREE));
     assertTrue(hasGrant(TREE_SIBLING));
     assertTrue(hasGrant(DOWNLOAD_TARGET));
+  }
+
+  // ── download targets ───────────────────────────────────────────────────────
+
+  @Test
+  public void releaseDownloadTargetIfUnused_releasesFileTargetAfterCompletion() {
+    takeReadWrite(DOWNLOAD_FILE);
+    long id = insertDownload(DOWNLOAD_FILE);
+    dao.updateStatus(id, "COMPLETED", now());
+
+    UploadSourceGrants.releaseDownloadTargetIfUnused(context, dao, DOWNLOAD_FILE);
+
+    assertFalse(hasGrant(DOWNLOAD_FILE));
+  }
+
+  @Test
+  public void releaseDownloadTargetIfUnused_keepsTargetOfUnfinishedDownload() {
+    takeReadWrite(DOWNLOAD_FILE);
+    long done = insertDownload(DOWNLOAD_FILE);
+    dao.updateStatus(done, "COMPLETED", now());
+    insertDownload(DOWNLOAD_FILE); // a second, still pending download to the same target
+
+    UploadSourceGrants.releaseDownloadTargetIfUnused(context, dao, DOWNLOAD_FILE);
+
+    assertTrue(hasGrant(DOWNLOAD_FILE));
+  }
+
+  @Test
+  public void releaseDownloadTargetIfUnused_neverReleasesTreeOrUploadGrants() {
+    takeReadWrite(DOWNLOAD_TARGET); // download folder (tree)
+    takeRead(FILE_A); // upload source with the same URI as a download row would be odd, but safe
+    long folder = insertDownload(DOWNLOAD_TARGET);
+    dao.updateStatus(folder, "COMPLETED", now());
+    long upload = insertUpload(FILE_A);
+    dao.updateStatus(upload, "COMPLETED", now());
+
+    UploadSourceGrants.releaseDownloadTargetsIfUnused(
+        context, dao, Arrays.asList(DOWNLOAD_TARGET, FILE_A));
+
+    assertTrue(hasGrant(DOWNLOAD_TARGET));
+    assertTrue(hasGrant(FILE_A));
+  }
+
+  @Test
+  public void cancelAndRelease_releasesDownloadTargetOfCancelledDownload() {
+    takeReadWrite(DOWNLOAD_FILE);
+    takeRead(FILE_A);
+    long download = insertDownload(DOWNLOAD_FILE);
+    long upload = insertUpload(FILE_A);
+
+    UploadSourceGrants.cancelAndRelease(context, dao, Arrays.asList(download, upload), now());
+
+    assertFalse(hasGrant(DOWNLOAD_FILE));
+    assertFalse(hasGrant(FILE_A));
+  }
+
+  @Test
+  public void deleteAndRelease_releasesDownloadTargetOfRemovedDownload() {
+    takeReadWrite(DOWNLOAD_FILE);
+    long download = insertDownload(DOWNLOAD_FILE);
+    dao.updateStatus(download, "COMPLETED", now());
+
+    UploadSourceGrants.deleteAndRelease(context, dao, Collections.singletonList(download));
+
+    assertFalse(hasGrant(DOWNLOAD_FILE));
+    assertEquals(0, dao.countAll());
+  }
+
+  @Test
+  public void downloadDaoQueries_returnDownloadTargetsOnly() {
+    long pending = insertDownload(DOWNLOAD_FILE);
+    long completed = insertDownload(DOWNLOAD_TARGET);
+    dao.updateStatus(completed, "COMPLETED", now());
+    long upload = insertUpload(FILE_A);
+
+    assertEquals(Collections.singletonList(DOWNLOAD_FILE), dao.getUnfinishedDownloadLocalUris());
+    List<String> byIds = dao.getDownloadLocalUrisByIds(Arrays.asList(pending, completed, upload));
+    assertEquals(2, byIds.size());
+    assertTrue(byIds.containsAll(Arrays.asList(DOWNLOAD_FILE, DOWNLOAD_TARGET)));
   }
 
   private long insertUpload(String localUri) {
