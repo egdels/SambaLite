@@ -193,7 +193,15 @@ public class TransferItemAdapter
           bindSize(item);
           break;
         case "FAILED":
-          status.setText(R.string.transfer_status_failed);
+          // Show the reason so the user can act on it, e.g. a lost grant on the local file
+          if (item.lastError != null && !item.lastError.trim().isEmpty()) {
+            status.setText(
+                itemView.getContext().getString(R.string.transfer_status_failed)
+                    + " – "
+                    + item.lastError.trim());
+          } else {
+            status.setText(R.string.transfer_status_failed);
+          }
           statusBadge.setVisibility(View.VISIBLE);
           statusIcon.setImageResource(R.drawable.ic_cancel_red);
           bindSize(item);

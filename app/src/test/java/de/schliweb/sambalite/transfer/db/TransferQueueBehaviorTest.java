@@ -255,6 +255,29 @@ public class TransferQueueBehaviorTest {
     assertEquals("PENDING", fetched.status);
   }
 
+  /**
+   * A permanently failed transfer (lost SAF grant) is skipped by the worker's pending query but a
+   * manual retry from the queue UI makes it pending again.
+   */
+  @Test
+  public void testMarkFailedPermanently_skippedByWorkerUntilManualRetry() {
+    long id = dao.insert(createTestTransfer("lost.pdf"));
+
+    dao.markFailedPermanently(id, "access lost", System.currentTimeMillis());
+
+    assertEquals("FAILED", dao.getStatus(id));
+    // retry_count == max_retries: neither the worker nor the automatic retry picks it up
+    assertTrue(dao.getPendingForConnection("conn1").isEmpty());
+    assertEquals(0, dao.resetFailedToRetry(System.currentTimeMillis()));
+
+    dao.resetToPendingByIds(java.util.Collections.singletonList(id), System.currentTimeMillis());
+
+    List<PendingTransfer> pending = dao.getPendingForConnection("conn1");
+    assertEquals(1, pending.size());
+    assertEquals("access lost", pending.get(0).lastError);
+    assertEquals(0, pending.get(0).retryCount);
+  }
+
   private PendingTransfer createTestTransfer(String name) {
     PendingTransfer t = new PendingTransfer();
     t.transferType = "UPLOAD";

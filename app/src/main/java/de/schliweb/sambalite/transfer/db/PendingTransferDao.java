@@ -152,6 +152,16 @@ public interface PendingTransferDao {
           + " retry_count = retry_count + 1, updated_at = :now WHERE id = :id")
   void markFailed(long id, @NonNull String error, long now);
 
+  /**
+   * Marks a transfer as failed without further automatic retries: the retry count is set to the
+   * maximum so the worker skips it. A manual retry from the queue UI resets the count and is still
+   * possible. Used when the cause cannot heal by itself, such as a lost SAF grant on the source.
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'FAILED', last_error = :error,"
+          + " retry_count = max_retries, updated_at = :now WHERE id = :id")
+  void markFailedPermanently(long id, @NonNull String error, long now);
+
   /** Cancels all pending/active transfers. */
   @Query(
       "UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now"

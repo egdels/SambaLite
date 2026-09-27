@@ -358,6 +358,12 @@ public class TransferWorker extends Worker {
         LogUtils.e(TAG, "Disk full after failures \u2013 returning failure instead of retry");
         return Result.failure();
       }
+      if (dao.getConnectionsWithPendingWork().isEmpty()) {
+        // Only permanently failed transfers are left (e.g. lost SAF grants); a retry run would
+        // find nothing to do, and a manual retry from the queue starts the worker anyway
+        LogUtils.w(TAG, "Some transfers failed permanently, nothing left to retry");
+        return Result.success();
+      }
       LogUtils.w(TAG, "Some transfers failed, requesting retry");
       return Result.retry();
     }
@@ -520,6 +526,29 @@ public class TransferWorker extends Worker {
       }
       sendTransferCompletedBroadcast(transfer);
       return true;
+    } catch (SecurityException e) {
+      // The SAF grant on the local file is gone (persisted grant evicted by Android's per-app cap,
+      // or a temporary grant lost with the process). Retrying cannot heal this, so fail for good
+      // with a message the user can act on; a manual retry from the queue stays possible.
+      LogUtils.e(
+          TAG,
+          "Transfer failed, access to local file lost: "
+              + transfer.displayName
+              + " - "
+              + e.getMessage());
+      if (!isTransferCancelled(dao, transfer.id)) {
+        dao.markFailedPermanently(
+            transfer.id,
+            getApplicationContext().getString(R.string.transfer_error_source_access_lost),
+            System.currentTimeMillis());
+        transferActionLog.log(
+            isUpload
+                ? TransferActionLog.Action.UPLOAD_FAILED
+                : TransferActionLog.Action.DOWNLOAD_FAILED,
+            transfer.displayName,
+            e.getMessage());
+      }
+      return false;
     } catch (Exception e) {
       LogUtils.e(TAG, "Transfer failed: " + transfer.displayName + " - " + e.getMessage());
       // Don't overwrite CANCELLED status with FAILED

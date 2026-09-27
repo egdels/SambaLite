@@ -450,4 +450,5 @@
     <string name="upload_folder_grant_continue">Continuer quand même</string>
     <string name="upload_folder_grant_mismatch">Le dossier choisi ne contient pas les fichiers sélectionnés. Les téléversements ne sont fiables que tant que l’application reste ouverte.</string>
     <string name="upload_large_selection_warning">%1$d fichiers sélectionnés. Android conserve un accès permanent pour au plus %2$d fichiers, les téléversements ne sont donc fiables que tant que l’application reste ouverte.</string>
+    <string name="transfer_error_source_access_lost">L’accès au fichier local a été perdu. Veuillez sélectionner le fichier à nouveau.</string>
 </resources>

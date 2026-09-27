@@ -438,4 +438,5 @@
     <string name="upload_folder_grant_continue">Toch doorgaan</string>
     <string name="upload_folder_grant_mismatch">De gekozen map bevat de geselecteerde bestanden niet. De uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
     <string name="upload_large_selection_warning">%1$d bestanden geselecteerd. Android bewaart permanente toegang voor maximaal %2$d bestanden, dus de uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
+    <string name="transfer_error_source_access_lost">De toegang tot het lokale bestand is verloren gegaan. Selecteer het bestand opnieuw.</string>
 </resources>
