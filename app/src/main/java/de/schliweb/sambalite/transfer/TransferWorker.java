@@ -19,6 +19,7 @@ import android.content.pm.ServiceInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -210,11 +211,18 @@ public class TransferWorker extends Worker {
    * running worker does not stop and its loop finds the new transfers in the database.
    *
    * <p>This method reads the work state and can block for up to two seconds. Call it from a
-   * background thread.
+   * background thread; a call from the main thread throws an {@link IllegalStateException}.
    *
    * @param context The context that gives access to WorkManager
+   * @throws IllegalStateException if called from the main thread
    */
   public static void enqueueQueueProcessing(@NonNull Context context) {
+    if (Looper.getMainLooper().isCurrentThread()) {
+      throw new IllegalStateException(
+          "enqueueQueueProcessing must not be called from the main thread: it blocks on the"
+              + " WorkManager state query");
+    }
+
     WorkManager workManager = WorkManager.getInstance(context);
 
     ExistingWorkPolicy policy = ExistingWorkPolicy.REPLACE;
