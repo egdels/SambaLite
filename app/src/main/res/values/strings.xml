@@ -448,4 +448,5 @@
     <string name="upload_folder_grant_mismatch">The chosen folder does not contain the selected files. The uploads run reliably only while the app stays open.</string>
     <string name="upload_large_selection_warning">%1$d files selected. Android keeps permanent access for at most %2$d files, so the uploads run reliably only while the app stays open.</string>
     <string name="transfer_error_source_access_lost">Access to the local file was lost. Please select the file again.</string>
+    <string name="upload_share_temporary_access_warning">The shared files stay accessible only while SambaLite is open. Keep the app open until the uploads have finished.</string>
 </resources>

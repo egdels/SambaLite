@@ -451,4 +451,5 @@
     <string name="upload_folder_grant_mismatch">La carpeta elegida no contiene los archivos seleccionados. Las subidas solo funcionan de forma fiable mientras la aplicación permanezca abierta.</string>
     <string name="upload_large_selection_warning">%1$d archivos seleccionados. Android conserva el acceso permanente para un máximo de %2$d archivos, por lo que las subidas solo funcionan de forma fiable mientras la aplicación permanezca abierta.</string>
     <string name="transfer_error_source_access_lost">Se perdió el acceso al archivo local. Seleccione el archivo de nuevo.</string>
+    <string name="upload_share_temporary_access_warning">Los archivos compartidos solo siguen siendo accesibles mientras SambaLite esté abierto. Mantenga la aplicación abierta hasta que las subidas hayan terminado.</string>
 </resources>

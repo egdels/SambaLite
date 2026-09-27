@@ -606,12 +606,29 @@ public class DialogController {
       @NonNull Runnable onUpload,
       @NonNull Runnable onChangeFolder,
       @NonNull Runnable onCancel) {
+    showShareUploadConfirmationDialog(
+        fileCount, targetFolder, null, onUpload, onChangeFolder, onCancel);
+  }
+
+  /**
+   * Shows the share upload confirmation dialog with an optional hint below the message.
+   *
+   * @param hint Additional text, e.g. that the shared files stay accessible only while the app is
+   *     open, or {@code null}
+   */
+  public void showShareUploadConfirmationDialog(
+      int fileCount,
+      @NonNull String targetFolder,
+      @Nullable String hint,
+      @NonNull Runnable onUpload,
+      @Nullable Runnable onChangeFolder,
+      @NonNull Runnable onCancel) {
     Context context = getContext();
     if (context == null) return;
 
     LogUtils.d("DialogController", "Showing share upload confirmation dialog with custom cancel");
     DialogHelper.showShareUploadConfirmationDialog(
-        context, fileCount, targetFolder, onUpload, onChangeFolder, onCancel);
+        context, fileCount, targetFolder, hint, onUpload, onChangeFolder, onCancel);
   }
 
   /**

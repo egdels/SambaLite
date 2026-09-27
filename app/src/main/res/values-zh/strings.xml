@@ -430,4 +430,5 @@
     <string name="upload_folder_grant_mismatch">所选文件夹不包含选中的文件。只有在应用保持打开时，上传才能可靠运行。</string>
     <string name="upload_large_selection_warning">已选择 %1$d 个文件。Android 最多只能为 %2$d 个文件保留永久访问权限，因此只有在应用保持打开时，上传才能可靠运行。</string>
     <string name="transfer_error_source_access_lost">对本地文件的访问权限已丢失。请重新选择该文件。</string>
+    <string name="upload_share_temporary_access_warning">共享的文件仅在 SambaLite 打开时可访问。请保持应用打开，直到上传完成。</string>
 </resources>

@@ -421,15 +421,37 @@ public class DialogHelper {
       @NonNull Runnable onUpload,
       @NonNull Runnable onChangeFolder,
       @NonNull Runnable onCancel) {
+    showShareUploadConfirmationDialog(
+        context, fileCount, targetFolder, null, onUpload, onChangeFolder, onCancel);
+  }
+
+  /**
+   * Shows a dialog to confirm uploading shared files, with an optional hint below the message, e.g.
+   * that the shared files stay accessible only while the app is open.
+   *
+   * @param hint Additional text shown below the message, or {@code null}
+   */
+  public static void showShareUploadConfirmationDialog(
+      @NonNull Context context,
+      int fileCount,
+      @NonNull String targetFolder,
+      @Nullable String hint,
+      @NonNull Runnable onUpload,
+      @Nullable Runnable onChangeFolder,
+      @NonNull Runnable onCancel) {
     LogUtils.d(
         "DialogHelper", "Showing share upload confirmation dialog for " + fileCount + " files");
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_share_upload, null);
     android.widget.TextView messageView = dialogView.findViewById(R.id.share_upload_message);
-    messageView.setText(
+    String message =
         context
             .getResources()
             .getQuantityString(
-                R.plurals.share_upload_full_message, fileCount, fileCount, targetFolder));
+                R.plurals.share_upload_full_message, fileCount, fileCount, targetFolder);
+    if (hint != null && !hint.isEmpty()) {
+      message = message + "\n\n" + hint;
+    }
+    messageView.setText(message);
     MaterialAlertDialogBuilder builder =
         new MaterialAlertDialogBuilder(context)
             .setView(dialogView)

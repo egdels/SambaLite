@@ -189,6 +189,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
     dialogController.showShareUploadConfirmationDialog(
         shareUris.size(),
         currentFolder,
+        temporaryAccessHint(),
         () -> {
           try {
             startUploadsViaFileBrowser();
@@ -203,6 +204,29 @@ public class ShareReceiverActivity extends AppCompatActivity {
           showConnectionSelectionForFolderChange();
         },
         this::finish);
+  }
+
+  /**
+   * The hint for the confirmation dialog when the shared files cannot be kept accessible beyond
+   * this process: share intents practically never carry persistable grants, so the queued uploads
+   * depend on the temporary grants and the user should keep the app open. {@code null} when the
+   * sharing app did grant persistable access or when only a cached text file is uploaded.
+   */
+  @Nullable
+  private String temporaryAccessHint() {
+    boolean persistable =
+        (getIntent().getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0;
+    boolean anyContentUri = false;
+    for (Uri u : shareUris) {
+      if ("content".equals(u.getScheme())) {
+        anyContentUri = true;
+        break;
+      }
+    }
+    if (!anyContentUri || persistable) {
+      return null;
+    }
+    return getString(R.string.upload_share_temporary_access_warning);
   }
 
   private void showConnectionSelectionForFolderChange() {

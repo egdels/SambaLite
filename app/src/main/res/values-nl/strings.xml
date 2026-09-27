@@ -439,4 +439,5 @@
     <string name="upload_folder_grant_mismatch">De gekozen map bevat de geselecteerde bestanden niet. De uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
     <string name="upload_large_selection_warning">%1$d bestanden geselecteerd. Android bewaart permanente toegang voor maximaal %2$d bestanden, dus de uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
     <string name="transfer_error_source_access_lost">De toegang tot het lokale bestand is verloren gegaan. Selecteer het bestand opnieuw.</string>
+    <string name="upload_share_temporary_access_warning">De gedeelde bestanden blijven alleen toegankelijk zolang SambaLite geopend is. Houd de app open totdat de uploads zijn voltooid.</string>
 </resources>

@@ -464,4 +464,5 @@
     <string name="upload_folder_grant_mismatch">Wybrany folder nie zawiera zaznaczonych plików. Przesyłanie działa niezawodnie tylko wtedy, gdy aplikacja pozostaje otwarta.</string>
     <string name="upload_large_selection_warning">Wybrano %1$d plików. Android zachowuje trwały dostęp do co najwyżej %2$d plików, więc przesyłanie działa niezawodnie tylko wtedy, gdy aplikacja pozostaje otwarta.</string>
     <string name="transfer_error_source_access_lost">Utracono dostęp do lokalnego pliku. Wybierz plik ponownie.</string>
+    <string name="upload_share_temporary_access_warning">Udostępnione pliki pozostają dostępne tylko wtedy, gdy SambaLite jest otwarte. Pozostaw aplikację otwartą do zakończenia przesyłania.</string>
 </resources>

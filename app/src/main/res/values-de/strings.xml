@@ -439,4 +439,5 @@
     <string name="upload_folder_grant_mismatch">Der gewählte Ordner enthält die ausgewählten Dateien nicht. Die Uploads laufen nur zuverlässig, solange die App geöffnet bleibt.</string>
     <string name="upload_large_selection_warning">%1$d Dateien ausgewählt. Android speichert dauerhaften Zugriff für höchstens %2$d Dateien, die Uploads laufen nur zuverlässig, solange die App geöffnet bleibt.</string>
     <string name="transfer_error_source_access_lost">Der Zugriff auf die lokale Datei ist verloren gegangen. Bitte wählen Sie die Datei erneut aus.</string>
+    <string name="upload_share_temporary_access_warning">Die geteilten Dateien bleiben nur zugänglich, solange SambaLite geöffnet ist. Lassen Sie die App geöffnet, bis die Uploads abgeschlossen sind.</string>
 </resources>
