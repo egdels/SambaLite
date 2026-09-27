@@ -230,6 +230,27 @@ public interface PendingTransferDao {
           + " AND status IN ('PENDING', 'ACTIVE')")
   int countActiveForPath(@NonNull String remotePath);
 
+  /**
+   * Returns local URIs of uploads that may still need their persisted SAF source grant
+   * (PENDING/ACTIVE, or FAILED which can be retried). Used to decide when a persisted upload URI
+   * permission can safely be released.
+   */
+  @Query(
+      "SELECT DISTINCT local_uri FROM pending_transfer WHERE transfer_type = 'UPLOAD'"
+          + " AND status IN ('PENDING', 'ACTIVE', 'FAILED')")
+  @NonNull
+  List<String> getUnfinishedUploadLocalUris();
+
+  /**
+   * Returns local URIs of the uploads among the given transfer IDs. Used to release persisted SAF
+   * source grants when transfers are removed from the queue.
+   */
+  @Query(
+      "SELECT DISTINCT local_uri FROM pending_transfer WHERE transfer_type = 'UPLOAD'"
+          + " AND id IN (:ids)")
+  @NonNull
+  List<String> getUploadLocalUrisByIds(@NonNull java.util.List<Long> ids);
+
   /** Returns the total count of all transfer entries. */
   @Query("SELECT COUNT(*) FROM pending_transfer")
   int countAll();

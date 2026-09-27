@@ -16,6 +16,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.work.WorkManager;
 import de.schliweb.sambalite.transfer.TransferWorker;
+import de.schliweb.sambalite.transfer.UploadSourceGrants;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
@@ -99,14 +100,19 @@ public class TransferQueueViewModel extends AndroidViewModel {
   /** Cancels a single transfer. */
   public void cancelTransfer(long id) {
     executor.execute(
-        () -> dao.cancelByIds(java.util.Collections.singletonList(id), System.currentTimeMillis()));
+        () ->
+            UploadSourceGrants.cancelAndRelease(
+                getApplication(),
+                dao,
+                java.util.Collections.singletonList(id),
+                System.currentTimeMillis()));
   }
 
   /** Cancels all pending/active transfers and stops the running worker. */
   public void cancelAll() {
     executor.execute(
         () -> {
-          dao.cancelAll(System.currentTimeMillis());
+          UploadSourceGrants.cancelAllAndRelease(getApplication(), dao, System.currentTimeMillis());
           WorkManager.getInstance(getApplication()).cancelUniqueWork(TransferWorker.WORK_NAME);
         });
   }
@@ -132,7 +138,11 @@ public class TransferQueueViewModel extends AndroidViewModel {
 
   /** Removes a transfer from the database permanently. */
   public void removeTransfer(long id) {
-    executor.execute(() -> dao.deleteByIds(java.util.Collections.singletonList(id)));
+    executor.execute(
+        () -> {
+          UploadSourceGrants.deleteAndRelease(
+              getApplication(), dao, java.util.Collections.singletonList(id));
+        });
   }
 
   /** Removes multiple transfers by their IDs. */
@@ -142,7 +152,7 @@ public class TransferQueueViewModel extends AndroidViewModel {
     executor.execute(
         () -> {
           Log.d(TAG, "removeTransfers: starting execution for ids=" + idsCopy);
-          dao.deleteByIds(idsCopy);
+          UploadSourceGrants.deleteAndRelease(getApplication(), dao, idsCopy);
           Log.d(TAG, "removeTransfers: execution finished");
         });
   }
@@ -173,8 +183,8 @@ public class TransferQueueViewModel extends AndroidViewModel {
     executor.execute(
         () -> {
           Log.d(TAG, "cancelTransfers: starting execution for ids=" + idsCopy);
-          long now = System.currentTimeMillis();
-          dao.cancelByIds(idsCopy, now);
+          UploadSourceGrants.cancelAndRelease(
+              getApplication(), dao, idsCopy, System.currentTimeMillis());
           WorkManager.getInstance(getApplication()).cancelUniqueWork(TransferWorker.WORK_NAME);
           Log.d(TAG, "cancelTransfers: execution finished");
         });

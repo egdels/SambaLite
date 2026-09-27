@@ -24,6 +24,7 @@ import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.transfer.TransferWorker;
+import de.schliweb.sambalite.transfer.UploadSourceGrants;
 import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
@@ -997,7 +998,13 @@ public class FileOperationsViewModel extends ViewModel {
           transfer.updatedAt = System.currentTimeMillis();
           transfer.batchId = batchId;
 
-          long id = dao.insert(transfer);
+          long id;
+          // Insert and re-take the source grant under the grant lock: a completing upload from
+          // the same source must not release the grant between the picker result and this insert
+          synchronized (UploadSourceGrants.lock()) {
+            id = dao.insert(transfer);
+            UploadSourceGrants.retain(context, sourceUri);
+          }
           LogUtils.i(
               "FileOperationsViewModel",
               "Enqueued upload #" + id + ": " + displayName + " (" + fileSize + " bytes)");
@@ -1039,7 +1046,13 @@ public class FileOperationsViewModel extends ViewModel {
           }
 
           PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-          dao.insertAll(transfers);
+          // Insert and re-take the tree grant under the grant lock: scanning a large folder takes
+          // a while, and a completing upload from the same tree must not release the grant before
+          // the child rows exist in the database
+          synchronized (UploadSourceGrants.lock()) {
+            dao.insertAll(transfers);
+            UploadSourceGrants.retain(context, folderUri);
+          }
           LogUtils.i(
               "FileOperationsViewModel",
               "Enqueued " + transfers.size() + " files from folder (batch=" + batchId + ")");

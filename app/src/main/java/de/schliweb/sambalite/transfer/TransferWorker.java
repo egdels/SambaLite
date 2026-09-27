@@ -515,6 +515,9 @@ public class TransferWorker extends Worker {
               : TransferActionLog.Action.DOWNLOAD_COMPLETED,
           transfer.displayName);
       cleanupSharedTextSourceFile(transfer);
+      if (isUpload) {
+        UploadSourceGrants.releaseIfUnused(getApplicationContext(), dao, transfer.localUri);
+      }
       sendTransferCompletedBroadcast(transfer);
       return true;
     } catch (Exception e) {
