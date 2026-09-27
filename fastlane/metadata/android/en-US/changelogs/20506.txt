@@ -1,0 +1,3 @@
+- Fixed: Uploads no longer stay "Pending" for hours after a permanently failing transfer; the queue starts new transfers right away (issue #34). Thanks to @mattbasta!
+- Fixed: Uploading a folder with tens of thousands of files no longer stalls for minutes after picking it (issue #43).
+- Fixed: Storage permissions taken for upload sources are released again once the uploads are done, cancelled or removed.
