@@ -20,6 +20,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.transfer.PersistedGrantBudget;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ public class ActivityResultController {
   private ActivityResultLauncher<Intent> createFolderLauncher;
   private ActivityResultLauncher<Intent> pickFolderLauncher;
   private ActivityResultLauncher<Intent> syncFolderLauncher;
+  private ActivityResultLauncher<Intent> folderForFilesLauncher;
 
   @Setter private FileOperationCallback fileOperationCallback;
 
@@ -97,6 +99,11 @@ public class ActivityResultController {
         activity.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> handleDocumentResult(result, "sync_folder"));
+
+    folderForFilesLauncher =
+        activity.registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> handleDocumentResult(result, "folder_for_files"));
 
     LogUtils.d("ActivityResultController", "Activity result launchers initialized");
   }
@@ -156,6 +163,9 @@ public class ActivityResultController {
             break;
           case "sync_folder":
             handleSyncFolderResult(uri);
+            break;
+          case "folder_for_files":
+            handleFolderForFilesResult(uri);
             break;
         }
       }
@@ -450,11 +460,50 @@ public class ActivityResultController {
    */
   private void handleMultiplePickFileResult(@NonNull List<Uri> uris) {
     inputController.hideKeyboardAndClearFocus();
-    for (Uri uri : uris) {
-      persistUploadReadPermission(uri, "upload source file");
+    // Android keeps at most 512 persisted grants per app and evicts the oldest beyond that,
+    // sync folders included. A selection that does not fit is not persisted per file; the
+    // FileOperationsController offers a single grant on the parent folder instead.
+    if (PersistedGrantBudget.fits(activity, uris.size())) {
+      for (Uri uri : uris) {
+        persistUploadReadPermission(uri, "upload source file");
+      }
+    } else {
+      LogUtils.w(
+          "ActivityResultController",
+          "Selection of "
+              + uris.size()
+              + " files exceeds the persisted grant budget of "
+              + PersistedGrantBudget.remaining(activity)
+              + ", not persisting per-file grants");
     }
     if (fileOperationCallback != null) {
       fileOperationCallback.onMultipleFileUploadResult(uris);
+    }
+  }
+
+  /**
+   * Asks the user for a read grant on the folder that contains a large multi-file selection. The
+   * picker opens at that folder; the user confirms it with "Use this folder".
+   *
+   * @param folderDocumentUri Document URI of the folder the picker should open at
+   */
+  public void selectFolderForSelectedFiles(@NonNull Uri folderDocumentUri) {
+    LogUtils.d(
+        "ActivityResultController",
+        "Selecting folder grant for picked files: " + folderDocumentUri);
+    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+    intent.addFlags(
+        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, folderDocumentUri);
+    folderForFilesLauncher.launch(intent);
+  }
+
+  /** Handles the folder grant picked for a large multi-file selection. */
+  private void handleFolderForFilesResult(Uri treeUri) {
+    inputController.hideKeyboardAndClearFocus();
+    persistUploadReadPermission(treeUri, "upload source folder");
+    if (fileOperationCallback != null) {
+      fileOperationCallback.onFolderGrantForSelectedFilesResult(treeUri);
     }
   }
 
@@ -494,6 +543,14 @@ public class ActivityResultController {
      * @param uri The URI of the folder to upload contents from
      */
     void onFolderUploadResult(@NonNull Uri uri);
+
+    /**
+     * Called when the user granted access to the folder containing a large multi-file selection,
+     * see {@link #selectFolderForSelectedFiles(Uri)}.
+     *
+     * @param treeUri The tree URI of the granted folder
+     */
+    void onFolderGrantForSelectedFilesResult(@NonNull Uri treeUri);
 
     /**
      * Called when a folder is selected for sync.

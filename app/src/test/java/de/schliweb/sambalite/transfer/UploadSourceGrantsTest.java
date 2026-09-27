@@ -315,6 +315,54 @@ public class UploadSourceGrantsTest {
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
+  // ── per-file grants and the grant budget ───────────────────────────────────
+
+  @Test
+  public void retainAll_takesGrantsWhileTheyFitTheBudget() {
+    List<Uri> uris = Arrays.asList(Uri.parse(FILE_A), Uri.parse(FILE_B));
+
+    assertTrue(UploadSourceGrants.retainAll(context, uris));
+
+    assertTrue(hasGrant(FILE_A));
+    assertTrue(hasGrant(FILE_B));
+  }
+
+  @Test
+  public void retainAll_skipsSelectionExceedingTheBudget() {
+    int tooMany = PersistedGrantBudget.remaining(context) + 1;
+    List<Uri> uris = new ArrayList<>(tooMany);
+    for (int i = 0; i < tooMany; i++) {
+      uris.add(Uri.parse(FILE_A + i));
+    }
+
+    assertFalse(UploadSourceGrants.retainAll(context, uris));
+
+    assertTrue(resolver.getPersistedUriPermissions().isEmpty());
+  }
+
+  @Test
+  public void releaseUnreferenced_dropsReadGrantsWithoutUnfinishedUpload_keepsOthers() {
+    takeRead(FILE_A); // leftover, no queue row
+    takeRead(FILE_B); // completed upload
+    long done = insertUpload(FILE_B);
+    dao.updateStatus(done, "COMPLETED", now());
+    takeRead(TREE); // folder grant with a pending child upload
+    insertUpload(TREE_CHILD_1);
+    takeRead(TREE_SIBLING); // folder grant whose only upload failed and may be retried
+    long failed = insertUpload(TREE_SIBLING_CHILD);
+    dao.markFailed(failed, "err", now());
+    takeReadWrite(DOWNLOAD_TARGET); // read/write grants are never touched
+
+    int released = UploadSourceGrants.releaseUnreferenced(context, dao);
+
+    assertEquals(2, released);
+    assertFalse(hasGrant(FILE_A));
+    assertFalse(hasGrant(FILE_B));
+    assertTrue(hasGrant(TREE));
+    assertTrue(hasGrant(TREE_SIBLING));
+    assertTrue(hasGrant(DOWNLOAD_TARGET));
+  }
+
   private long insertUpload(String localUri) {
     return dao.insert(transfer("UPLOAD", localUri));
   }
@@ -341,6 +389,12 @@ public class UploadSourceGrantsTest {
 
   private void takeRead(String uri) {
     resolver.takePersistableUriPermission(Uri.parse(uri), Intent.FLAG_GRANT_READ_URI_PERMISSION);
+  }
+
+  private void takeReadWrite(String uri) {
+    resolver.takePersistableUriPermission(
+        Uri.parse(uri),
+        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
   }
 
   private boolean hasGrant(String uri) {

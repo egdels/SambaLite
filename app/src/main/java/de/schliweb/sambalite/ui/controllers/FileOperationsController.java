@@ -16,10 +16,12 @@ import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.transfer.PersistedGrantBudget;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
+import de.schliweb.sambalite.ui.operations.SelectionFolderGrant;
 import de.schliweb.sambalite.ui.operations.UploadConflictFinder;
 import de.schliweb.sambalite.ui.operations.UploadRequest;
 import de.schliweb.sambalite.util.LogUtils;
@@ -548,7 +550,9 @@ public class FileOperationsController {
     // Collect file info on the calling thread (URIs are lightweight)
     java.util.List<UploadRequest> filesToUpload = new java.util.ArrayList<>();
     for (Uri uri : uris) {
-      trySelfGrantRead(uri);
+      // Only the temporary self-grant here: persisting is budget-checked by the picker result
+      // handler and by enqueueUploads, persisting 2000 files would evict other grants
+      selfGrantRead(uri);
       final String fileNameFromUri = getFileNameFromUri(uri);
       final String fileName =
           fileNameFromUri != null ? fileNameFromUri : "uploaded_file_" + System.currentTimeMillis();
@@ -560,17 +564,123 @@ public class FileOperationsController {
       filesToUpload.add(new UploadRequest(uri, remotePath, fileName, fileSize));
     }
 
-    // Check for conflicts on a background thread
+    // Android keeps at most 512 persisted grants per app. A selection beyond the remaining budget
+    // cannot survive a reboot on per-file grants, so ask for one grant on the parent folder.
+    int budget = PersistedGrantBudget.remaining(context);
+    if (uris.size() > budget) {
+      Uri parent = SelectionFolderGrant.commonParentDocumentUri(uris);
+      if (parent != null && activityResultController != null) {
+        pendingFolderGrantFiles = filesToUpload;
+        showFolderGrantDialog(uris.size(), budget, parent);
+        return;
+      }
+      showInfo(
+          context.getString(
+              de.schliweb.sambalite.R.string.upload_large_selection_warning, uris.size(), budget));
+    }
+
+    checkConflictsAndEnqueue(filesToUpload, null);
+  }
+
+  /** Files of a large selection waiting for the user's decision on a folder grant. */
+  @Nullable private List<UploadRequest> pendingFolderGrantFiles;
+
+  /**
+   * Offers a single folder grant for a selection that exceeds the persisted grant budget. "Grant
+   * folder access" opens the folder picker at the parent folder; "Continue anyway" enqueues the
+   * files on their temporary grants, which last only while the app process lives.
+   */
+  private void showFolderGrantDialog(int fileCount, int budget, Uri parentDocumentUri) {
+    String folderName = SelectionFolderGrant.folderDisplayName(parentDocumentUri);
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+        .setTitle(de.schliweb.sambalite.R.string.upload_folder_grant_title)
+        .setMessage(
+            context.getString(
+                de.schliweb.sambalite.R.string.upload_folder_grant_message,
+                fileCount,
+                budget,
+                folderName))
+        .setPositiveButton(
+            de.schliweb.sambalite.R.string.upload_folder_grant_confirm,
+            (dialog, which) -> {
+              LogUtils.i(
+                  "FileOperationsController",
+                  "Requesting folder grant for " + fileCount + " picked files: " + folderName);
+              activityResultController.selectFolderForSelectedFiles(parentDocumentUri);
+            })
+        .setNeutralButton(
+            de.schliweb.sambalite.R.string.upload_folder_grant_continue,
+            (dialog, which) -> {
+              List<UploadRequest> files = takePendingFolderGrantFiles();
+              if (files != null) {
+                LogUtils.w(
+                    "FileOperationsController",
+                    "Enqueuing " + files.size() + " files on temporary grants only");
+                checkConflictsAndEnqueue(files, null);
+              }
+            })
+        .setNegativeButton(
+            de.schliweb.sambalite.R.string.cancel,
+            (dialog, which) -> {
+              takePendingFolderGrantFiles();
+              LogUtils.i("FileOperationsController", "Large upload selection cancelled by user");
+            })
+        .setCancelable(false)
+        .show();
+  }
+
+  /**
+   * Continues a large multi-file upload after the user granted access to a folder. The files are
+   * re-addressed as children of the granted tree so the folder grant covers them. If the user
+   * picked a folder that does not contain the files, they are enqueued on their temporary grants.
+   *
+   * @param treeUri The tree URI returned by the folder picker
+   */
+  public void handleFolderGrantForSelectedFiles(@NonNull Uri treeUri) {
+    List<UploadRequest> files = takePendingFolderGrantFiles();
+    if (files == null || files.isEmpty()) {
+      LogUtils.w("FileOperationsController", "Folder grant received without pending selection");
+      return;
+    }
+    List<UploadRequest> rebased = SelectionFolderGrant.rebaseOnTree(files, treeUri);
+    if (rebased == null) {
+      LogUtils.w(
+          "FileOperationsController",
+          "Granted folder " + treeUri + " does not contain the picked files, using file grants");
+      showInfo(context.getString(de.schliweb.sambalite.R.string.upload_folder_grant_mismatch));
+      checkConflictsAndEnqueue(files, null);
+      return;
+    }
+    LogUtils.i(
+        "FileOperationsController",
+        "Folder grant covers " + rebased.size() + " picked files: " + treeUri);
+    checkConflictsAndEnqueue(rebased, treeUri);
+  }
+
+  @Nullable
+  private List<UploadRequest> takePendingFolderGrantFiles() {
+    List<UploadRequest> files = pendingFolderGrantFiles;
+    pendingFolderGrantFiles = null;
+    return files;
+  }
+
+  /**
+   * Checks the files against the queue and the server on a background thread, then shows the
+   * conflict dialogs and enqueues the remaining files as one batch.
+   *
+   * @param grantUri The tree URI whose grant covers all files, or {@code null} for per-file grants
+   */
+  private void checkConflictsAndEnqueue(List<UploadRequest> files, @Nullable Uri grantUri) {
     new Thread(
             () -> {
-              UploadConflictFinder.Result conflicts = findUploadConflicts(filesToUpload);
+              UploadConflictFinder.Result conflicts = findUploadConflicts(files);
               runOnMain(
                   () ->
                       resolveConflictsAndEnqueue(
-                          filesToUpload,
+                          files,
                           conflicts,
-                          null,
-                          "multi-file upload of " + filesToUpload.size() + " files"));
+                          grantUri,
+                          "multi-file upload of " + files.size() + " files"));
             })
         .start();
   }
@@ -822,13 +932,9 @@ public class FileOperationsController {
         "FileOperationsController", "Enqueued multi-file download: " + pending.size() + " files");
   }
 
+  /** Self-grants temporary read access and, if the provider allows it, persists the grant. */
   void trySelfGrantRead(Uri uri) {
-    try {
-      context.grantUriPermission(
-          context.getPackageName(), uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
-    } catch (Exception e) {
-      LogUtils.w("FileOperationsController", "Self-grant read failed: " + e.getMessage());
-    }
+    selfGrantRead(uri);
     try {
       // Attempt to persist if possible (will fail silently if not persistable)
       context
@@ -836,6 +942,16 @@ public class FileOperationsController {
           .takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
     } catch (Exception e) {
       // Not all providers allow this; ignore
+    }
+  }
+
+  /** Self-grants temporary read access without persisting it. */
+  private void selfGrantRead(Uri uri) {
+    try {
+      context.grantUriPermission(
+          context.getPackageName(), uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    } catch (Exception e) {
+      LogUtils.w("FileOperationsController", "Self-grant read failed: " + e.getMessage());
     }
   }
 

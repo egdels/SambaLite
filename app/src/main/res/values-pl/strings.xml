@@ -455,4 +455,12 @@
     <string name="auth_failed">Uwierzytelnianie nie powiodło się: %s</string>
     <string name="file_upload_in_progress">Ten plik jest właśnie przesyłany</string>
     <string name="file_download_in_progress">Ten plik jest właśnie pobierany</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Przyznaj dostęp do folderu</string>
+    <string name="upload_folder_grant_message">Wybrano %1$d plików. Android zachowuje trwały dostęp do co najwyżej %2$d pojedynczych plików, więc przesyłanie zatrzymałoby się po ponownym uruchomieniu. Przyznaj SambaLite dostęp do folderu „%3$s”, aby wszystkie przesyłania były kontynuowane.</string>
+    <string name="upload_folder_grant_confirm">Przyznaj dostęp do folderu</string>
+    <string name="upload_folder_grant_continue">Kontynuuj mimo to</string>
+    <string name="upload_folder_grant_mismatch">Wybrany folder nie zawiera zaznaczonych plików. Przesyłanie działa niezawodnie tylko wtedy, gdy aplikacja pozostaje otwarta.</string>
+    <string name="upload_large_selection_warning">Wybrano %1$d plików. Android zachowuje trwały dostęp do co najwyżej %2$d plików, więc przesyłanie działa niezawodnie tylko wtedy, gdy aplikacja pozostaje otwarta.</string>
 </resources>

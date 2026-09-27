@@ -1062,7 +1062,11 @@ public class FileOperationsViewModel extends ViewModel {
             if (grantUri != null) {
               UploadSourceGrants.retain(context, grantUri);
             } else {
-              for (UploadRequest r : copy) UploadSourceGrants.retain(context, r.uri);
+              // Per-file grants only while they fit into Android's grant budget; a larger
+              // selection is redirected to a folder grant by FileOperationsController
+              List<Uri> uris = new ArrayList<>(copy.size());
+              for (UploadRequest r : copy) uris.add(r.uri);
+              UploadSourceGrants.retainAll(context, uris);
             }
           }
           LogUtils.i(

@@ -421,4 +421,12 @@
     <string name="auth_failed">身份验证失败：%s</string>
     <string name="file_upload_in_progress">此文件正在上传中</string>
     <string name="file_download_in_progress">此文件正在下载中</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">授予文件夹访问权限</string>
+    <string name="upload_folder_grant_message">您选择了 %1$d 个文件。Android 最多只能为 %2$d 个单独文件保留永久访问权限，因此重启后上传会中断。请授予 SambaLite 对文件夹“%3$s”的访问权限，以便所有上传继续进行。</string>
+    <string name="upload_folder_grant_confirm">授予文件夹访问权限</string>
+    <string name="upload_folder_grant_continue">仍然继续</string>
+    <string name="upload_folder_grant_mismatch">所选文件夹不包含选中的文件。只有在应用保持打开时，上传才能可靠运行。</string>
+    <string name="upload_large_selection_warning">已选择 %1$d 个文件。Android 最多只能为 %2$d 个文件保留永久访问权限，因此只有在应用保持打开时，上传才能可靠运行。</string>
 </resources>

@@ -430,4 +430,12 @@
     <string name="auth_failed">Authenticatie mislukt: %s</string>
     <string name="file_upload_in_progress">Dit bestand wordt momenteel geüpload</string>
     <string name="file_download_in_progress">Dit bestand wordt momenteel gedownload</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Maptoegang verlenen</string>
+    <string name="upload_folder_grant_message">U hebt %1$d bestanden geselecteerd. Android bewaart permanente toegang voor maximaal %2$d afzonderlijke bestanden, dus de uploads zouden na een herstart stoppen. Verleen SambaLite toegang tot de map “%3$s” zodat alle uploads doorlopen.</string>
+    <string name="upload_folder_grant_confirm">Maptoegang verlenen</string>
+    <string name="upload_folder_grant_continue">Toch doorgaan</string>
+    <string name="upload_folder_grant_mismatch">De gekozen map bevat de geselecteerde bestanden niet. De uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
+    <string name="upload_large_selection_warning">%1$d bestanden geselecteerd. Android bewaart permanente toegang voor maximaal %2$d bestanden, dus de uploads werken alleen betrouwbaar zolang de app geopend blijft.</string>
 </resources>

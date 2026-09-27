@@ -30,6 +30,7 @@ import java.util.List;
  * a grant is released again once no unfinished upload depends on it any more. Grants are released
  * when an upload completes, when uploads are cancelled and when they are removed from the queue.
  *
+ *
  * <p>Only read-only grants are ever released. Read/write grants belong to download targets and sync
  * folders and are never touched. For folder uploads the grant lives on the picked tree URI, which
  * covers all child documents, so it is released only after the last unfinished child upload from
@@ -43,6 +44,8 @@ import java.util.List;
 public final class UploadSourceGrants {
 
   private static final String TAG = "UploadSourceGrants";
+
+  private static final int READ = Intent.FLAG_GRANT_READ_URI_PERMISSION;
 
   private static final Object LOCK = new Object();
 
@@ -66,13 +69,53 @@ public final class UploadSourceGrants {
    */
   public static void retain(@NonNull Context context, @NonNull Uri uri) {
     try {
-      context
-          .getApplicationContext()
-          .getContentResolver()
-          .takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      context.getApplicationContext().getContentResolver().takePersistableUriPermission(uri, READ);
     } catch (Exception e) {
       LogUtils.d(TAG, "No persistable read grant for " + uri + ": " + e.getMessage());
     }
+  }
+
+  /**
+   * Takes persistable read grants for several picked files, but only while they fit into the
+   * remaining grant budget. Taking more than Android keeps would silently evict older grants,
+   * including those of sync folders, and most of the new grants would be lost anyway.
+   *
+   * @return {@code true} when the grants were taken, {@code false} when the selection exceeded the
+   *     budget and the files stay on their temporary grants
+   */
+  public static boolean retainAll(@NonNull Context context, @NonNull Collection<Uri> uris) {
+    // Grants already persisted (by the picker result handler) do not need budget again
+    java.util.Set<String> held = new java.util.HashSet<>();
+    try {
+      for (UriPermission p :
+          context.getApplicationContext().getContentResolver().getPersistedUriPermissions()) {
+        held.add(p.getUri().toString());
+      }
+    } catch (Exception ignored) {
+      // treat all as new
+    }
+    int newGrants = 0;
+    for (Uri uri : uris) {
+      if (!held.contains(uri.toString())) {
+        newGrants++;
+      }
+    }
+    if (!PersistedGrantBudget.fits(context, newGrants)) {
+      LogUtils.w(
+          TAG,
+          "Not persisting "
+              + newGrants
+              + " new upload source grants: only "
+              + PersistedGrantBudget.remaining(context)
+              + " of Android's "
+              + PersistedGrantBudget.ANDROID_MAX_PERSISTED_GRANTS
+              + " persisted grants are still free");
+      return false;
+    }
+    for (Uri uri : uris) {
+      retain(context, uri);
+    }
+    return true;
   }
 
   /**
@@ -104,13 +147,7 @@ public final class UploadSourceGrants {
           if (!coversAny(grant, uploadUris) || coversAny(grant, unfinished)) {
             continue;
           }
-          try {
-            resolver.releasePersistableUriPermission(
-                perm.getUri(), Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            LogUtils.i(TAG, "Released persisted upload source grant: " + grant);
-          } catch (Exception e) {
-            LogUtils.w(TAG, "Could not release grant " + grant + ": " + e.getMessage());
-          }
+          release(resolver, perm.getUri(), READ, "upload source");
         }
       } catch (Exception e) {
         LogUtils.w(TAG, "Could not release upload URI permissions: " + e.getMessage());
@@ -122,6 +159,37 @@ public final class UploadSourceGrants {
   public static void releaseIfUnused(
       @NonNull Context context, @NonNull PendingTransferDao dao, @NonNull String uploadUri) {
     releaseIfUnused(context, dao, Collections.singletonList(uploadUri));
+  }
+
+  /**
+   * Releases every persisted read-only grant that no unfinished upload refers to any more.
+   * Read-only grants are only ever taken for upload sources, so a grant without an unfinished
+   * upload is a leftover: from app versions that never released grants, or from files whose uploads
+   * were re-addressed under a folder grant. Called when the worker has drained the queue.
+   *
+   * @return The number of grants released
+   */
+  public static int releaseUnreferenced(@NonNull Context context, @NonNull PendingTransferDao dao) {
+    int released = 0;
+    synchronized (LOCK) {
+      try {
+        ContentResolver resolver = context.getApplicationContext().getContentResolver();
+        List<String> unfinished = dao.getUnfinishedUploadLocalUris();
+        for (UriPermission perm : new ArrayList<>(resolver.getPersistedUriPermissions())) {
+          if (!perm.isReadPermission() || perm.isWritePermission()) {
+            continue;
+          }
+          if (coversAny(perm.getUri().toString(), unfinished)) {
+            continue;
+          }
+          release(resolver, perm.getUri(), READ, "unreferenced upload source");
+          released++;
+        }
+      } catch (Exception e) {
+        LogUtils.w(TAG, "Could not release unreferenced grants: " + e.getMessage());
+      }
+    }
+    return released;
   }
 
   /**
@@ -155,6 +223,15 @@ public final class UploadSourceGrants {
     List<String> uploadUris = dao.getUploadLocalUrisByIds(ids);
     dao.deleteByIds(ids);
     releaseIfUnused(context, dao, uploadUris);
+  }
+
+  private static void release(ContentResolver resolver, Uri uri, int modeFlags, String what) {
+    try {
+      resolver.releasePersistableUriPermission(uri, modeFlags);
+      LogUtils.i(TAG, "Released persisted " + what + " grant: " + uri);
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not release grant " + uri + ": " + e.getMessage());
+    }
   }
 
   /**

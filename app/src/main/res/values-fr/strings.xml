@@ -442,4 +442,12 @@
     <string name="auth_failed">Échec de l\u2019authentification : %s</string>
     <string name="file_upload_in_progress">Ce fichier est en cours de téléversement</string>
     <string name="file_download_in_progress">Ce fichier est en cours de téléchargement</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Accorder l’accès au dossier</string>
+    <string name="upload_folder_grant_message">Vous avez sélectionné %1$d fichiers. Android conserve un accès permanent pour au plus %2$d fichiers individuels, les téléversements s’arrêteraient donc après un redémarrage. Accordez à SambaLite l’accès au dossier « %3$s » pour que tous les téléversements continuent.</string>
+    <string name="upload_folder_grant_confirm">Accorder l’accès au dossier</string>
+    <string name="upload_folder_grant_continue">Continuer quand même</string>
+    <string name="upload_folder_grant_mismatch">Le dossier choisi ne contient pas les fichiers sélectionnés. Les téléversements ne sont fiables que tant que l’application reste ouverte.</string>
+    <string name="upload_large_selection_warning">%1$d fichiers sélectionnés. Android conserve un accès permanent pour au plus %2$d fichiers, les téléversements ne sont donc fiables que tant que l’application reste ouverte.</string>
 </resources>

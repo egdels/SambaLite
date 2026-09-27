@@ -777,6 +777,11 @@ public class FileBrowserActivity extends AppCompatActivity
           }
 
           @Override
+          public void onFolderGrantForSelectedFilesResult(Uri treeUri) {
+            fileOperationsController.handleFolderGrantForSelectedFiles(treeUri);
+          }
+
+          @Override
           public void onSyncFolderSelected(Uri uri) {
             handleSyncFolderSelected(uri);
           }
@@ -1412,14 +1417,22 @@ public class FileBrowserActivity extends AppCompatActivity
       }
 
       if (uris != null && !uris.isEmpty()) {
-        // Best-effort persist or self-grant read permissions for each URI
+        // Best-effort persist or self-grant read permissions for each URI. Share intents rarely
+        // carry persistable grants, and per-file grants are only taken while they fit into
+        // Android's per-app budget (see PersistedGrantBudget).
         final int modeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        final boolean tryPersist =
+            de.schliweb.sambalite.transfer.PersistedGrantBudget.fits(this, uris.size());
+        int persisted = 0;
         for (android.net.Uri u : uris) {
           try {
             String auth = u.getAuthority();
             // Google Photos provides only temporary grants; do NOT attempt to persist
-            if (auth == null || !auth.startsWith("com.google.android.apps.photos")) {
+            if (!tryPersist) {
+              // over budget: leave the files on their temporary grants
+            } else if (auth == null || !auth.startsWith("com.google.android.apps.photos")) {
               getContentResolver().takePersistableUriPermission(u, modeFlags);
+              persisted++;
             } else {
               LogUtils.d(
                   "FileBrowserActivity",
@@ -1435,6 +1448,16 @@ public class FileBrowserActivity extends AppCompatActivity
           } catch (Exception e) {
             LogUtils.w("FileBrowserActivity", "grantUriPermission failed: " + e.getMessage());
           }
+        }
+        if (persisted == 0) {
+          // Nothing could be kept beyond the process lifetime: the uploads depend on the
+          // temporary grants of this activity. ShareReceiverActivity has already told the user
+          // in its confirmation dialog to keep the app open.
+          LogUtils.w(
+              "FileBrowserActivity",
+              "No persistable grant for "
+                  + uris.size()
+                  + " shared files, uploads need the app open");
         }
 
         // Build the full remote path (share/subdir) for the upload target. Always include the

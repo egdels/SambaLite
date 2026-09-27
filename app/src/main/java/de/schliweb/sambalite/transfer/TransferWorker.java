@@ -1390,6 +1390,11 @@ public class TransferWorker extends Worker {
     } catch (Exception e) {
       LogUtils.w(TAG, "Cleanup failed: " + e.getMessage());
     }
+    // Persisted grants count against Android's per-app cap, so drop the ones no upload needs
+    int released = UploadSourceGrants.releaseUnreferenced(getApplicationContext(), dao);
+    if (released > 0) {
+      LogUtils.i(TAG, "Released " + released + " unreferenced upload source grants");
+    }
   }
 
   /**

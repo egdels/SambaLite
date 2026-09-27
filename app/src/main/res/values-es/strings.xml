@@ -442,4 +442,12 @@
     <string name="auth_failed">Error de autenticación: %s</string>
     <string name="file_upload_in_progress">Este archivo se está subiendo actualmente</string>
     <string name="file_download_in_progress">Este archivo se está descargando actualmente</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Conceder acceso a la carpeta</string>
+    <string name="upload_folder_grant_message">Ha seleccionado %1$d archivos. Android conserva el acceso permanente para un máximo de %2$d archivos individuales, por lo que las subidas se detendrían tras un reinicio. Conceda a SambaLite acceso a la carpeta “%3$s” para que todas las subidas continúen.</string>
+    <string name="upload_folder_grant_confirm">Conceder acceso a la carpeta</string>
+    <string name="upload_folder_grant_continue">Continuar de todos modos</string>
+    <string name="upload_folder_grant_mismatch">La carpeta elegida no contiene los archivos seleccionados. Las subidas solo funcionan de forma fiable mientras la aplicación permanezca abierta.</string>
+    <string name="upload_large_selection_warning">%1$d archivos seleccionados. Android conserva el acceso permanente para un máximo de %2$d archivos, por lo que las subidas solo funcionan de forma fiable mientras la aplicación permanezca abierta.</string>
 </resources>

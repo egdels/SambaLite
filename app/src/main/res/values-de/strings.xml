@@ -430,4 +430,12 @@
     <string name="auth_failed">Authentifizierung fehlgeschlagen: %s</string>
     <string name="file_upload_in_progress">Diese Datei wird gerade hochgeladen</string>
     <string name="file_download_in_progress">Diese Datei wird gerade heruntergeladen</string>
+
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Ordnerzugriff erteilen</string>
+    <string name="upload_folder_grant_message">Sie haben %1$d Dateien ausgewählt. Android speichert dauerhaften Zugriff für höchstens %2$d einzelne Dateien, die Uploads würden nach einem Neustart abbrechen. Erteilen Sie SambaLite Zugriff auf den Ordner „%3$s“, damit alle Uploads weiterlaufen.</string>
+    <string name="upload_folder_grant_confirm">Ordnerzugriff erteilen</string>
+    <string name="upload_folder_grant_continue">Trotzdem fortfahren</string>
+    <string name="upload_folder_grant_mismatch">Der gewählte Ordner enthält die ausgewählten Dateien nicht. Die Uploads laufen nur zuverlässig, solange die App geöffnet bleibt.</string>
+    <string name="upload_large_selection_warning">%1$d Dateien ausgewählt. Android speichert dauerhaften Zugriff für höchstens %2$d Dateien, die Uploads laufen nur zuverlässig, solange die App geöffnet bleibt.</string>
 </resources>

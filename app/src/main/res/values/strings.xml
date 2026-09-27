@@ -439,5 +439,12 @@
         <item quantity="one">%1$d transfer</item>
         <item quantity="other">%1$d transfers</item>
     </plurals>
-</resources>
 
+    <!-- Large multi-file uploads and Android's persisted grant limit -->
+    <string name="upload_folder_grant_title">Grant folder access</string>
+    <string name="upload_folder_grant_message">You selected %1$d files. Android keeps permanent access for at most %2$d individual files, so the uploads would stop after a restart. Grant SambaLite access to the folder “%3$s” so that all uploads keep running.</string>
+    <string name="upload_folder_grant_confirm">Grant folder access</string>
+    <string name="upload_folder_grant_continue">Continue anyway</string>
+    <string name="upload_folder_grant_mismatch">The chosen folder does not contain the selected files. The uploads run reliably only while the app stays open.</string>
+    <string name="upload_large_selection_warning">%1$d files selected. Android keeps permanent access for at most %2$d files, so the uploads run reliably only while the app stays open.</string>
+</resources>
