@@ -42,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -60,6 +61,14 @@ public class SmbRepositoryImpl implements SmbRepository {
   @NonNull private final SMBClient smbClient;
   // Thread-local to track the currently connected share name for path normalization
   @NonNull private final ThreadLocal<String> currentShareName = new ThreadLocal<>();
+
+  /**
+   * The attempt number of the enclosing {@link #withShareWithRetry} call on this thread. A download
+   * running inside a re-established share (attempt 2 or 3) resumes its partial local file instead
+   * of starting over.
+   */
+  @NonNull private final ThreadLocal<Integer> currentShareAttempt = new ThreadLocal<>();
+
   @NonNull private final BackgroundSmbManager backgroundManager;
   @NonNull private final SmartErrorHandler errorHandler;
   @NonNull private final ScheduledExecutorService scheduler;
@@ -193,14 +202,14 @@ public class SmbRepositoryImpl implements SmbRepository {
       Map.Entry<String, CachedShare> entry = it.next();
       String connectionId = entry.getKey();
       CachedShare cached = entry.getValue();
-      if (cached != null && (now - cached.lastAccess > idleTimeout)) {
+      if (isIdle(cached, now, idleTimeout)) {
         ReentrantLock lock =
             connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
         lock.lock();
         try {
           // Double check after locking (could have been accessed or removed)
           CachedShare current = sessionCache.get(connectionId);
-          if (current == cached && (now - current.lastAccess > idleTimeout)) {
+          if (current == cached && isIdle(current, now, idleTimeout)) {
             LogUtils.d(
                 "SmbRepositoryImpl", "Closing idle SMB session for connection: " + connectionId);
             closeCachedShare(current);
@@ -585,7 +594,14 @@ public class SmbRepositoryImpl implements SmbRepository {
                 + remoteTimestamp
                 + "ms)");
 
-        long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
+        // Resume the partial local file on any retry: the inner one here and the outer one in
+        // withShareWithRetry, which re-establishes the share after a dropped connection
+        long remoteSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+        long resumeFrom =
+            resumeOffset(
+                attempt > 1 || shareAttempt() > 1,
+                localFile.exists() ? localFile.length() : 0,
+                remoteSize);
         try (InputStream is = remoteFile.getInputStream();
             java.io.FileOutputStream fos =
                 new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
@@ -715,12 +731,24 @@ public class SmbRepositoryImpl implements SmbRepository {
       String shareName = getShareName(connection.getShare());
       LogUtils.d(
           "SmbRepositoryImpl", "Using cached share: " + shareName + " (attempt " + attempt + ")");
+      // Mark the share as busy so the idle cleanup does not close it under a long-running
+      // operation such as streaming a multi-gigabyte file into the cache
+      CachedShare cached = sessionCache.get(cacheKey(connection));
+      if (cached != null) {
+        cached.activeOperations.incrementAndGet();
+      }
       // Set active share name for path normalization within this thread
       currentShareName.set(shareName);
+      currentShareAttempt.set(attempt);
       try {
         return callback.doWithShare(share);
       } finally {
         currentShareName.remove();
+        currentShareAttempt.remove();
+        if (cached != null) {
+          cached.activeOperations.decrementAndGet();
+          cached.lastAccess = System.currentTimeMillis(); // idle time starts after the last use
+        }
       }
     } catch (Exception e) {
       LogUtils.w(
@@ -2263,7 +2291,14 @@ public class SmbRepositoryImpl implements SmbRepository {
                 + remoteTimestamp
                 + "ms)");
 
-        long resumeFrom = (attempt > 1 && localFile.exists()) ? localFile.length() : 0;
+        // Resume the partial local file on any retry: the inner one here and the outer one in
+        // withShareWithRetry, which re-establishes the share after a dropped connection
+        long remoteSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
+        long resumeFrom =
+            resumeOffset(
+                attempt > 1 || shareAttempt() > 1,
+                localFile.exists() ? localFile.length() : 0,
+                remoteSize);
         try (InputStream is = remoteFile.getInputStream();
             java.io.FileOutputStream fos =
                 new java.io.FileOutputStream(localFile, resumeFrom > 0)) {
@@ -2438,11 +2473,50 @@ public class SmbRepositoryImpl implements SmbRepository {
     T doWithShare(DiskShare share) throws Exception;
   }
 
-  private static class CachedShare {
+  /** The cache key of a connection: its ID, or server and share when it has none. */
+  private static String cacheKey(SmbConnection connection) {
+    String connectionId = connection.getId();
+    return connectionId != null
+        ? connectionId
+        : connection.getServer() + ":" + connection.getShare();
+  }
+
+  /** The attempt number of the enclosing share operation on this thread, 1 when unknown. */
+  private int shareAttempt() {
+    Integer attempt = currentShareAttempt.get();
+    return attempt != null ? attempt : 1;
+  }
+
+  /**
+   * Whether the cached share may be closed by the idle cleanup: no operation is running on it and
+   * it was last used more than {@code idleTimeout} milliseconds ago.
+   */
+  static boolean isIdle(@Nullable CachedShare cached, long now, long idleTimeout) {
+    return cached != null
+        && cached.activeOperations.get() == 0
+        && now - cached.lastAccess > idleTimeout;
+  }
+
+  /**
+   * The byte offset at which a download continues. Only a retry resumes, and only when the partial
+   * local file is non-empty and not longer than the remote file; anything else starts over.
+   */
+  static long resumeOffset(boolean retrying, long localLength, long remoteSize) {
+    if (!retrying || localLength <= 0 || localLength > remoteSize) {
+      return 0;
+    }
+    return localLength;
+  }
+
+  /** A cached SMB connection, session and share with its idle bookkeeping. */
+  static class CachedShare {
     final Connection connection;
     final Session session;
     final DiskShare share;
     volatile long lastAccess;
+
+    /** Operations currently running on the share; the idle cleanup leaves busy shares alone. */
+    final AtomicInteger activeOperations = new AtomicInteger();
 
     CachedShare(Connection connection, Session session, DiskShare share) {
       this.connection = connection;
