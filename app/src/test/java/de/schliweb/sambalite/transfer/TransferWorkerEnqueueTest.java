@@ -51,6 +51,8 @@ public class TransferWorkerEnqueueTest {
   @After
   public void tearDown() {
     background.shutdownNow();
+    // Close the test WorkManager's in-memory database, otherwise CloseGuard reports a leak
+    WorkManagerTestInitHelper.closeWorkDatabase();
   }
 
   /** The method blocks on the WorkManager state query, so it must refuse the main thread. */

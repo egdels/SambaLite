@@ -86,6 +86,8 @@ public class FileOperationsViewModelEnqueueTest {
   public void tearDown() throws Exception {
     if (db != null) db.close();
     mocks.close();
+    // Tests that initialize the test WorkManager leave its in-memory database open otherwise
+    androidx.work.testing.WorkManagerTestInitHelper.closeWorkDatabase();
   }
 
   @Test
