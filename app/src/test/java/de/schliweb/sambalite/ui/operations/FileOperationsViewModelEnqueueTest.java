@@ -194,10 +194,18 @@ public class FileOperationsViewModelEnqueueTest {
     assertNotNull("enqueueUpload method should exist", viewModel);
 
     // Verify the startTransferWorker method doesn't throw when WorkManager is available
-    // (Robolectric provides a test WorkManager implementation)
+    // (Robolectric provides a test WorkManager implementation). Production always calls it from
+    // a background executor, and TransferWorker.enqueueQueueProcessing() rejects the main thread,
+    // so the call is made from a background thread here as well.
     try {
       androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(context);
-      viewModel.startTransferWorker();
+      java.util.concurrent.ExecutorService background =
+          java.util.concurrent.Executors.newSingleThreadExecutor();
+      try {
+        background.submit(viewModel::startTransferWorker).get(10, TimeUnit.SECONDS);
+      } finally {
+        background.shutdownNow();
+      }
     } catch (Exception e) {
       fail("startTransferWorker should not throw: " + e.getMessage());
     }
