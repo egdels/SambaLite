@@ -5,6 +5,11 @@ All notable changes to SambaLite will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Uploads stalled as "Pending" for up to 5 hours when certain failed uploads exist (issue #34)**: A permanently failing transfer (e.g. a lost SAF URI permission after process death) was revived with `retry_count = 0` on every app start, so it failed on every worker run and ratcheted up WorkManager's exponential retry backoff to its 5-hour maximum. Because all enqueue call sites used `ExistingWorkPolicy.KEEP`, newly enqueued transfers silently waited behind that backoff timer. `resetFailedToRetry()` now only revives failed transfers that still have retries left and preserves their retry count, so exhausted transfers stay FAILED (manual retry still works). Enqueueing is centralized in the new `TransferWorker.enqueueQueueProcessing()`, which REPLACEs the unique work (a fresh request carries no backoff) unless the worker is currently RUNNING, in which case it is KEPT since the running worker picks up new transfers from the DB anyway. The method must be called from a background thread and rejects main-thread calls. Contributed by @mattbasta.
+
 ## [2.5.5] - 2026-09-26
 
 ### Fixed
