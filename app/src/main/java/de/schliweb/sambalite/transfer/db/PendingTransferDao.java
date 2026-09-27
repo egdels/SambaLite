@@ -228,6 +228,15 @@ public interface PendingTransferDao {
   @Query("UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now WHERE id IN (:ids)")
   void cancelByIds(@NonNull java.util.List<Long> ids, long now);
 
+  /**
+   * Resets all failed transfers to PENDING for a manual "retry all" from the queue UI, including
+   * those whose automatic retries are exhausted. Retry count and progress start over.
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0,"
+          + " updated_at = :now WHERE status = 'FAILED'")
+  int resetAllFailedToPending(long now);
+
   /** Resets multiple transfers to PENDING for retry. */
   @Query(
       "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0, updated_at = :now"

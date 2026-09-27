@@ -278,6 +278,33 @@ public class TransferQueueBehaviorTest {
     assertEquals(0, pending.get(0).retryCount);
   }
 
+  /** "Retry all failed" from the queue UI revives every failed transfer, exhausted ones included. */
+  @Test
+  public void testResetAllFailedToPending_revivesExhaustedFailedOnly() {
+    long failed = dao.insert(createTestTransfer("failed.txt"));
+    dao.markFailed(failed, "err", System.currentTimeMillis());
+    long exhausted = dao.insert(createTestTransfer("exhausted.txt"));
+    dao.markFailedPermanently(exhausted, "access lost", System.currentTimeMillis());
+    long active = dao.insert(createTestTransfer("active.txt"));
+    dao.updateStatus(active, "ACTIVE", System.currentTimeMillis());
+    long completed = dao.insert(createTestTransfer("done.txt"));
+    dao.updateStatus(completed, "COMPLETED", System.currentTimeMillis());
+    long cancelled = dao.insert(createTestTransfer("cancelled.txt"));
+    dao.cancel(cancelled, System.currentTimeMillis());
+
+    int reset = dao.resetAllFailedToPending(System.currentTimeMillis());
+
+    assertEquals(2, reset);
+    assertEquals("PENDING", dao.getStatus(failed));
+    assertEquals("PENDING", dao.getStatus(exhausted));
+    assertEquals("ACTIVE", dao.getStatus(active));
+    assertEquals("COMPLETED", dao.getStatus(completed));
+    assertEquals("CANCELLED", dao.getStatus(cancelled));
+    for (PendingTransfer t : dao.getPendingForConnection("conn1")) {
+      assertEquals(0, t.retryCount);
+    }
+  }
+
   private PendingTransfer createTestTransfer(String name) {
     PendingTransfer t = new PendingTransfer();
     t.transferType = "UPLOAD";

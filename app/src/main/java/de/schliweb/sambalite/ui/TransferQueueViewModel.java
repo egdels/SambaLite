@@ -131,8 +131,11 @@ public class TransferQueueViewModel extends AndroidViewModel {
   public void retryAllFailed() {
     executor.execute(
         () -> {
-          dao.resetActiveToRetry(System.currentTimeMillis());
-          startTransferWorker();
+          int reset = dao.resetAllFailedToPending(System.currentTimeMillis());
+          Log.d(TAG, "retryAllFailed: reset " + reset + " failed transfers to PENDING");
+          if (reset > 0) {
+            startTransferWorker();
+          }
         });
   }
 
