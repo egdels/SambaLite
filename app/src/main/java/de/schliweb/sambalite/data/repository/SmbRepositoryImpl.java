@@ -13,11 +13,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msdtyp.FileTime;
+import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.msfscc.fileinformation.FileBasicInformation;
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.mssmb2.SMBApiException;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
@@ -42,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
@@ -223,6 +226,9 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   private void closeCachedShare(CachedShare cached) {
+    if (!cached.closed.compareAndSet(false, true)) {
+      return; // already closed by another path
+    }
     try {
       if (cached.share != null) cached.share.close();
     } catch (Exception e) {
@@ -652,16 +658,13 @@ public class SmbRepositoryImpl implements SmbRepository {
     return withShareWithRetry(connection, callback, 1);
   }
 
-  private DiskShare getOrCreateShare(SmbConnection connection) throws Exception {
-    String connectionId = connection.getId();
-    if (connectionId == null) {
-      connectionId = connection.getServer() + ":" + connection.getShare();
-    }
+  private CachedShare getOrCreateShare(SmbConnection connection) throws Exception {
+    String connectionId = cacheKey(connection);
 
     CachedShare cached = sessionCache.get(connectionId);
     if (cached != null && cached.share.isConnected()) {
       cached.lastAccess = System.currentTimeMillis();
-      return cached.share;
+      return cached;
     }
 
     ReentrantLock lock = connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
@@ -671,7 +674,7 @@ public class SmbRepositoryImpl implements SmbRepository {
       cached = sessionCache.get(connectionId);
       if (cached != null && cached.share.isConnected()) {
         cached.lastAccess = System.currentTimeMillis();
-        return cached.share;
+        return cached;
       }
 
       // If existing but not connected, clean up
@@ -702,7 +705,7 @@ public class SmbRepositoryImpl implements SmbRepository {
 
           CachedShare newCached = new CachedShare(conn, session, share);
           sessionCache.put(connectionId, newCached);
-          return share;
+          return newCached;
         } catch (Exception e) {
           try {
             session.close();
@@ -726,51 +729,35 @@ public class SmbRepositoryImpl implements SmbRepository {
   private <T> T withShareWithRetry(
       SmbConnection connection, SmbShareCallback<T> callback, int attempt) throws Exception {
     final int MAX_ATTEMPTS = 3;
+    CachedShare cached = null;
     try {
-      DiskShare share = getOrCreateShare(connection);
+      cached = getOrCreateShare(connection);
       String shareName = getShareName(connection.getShare());
       LogUtils.d(
           "SmbRepositoryImpl", "Using cached share: " + shareName + " (attempt " + attempt + ")");
       // Mark the share as busy so the idle cleanup does not close it under a long-running
       // operation such as streaming a multi-gigabyte file into the cache
-      CachedShare cached = sessionCache.get(cacheKey(connection));
-      if (cached != null) {
-        cached.activeOperations.incrementAndGet();
-      }
+      cached.activeOperations.incrementAndGet();
       // Set active share name for path normalization within this thread
       currentShareName.set(shareName);
       currentShareAttempt.set(attempt);
       try {
-        return callback.doWithShare(share);
+        return callback.doWithShare(cached.share);
       } finally {
         currentShareName.remove();
         currentShareAttempt.remove();
-        if (cached != null) {
-          cached.activeOperations.decrementAndGet();
-          cached.lastAccess = System.currentTimeMillis(); // idle time starts after the last use
-        }
+        releaseCachedShare(cached);
       }
     } catch (Exception e) {
       LogUtils.w(
           "SmbRepositoryImpl",
           "Share operation failed (attempt " + attempt + "): " + e.getMessage());
 
-      // Invalidate cache on failure
-      String connectionId = connection.getId();
-      if (connectionId == null) {
-        connectionId = connection.getServer() + ":" + connection.getShare();
-      }
-      ReentrantLock lock = connectionLocks.get(connectionId);
-      if (lock != null) {
-        lock.lock();
-        try {
-          CachedShare cached = sessionCache.remove(connectionId);
-          if (cached != null) {
-            closeCachedShare(cached);
-          }
-        } finally {
-          lock.unlock();
-        }
+      // Invalidate the share this operation used, unless the server merely rejected the request
+      // (access denied, not found, ...): the session is healthy then and other operations
+      // running on it must not lose it
+      if (cached != null && !leavesSessionUsable(e)) {
+        retireCachedShare(cacheKey(connection), cached);
       }
 
       recordErrorWithContext(e, "shareOperation", "attempt:" + attempt);
@@ -2488,6 +2475,73 @@ public class SmbRepositoryImpl implements SmbRepository {
   }
 
   /**
+   * Drops a failed share from the cache so the next operation connects anew. It is closed right
+   * away when nothing else runs on it, otherwise by the last operation still using it.
+   */
+  void retireCachedShare(String connectionId, CachedShare cached) {
+    ReentrantLock lock = connectionLocks.computeIfAbsent(connectionId, k -> new ReentrantLock());
+    lock.lock();
+    try {
+      sessionCache.remove(connectionId, cached); // never drop a newer share put there meanwhile
+      cached.retired = true;
+      if (cached.activeOperations.get() == 0) {
+        closeCachedShare(cached);
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * Ends one operation on a share. The idle time starts after the last use, and a share that was
+   * dropped from the cache meanwhile is closed by the last operation leaving it.
+   */
+  void releaseCachedShare(CachedShare cached) {
+    cached.lastAccess = System.currentTimeMillis();
+    if (cached.activeOperations.decrementAndGet() == 0 && cached.retired) {
+      closeCachedShare(cached);
+    }
+  }
+
+  /**
+   * Whether an error says nothing about the health of the SMB session: the server answered and
+   * rejected the request itself, for example a folder the user may not read or a missing file.
+   */
+  static boolean leavesSessionUsable(@Nullable Throwable error) {
+    for (Throwable t = error; t != null; t = t.getCause()) {
+      if (t instanceof SMBApiException) {
+        return REQUEST_REJECTED.contains(((SMBApiException) t).getStatus());
+      }
+      if (t.getCause() == t) {
+        break;
+      }
+    }
+    return false;
+  }
+
+  /** Server answers that reject a single request while the session stays intact. */
+  private static final Set<NtStatus> REQUEST_REJECTED =
+      EnumSet.of(
+          NtStatus.STATUS_ACCESS_DENIED,
+          NtStatus.STATUS_PRIVILEGE_NOT_HELD,
+          NtStatus.STATUS_NO_SUCH_FILE,
+          NtStatus.STATUS_NOT_FOUND,
+          NtStatus.STATUS_OBJECT_NAME_NOT_FOUND,
+          NtStatus.STATUS_OBJECT_PATH_NOT_FOUND,
+          NtStatus.STATUS_OBJECT_NAME_INVALID,
+          NtStatus.STATUS_OBJECT_NAME_COLLISION,
+          NtStatus.STATUS_NAME_TOO_LONG,
+          NtStatus.STATUS_FILE_IS_A_DIRECTORY,
+          NtStatus.STATUS_NOT_A_DIRECTORY,
+          NtStatus.STATUS_DIRECTORY_NOT_EMPTY,
+          NtStatus.STATUS_SHARING_VIOLATION,
+          NtStatus.STATUS_FILE_LOCK_CONFLICT,
+          NtStatus.STATUS_LOCK_NOT_GRANTED,
+          NtStatus.STATUS_DELETE_PENDING,
+          NtStatus.STATUS_CANNOT_DELETE,
+          NtStatus.STATUS_DISK_FULL);
+
+  /**
    * Whether the cached share may be closed by the idle cleanup: no operation is running on it and
    * it was last used more than {@code idleTimeout} milliseconds ago.
    */
@@ -2517,6 +2571,12 @@ public class SmbRepositoryImpl implements SmbRepository {
 
     /** Operations currently running on the share; the idle cleanup leaves busy shares alone. */
     final AtomicInteger activeOperations = new AtomicInteger();
+
+    /** Dropped from the cache after a failure; closed once no operation runs on it any more. */
+    volatile boolean retired;
+
+    /** Guards against closing the share twice. */
+    final AtomicBoolean closed = new AtomicBoolean();
 
     CachedShare(Connection connection, Session session, DiskShare share) {
       this.connection = connection;
