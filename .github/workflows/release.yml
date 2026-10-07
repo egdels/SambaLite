@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on tags like v1.0.0, v1.2.3, etc.
+      - 'v*.*.*'  # v2.5.6 publishes a release, v2.5.6-rc1 a pre-release
 
 jobs:
   build-and-release:
@@ -30,29 +30,69 @@ jobs:
     - name: Extract version from tag
       id: extract_version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Building version: $VERSION"
-        
-        # Calculate versionCode (e.g., "1.2.3" -> 10203)
-        IFS='.' read -r major minor patch <<< "$VERSION"
-        VERSION_CODE=$((major * 10000 + minor * 100 + patch))
-        echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
-        echo "Calculated versionCode: $VERSION_CODE"
-        
-    - name: Update version in build.gradle for GitHub release
+        TAG="$GITHUB_REF_NAME"
+        if [[ ! "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(-rc([0-9]+))?$ ]]; then
+          echo "::error::Tag '$TAG' must look like v2.5.6 (release) or v2.5.6-rc1 (release candidate)"
+          exit 1
+        fi
+        MAJOR=${BASH_REMATCH[1]}
+        MINOR=${BASH_REMATCH[2]}
+        PATCH=${BASH_REMATCH[3]}
+        RC=${BASH_REMATCH[5]}
+
+        # VERSION is the full tag without "v" and becomes the versionName
+        # (2.5.6 or 2.5.6-rc1). BASE_VERSION is what build.gradle carries.
+        VERSION="${TAG#v}"
+        BASE_VERSION="$MAJOR.$MINOR.$PATCH"
+
+        # versionCode scheme MMmmpp, e.g. 2.5.6 -> 20506. A release candidate
+        # shares the versionCode of the release it precedes; Android installs
+        # an update with an equal versionCode, only a downgrade is refused.
+        VERSION_CODE=$((10#$MAJOR * 10000 + 10#$MINOR * 100 + 10#$PATCH))
+
+        if [ -n "$RC" ]; then
+          PRERELEASE=true
+        else
+          PRERELEASE=false
+        fi
+
+        {
+          echo "VERSION=$VERSION"
+          echo "BASE_VERSION=$BASE_VERSION"
+          echo "VERSION_CODE=$VERSION_CODE"
+          echo "PRERELEASE=$PRERELEASE"
+        } >> "$GITHUB_OUTPUT"
+        echo "Building $VERSION (versionCode $VERSION_CODE, pre-release: $PRERELEASE)"
+
+    - name: Check that the tag matches the version in the build files
+      env:
+        BASE_VERSION: ${{ steps.extract_version.outputs.BASE_VERSION }}
+        VERSION_CODE: ${{ steps.extract_version.outputs.VERSION_CODE }}
       run: |
-        # Update both versionCode and versionName for GitHub builds
-        sed -i "s/versionCode [0-9]*/versionCode ${{ steps.extract_version.outputs.VERSION_CODE }}/" app/build.gradle
-        sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.extract_version.outputs.VERSION }}\"/" app/build.gradle
-        
-        # Also update gradle.properties for consistency
-        echo "version=${{ steps.extract_version.outputs.VERSION }}" > gradle.properties.tmp
-        grep -v '^version=' gradle.properties >> gradle.properties.tmp || true
-        mv gradle.properties.tmp gradle.properties
-        echo "Updated gradle.properties:"
-        cat gradle.properties
-        
+        # F-Droid builds from these two values, so a GitHub release must not
+        # ship anything else. Fail instead of silently rewriting them.
+        GRADLE_VERSION=$(sed -n "s/^[[:space:]]*version = '\([0-9.]*\)'.*/\1/p" build.gradle)
+        GRADLE_CODE=$(sed -n 's/^[[:space:]]*versionCode \([0-9]*\).*/\1/p' app/build.gradle)
+        if [ "$GRADLE_VERSION" != "$BASE_VERSION" ]; then
+          echo "::error file=build.gradle::version = '$GRADLE_VERSION' does not match tag version $BASE_VERSION"
+          exit 1
+        fi
+        if [ "$GRADLE_CODE" != "$VERSION_CODE" ]; then
+          echo "::error file=app/build.gradle::versionCode $GRADLE_CODE does not match $VERSION_CODE expected for $BASE_VERSION"
+          exit 1
+        fi
+        echo "build.gradle version $GRADLE_VERSION and versionCode $GRADLE_CODE match the tag"
+
+    - name: Set the release candidate suffix as versionName
+      if: steps.extract_version.outputs.PRERELEASE == 'true'
+      env:
+        VERSION: ${{ steps.extract_version.outputs.VERSION }}
+      run: |
+        # app/build.gradle takes versionName from project.version, so only the
+        # root build.gradle changes; the repository itself keeps 2.5.6.
+        sed -i "s/^\([[:space:]]*version = '\)[0-9.]*'/\1${VERSION}'/" build.gradle
+        grep -n "version = '" build.gradle
+
     - name: Decode Keystore
       run: |
         echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
@@ -94,27 +134,51 @@ jobs:
         
     - name: Create Release Notes
       id: release_notes
+      env:
+        VERSION: ${{ steps.extract_version.outputs.VERSION }}
+        BASE_VERSION: ${{ steps.extract_version.outputs.BASE_VERSION }}
+        PRERELEASE: ${{ steps.extract_version.outputs.PRERELEASE }}
       run: |
-        echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
-        echo "## SambaLite v${{ steps.extract_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo "### Downloads" >> $GITHUB_OUTPUT
-        echo "- **APK**: For direct installation (sideloading)" >> $GITHUB_OUTPUT
-        echo "- **AAB**: For Google Play Store and other app stores" >> $GITHUB_OUTPUT
-        echo "- **mapping.txt**: R8 mapping file to de-obfuscate stack traces of this release" >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo "### Verification" >> $GITHUB_OUTPUT
-        echo "Both files include SHA256 checksums for integrity verification." >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo "### Changelog" >> $GITHUB_OUTPUT
-        if [ -f "CHANGELOG.md" ]; then
-          # Extract changelog section for this version
-          awk '/^## \['"${{ steps.extract_version.outputs.VERSION }}"'\]/{flag=1;next}/^## \[/{flag=0}flag' CHANGELOG.md >> $GITHUB_OUTPUT
-        else
-          echo "See commit history for detailed changes." >> $GITHUB_OUTPUT
-        fi
-        echo "EOF" >> $GITHUB_OUTPUT
-        
+        # Prints the body of the "## [<name>]" section of CHANGELOG.md.
+        changelog_section() {
+          awk -v head="## [$1]" 'index($0, head) == 1 {flag=1; next} /^## \[/ {flag=0} flag' CHANGELOG.md
+        }
+        {
+          echo "RELEASE_NOTES<<EOF"
+          echo "## SambaLite v${VERSION}"
+          echo ""
+          if [ "$PRERELEASE" = "true" ]; then
+            echo "> **Release candidate** for ${BASE_VERSION}, intended for testing. It carries the versionCode of the final ${BASE_VERSION}, so the final release installs over it as a normal update."
+            echo ""
+          fi
+          echo "### Downloads"
+          echo "- **APK**: For direct installation (sideloading)"
+          echo "- **AAB**: For Google Play Store and other app stores"
+          echo "- **mapping.txt**: R8 mapping file to de-obfuscate stack traces of this release"
+          echo ""
+          echo "### Verification"
+          echo "Both files include SHA256 checksums for integrity verification."
+          echo ""
+          echo "### Changelog"
+          if [ -f CHANGELOG.md ]; then
+            # A release candidate normally has no section of its own yet;
+            # fall back to the final version's section, then to Unreleased.
+            NOTES=$(changelog_section "$VERSION")
+            [ -n "$NOTES" ] || NOTES=$(changelog_section "$BASE_VERSION")
+            if [ -z "$NOTES" ] && [ "$PRERELEASE" = "true" ]; then
+              NOTES=$(changelog_section "Unreleased")
+            fi
+            if [ -n "$NOTES" ]; then
+              echo "$NOTES"
+            else
+              echo "See commit history for detailed changes."
+            fi
+          else
+            echo "See commit history for detailed changes."
+          fi
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
@@ -122,7 +186,7 @@ jobs:
         name: SambaLite v${{ steps.extract_version.outputs.VERSION }}
         body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
         draft: false
-        prerelease: false
+        prerelease: ${{ steps.extract_version.outputs.PRERELEASE == 'true' }}
         files: |
           app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
           app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk.sha256
