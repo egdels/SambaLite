@@ -68,6 +68,9 @@ jobs:
         app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk
         mv app/build/outputs/bundle/release/app-release.aab \
         app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
+        # R8 mapping file, needed to de-obfuscate crash stack traces of this release
+        mv app/build/outputs/mapping/release/mapping.txt \
+        app/build/outputs/mapping/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-mapping.txt
       env:
         SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
         SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
@@ -98,6 +101,7 @@ jobs:
         echo "### Downloads" >> $GITHUB_OUTPUT
         echo "- **APK**: For direct installation (sideloading)" >> $GITHUB_OUTPUT
         echo "- **AAB**: For Google Play Store and other app stores" >> $GITHUB_OUTPUT
+        echo "- **mapping.txt**: R8 mapping file to de-obfuscate stack traces of this release" >> $GITHUB_OUTPUT
         echo "" >> $GITHUB_OUTPUT
         echo "### Verification" >> $GITHUB_OUTPUT
         echo "Both files include SHA256 checksums for integrity verification." >> $GITHUB_OUTPUT
@@ -124,6 +128,7 @@ jobs:
           app/build/outputs/apk/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.apk.sha256
           app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab
           app/build/outputs/bundle/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-release.aab.sha256
+          app/build/outputs/mapping/release/SambaLite-v${{ steps.extract_version.outputs.VERSION }}-mapping.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         

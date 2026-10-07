@@ -61,6 +61,13 @@ jobs:
         path: app/build/outputs/bundle/release/app-release.aab
         retention-days: 30
 
+    - name: Upload R8 mapping file
+      uses: actions/upload-artifact@v4
+      with:
+        name: SambaLite-mapping
+        path: app/build/outputs/mapping/release/mapping.txt
+        retention-days: 30
+
     - name: Clean up keystore
       if: always()
       run: |

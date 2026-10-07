@@ -387,7 +387,10 @@ public class ThumbnailManager {
   private Bitmap loadFromDiskCache(@NonNull String cacheKey) {
     File thumbFile = new File(cacheDir, cacheKey + ".thumb");
     if (thumbFile.exists() && thumbFile.length() > 0) {
-      Bitmap bitmap = BitmapFactory.decodeFile(thumbFile.getAbsolutePath());
+      // Cached thumbnails are already small, but decode with bounds check and
+      // inSampleSize anyway so a cache file from an older version (or a corrupt
+      // one) can never allocate a full-size bitmap.
+      Bitmap bitmap = decodeSampledBitmap(thumbFile.getAbsolutePath());
       if (bitmap != null) {
         thumbFile.setLastModified(System.currentTimeMillis());
         memoryCache.put(cacheKey, bitmap);
@@ -516,6 +519,9 @@ public class ThumbnailManager {
 
       // Decode with inSampleSize
       options.inJustDecodeBounds = false;
+      // RGB_565 halves the per-bitmap memory footprint; transparency is
+      // irrelevant for small thumbnails.
+      options.inPreferredConfig = Bitmap.Config.RGB_565;
       Bitmap bitmap = BitmapFactory.decodeFile(filePath, options);
       if (bitmap == null) return null;
 
