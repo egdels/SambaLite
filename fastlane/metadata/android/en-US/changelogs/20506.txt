@@ -1,3 +1,5 @@
-- Fixed: Uploads no longer stay "Pending" for hours after a permanently failing transfer; the queue starts new transfers right away (issue #34). Thanks to @mattbasta!
-- Fixed: Uploading a folder with tens of thousands of files no longer stalls for minutes after picking it (issue #43).
-- Fixed: Storage permissions taken for upload sources are released again once the uploads are done, cancelled or removed.
+- Fixed: Uploads no longer stay "Pending" for hours after a failing transfer (issue #34). Thanks to @mattbasta!
+- Fixed: Uploading a folder with tens of thousands of files no longer stalls (issue #43).
+- Fixed: Downloads longer than a minute were cut off; busy connections now stay open and interrupted downloads resume.
+- Fixed: Uploading thousands of files works after a reboot; storage permissions are released again when done.
+- Improved: Smaller APK through code shrinking.

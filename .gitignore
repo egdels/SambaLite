@@ -22,19 +22,11 @@ local.properties
 # Build directories
 /build/
 /app/build/
-/fastlane/report.xml
-/fastlane/Preview.html
-/fastlane/screenshots
-/fastlane/test_output
 
 # Signing files
 *.jks
 *.keystore
 app/google-services.json
-
-# Fastlane
-/fastlane/.env
-/fastlane/README.md
 
 # Version control
 .gitattributes
@@ -75,3 +67,6 @@ Thumbs.db
 *.p12
 *.pem
 release.properties
+
+# Signed release output written by Android Studio / Gradle
+/app/release/

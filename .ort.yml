@@ -48,7 +48,7 @@ excludes:
 
     - pattern: "fastlane/**"
       reason: "DOCUMENTATION_OF"
-      comment: "Fastlane metadata and screenshots."
+      comment: "F-Droid/Fastlane store metadata and screenshots."
 
     # ── ORT config ──
     - pattern: "ort/**"
@@ -81,11 +81,3 @@ excludes:
       reason: "DATA_FILE_OF"
       comment: "Image files."
 
-    # ── Ruby (Fastlane) ──
-    - pattern: "Gemfile"
-      reason: "BUILD_TOOL_OF"
-      comment: "Ruby dependency file for Fastlane, not shipped."
-
-    - pattern: "Gemfile.lock"
-      reason: "BUILD_TOOL_OF"
-      comment: "Ruby lock file for Fastlane, not shipped."
