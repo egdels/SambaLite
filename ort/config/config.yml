@@ -7,13 +7,13 @@ ort:
       - PIP
       - NuGet
       - Bazel
-    packageManagers:
-      GradleInspector:
-        options:
-          # ORT >= 89 is built with Java 25 and defaults the Gradle daemon to
-          # that version, which Gradle/Groovy of this project cannot parse yet.
-          # Pin the Java version used for dependency resolution to 21.
-          javaVersion: "21"
+    # ORT >= 89 is built with Java 25 and defaults the Gradle daemon to that
+    # version, which Gradle 8.13/Groovy of this project cannot parse
+    # ("Unsupported class file major version 69"). The "javaVersion" option
+    # did not help in CI (its JDK bootstrap never took effect, and it overrides
+    # "javaHome"), so scripts/run-ort.sh passes an explicit JDK 21 home via
+    # -P ort.analyzer.packageManagers.GradleInspector.options.javaHome=...
+    # taken from the ORT_GRADLE_JAVA_HOME environment variable.
   scanner:
     skipExcluded: true
     detectedLicenseMapping:

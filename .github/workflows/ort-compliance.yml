@@ -19,12 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      # Gradle 8.13 cannot run on Java 25, so the Gradle Inspector gets its
+      # own JDK 21 (passed to scripts/run-ort.sh as ORT_GRADLE_JAVA_HOME).
+      - name: Set up Java 21 for Gradle
+        id: jdk21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # ORT >= 89 is built with and requires Java 25. The Gradle Inspector
-          # is pinned to Java 21 via ort/config/config.yml (javaVersion option).
+          java-version: "21"
+
+      # ORT >= 89 is built with and requires Java 25. This step runs last so
+      # JAVA_HOME points at it.
+      - name: Set up Java 25 for ORT
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
           java-version: "25"
 
       - name: Install ORT
@@ -37,6 +46,8 @@ jobs:
           sudo ln -s /opt/ort/bin/ort /usr/local/bin/ort
 
       - name: Run ORT (Analyze + Report)
+        env:
+          ORT_GRADLE_JAVA_HOME: ${{ steps.jdk21.outputs.path }}
         run: |
           chmod +x scripts/run-ort.sh
           ./scripts/run-ort.sh
