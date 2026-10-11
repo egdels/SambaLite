@@ -9,8 +9,13 @@
  */
 package de.schliweb.sambalite.util;
 
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
 import android.os.StatFs;
+import android.provider.DocumentsContract;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import java.io.File;
 import java.util.Locale;
 
@@ -48,6 +53,134 @@ public class EnhancedFileUtils {
       LogUtils.w("EnhancedFileUtils", "Could not check disk space: " + e.getMessage());
     }
     return true;
+  }
+
+  /**
+   * Checks whether the storage volume that holds the given target has enough free space.
+   *
+   * <p>Downloads and folder syncs write to a SAF location chosen by the user, which may live on a
+   * removable SD card. Checking the primary external storage would miss a full SD card entirely, so
+   * this resolves the volume behind the URI first. When the volume cannot be determined (foreign
+   * document providers, cloud providers), the internal and primary external storage are checked
+   * instead so the result is never more permissive than before.
+   *
+   * @param context context for resolving the URI
+   * @param target the SAF tree or document URI (or file URI) that will be written to
+   * @return true if the volume has at least {@link #MIN_DISK_SPACE_BYTES} free or cannot be
+   *     resolved
+   */
+  public static boolean hasEnoughDiskSpaceForTarget(
+      @NonNull Context context, @Nullable Uri target) {
+    return hasEnoughDiskSpaceForVolume(context, target != null ? resolveVolumeRoot(target) : null);
+  }
+
+  /** Checks internal storage plus the given volume, or the primary external one if unknown. */
+  static boolean hasEnoughDiskSpaceForVolume(@NonNull Context context, @Nullable File volume) {
+    boolean internalOk = hasEnoughDiskSpace(context.getFilesDir());
+    if (volume == null) {
+      return internalOk && hasEnoughDiskSpace(Environment.getExternalStorageDirectory());
+    }
+    return internalOk && hasEnoughDiskSpace(volume);
+  }
+
+  /**
+   * Describes the free space the disk check looked at, for activity log entries, e.g. {@code
+   * /storage/427D-0786: 3.2 MB free, app storage: 1.4 GB free}.
+   */
+  public static @NonNull String describeFreeSpace(@NonNull Context context, @Nullable Uri target) {
+    File volume = target != null ? resolveVolumeRoot(target) : null;
+    return describeFreeSpace(
+        context.getFilesDir(), volume != null ? volume : Environment.getExternalStorageDirectory());
+  }
+
+  static @NonNull String describeFreeSpace(@NonNull File internalDir, @NonNull File volume) {
+    return volume.getPath()
+        + ": "
+        + freeSpaceText(volume)
+        + " free, app storage: "
+        + freeSpaceText(internalDir)
+        + " free";
+  }
+
+  private static String freeSpaceText(File dir) {
+    try {
+      return formatFileSize(new StatFs(dir.getPath()).getAvailableBytes());
+    } catch (Exception e) {
+      return "?";
+    }
+  }
+
+  /**
+   * Resolves the mount point of the storage volume behind a URI, or {@code null} if unknown.
+   *
+   * <p>Only the external storage documents provider (the SAF picker's "Internal storage" and SD
+   * card roots) is understood; its document ids carry the volume id in front of the colon.
+   */
+  @Nullable
+  static File resolveVolumeRoot(@NonNull Uri uri) {
+    return resolveVolumeRoot(uri, Environment.getExternalStorageDirectory(), new File("/storage"));
+  }
+
+  /**
+   * Testable variant of {@link #resolveVolumeRoot(Uri)}.
+   *
+   * @param primaryRoot mount point of the primary external storage volume
+   * @param storageRoot parent of the secondary volume mount points ({@code /storage} on devices)
+   */
+  @Nullable
+  static File resolveVolumeRoot(
+      @NonNull Uri uri, @NonNull File primaryRoot, @NonNull File storageRoot) {
+    try {
+      if ("file".equals(uri.getScheme())) {
+        String path = uri.getPath();
+        return path != null ? existingAncestor(new File(path)) : null;
+      }
+      if (!EXTERNAL_STORAGE_AUTHORITY.equals(uri.getAuthority())) {
+        return null;
+      }
+      // Tree URIs look like /tree/<id> or /tree/<id>/document/<id>, plain ones like /document/<id>
+      String docId =
+          uri.getPathSegments().contains("document")
+              ? DocumentsContract.getDocumentId(uri)
+              : DocumentsContract.getTreeDocumentId(uri);
+      File root = volumeRootForExternalStorageDocId(docId, primaryRoot, storageRoot);
+      return root != null && root.isDirectory() ? root : null;
+    } catch (Exception e) {
+      LogUtils.w("EnhancedFileUtils", "Could not resolve storage volume for " + uri + ": " + e);
+      return null;
+    }
+  }
+
+  /** Authority of the external storage documents provider used by the SAF picker. */
+  static final String EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents";
+
+  /**
+   * Maps an external storage document id such as {@code primary:Music/x.mp3} or {@code
+   * 427D-0786:Music} to the mount point of its volume. Free of framework calls for testability.
+   *
+   * @param docId document id from {@link DocumentsContract#getDocumentId} or {@link
+   *     DocumentsContract#getTreeDocumentId}
+   * @param primaryRoot mount point of the primary external storage volume
+   * @param storageRoot parent of the secondary volume mount points ({@code /storage} on devices)
+   * @return the volume mount point, or {@code null} if the id carries no volume
+   */
+  @Nullable
+  static File volumeRootForExternalStorageDocId(
+      @Nullable String docId, @NonNull File primaryRoot, @NonNull File storageRoot) {
+    if (docId == null) return null;
+    int colon = docId.indexOf(':');
+    String volume = colon < 0 ? docId : docId.substring(0, colon);
+    if (volume.isEmpty() || volume.contains("/") || volume.contains("..")) return null;
+    if ("primary".equalsIgnoreCase(volume)) return primaryRoot;
+    // Secondary volumes (SD cards, USB drives) are mounted under /storage/<volume-id>
+    return new File(storageRoot, volume);
+  }
+
+  @Nullable
+  private static File existingAncestor(@NonNull File file) {
+    File f = file;
+    while (f != null && !f.exists()) f = f.getParentFile();
+    return f;
   }
 
   /** Formats file size in human-readable format. */

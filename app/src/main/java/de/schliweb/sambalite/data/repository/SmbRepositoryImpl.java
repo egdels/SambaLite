@@ -840,30 +840,22 @@ public class SmbRepositoryImpl implements SmbRepository {
         connection,
         share -> {
           String filePath = getPathWithoutShare(path);
-          if (share.fileExists(filePath)) {
-            share.rm(filePath);
-            // Verify deletion — SMB server may delay due to oplocks on large files
-            if (share.fileExists(filePath)) {
-              LogUtils.w("SmbRepositoryImpl", "File still exists after rm, retrying: " + filePath);
-              try {
-                Thread.sleep(200);
-              } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-              }
-              if (share.fileExists(filePath)) {
-                share.rm(filePath);
-                if (share.fileExists(filePath)) {
-                  throw new IOException("File still exists after delete retry: " + filePath);
-                }
-              }
+          long start = System.currentTimeMillis();
+          try (SmbTreeDeleter deleter = new SmbTreeDeleter(share)) {
+            Exception error = deleter.deleteAll(Collections.singletonList(filePath)).get(0);
+            if (error != null) {
+              LogUtils.w("SmbRepositoryImpl", "Delete failed: " + filePath + " - " + error);
+              throw error;
             }
-            LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
-          } else if (share.folderExists(filePath)) {
-            share.rmdir(filePath, true);
-            LogUtils.i("SmbRepositoryImpl", "Directory deleted successfully: " + filePath);
-          } else {
-            LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + filePath);
-            throw new IOException("File or directory not found: " + filePath);
+            LogUtils.i(
+                "SmbRepositoryImpl",
+                "Deleted "
+                    + filePath
+                    + " ("
+                    + deleter.getDeletedEntries()
+                    + " entries in "
+                    + (System.currentTimeMillis() - start)
+                    + " ms)");
           }
           return null;
         });
@@ -877,50 +869,32 @@ public class SmbRepositoryImpl implements SmbRepository {
     return withShare(
         connection,
         share -> {
+          List<String> normalized = new ArrayList<>(paths.size());
+          for (String path : paths) normalized.add(getPathWithoutShare(path));
+          long start = System.currentTimeMillis();
           List<String> failed = new ArrayList<>();
-          for (String path : paths) {
-            try {
-              String filePath = getPathWithoutShare(path);
-              if (share.fileExists(filePath)) {
-                share.rm(filePath);
-                // Verify deletion — SMB server may delay due to oplocks on large files
-                if (share.fileExists(filePath)) {
-                  LogUtils.w(
-                      "SmbRepositoryImpl", "File still exists after rm, retrying: " + filePath);
-                  try {
-                    Thread.sleep(200);
-                  } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                  }
-                  if (share.fileExists(filePath)) {
-                    share.rm(filePath);
-                    if (share.fileExists(filePath)) {
-                      LogUtils.e("SmbRepositoryImpl", "File still exists after retry: " + filePath);
-                      failed.add(path);
-                      continue;
-                    }
-                  }
-                }
-                LogUtils.i("SmbRepositoryImpl", "File deleted successfully: " + filePath);
-              } else if (share.folderExists(filePath)) {
-                share.rmdir(filePath, true);
-                LogUtils.i("SmbRepositoryImpl", "Directory deleted successfully: " + filePath);
-              } else {
-                LogUtils.w("SmbRepositoryImpl", "File or directory not found: " + filePath);
-                failed.add(path);
+          try (SmbTreeDeleter deleter = new SmbTreeDeleter(share)) {
+            List<Exception> results = deleter.deleteAll(normalized);
+            for (int i = 0; i < paths.size(); i++) {
+              if (results.get(i) != null) {
+                LogUtils.e(
+                    "SmbRepositoryImpl",
+                    "Failed to delete: " + paths.get(i) + " - " + results.get(i).getMessage());
+                failed.add(paths.get(i));
               }
-            } catch (Exception e) {
-              LogUtils.e("SmbRepositoryImpl", "Failed to delete: " + path + " - " + e.getMessage());
-              failed.add(path);
             }
+            LogUtils.i(
+                "SmbRepositoryImpl",
+                "Batch delete completed: "
+                    + (paths.size() - failed.size())
+                    + " succeeded, "
+                    + failed.size()
+                    + " failed ("
+                    + deleter.getDeletedEntries()
+                    + " entries in "
+                    + (System.currentTimeMillis() - start)
+                    + " ms)");
           }
-          LogUtils.i(
-              "SmbRepositoryImpl",
-              "Batch delete completed: "
-                  + (paths.size() - failed.size())
-                  + " succeeded, "
-                  + failed.size()
-                  + " failed");
           return failed;
         });
   }

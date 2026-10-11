@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,6 +29,8 @@ import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.sync.SyncActionLog;
+import de.schliweb.sambalite.sync.SyncConfig;
+import de.schliweb.sambalite.sync.SyncRepository;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.ui.operations.TransferActionLog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
@@ -35,6 +38,9 @@ import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import de.schliweb.sambalite.util.StorageStatusReport;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import javax.inject.Inject;
 
@@ -310,52 +316,28 @@ public class SystemMonitorActivity extends AppCompatActivity {
         .append(SimplePerformanceMonitor.getPerformanceStats())
         .append("\n");
 
-    // Disk space information
-    metrics.append("\n=== Disk Space ===\n");
-
-    // Internal storage
-    java.io.File internalDir = getFilesDir();
-    long internalFree = internalDir.getFreeSpace();
-    long internalTotal = internalDir.getTotalSpace();
-    long internalUsed = internalTotal - internalFree;
-    metrics
-        .append("Internal Storage:\n")
-        .append("- Used: ")
-        .append(EnhancedFileUtils.formatFileSize(internalUsed))
-        .append(" / ")
-        .append(EnhancedFileUtils.formatFileSize(internalTotal))
-        .append("\n")
-        .append("- Free: ")
-        .append(EnhancedFileUtils.formatFileSize(internalFree))
-        .append("\n");
-
-    // External storage
-    java.io.File externalDir = android.os.Environment.getExternalStorageDirectory();
-    long externalFree = externalDir.getFreeSpace();
-    long externalTotal = externalDir.getTotalSpace();
-    long externalUsed = externalTotal - externalFree;
-    metrics
-        .append("External Storage:\n")
-        .append("- Used: ")
-        .append(EnhancedFileUtils.formatFileSize(externalUsed))
-        .append(" / ")
-        .append(EnhancedFileUtils.formatFileSize(externalTotal))
-        .append("\n")
-        .append("- Free: ")
-        .append(EnhancedFileUtils.formatFileSize(externalFree))
-        .append("\n");
-
-    // Minimum required space warning
-    boolean internalOk = EnhancedFileUtils.hasEnoughDiskSpace(internalDir);
-    boolean externalOk = EnhancedFileUtils.hasEnoughDiskSpace(externalDir);
-    if (!internalOk || !externalOk) {
-      metrics.append("\n⚠ WARNING: Low disk space");
-      if (!internalOk) metrics.append(" (internal)");
-      if (!externalOk) metrics.append(" (external)");
-      metrics.append("\n");
-    }
+    metrics.append("\n").append(StorageStatusReport.build(this, getSyncTargets()));
 
     return metrics.toString();
+  }
+
+  /** The local folders of all folder syncs, so the disk space section can show their volumes. */
+  private List<StorageStatusReport.Target> getSyncTargets() {
+    List<StorageStatusReport.Target> targets = new ArrayList<>();
+    try {
+      for (SyncConfig config : new SyncRepository(this).getAllSyncConfigs()) {
+        String uri = config.getLocalFolderUri();
+        String local = config.getLocalFolderDisplayName();
+        if (local == null || local.isEmpty()) local = uri;
+        targets.add(
+            new StorageStatusReport.Target(
+                local + " \u2190 " + config.getRemotePath(),
+                uri == null || uri.isEmpty() ? null : Uri.parse(uri)));
+      }
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not load sync configs for disk space report: " + e.getMessage());
+    }
+    return targets;
   }
 
   private String getCacheStatistics(SambaLiteApp app) {

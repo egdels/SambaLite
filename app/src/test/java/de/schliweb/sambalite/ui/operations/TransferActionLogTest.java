@@ -180,4 +180,22 @@ public class TransferActionLogTest {
     assertTrue(entries.get(1).contains("second.txt"));
     assertTrue(entries.get(2).contains("third.txt"));
   }
+
+  @Test
+  public void testLowSpaceAbortAndDiscardAreLoggedAndCounted() {
+    actionLog.log(
+        TransferActionLog.Action.ABORTED_LOW_SPACE,
+        "remaining transfers skipped before a.mp3",
+        "/storage/427D-0786: 3.0 MB free, app storage: 1.0 GB free");
+    actionLog.log(TransferActionLog.Action.DOWNLOAD_DISCARDED, "a.mp3", "0 of 4096 bytes");
+
+    List<String> entries = actionLog.getEntries();
+    assertTrue(entries.get(0).contains("⛔ Aborted, low disk space: remaining transfers skipped"));
+    assertTrue(entries.get(1).contains("✂ Discarded incomplete download: a.mp3 - 0 of 4096 bytes"));
+
+    String formatted = actionLog.getFormattedLog(10);
+    assertTrue(formatted, formatted.contains("0 errors, "));
+    assertTrue(formatted, formatted.contains("1 incomplete downloads discarded, "));
+    assertTrue(formatted, formatted.contains("1 aborted for low disk space\n"));
+  }
 }

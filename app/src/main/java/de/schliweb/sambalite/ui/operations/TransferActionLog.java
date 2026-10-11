@@ -42,7 +42,9 @@ public class TransferActionLog {
     CACHE_MISS("⊘ Cache miss"),
     RETRY("↻ Retry"),
     TIMESTAMP_SET("🕐 Timestamp set"),
-    TIMESTAMP_FAILED("⚠ Timestamp failed");
+    TIMESTAMP_FAILED("⚠ Timestamp failed"),
+    ABORTED_LOW_SPACE("⛔ Aborted, low disk space"),
+    DOWNLOAD_DISCARDED("✂ Discarded incomplete download");
 
     private final String symbol;
 
@@ -143,7 +145,7 @@ public class TransferActionLog {
 
     // Summary counts
     int uploaded = 0, downloaded = 0, uploadFailed = 0, downloadFailed = 0, cacheHits = 0;
-    int timestampsSet = 0, timestampsFailed = 0;
+    int timestampsSet = 0, timestampsFailed = 0, lowSpaceAborts = 0, discarded = 0;
     for (String entry : getEntries()) {
       if (entry.contains(Action.UPLOAD_COMPLETED.getSymbol())) uploaded++;
       else if (entry.contains(Action.DOWNLOAD_COMPLETED.getSymbol())) downloaded++;
@@ -152,6 +154,8 @@ public class TransferActionLog {
       else if (entry.contains(Action.CACHE_HIT.getSymbol())) cacheHits++;
       else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
       else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
+      else if (entry.contains(Action.ABORTED_LOW_SPACE.getSymbol())) lowSpaceAborts++;
+      else if (entry.contains(Action.DOWNLOAD_DISCARDED.getSymbol())) discarded++;
     }
 
     sb.append("\nTotal: ")
@@ -166,7 +170,11 @@ public class TransferActionLog {
         .append(timestampsSet)
         .append(" timestamps set, ")
         .append(timestampsFailed)
-        .append(" timestamps failed\n");
+        .append(" timestamps failed, ")
+        .append(discarded)
+        .append(" incomplete downloads discarded, ")
+        .append(lowSpaceAborts)
+        .append(" aborted for low disk space\n");
 
     return sb.toString();
   }

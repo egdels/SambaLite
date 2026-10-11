@@ -132,6 +132,12 @@ public class FolderSyncWorker extends Worker {
   private final SyncComparator syncComparator = new SyncComparator();
   private SyncStateStore syncStateStore;
 
+  /**
+   * Local root of the folder pair currently being synced. Disk space checks look at the storage
+   * volume behind this URI (an SD card, for example) rather than at the primary external storage.
+   */
+  private volatile Uri diskCheckTarget;
+
   public FolderSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
     super(context, params);
     this.actionLog = new SyncActionLog(context);
@@ -273,12 +279,14 @@ public class FolderSyncWorker extends Worker {
         continue;
       }
 
-      // Check disk space before starting sync for this config
-      if (!hasEnoughDiskSpace()) {
+      // Check the disk space of this config's volume. A full SD card must not hold back syncs
+      // onto other volumes, so only this config is skipped.
+      if (!hasEnoughDiskSpace(config)) {
         LogUtils.e(
-            TAG, "Insufficient disk space \u2013 aborting sync for config: " + config.getId());
+            TAG, "Insufficient disk space \u2013 skipping sync for config: " + config.getId());
+        logLowSpaceAbort(config, "sync not started");
         anyFailure = true;
-        break;
+        continue;
       }
 
       // Guard against parallel sync runs on the same config: manual per-config syncs, the
@@ -296,25 +304,22 @@ public class FolderSyncWorker extends Worker {
         continue;
       }
       try {
+        diskCheckTarget = parseLocalFolderUri(config);
         syncFolder(config, connection);
         syncRepository.updateLastSyncTimestamp(config.getId(), System.currentTimeMillis());
         LogUtils.i(TAG, "Sync completed for config: " + config.getId());
       } catch (InsufficientDiskSpaceException e) {
         LogUtils.e(TAG, "Sync aborted for config " + config.getId() + ": insufficient disk space");
+        logLowSpaceAbort(config, "sync stopped: " + e.getMessage());
         anyFailure = true;
-        break;
       } catch (Exception e) {
         LogUtils.e(TAG, "Sync failed for config " + config.getId() + ": " + e.getMessage());
+        actionLog.log(
+            SyncActionLog.Action.ERROR, configName(config), "sync failed: " + e.getMessage());
         anyFailure = true;
       } finally {
+        diskCheckTarget = null;
         lock.unlock();
-      }
-
-      // Check disk space between configs to avoid futile attempts
-      if (!hasEnoughDiskSpace()) {
-        LogUtils.e(TAG, "Insufficient disk space \u2013 aborting remaining sync configs");
-        anyFailure = true;
-        break;
       }
     }
 
@@ -588,7 +593,7 @@ public class FolderSyncWorker extends Worker {
               String mimeType = getMimeType(name);
               DocumentFile newFile = localFolder.createFile(mimeType, name);
               if (newFile != null) {
-                downloadFile(share, remoteFilePath, newFile);
+                downloadFileOrDiscard(share, remoteFilePath, newFile, rootUri, fileRelPath);
                 actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                 syncStateStore.saveRemoteState(
                     rootUri,
@@ -624,7 +629,7 @@ public class FolderSyncWorker extends Worker {
                     remoteModified,
                     false);
               } else if (syncComparator.isRemoteNewer(localModified, remoteModified)) {
-                downloadFile(share, remoteFilePath, localFile);
+                downloadFileOrDiscard(share, remoteFilePath, localFile, rootUri, fileRelPath);
                 actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
                 syncStateStore.saveRemoteState(
                     rootUri,
@@ -811,8 +816,65 @@ public class FolderSyncWorker extends Worker {
     return remoteSize;
   }
 
-  /** Downloads a remote file to a local DocumentFile (SAF). */
-  private void downloadFile(DiskShare share, String remotePath, DocumentFile localFile)
+  /**
+   * Downloads a remote file and removes the local target again if the download does not complete.
+   *
+   * <p>A download that fails halfway (full SD card, dropped connection) would otherwise leave an
+   * empty or truncated file behind that looks like a finished download to the user and to the
+   * player. Deleting it, together with its stored sync state, makes the next sync run download the
+   * file afresh. An existing local file is only removed once writing to it has begun: if the
+   * download fails before that (remote file locked, connection lost), the old copy is still intact.
+   */
+  private void downloadFileOrDiscard(
+      DiskShare share,
+      String remotePath,
+      DocumentFile localFile,
+      String rootUri,
+      String fileRelPath)
+      throws Exception {
+    boolean[] writeStarted = {false};
+    boolean isNew = localFile.length() == 0;
+    try {
+      downloadFile(share, remotePath, localFile, writeStarted);
+    } catch (Exception e) {
+      if (writeStarted[0] || isNew) {
+        discardIncompleteDownload(localFile, rootUri, fileRelPath, e);
+      }
+      throw e;
+    }
+  }
+
+  private void discardIncompleteDownload(
+      DocumentFile localFile, String rootUri, String fileRelPath, Exception cause) {
+    String name = localFile.getName();
+    try {
+      boolean deleted = localFile.delete();
+      syncStateStore.deleteState(rootUri, fileRelPath);
+      actionLog.log(
+          SyncActionLog.Action.DISCARDED,
+          fileRelPath,
+          (deleted ? "" : "could not delete: ") + cause.getMessage());
+      LogUtils.w(
+          TAG,
+          "Discarded incomplete download "
+              + name
+              + " (deleted="
+              + deleted
+              + "): "
+              + cause.getMessage());
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not discard incomplete download " + name + ": " + e.getMessage());
+    }
+  }
+
+  /**
+   * Downloads a remote file to a local DocumentFile (SAF).
+   *
+   * @param writeStarted set to true as soon as the local file has been opened for writing (and
+   *     thereby truncated)
+   */
+  private void downloadFile(
+      DiskShare share, String remotePath, DocumentFile localFile, boolean[] writeStarted)
       throws Exception {
     LogUtils.d(TAG, "Downloading: " + remotePath + " -> " + localFile.getName());
 
@@ -846,6 +908,7 @@ public class FolderSyncWorker extends Worker {
       if (rawOut == null) {
         throw new Exception("Could not open output stream for: " + localFile.getUri());
       }
+      writeStarted[0] = true;
 
       try (OutputStream out = new BufferedOutputStream(rawOut, BUFFER_SIZE)) {
         if (fileSize >= PARALLEL_DOWNLOAD_THRESHOLD) {
@@ -1225,11 +1288,36 @@ public class FolderSyncWorker extends Worker {
    * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
    */
   private boolean hasEnoughDiskSpace() {
-    boolean internalOk =
-        EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
-    boolean externalOk =
-        EnhancedFileUtils.hasEnoughDiskSpace(android.os.Environment.getExternalStorageDirectory());
-    return internalOk && externalOk;
+    return EnhancedFileUtils.hasEnoughDiskSpaceForTarget(getApplicationContext(), diskCheckTarget);
+  }
+
+  /** Checks the storage volume behind the config's local folder (SD card, internal storage). */
+  private boolean hasEnoughDiskSpace(SyncConfig config) {
+    return EnhancedFileUtils.hasEnoughDiskSpaceForTarget(
+        getApplicationContext(), parseLocalFolderUri(config));
+  }
+
+  /** Records a low disk space abort in the sync activity log, with the free space checked. */
+  private void logLowSpaceAbort(SyncConfig config, String what) {
+    actionLog.log(
+        SyncActionLog.Action.ABORTED_LOW_SPACE,
+        configName(config),
+        what
+            + " \u2013 "
+            + EnhancedFileUtils.describeFreeSpace(
+                getApplicationContext(), parseLocalFolderUri(config)));
+  }
+
+  /** Name of a sync config for activity log entries: the local folder, else the remote path. */
+  private static String configName(SyncConfig config) {
+    String name = config.getLocalFolderDisplayName();
+    if (name == null || name.isEmpty()) name = config.getRemotePath();
+    return String.valueOf(name);
+  }
+
+  private static Uri parseLocalFolderUri(SyncConfig config) {
+    String uri = config.getLocalFolderUri();
+    return uri == null || uri.isEmpty() ? null : Uri.parse(uri);
   }
 
   /**

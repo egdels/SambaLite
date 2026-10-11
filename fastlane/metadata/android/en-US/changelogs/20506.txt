@@ -1,5 +1,6 @@
-- Fixed: Uploads no longer stay "Pending" for hours after a failing transfer (issue #34). Thanks to @mattbasta!
-- Fixed: Uploading a folder with tens of thousands of files no longer stalls (issue #43).
-- Fixed: Downloads longer than a minute were cut off; busy connections now stay open and interrupted downloads resume.
-- Fixed: Uploading thousands of files works after a reboot; storage permissions are released again when done.
-- Improved: Smaller APK through code shrinking.
+- Fixed: Uploads no longer stay "Pending" for hours (issue #34). Thanks to @mattbasta!
+- Fixed: Uploading huge folders no longer stalls (issue #43).
+- Fixed: Long downloads no longer break off; uploads of thousands of files survive a reboot.
+- Fixed: A full SD card now stops the sync instead of leaving empty files behind.
+- Improved: Deleting folders on the server is about ten times faster.
+- Improved: System Monitor shows SD cards and syncs stopped for low space.

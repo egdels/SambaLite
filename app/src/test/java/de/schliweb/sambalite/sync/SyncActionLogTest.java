@@ -160,4 +160,26 @@ public class SyncActionLogTest {
     assertTrue(entries.get(1).contains("second.txt"));
     assertTrue(entries.get(2).contains("third.txt"));
   }
+
+  @Test
+  public void testLowSpaceAbortAndDiscardAreLoggedAndCounted() {
+    actionLog.log(
+        SyncActionLog.Action.ABORTED_LOW_SPACE,
+        "Music",
+        "sync not started \u2013 /storage/427D-0786: 3.0 MB free, app storage: 1.0 GB free");
+    actionLog.log(SyncActionLog.Action.DISCARDED, "Autor/Kapitel 1.mp3", "No space left on device");
+    actionLog.log(SyncActionLog.Action.DELETED, "old.txt");
+
+    List<String> entries = actionLog.getEntries();
+    assertTrue(
+        entries.get(0).contains("⛔ Aborted, low disk space: Music - sync not started"));
+    assertTrue(entries.get(0).contains("/storage/427D-0786: 3.0 MB free"));
+    assertTrue(
+        entries.get(1).contains("✂ Discarded incomplete download: Autor/Kapitel 1.mp3"));
+
+    String formatted = actionLog.getFormattedLog(10);
+    assertTrue(formatted, formatted.contains(" 1 deleted, "));
+    assertTrue(formatted, formatted.contains("1 incomplete downloads discarded, "));
+    assertTrue(formatted, formatted.contains("1 aborted for low disk space\n"));
+  }
 }

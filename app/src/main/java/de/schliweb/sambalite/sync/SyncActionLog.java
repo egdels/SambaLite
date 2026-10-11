@@ -41,7 +41,9 @@ public class SyncActionLog {
     MIRROR_TRASHED("🪞 Mirror trashed"),
     MIRROR_ABORTED("🪞 Mirror aborted"),
     TIMESTAMP_SET("🕐 Timestamp set"),
-    TIMESTAMP_FAILED("⚠ Timestamp failed");
+    TIMESTAMP_FAILED("⚠ Timestamp failed"),
+    ABORTED_LOW_SPACE("⛔ Aborted, low disk space"),
+    DISCARDED("✂ Discarded incomplete download");
 
     private final String symbol;
 
@@ -143,7 +145,7 @@ public class SyncActionLog {
     // Summary counts
     int uploaded = 0, downloaded = 0, skipped = 0, errors = 0, dirs = 0, deleted = 0;
     int mirrorDeleted = 0, mirrorTrashed = 0, mirrorAborted = 0;
-    int timestampsSet = 0, timestampsFailed = 0;
+    int timestampsSet = 0, timestampsFailed = 0, lowSpaceAborts = 0, discarded = 0;
     for (String entry : getEntries()) {
       if (entry.contains(Action.UPLOADED.getSymbol())) uploaded++;
       else if (entry.contains(Action.DOWNLOADED.getSymbol())) downloaded++;
@@ -156,6 +158,8 @@ public class SyncActionLog {
       else if (entry.contains(Action.DELETED.getSymbol())) deleted++;
       else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
       else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
+      else if (entry.contains(Action.ABORTED_LOW_SPACE.getSymbol())) lowSpaceAborts++;
+      else if (entry.contains(Action.DISCARDED.getSymbol())) discarded++;
     }
 
     sb.append("\nTotal: ")
@@ -180,7 +184,11 @@ public class SyncActionLog {
         .append(timestampsSet)
         .append(" timestamps set, ")
         .append(timestampsFailed)
-        .append(" timestamps failed\n");
+        .append(" timestamps failed, ")
+        .append(discarded)
+        .append(" incomplete downloads discarded, ")
+        .append(lowSpaceAborts)
+        .append(" aborted for low disk space\n");
 
     return sb.toString();
   }

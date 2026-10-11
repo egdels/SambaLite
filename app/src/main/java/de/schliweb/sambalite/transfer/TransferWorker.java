@@ -20,8 +20,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Looper;
+import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.work.Constraints;
@@ -56,12 +58,14 @@ import de.schliweb.sambalite.ui.operations.TransferActionLog;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SafDocumentUris;
 import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.Normalizer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -269,6 +273,7 @@ public class TransferWorker extends Worker {
     // Abort early if disk is (nearly) full to avoid filling up the device
     if (!hasEnoughDiskSpace()) {
       LogUtils.e(TAG, "Insufficient disk space \u2013 aborting transfer queue");
+      logLowSpaceAbort("transfer queue not started", null);
       return Result.failure();
     }
 
@@ -325,6 +330,7 @@ public class TransferWorker extends Worker {
         // Stop processing further connections when disk is full
         if (!hasEnoughDiskSpace()) {
           LogUtils.e(TAG, "Insufficient disk space \u2013 stopping transfer queue");
+          logLowSpaceAbort("transfer queue stopped", null);
           cleanup(dao);
           return Result.failure();
         }
@@ -428,11 +434,13 @@ public class TransferWorker extends Worker {
             }
 
             // Check disk space before each transfer to avoid wasting bandwidth
-            if (!hasEnoughDiskSpace()) {
+            if (!hasEnoughDiskSpace(transfer)) {
               LogUtils.e(
                   TAG,
                   "Insufficient disk space \u2013 aborting remaining transfers for connection: "
                       + connection.getId());
+              logLowSpaceAbort(
+                  "remaining transfers skipped before " + transfer.displayName, transfer);
               break;
             }
 
@@ -448,11 +456,13 @@ public class TransferWorker extends Worker {
                 break;
               }
               // If disk is full, stop the entire batch immediately
-              if (!hasEnoughDiskSpace()) {
+              if (!hasEnoughDiskSpace(transfer)) {
                 LogUtils.e(
                     TAG,
                     "Disk full after failed transfer \u2013 aborting batch for connection: "
                         + connection.getId());
+                logLowSpaceAbort(
+                    "remaining transfers skipped after " + transfer.displayName, transfer);
                 break;
               }
             }
@@ -463,8 +473,12 @@ public class TransferWorker extends Worker {
       LogUtils.e(TAG, "Connection error for " + connection.getId() + ": " + e.getMessage());
       try {
         for (PendingTransfer t : transfers) {
-          if ("ACTIVE".equals(t.status) || "PENDING".equals(t.status)) {
+          String status = dao.getStatus(t.id);
+          if ("ACTIVE".equals(status) || "PENDING".equals(status)) {
             dao.markFailed(t.id, "Connection error: " + e.getMessage(), System.currentTimeMillis());
+            if ("ACTIVE".equals(status)) {
+              discardIncompleteDownload(t);
+            }
           }
         }
       } catch (Exception dbEx) {
@@ -552,6 +566,19 @@ public class TransferWorker extends Worker {
             e.getMessage());
       }
       return false;
+    } catch (TargetLostException e) {
+      // The local download target vanished and could not be recreated in its folder; a retry
+      // would hit the same wall, so fail for good with a message the user can act on.
+      LogUtils.e(TAG, "Transfer failed, target lost: " + transfer.displayName + " - " + e);
+      if (!isTransferCancelled(dao, transfer.id)) {
+        dao.markFailedPermanently(
+            transfer.id,
+            getApplicationContext().getString(R.string.transfer_error_target_lost),
+            System.currentTimeMillis());
+        transferActionLog.log(
+            TransferActionLog.Action.DOWNLOAD_FAILED, transfer.displayName, e.getMessage());
+      }
+      return false;
     } catch (Exception e) {
       LogUtils.e(TAG, "Transfer failed: " + transfer.displayName + " - " + e.getMessage());
       // Don't overwrite CANCELLED status with FAILED
@@ -564,7 +591,105 @@ public class TransferWorker extends Worker {
             transfer.displayName,
             e.getMessage());
       }
+      if (!isUpload) {
+        discardIncompleteDownload(transfer);
+      }
       return false;
+    }
+  }
+
+  /**
+   * Removes the local target of a download that did not complete, so no empty or truncated file is
+   * left behind on the device. A complete copy (local size equals the known remote size) is kept.
+   * The next attempt recreates the target in the same folder, see {@link #ensureDownloadTarget}.
+   *
+   * <p>A target outside a granted folder (a single file picked via "save as") cannot be recreated.
+   * It is kept while automatic retries remain, since a retry rewrites it in place, and removed only
+   * after the last attempt failed. Must be called after {@code markFailed}, with the transfer's
+   * retry count as it was before that call.
+   */
+  private void discardIncompleteDownload(PendingTransfer transfer) {
+    if (!"DOWNLOAD".equals(transfer.transferType) || transfer.localUri == null) return;
+    ContentResolver resolver = getApplicationContext().getContentResolver();
+    Uri uri = Uri.parse(transfer.localUri);
+    boolean recreatable = SafDocumentUris.parentDocumentUri(uri) != null;
+    boolean lastAttempt = transfer.retryCount + 1 >= transfer.maxRetries;
+    if (!recreatable && !lastAttempt) return;
+    long localSize = getLocalFileSize(resolver, uri);
+    if (localSize < 0) return; // not accessible or already gone
+    if (transfer.fileSize > 0 && localSize == transfer.fileSize) return;
+    try {
+      boolean deleted = DocumentsContract.deleteDocument(resolver, uri);
+      transferActionLog.log(
+          TransferActionLog.Action.DOWNLOAD_DISCARDED,
+          transfer.displayName,
+          localSize
+              + " of "
+              + transfer.fileSize
+              + " bytes"
+              + (deleted ? "" : ", could not delete"));
+      LogUtils.w(
+          TAG,
+          "Discarded incomplete download "
+              + transfer.displayName
+              + " ("
+              + localSize
+              + " of "
+              + transfer.fileSize
+              + " bytes, deleted="
+              + deleted
+              + ")");
+    } catch (Exception e) {
+      LogUtils.w(
+          TAG,
+          "Could not discard incomplete download " + transfer.displayName + ": " + e.getMessage());
+    }
+  }
+
+  /**
+   * Makes sure the download target document exists, recreating it in its parent folder if an
+   * earlier failed attempt discarded it. Returns the URI to write to and persists it when it
+   * changed.
+   *
+   * @throws TargetLostException if the target is gone and cannot be recreated
+   */
+  private Uri ensureDownloadTarget(
+      PendingTransferDao dao, ContentResolver resolver, PendingTransfer transfer)
+      throws TargetLostException {
+    Uri targetUri = Uri.parse(transfer.localUri);
+    DocumentFile existing = DocumentFile.fromSingleUri(getApplicationContext(), targetUri);
+    if (existing != null && existing.exists()) {
+      return targetUri;
+    }
+    Uri parent = SafDocumentUris.parentDocumentUri(targetUri);
+    if (parent == null) {
+      throw new TargetLostException(
+          "Local target is gone and its folder is unknown: " + transfer.localUri);
+    }
+    Uri recreated;
+    try {
+      String mime =
+          transfer.mimeType == null || transfer.mimeType.isEmpty()
+              ? "application/octet-stream"
+              : transfer.mimeType;
+      recreated = DocumentsContract.createDocument(resolver, parent, mime, transfer.displayName);
+    } catch (Exception e) {
+      throw new TargetLostException(
+          "Could not recreate local target for " + transfer.displayName + ": " + e.getMessage());
+    }
+    if (recreated == null) {
+      throw new TargetLostException("Could not recreate local target for " + transfer.displayName);
+    }
+    LogUtils.i(TAG, "Recreated local target for " + transfer.displayName + ": " + recreated);
+    transfer.localUri = recreated.toString();
+    dao.updateLocalUri(transfer.id, transfer.localUri, System.currentTimeMillis());
+    return recreated;
+  }
+
+  /** The local download target vanished and could not be recreated. */
+  private static class TargetLostException extends IOException {
+    TargetLostException(String message) {
+      super(message);
     }
   }
 
@@ -896,6 +1021,11 @@ public class TransferWorker extends Worker {
       throw new IOException("Failed to list remote directory: " + remotePath, e);
     }
 
+    // One listing per folder: SAF providers silently rename a new document to "name (1)" when
+    // the name is taken, so an existing child must be reused rather than created again. This
+    // also keeps a re-download of a partially present folder from piling up duplicates.
+    Map<String, DocumentFile> localChildren = indexChildren(localDir);
+
     for (com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation entry : entries) {
       String name = entry.getFileName();
       if (".".equals(name) || "..".equals(name)) continue;
@@ -908,9 +1038,10 @@ public class TransferWorker extends Worker {
       boolean isDir =
           (entry.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
 
+      DocumentFile existing = lookupChild(localChildren, name);
       if (isDir) {
-        DocumentFile childDir = localDir.findFile(name);
-        if (childDir == null || !childDir.isDirectory()) {
+        DocumentFile childDir = existing != null && existing.isDirectory() ? existing : null;
+        if (childDir == null) {
           childDir = localDir.createDirectory(name);
         }
         if (childDir == null) {
@@ -919,7 +1050,12 @@ public class TransferWorker extends Worker {
         }
         collectDirectoryFiles(share, childPath, childDir, connectionId, batchId, outTransfers);
       } else {
-        DocumentFile localFile = localDir.createFile("application/octet-stream", name);
+        DocumentFile localFile = existing != null && existing.isFile() ? existing : null;
+        if (localFile != null) {
+          LogUtils.i(TAG, "Reusing existing local file for download (overwrite): " + name);
+        } else {
+          localFile = localDir.createFile("application/octet-stream", name);
+        }
         if (localFile == null) {
           LogUtils.w(TAG, "Cannot create local file for download: " + name);
           continue;
@@ -948,7 +1084,7 @@ public class TransferWorker extends Worker {
   private void processDownload(PendingTransferDao dao, DiskShare share, PendingTransfer transfer)
       throws Exception {
     ContentResolver resolver = getApplicationContext().getContentResolver();
-    Uri targetUri = Uri.parse(transfer.localUri);
+    Uri targetUri = ensureDownloadTarget(dao, resolver, transfer);
 
     LogUtils.i(
         TAG,
@@ -1239,7 +1375,7 @@ public class TransferWorker extends Worker {
       PendingTransferDao dao, PendingTransfer transfer, long[] counters) throws IOException {
     if (counters[0] >= PROGRESS_SAVE_INTERVAL) {
       if (counters[1] >= DISK_CHECK_INTERVAL) {
-        if (!hasEnoughDiskSpace()) {
+        if (!hasEnoughDiskSpace(transfer)) {
           dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
           dao.updateStatusIfActive(transfer.id, "PENDING", System.currentTimeMillis());
           LogUtils.e(
@@ -1489,11 +1625,61 @@ public class TransferWorker extends Worker {
    * @return true if available space >= MIN_DISK_SPACE_BYTES, false otherwise
    */
   private boolean hasEnoughDiskSpace() {
-    boolean internalOk =
-        EnhancedFileUtils.hasEnoughDiskSpace(getApplicationContext().getFilesDir());
-    boolean externalOk =
-        EnhancedFileUtils.hasEnoughDiskSpace(android.os.Environment.getExternalStorageDirectory());
-    return internalOk && externalOk;
+    return EnhancedFileUtils.hasEnoughDiskSpaceForTarget(getApplicationContext(), null);
+  }
+
+  /**
+   * Records a low disk space abort in the transfer activity log, with the free space of the volume
+   * the given download writes to (or of the shared storage if there is none).
+   */
+  private void logLowSpaceAbort(String what, @Nullable PendingTransfer transfer) {
+    Uri target =
+        transfer != null && "DOWNLOAD".equals(transfer.transferType) && transfer.localUri != null
+            ? Uri.parse(transfer.localUri)
+            : null;
+    transferActionLog.log(
+        TransferActionLog.Action.ABORTED_LOW_SPACE,
+        what,
+        EnhancedFileUtils.describeFreeSpace(getApplicationContext(), target));
+  }
+
+  /**
+   * Checks the storage volume a download writes to. The SAF target may live on an SD card, which
+   * the primary external storage check would never notice. Uploads only need internal space.
+   */
+  private boolean hasEnoughDiskSpace(PendingTransfer transfer) {
+    if ("UPLOAD".equals(transfer.transferType) || transfer.localUri == null) {
+      return hasEnoughDiskSpace();
+    }
+    return EnhancedFileUtils.hasEnoughDiskSpaceForTarget(
+        getApplicationContext(), Uri.parse(transfer.localUri));
+  }
+
+  /** Lists a local folder once and indexes its children by name (NFC-normalized). */
+  private static Map<String, DocumentFile> indexChildren(DocumentFile dir) {
+    Map<String, DocumentFile> byName = new HashMap<>();
+    try {
+      for (DocumentFile child : dir.listFiles()) {
+        String childName = child.getName();
+        if (childName != null) {
+          byName.put(Normalizer.normalize(childName, Normalizer.Form.NFC), child);
+        }
+      }
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not list local folder " + dir.getUri() + ": " + e.getMessage());
+    }
+    return byName;
+  }
+
+  /** Exact (NFC) lookup first, then case-insensitive, as SMB names are case-insensitive. */
+  private static DocumentFile lookupChild(Map<String, DocumentFile> byName, String name) {
+    String key = Normalizer.normalize(name, Normalizer.Form.NFC);
+    DocumentFile hit = byName.get(key);
+    if (hit != null) return hit;
+    for (Map.Entry<String, DocumentFile> e : byName.entrySet()) {
+      if (e.getKey().equalsIgnoreCase(key)) return e.getValue();
+    }
+    return null;
   }
 
   private AuthenticationContext createAuthContext(SmbConnection connection) {

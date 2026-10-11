@@ -142,6 +142,10 @@ public interface PendingTransferDao {
           + " WHERE id = :id")
   void resetToPending(long id, long now);
 
+  /** Points a transfer at a new local document, e.g. a download target that had to be recreated. */
+  @Query("UPDATE pending_transfer SET local_uri = :localUri, updated_at = :now WHERE id = :id")
+  void updateLocalUri(long id, @NonNull String localUri, long now);
+
   /** Updates the bytes-transferred progress of a transfer. */
   @Query("UPDATE pending_transfer SET bytes_transferred = :bytes, updated_at = :now WHERE id = :id")
   void updateProgress(long id, long bytes, long now);
