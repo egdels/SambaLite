@@ -1,0 +1,52 @@
+// SMBJ with AES-256-GCM/CCM support for SMB 3.1.1 encryption (issue #45).
+//
+// The official smbj jar from Maven Central is repackaged with the classes in src/main/java
+// replaced by patched copies. Each source file replaces the class of the same name and all its
+// nested classes. Remove this module and depend on smbj directly again once smbj supports
+// AES-256 upstream.
+
+plugins {
+    id 'java-library'
+}
+
+def smbjVersion = '0.15.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+configurations {
+    smbjOriginal {
+        transitive = false
+    }
+}
+
+dependencies {
+    smbjOriginal "com.hierynomus:smbj:$smbjVersion"
+    compileOnly "com.hierynomus:smbj:$smbjVersion"
+
+    // The dependencies of smbj, as declared in its POM
+    api 'org.slf4j:slf4j-api:2.0.18'
+    api 'org.bouncycastle:bcprov-jdk18on:1.85.2'
+    api 'net.engio:mbassador:1.3.2'
+    api 'com.hierynomus:asn-one:0.6.0'
+}
+
+def patchedSourceDir = file('src/main/java')
+def patchedClassPatterns = fileTree(patchedSourceDir) { include '**/*.java' }.files.collectMany { source ->
+    def className = patchedSourceDir.toPath().relativize(source.toPath()).toString()
+        .replace(File.separatorChar, '/' as char) - '.java'
+    ["${className}.class", "${className}\$*.class"]
+}
+
+tasks.named('jar') {
+    from({ zipTree(configurations.smbjOriginal.singleFile) }) {
+        exclude patchedClassPatterns
+        exclude 'META-INF/MANIFEST.MF'
+    }
+}
+
+// Consumers must see the repackaged jar, not just the patched classes directory
+configurations.apiElements.outgoing.variants.clear()
+configurations.runtimeElements.outgoing.variants.clear()

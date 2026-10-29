@@ -24,6 +24,7 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.connection.ConnectionContext;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
@@ -34,6 +35,7 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import de.schliweb.sambalite.util.SmbClientConfigs;
 import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.IOException;
 import java.io.InputStream;
@@ -105,7 +107,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     }
 
     SmbConfig.Builder builder =
-        SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+        SmbClientConfigs.builder().withEncryptData(encrypt).withSigningRequired(sign);
     applyTransferBufferSizes(builder);
 
     if (async) {
@@ -179,7 +181,7 @@ public class SmbRepositoryImpl implements SmbRepository {
 
   /** Creates the shared default SMB client with performance-tuned buffer sizes. */
   private static SMBClient createDefaultClient() {
-    SmbConfig.Builder builder = SmbConfig.builder();
+    SmbConfig.Builder builder = SmbClientConfigs.builder();
     applyTransferBufferSizes(builder);
     return new SMBClient(builder.build());
   }
@@ -830,6 +832,21 @@ public class SmbRepositoryImpl implements SmbRepository {
           boolean connected = share.isConnected();
           LogUtils.i("SmbRepositoryImpl", "Test connection result: " + connected);
           return connected;
+        });
+  }
+
+  @Override
+  @NonNull
+  public String getConnectionSecurityInfo(@NonNull SmbConnection connection) throws Exception {
+    return withShare(
+        connection,
+        share -> {
+          Session session = share.getTreeConnect().getSession();
+          ConnectionContext context = session.getConnection().getConnectionContext();
+          return SmbClientConfigs.describeSecurity(
+              context.getNegotiatedProtocol().getDialect(),
+              context.getCipherId(),
+              session.shouldEncryptData());
         });
   }
 

@@ -46,6 +46,7 @@ import de.schliweb.sambalite.sync.db.FileSyncState;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SmbClientConfigs;
 import de.schliweb.sambalite.util.StorageCapabilityResolver;
 import de.schliweb.sambalite.util.TimestampCapability;
 import de.schliweb.sambalite.util.TimestampUtils;
@@ -1193,7 +1194,7 @@ public class FolderSyncWorker extends Worker {
     }
 
     SmbConfig.Builder builder =
-        SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+        SmbClientConfigs.builder().withEncryptData(encrypt).withSigningRequired(sign);
 
     // Performance (issue #21): larger read/write/transact buffers reduce the number of SMB2
     // READ/WRITE packets per transfer, which lowers per-packet overhead (especially with SMB3

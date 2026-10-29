@@ -59,6 +59,7 @@ import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SafDocumentUris;
+import de.schliweb.sambalite.util.SmbClientConfigs;
 import de.schliweb.sambalite.util.TimestampUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -1581,7 +1582,7 @@ public class TransferWorker extends Worker {
     }
 
     SmbConfig.Builder builder =
-        SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+        SmbClientConfigs.builder().withEncryptData(encrypt).withSigningRequired(sign);
     applyTransferBufferSizes(builder);
 
     if (async) {

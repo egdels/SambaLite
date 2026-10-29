@@ -240,13 +240,23 @@ public class MainViewModel extends ViewModel {
         () -> {
           try {
             boolean success = smbRepository.testConnection(connection);
+            String message = "Connection failed";
+            if (success) {
+              message = "Connection successful";
+              try {
+                message += " (" + smbRepository.getConnectionSecurityInfo(connection) + ")";
+              } catch (Exception e) {
+                LogUtils.w(
+                    "MainViewModel", "Could not read connection security: " + e.getMessage());
+              }
+            }
             isLoading.postValue(false);
             if (success) {
-              LogUtils.i("MainViewModel", "Connection test successful: " + connection.getName());
+              LogUtils.i("MainViewModel", "Connection test successful: " + message);
             } else {
               LogUtils.w("MainViewModel", "Connection test failed: " + connection.getName());
             }
-            callback.onResult(success, success ? "Connection successful" : "Connection failed");
+            callback.onResult(success, message);
           } catch (Exception e) {
             LogUtils.e("MainViewModel", "Connection test error: " + e.getMessage());
 

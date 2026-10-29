@@ -65,6 +65,17 @@ public interface SmbRepository {
   boolean testConnection(@NonNull SmbConnection connection) throws Exception;
 
   /**
+   * Describes the negotiated protocol and encryption of the connection, e.g. "SMB 3.1.1,
+   * AES-256-GCM".
+   *
+   * @param connection The connection to describe
+   * @return the description
+   * @throws Exception if an error occurs while connecting
+   */
+  @NonNull
+  String getConnectionSecurityInfo(@NonNull SmbConnection connection) throws Exception;
+
+  /**
    * Lists files and directories in the specified path.
    *
    * @param connection The SMB connection to use

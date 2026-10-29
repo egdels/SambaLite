@@ -206,11 +206,8 @@ dependencies {
     implementation 'com.google.dagger:dagger:2.59.2'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.59.2'
 
-    // SMBJ for SMB client functionality - Exclude conflicting BouncyCastle versions
-    implementation('com.hierynomus:smbj:0.14.0') {
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
-        exclude group: 'org.bouncycastle', module: 'bcpkix-jdk15on'
-    }
+    // SMBJ for SMB client functionality, patched for AES-256 encryption (see smbj-patch/build.gradle)
+    implementation project(':smbj-patch')
     
     // Note: BouncyCastle dependencies come transitively from SMBJ
     // Explicit dependencies removed as they are not directly used

@@ -22,6 +22,7 @@ local.properties
 # Build directories
 /build/
 /app/build/
+/smbj-patch/build/
 
 # Signing files
 *.jks

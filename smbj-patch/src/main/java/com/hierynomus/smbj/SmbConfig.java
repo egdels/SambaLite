@@ -1,0 +1,597 @@
+/*
+ * Copyright (C)2016 - SMBJ Contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.hierynomus.smbj;
+
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_2_0_2;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_2_1;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_0_2;
+import static com.hierynomus.mssmb2.SMB2Dialect.SMB_3_1_1;
+
+import java.lang.reflect.InvocationTargetException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.SocketFactory;
+
+import com.hierynomus.mssmb2.SMB2Dialect;
+import com.hierynomus.mssmb2.SMB2GlobalCapability;
+import com.hierynomus.mssmb2.SMB3EncryptionCipher;
+import com.hierynomus.ntlm.NtlmConfig;
+import com.hierynomus.protocol.commons.Factory;
+import com.hierynomus.protocol.commons.socket.ProxySocketFactory;
+import com.hierynomus.security.SecurityProvider;
+import com.hierynomus.security.bc.BCSecurityProvider;
+import com.hierynomus.smb.SMBPacket;
+import com.hierynomus.smb.SMBPacketData;
+import com.hierynomus.smbj.auth.Authenticator;
+import com.hierynomus.smbj.auth.NtlmAuthenticator;
+import com.hierynomus.smbj.common.SMBRuntimeException;
+import com.hierynomus.smbj.transport.TransportLayerFactory;
+import com.hierynomus.smbj.transport.tcp.direct.DirectTcpTransportFactory;
+
+public final class SmbConfig {
+    private static final int DEFAULT_BUFFER_SIZE = 1024 * 1024;
+
+    private static final int DEFAULT_SO_TIMEOUT = 0;
+    private static final TimeUnit DEFAULT_SO_TIMEOUT_UNIT = TimeUnit.SECONDS;
+
+    private static final int DEFAULT_TIMEOUT = 60;
+    private static final TimeUnit DEFAULT_TIMEOUT_UNIT = TimeUnit.SECONDS;
+
+    private static final TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> DEFAULT_TRANSPORT_LAYER_FACTORY = new DirectTcpTransportFactory();
+
+    private static final boolean ANDROID;
+    static {
+        boolean android;
+        try {
+            Class.forName("android.os.Build");
+            android = true;
+        } catch (ClassNotFoundException e) {
+            android = false;
+        }
+        ANDROID = android;
+    }
+
+    private Set<SMB2Dialect> dialects;
+    private List<Factory.Named<Authenticator>> authenticators;
+    private SocketFactory socketFactory;
+    private Random random;
+    private UUID clientGuid;
+    private boolean signingRequired;
+    private boolean signingEnabled;
+    private boolean dfsEnabled;
+    private boolean useMultiProtocolNegotiate;
+    private SecurityProvider securityProvider;
+    private int readBufferSize;
+    private long readTimeout;
+    private int writeBufferSize;
+    private long writeTimeout;
+    private int transactBufferSize;
+    private TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory;
+    private long transactTimeout;
+    private GSSContextConfig clientGSSContextConfig;
+    private boolean encryptData;
+    private List<SMB3EncryptionCipher> encryptionCiphers;
+    private boolean directoryLeasingEnabled = true; // default ON so it's active for any builder()-built config
+    private NtlmConfig ntlmConfig;
+
+    private int soTimeout;
+
+    public static SmbConfig createDefaultConfig() {
+        return builder().build();
+    }
+
+    public static Builder builder() {
+        Builder b = new Builder()
+                .withClientGuid(UUID.randomUUID())
+                .withSecurityProvider(getDefaultSecurityProvider())
+                .withSocketFactory(new ProxySocketFactory())
+                .withSigningRequired(false)
+                .withSigningEnabled(true)
+                .withDfsEnabled(false)
+                .withMultiProtocolNegotiate(false)
+                .withBufferSize(DEFAULT_BUFFER_SIZE)
+                .withTransportLayerFactory(DEFAULT_TRANSPORT_LAYER_FACTORY)
+                .withSoTimeout(DEFAULT_SO_TIMEOUT, DEFAULT_SO_TIMEOUT_UNIT)
+                .withDialects(SMB_3_1_1, SMB_3_0_2, SMB_3_0, SMB_2_1, SMB_2_0_2)
+                // order is important.  The authenticators listed first will be selected
+                .withAuthenticators(getDefaultAuthenticators())
+                .withTimeout(DEFAULT_TIMEOUT, DEFAULT_TIMEOUT_UNIT)
+                .withClientGSSContextConfig(GSSContextConfig.createDefaultConfig())
+                .withEncryptData(false)
+                // Same order as Windows 11 and Windows Server 2022
+                .withEncryptionCiphers(SMB3EncryptionCipher.AES_128_GCM, SMB3EncryptionCipher.AES_128_CCM, SMB3EncryptionCipher.AES_256_GCM, SMB3EncryptionCipher.AES_256_CCM)
+                .withDirectoryLeasingEnabled(true);
+
+        return b;
+    }
+
+    public static Builder builder(SmbConfig baseConfig) {
+        return new Builder(baseConfig);
+    }
+
+    private static SecurityProvider getDefaultSecurityProvider() {
+        return new BCSecurityProvider();
+    }
+
+    private static List<Factory.Named<Authenticator>> getDefaultAuthenticators() {
+        List<Factory.Named<Authenticator>> authenticators = new ArrayList<>();
+
+        if (!ANDROID) {
+            try {
+                Object spnegoFactory = Class.forName("com.hierynomus.smbj.auth.SpnegoAuthenticator$Factory").getDeclaredConstructor().newInstance();
+                authenticators.add((Factory.Named<Authenticator>)spnegoFactory);
+            } catch (InstantiationException | IllegalAccessException | ClassNotFoundException | ClassCastException | NoSuchMethodException | InvocationTargetException e) {
+                throw new SMBRuntimeException(e);
+            }
+        }
+        authenticators.add(new NtlmAuthenticator.Factory());
+
+        return authenticators;
+    }
+
+    private SmbConfig() {
+        dialects = EnumSet.noneOf(SMB2Dialect.class);
+        random = new SecureRandom();
+        authenticators = new ArrayList<>();
+        encryptionCiphers = new ArrayList<>();
+    }
+
+    private SmbConfig(SmbConfig other) {
+        this();
+        dialects.addAll(other.dialects);
+        authenticators.addAll(other.authenticators);
+        socketFactory = other.socketFactory;
+        random = other.random;
+        clientGuid = other.clientGuid;
+        signingRequired = other.signingRequired;
+        signingEnabled = other.signingEnabled;
+        dfsEnabled = other.dfsEnabled;
+        securityProvider = other.securityProvider;
+        readBufferSize = other.readBufferSize;
+        readTimeout = other.readTimeout;
+        writeBufferSize = other.writeBufferSize;
+        writeTimeout = other.writeTimeout;
+        transactBufferSize = other.transactBufferSize;
+        transactTimeout = other.transactTimeout;
+        transportLayerFactory = other.transportLayerFactory;
+        soTimeout = other.soTimeout;
+        useMultiProtocolNegotiate = other.useMultiProtocolNegotiate;
+        clientGSSContextConfig = other.clientGSSContextConfig;
+        encryptData = other.encryptData;
+        encryptionCiphers.addAll(other.encryptionCiphers);
+        directoryLeasingEnabled = other.directoryLeasingEnabled;
+        ntlmConfig = other.ntlmConfig;
+    }
+
+    public Random getRandomProvider() {
+        return random;
+    }
+
+    public SecurityProvider getSecurityProvider() {
+        return securityProvider;
+    }
+
+    public Set<SMB2Dialect> getSupportedDialects() {
+        return EnumSet.copyOf(dialects);
+    }
+
+    public UUID getClientGuid() {
+        return clientGuid;
+    }
+
+    public List<Factory.Named<Authenticator>> getSupportedAuthenticators() {
+        return new ArrayList<>(authenticators);
+    }
+
+    /**
+     * Whether the client requires that messages from the server are signed.  When message signing is enforced a received message that is not signed properly
+     * will result in an exception.
+     */
+    public boolean isSigningRequired() {
+        return signingRequired;
+    }
+
+    /**
+     * Whether the client should sign messages to the server.  When message signing is enabled the client will sign messages to the server.
+     */
+    public boolean isSigningEnabled() {
+        return signingEnabled;
+    }
+
+    /**
+     * Whether the client should use the DFS protocol.
+     */
+    public boolean isDfsEnabled() {
+        return dfsEnabled;
+    }
+
+    public boolean isUseMultiProtocolNegotiate() {
+        return useMultiProtocolNegotiate;
+    }
+
+    public int getReadBufferSize() {
+        return readBufferSize;
+    }
+
+    public long getReadTimeout() {
+        return readTimeout;
+    }
+
+    public int getWriteBufferSize() {
+        return writeBufferSize;
+    }
+
+    public long getWriteTimeout() {
+        return writeTimeout;
+    }
+
+    public int getTransactBufferSize() {
+        return transactBufferSize;
+    }
+
+    public long getTransactTimeout() {
+        return transactTimeout;
+    }
+
+    public TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> getTransportLayerFactory() {
+        return transportLayerFactory;
+    }
+
+    public int getSoTimeout() {
+        return soTimeout;
+    }
+
+    public SocketFactory getSocketFactory() {
+        return socketFactory;
+    }
+
+    public GSSContextConfig getClientGSSContextConfig() {
+        return clientGSSContextConfig;
+    }
+
+    public boolean isEncryptData() {
+        return encryptData;
+    }
+
+    /**
+     * @return the ciphers offered to the server when negotiating SMB 3.1.1 encryption, in order of preference.
+     */
+    public List<SMB3EncryptionCipher> getEncryptionCiphers() {
+        return Collections.unmodifiableList(encryptionCiphers);
+    }
+
+    public boolean isDirectoryLeasingEnabled() {
+        return directoryLeasingEnabled;
+    }
+
+    /**
+     * Get the work station name to be used in the NTLM authentication.
+     *
+     * @deprecated Moved into getNtlmConfig().getWorkStationName()
+     */
+    public String getWorkStationName() {
+        return getNtlmConfig().getWorkstationName();
+    }
+
+    public NtlmConfig getNtlmConfig() {
+        return ntlmConfig;
+    }
+
+    public Set<SMB2GlobalCapability> getClientCapabilities() {
+        if (!SMB2Dialect.supportsSmb3x(dialects)) {
+            return EnumSet.noneOf(SMB2GlobalCapability.class);
+        }
+        EnumSet<SMB2GlobalCapability> set = EnumSet.of(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LARGE_MTU);
+        if (isDfsEnabled()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DFS);
+        }
+        if (isEncryptData()) {
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_ENCRYPTION);
+        }
+        if (isDirectoryLeasingEnabled()) {
+            // A server (e.g. Samba, Windows) only echoes the leasing capabilities in its
+            // NEGOTIATE response -- and only grants leases -- when the client advertises
+            // them first. Directory leasing requires file leasing to be advertised too.
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_LEASING);
+            set.add(SMB2GlobalCapability.SMB2_GLOBAL_CAP_DIRECTORY_LEASING);
+        }
+        return set;
+    }
+
+    public static class Builder {
+        private SmbConfig config;
+        private NtlmConfig.Builder ntlmConfigBuilder;
+
+        Builder() {
+            config = new SmbConfig();
+            ntlmConfigBuilder = NtlmConfig.builder(config.random);
+        }
+
+        Builder(SmbConfig baseConfig) {
+            config = new SmbConfig(baseConfig);
+            ntlmConfigBuilder = NtlmConfig.builder(config.ntlmConfig);
+        }
+
+        public Builder withRandomProvider(Random random) {
+            if (random == null) {
+                throw new IllegalArgumentException("Random provider may not be null");
+            }
+            config.random = random;
+            return this;
+        }
+
+        public Builder withSecurityProvider(SecurityProvider securityProvider) {
+            if (securityProvider == null) {
+                throw new IllegalArgumentException("Security provider may not be null");
+            }
+            config.securityProvider = securityProvider;
+            return this;
+        }
+
+        public Builder withSocketFactory(SocketFactory socketFactory) {
+            if (socketFactory == null) {
+                throw new IllegalArgumentException("Socket factory may not be null");
+            }
+            config.socketFactory = socketFactory;
+            return this;
+        }
+
+        public Builder withDialects(SMB2Dialect... dialects) {
+            return withDialects(Arrays.asList(dialects));
+        }
+
+        public Builder withDialects(Iterable<SMB2Dialect> dialects) {
+            if (dialects == null) {
+                throw new IllegalArgumentException("Dialects may not be null");
+            }
+
+            config.dialects.clear();
+            for (SMB2Dialect dialect : dialects) {
+                if (dialect == null) {
+                    throw new IllegalArgumentException("Dialect may not be null");
+                }
+                config.dialects.add(dialect);
+            }
+            return this;
+        }
+
+        public Builder withClientGuid(UUID clientGuid) {
+            if (clientGuid == null) {
+                throw new IllegalArgumentException("Client GUID may not be null");
+            }
+            config.clientGuid = clientGuid;
+            return this;
+        }
+
+        @SafeVarargs
+        public final Builder withAuthenticators(Factory.Named<Authenticator>... authenticators) {
+            return withAuthenticators(Arrays.asList(authenticators));
+        }
+
+        public Builder withAuthenticators(Iterable<Factory.Named<Authenticator>> authenticators) {
+            if (authenticators == null) {
+                throw new IllegalArgumentException("Authenticators may not be null");
+            }
+
+            config.authenticators.clear();
+            for (Factory.Named<Authenticator> authenticator : authenticators) {
+                if (authenticator == null) {
+                    throw new IllegalArgumentException("Authenticator may not be null");
+                }
+                config.authenticators.add(authenticator);
+            }
+            return this;
+        }
+
+        public Builder withSigningRequired(boolean signingRequired) {
+            config.signingRequired = signingRequired;
+            return this;
+        }
+
+        public Builder withSigningEnabled(boolean signingEnabled) {
+            config.signingEnabled = signingEnabled;
+            return this;
+        }
+
+        public Builder withReadBufferSize(int readBufferSize) {
+            if (readBufferSize <= 0) {
+                throw new IllegalArgumentException("Read buffer size must be greater than zero");
+            }
+            config.readBufferSize = readBufferSize;
+            return this;
+        }
+
+        public Builder withReadTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.readTimeout = timeoutUnit.toMillis(timeout);
+            return this;
+        }
+
+        public Builder withWriteBufferSize(int writeBufferSize) {
+            if (writeBufferSize <= 0) {
+                throw new IllegalArgumentException("Write buffer size must be greater than zero");
+            }
+            config.writeBufferSize = writeBufferSize;
+            return this;
+        }
+
+        public Builder withWriteTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.writeTimeout = timeoutUnit.toMillis(timeout);
+            return this;
+        }
+
+        public Builder withTransactBufferSize(int transactBufferSize) {
+            if (transactBufferSize <= 0) {
+                throw new IllegalArgumentException("Transact buffer size must be greater than zero");
+            }
+            config.transactBufferSize = transactBufferSize;
+            return this;
+        }
+
+        public Builder withTransactTimeout(long timeout, TimeUnit timeoutUnit) {
+            config.transactTimeout = timeoutUnit.toMillis(timeout);
+            return this;
+        }
+
+        public Builder withNegotiatedBufferSize() {
+            return withBufferSize(Integer.MAX_VALUE);
+        }
+
+        public Builder withBufferSize(int bufferSize) {
+            if (bufferSize <= 0) {
+                throw new IllegalArgumentException("Buffer size must be greater than zero");
+            }
+            return withReadBufferSize(bufferSize).withWriteBufferSize(bufferSize).withTransactBufferSize(bufferSize);
+        }
+
+        public Builder withTransportLayerFactory(TransportLayerFactory<SMBPacketData<?>, SMBPacket<?, ?>> transportLayerFactory) {
+            if (transportLayerFactory == null) {
+                throw new IllegalArgumentException("Transport layer factory may not be null");
+            }
+            config.transportLayerFactory = transportLayerFactory;
+            return this;
+        }
+
+        public Builder withTimeout(long timeout, TimeUnit timeoutUnit) {
+            return withReadTimeout(timeout, timeoutUnit).withWriteTimeout(timeout, timeoutUnit).withTransactTimeout(timeout, timeoutUnit);
+        }
+
+        public Builder withSoTimeout(int timeout) {
+            return withSoTimeout(timeout, TimeUnit.MILLISECONDS);
+        }
+
+        public Builder withSoTimeout(long timeout, TimeUnit timeoutUnit) {
+            if (timeout < 0) {
+                throw new IllegalArgumentException("Socket timeout should be either 0 (no timeout) or a positive value");
+            }
+            long timeoutMillis = timeoutUnit.toMillis(timeout);
+            if (timeoutMillis > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Socket timeout should be less than " + Integer.MAX_VALUE + "ms");
+            }
+
+            config.soTimeout = (int) timeoutMillis;
+            return this;
+        }
+
+        public SmbConfig build() {
+            if (config.dialects.isEmpty()) {
+                throw new IllegalStateException("At least one SMB dialect should be specified");
+            }
+
+            if (config.signingRequired && !config.signingEnabled) {
+                throw new IllegalStateException("If signing is required, it should also be enabled");
+            }
+
+            if (!config.signingEnabled && SMB2Dialect.supportsSmb3x(config.dialects)) {
+                throw new IllegalStateException("Signing cannot be disabled when using SMB3.x dialects");
+            }
+
+            if (config.encryptData && !SMB2Dialect.supportsSmb3x(config.dialects)) {
+                throw new IllegalStateException("If encryption is enabled, at least one dialect should be SMB3.x compatible");
+            }
+
+            if (config.encryptionCiphers.isEmpty()) {
+                throw new IllegalStateException("At least one encryption cipher should be specified");
+            }
+
+            config.ntlmConfig = ntlmConfigBuilder.build();
+
+            return new SmbConfig(config);
+        }
+
+        public Builder withDfsEnabled(boolean dfsEnabled) {
+            config.dfsEnabled = dfsEnabled;
+            return this;
+        }
+
+        /**
+         * Whether to advertise SMB2 file- and directory-leasing capabilities during NEGOTIATE.
+         * Must be enabled for the client to request (and the server to grant) directory leases.
+         * Defaults to {@code true}. Has no effect on non-SMB3 dialects.
+         */
+        public Builder withDirectoryLeasingEnabled(boolean directoryLeasingEnabled) {
+            config.directoryLeasingEnabled = directoryLeasingEnabled;
+            return this;
+        }
+
+        public Builder withMultiProtocolNegotiate(boolean useMultiProtocolNegotiate) {
+            config.useMultiProtocolNegotiate = useMultiProtocolNegotiate;
+            return this;
+        }
+
+        public Builder withClientGSSContextConfig(GSSContextConfig clientGSSContextConfig) {
+            if (clientGSSContextConfig == null) {
+                throw new IllegalArgumentException("Client GSSContext Config may not be null");
+            }
+            config.clientGSSContextConfig = clientGSSContextConfig;
+            return this;
+        }
+
+        public Builder withEncryptData(boolean encryptData) {
+            config.encryptData = encryptData;
+            return this;
+        }
+
+        /**
+         * Set the ciphers to offer to the server when negotiating SMB 3.1.1 encryption, in order of preference.
+         * The server picks the cipher. Defaults to AES-128-GCM, AES-128-CCM, AES-256-GCM, AES-256-CCM.
+         */
+        public Builder withEncryptionCiphers(SMB3EncryptionCipher... encryptionCiphers) {
+            return withEncryptionCiphers(Arrays.asList(encryptionCiphers));
+        }
+
+        public Builder withEncryptionCiphers(Iterable<SMB3EncryptionCipher> encryptionCiphers) {
+            if (encryptionCiphers == null) {
+                throw new IllegalArgumentException("Encryption ciphers may not be null");
+            }
+
+            config.encryptionCiphers.clear();
+            for (SMB3EncryptionCipher cipher : encryptionCiphers) {
+                if (cipher == null) {
+                    throw new IllegalArgumentException("Encryption cipher may not be null");
+                }
+                if (!config.encryptionCiphers.contains(cipher)) {
+                    config.encryptionCiphers.add(cipher);
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Set the workstation name to be used in the NTLM authentication.
+         *
+         * @deprecated Moved into
+         *             withNtlmConfig(NtlmConfig.builder().withWorkstationName(..).build())
+         */
+        public Builder withWorkStationName(String workStationName) {
+            ntlmConfigBuilder.withWorkstationName(workStationName);
+            return this;
+        }
+
+        public NtlmConfig.Builder withNtlmConfig() {
+            return ntlmConfigBuilder;
+        }
+    }
+}

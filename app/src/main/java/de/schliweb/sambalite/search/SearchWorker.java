@@ -34,6 +34,7 @@ import de.schliweb.sambalite.search.db.SearchDatabase;
 import de.schliweb.sambalite.search.db.SearchResult;
 import de.schliweb.sambalite.search.db.SearchResultDao;
 import de.schliweb.sambalite.util.LogUtils;
+import de.schliweb.sambalite.util.SmbClientConfigs;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -337,11 +338,11 @@ public class SearchWorker extends Worker {
     }
 
     if (!encrypt && !sign && !async) {
-      return new SMBClient();
+      return new SMBClient(SmbClientConfigs.builder().build());
     }
 
     SmbConfig.Builder builder =
-        SmbConfig.builder().withEncryptData(encrypt).withSigningRequired(sign);
+        SmbClientConfigs.builder().withEncryptData(encrypt).withSigningRequired(sign);
 
     if (async) {
       builder.withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>());
