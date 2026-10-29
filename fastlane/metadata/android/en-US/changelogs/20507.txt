@@ -1,0 +1,2 @@
+- New: AES-256 encryption for SMB servers that require it (issue #45).
+- Improved: The connection test shows the protocol and cipher in use.

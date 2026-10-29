@@ -46,8 +46,11 @@ jobs:
         BASE_VERSION="$MAJOR.$MINOR.$PATCH"
 
         # versionCode scheme MMmmpp, e.g. 2.5.6 -> 20506. A release candidate
-        # shares the versionCode of the release it precedes; Android installs
-        # an update with an equal versionCode, only a downgrade is refused.
+        # shares the versionCode of the release it precedes. That works for
+        # sideloading (GitHub, F-Droid), where Android installs an update with
+        # an equal versionCode, but Google Play accepts every versionCode only
+        # once: after a release candidate went to Play, the next Play upload
+        # needs the next patch version (2.5.6-rc2 on Play -> 2.5.7).
         VERSION_CODE=$((10#$MAJOR * 10000 + 10#$MINOR * 100 + 10#$PATCH))
 
         if [ -n "$RC" ]; then
