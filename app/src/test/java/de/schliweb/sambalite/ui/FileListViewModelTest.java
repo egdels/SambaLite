@@ -318,6 +318,117 @@ public class FileListViewModelTest {
     assertEquals("c.txt", unsortedFiles.get(4).getName());
   }
 
+  private static SmbFileItem item(String name, boolean isDirectory, long lastModified) {
+    SmbFileItem.Type type = isDirectory ? SmbFileItem.Type.DIRECTORY : SmbFileItem.Type.FILE;
+    return new SmbFileItem(name, name, type, isDirectory ? 0 : 1024, new Date(lastModified));
+  }
+
+  private static List<String> names(List<SmbFileItem> files) {
+    List<String> names = new ArrayList<>();
+    for (SmbFileItem file : files) names.add(file.getName());
+    return names;
+  }
+
+  @Test
+  public void sortByDate_newestFirst() {
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("old.jpg", false, 1000),
+                item("newest.jpg", false, 5000),
+                item("middle.jpg", false, 3000)));
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
+    when(state.isDirectoriesFirst()).thenReturn(true);
+
+    viewModel.sortFiles(files);
+
+    assertEquals(Arrays.asList("newest.jpg", "middle.jpg", "old.jpg"), names(files));
+  }
+
+  @Test
+  public void sortByDate_identicalTimestampsSortedByName() {
+    // Photos copied in one go often share the same timestamp
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("IMG_0003.jpg", false, 2000),
+                item("img_0001.jpg", false, 2000),
+                item("IMG_0002.jpg", false, 2000),
+                item("newer.jpg", false, 3000)));
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
+    when(state.isDirectoriesFirst()).thenReturn(true);
+
+    viewModel.sortFiles(files);
+
+    assertEquals(
+        Arrays.asList("newer.jpg", "img_0001.jpg", "IMG_0002.jpg", "IMG_0003.jpg"), names(files));
+  }
+
+  @Test
+  public void sortByDate_isIndependentOfTheInputOrder() {
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("b.jpg", false, 2000), item("a.jpg", false, 2000), item("c.jpg", false, 2000)));
+    List<SmbFileItem> reversed = new ArrayList<>(files);
+    java.util.Collections.reverse(reversed);
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
+    when(state.isDirectoriesFirst()).thenReturn(true);
+
+    viewModel.sortFiles(files);
+    viewModel.sortFiles(reversed);
+
+    assertEquals(names(files), names(reversed));
+  }
+
+  @Test
+  public void sortByDate_directoriesFirst() {
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("new.jpg", false, 9000),
+                item("oldFolder", true, 1000),
+                item("old.jpg", false, 2000),
+                item("newFolder", true, 8000)));
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
+    when(state.isDirectoriesFirst()).thenReturn(true);
+
+    viewModel.sortFiles(files);
+
+    assertEquals(Arrays.asList("newFolder", "oldFolder", "new.jpg", "old.jpg"), names(files));
+  }
+
+  @Test
+  public void sortByDate_directoriesMixedIn() {
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("new.jpg", false, 9000),
+                item("oldFolder", true, 1000),
+                item("old.jpg", false, 2000),
+                item("newFolder", true, 8000)));
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
+    when(state.isDirectoriesFirst()).thenReturn(false);
+
+    viewModel.sortFiles(files);
+
+    assertEquals(Arrays.asList("new.jpg", "newFolder", "old.jpg", "oldFolder"), names(files));
+  }
+
+  @Test
+  public void sortBySize_equalSizesSortedByName() {
+    List<SmbFileItem> files =
+        new ArrayList<>(
+            Arrays.asList(
+                item("c.jpg", false, 1000), item("a.jpg", false, 3000), item("b.jpg", false, 2000)));
+    when(state.getCurrentSortOption()).thenReturn(FileSortOption.SIZE);
+    when(state.isDirectoriesFirst()).thenReturn(true);
+
+    viewModel.sortFiles(files);
+
+    assertEquals(Arrays.asList("a.jpg", "b.jpg", "c.jpg"), names(files));
+  }
+
   /** Helper method to create a test file. */
   private SmbFileItem createTestFile(String name, boolean isDirectory) {
     String path = name;

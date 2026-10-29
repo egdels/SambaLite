@@ -51,6 +51,11 @@ public class FileListController
   // Search mode flag – when true, the getFiles() observer will not overwrite search results
   @Getter @Setter private boolean searchMode = false;
 
+  // Set when the sort order changes, so the re-sorted list is shown from its first entry
+  private boolean scrollToTopOnNextUpdate = false;
+  private FileSortOption lastSortOption;
+  private Boolean lastDirectoriesFirst;
+
   // Selection state
   @Getter private boolean selectionMode = false;
   private final java.util.LinkedHashSet<String> selectedPaths = new java.util.LinkedHashSet<>();
@@ -132,7 +137,7 @@ public class FileListController
                 return;
               }
               LogUtils.d("FileListController", "File list updated: " + files.size() + " files");
-              adapter.setFiles(files);
+              showFiles(files);
               // Propagate current selection state to adapter
               adapter.setSelectionMode(selectionMode);
               adapter.setSelectedPaths(selectedPaths);
@@ -144,6 +149,28 @@ public class FileListController
               }
               // Refresh active upload indicators from DB
               refreshActiveUploadPaths();
+            });
+
+    // A changed sort order re-sorts the shown list; remember to show it from the top
+    viewModel
+        .getSortOption()
+        .observe(
+            getLifecycleOwner(),
+            option -> {
+              if (lastSortOption != null && lastSortOption != option) {
+                scrollToTopOnNextUpdate = true;
+              }
+              lastSortOption = option;
+            });
+    viewModel
+        .getDirectoriesFirst()
+        .observe(
+            getLifecycleOwner(),
+            directoriesFirst -> {
+              if (lastDirectoriesFirst != null && !lastDirectoriesFirst.equals(directoriesFirst)) {
+                scrollToTopOnNextUpdate = true;
+              }
+              lastDirectoriesFirst = directoriesFirst;
             });
 
     // Observe current path changes
@@ -399,8 +426,20 @@ public class FileListController
    */
   public void updateAdapter(@NonNull List<SmbFileItem> files) {
     LogUtils.d("FileListController", "Updating adapter with " + files.size() + " files");
-    adapter.setFiles(files);
+    showFiles(files);
     updateEmptyView(files);
+  }
+
+  /**
+   * Hands the files to the adapter and returns to the first entry after a re-sort, or stays there
+   * if the list was already at the top. RecyclerView otherwise keeps the previously first entry in
+   * place, so entries sorted in front of it, such as the newest files after switching to date
+   * order, end up above the visible area (issue #37).
+   */
+  private void showFiles(@NonNull List<SmbFileItem> files) {
+    boolean scrollToTop = scrollToTopOnNextUpdate || !recyclerView.canScrollVertically(-1);
+    scrollToTopOnNextUpdate = false;
+    adapter.setFiles(files, scrollToTop ? () -> recyclerView.scrollToPosition(0) : null);
   }
 
   // --- Selection mode APIs ---

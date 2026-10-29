@@ -86,8 +86,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    *
    * @param files The new list of files
    */
-  @SuppressWarnings("ThreadPriorityCheck")
   public void setFiles(@NonNull List<SmbFileItem> files) {
+    setFiles(files, null);
+  }
+
+  /**
+   * Updates the list of files using DiffUtil on a background thread.
+   *
+   * @param files The new list of files
+   * @param onApplied Runs on the main thread once the new list is shown; skipped if a newer list
+   *     replaced it in the meantime
+   */
+  @SuppressWarnings("ThreadPriorityCheck")
+  public void setFiles(@NonNull List<SmbFileItem> files, @Nullable Runnable onApplied) {
     final long updateId = ++latestUpdateId;
     int size = files != null ? files.size() : 0;
     LogUtils.d(
@@ -107,6 +118,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                   this.files = newFiles;
                   result.dispatchUpdatesTo(this);
                   LogUtils.d("FileAdapter", "Applied updateId=" + updateId);
+                  if (onApplied != null) {
+                    onApplied.run();
+                  }
                 } else {
                   LogUtils.d(
                       "FileAdapter",

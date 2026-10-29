@@ -272,13 +272,16 @@ public class FileListViewModel extends ViewModel {
           } else if (state.getCurrentSortOption() == FileSortOption.DATE) {
             // If lastModified is null, treat it as oldest (comes last)
             if (file1.getLastModified() == null) {
-              return file2.getLastModified() == null ? 0 : 1;
+              return file2.getLastModified() == null
+                  ? file1.getName().compareToIgnoreCase(file2.getName())
+                  : 1;
             }
             if (file2.getLastModified() == null) {
               return -1;
             }
-            // Sort by date, newest first
-            return file2.getLastModified().compareTo(file1.getLastModified());
+            // Sort by date, newest first; equal timestamps by name so the order is deterministic
+            int byDate = file2.getLastModified().compareTo(file1.getLastModified());
+            return byDate != 0 ? byDate : file1.getName().compareToIgnoreCase(file2.getName());
           } else if (state.getCurrentSortOption() == FileSortOption.SIZE) {
             // Directories have size 0, so if directoriesFirst is false, we need to handle this case
             if (!state.isDirectoriesFirst()) {
@@ -293,8 +296,9 @@ public class FileListViewModel extends ViewModel {
                 return 1; // Files come after directories when sorting by size
               }
             }
-            // Sort by size, largest first
-            return Long.compare(file2.getSize(), file1.getSize());
+            // Sort by size, largest first; equal sizes by name
+            int bySize = Long.compare(file2.getSize(), file1.getSize());
+            return bySize != 0 ? bySize : file1.getName().compareToIgnoreCase(file2.getName());
           } else {
             return file1.getName().compareToIgnoreCase(file2.getName());
           }
