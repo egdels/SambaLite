@@ -22,6 +22,7 @@ import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
+import de.schliweb.sambalite.ui.SortDirection;
 import de.schliweb.sambalite.ui.ThumbnailManager;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.HashSet;
@@ -54,6 +55,7 @@ public class FileListController
   // Set when the sort order changes, so the re-sorted list is shown from its first entry
   private boolean scrollToTopOnNextUpdate = false;
   private FileSortOption lastSortOption;
+  private SortDirection lastSortDirection;
   private Boolean lastDirectoriesFirst;
 
   // Selection state
@@ -161,6 +163,16 @@ public class FileListController
                 scrollToTopOnNextUpdate = true;
               }
               lastSortOption = option;
+            });
+    viewModel
+        .getSortDirection()
+        .observe(
+            getLifecycleOwner(),
+            direction -> {
+              if (lastSortDirection != null && lastSortDirection != direction) {
+                scrollToTopOnNextUpdate = true;
+              }
+              lastSortDirection = direction;
             });
     viewModel
         .getDirectoriesFirst()

@@ -43,6 +43,7 @@ public class FileBrowserState {
   @NonNull private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
   // Sorting state
   @NonNull private final MutableLiveData<FileSortOption> sortOption;
+  @NonNull private final MutableLiveData<SortDirection> sortDirection;
   @NonNull private final MutableLiveData<Boolean> directoriesFirstLiveData;
   @NonNull private final MutableLiveData<Boolean> showHiddenFilesLiveData;
   @NonNull private final MutableLiveData<Boolean> showThumbnailsLiveData;
@@ -57,6 +58,7 @@ public class FileBrowserState {
   @Getter private SmbConnection connection;
   private String currentPath = "";
   private FileSortOption currentSortOption;
+  private SortDirection currentSortDirection;
   private boolean directoriesFirst;
   private boolean showHiddenFiles;
   private boolean showThumbnails;
@@ -77,12 +79,14 @@ public class FileBrowserState {
 
     // Load sorting preferences from PreferencesManager
     this.currentSortOption = preferencesManager.getSortOption();
+    this.currentSortDirection = preferencesManager.getSortDirection();
     this.directoriesFirst = preferencesManager.getDirectoriesFirst();
     this.showHiddenFiles = preferencesManager.getShowHiddenFiles();
     this.showThumbnails = preferencesManager.getShowThumbnails();
 
     // Initialize LiveData with loaded preferences
     this.sortOption = new MutableLiveData<>(currentSortOption);
+    this.sortDirection = new MutableLiveData<>(currentSortDirection);
     this.directoriesFirstLiveData = new MutableLiveData<>(directoriesFirst);
     this.showHiddenFilesLiveData = new MutableLiveData<>(showHiddenFiles);
     this.showThumbnailsLiveData = new MutableLiveData<>(showThumbnails);
@@ -91,6 +95,8 @@ public class FileBrowserState {
         "FileBrowserState",
         "Initialized with sort option: "
             + currentSortOption
+            + " "
+            + currentSortDirection
             + ", directoriesFirst: "
             + directoriesFirst);
   }
@@ -222,6 +228,24 @@ public class FileBrowserState {
   /** Gets the current sort option. */
   public @NonNull FileSortOption getCurrentSortOption() {
     return currentSortOption;
+  }
+
+  /** Gets the current sort direction as LiveData. */
+  public @NonNull LiveData<SortDirection> getSortDirection() {
+    return sortDirection;
+  }
+
+  /** Sets the sort direction and persists it to preferences. */
+  public void setSortDirection(@NonNull SortDirection direction) {
+    this.currentSortDirection = direction;
+    this.sortDirection.setValue(direction);
+    preferencesManager.saveSortDirection(direction);
+    LogUtils.d("FileBrowserState", "Sort direction saved to preferences: " + direction);
+  }
+
+  /** Gets the current sort direction. */
+  public @NonNull SortDirection getCurrentSortDirection() {
+    return currentSortDirection;
   }
 
   /** Gets the current "directories first" flag as LiveData. */

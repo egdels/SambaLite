@@ -105,6 +105,13 @@
     <string name="sort_by_name">Name</string>
     <string name="sort_by_date">Date</string>
     <string name="sort_by_size">Size</string>
+    <string name="sort_order">Order</string>
+    <string name="sort_name_ascending" translatable="false">A–Z</string>
+    <string name="sort_name_descending" translatable="false">Z–A</string>
+    <string name="sort_date_ascending">Oldest first</string>
+    <string name="sort_date_descending">Newest first</string>
+    <string name="sort_size_ascending">Smallest first</string>
+    <string name="sort_size_descending">Largest first</string>
     <string name="directories_first">Directories first</string>
     <string name="show_hidden_files">Show hidden files/folders</string>
     <string name="show_thumbnails">Show thumbnails</string>

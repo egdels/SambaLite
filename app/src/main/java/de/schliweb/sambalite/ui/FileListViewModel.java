@@ -137,9 +137,27 @@ public class FileListViewModel extends ViewModel {
   public void setSortOption(@NonNull FileSortOption option) {
     state.setSortOption(option);
 
-    // Reload files with new sorting
+    resortShownFiles();
+  }
+
+  /** Gets the current sort direction as LiveData. */
+  public @NonNull LiveData<SortDirection> getSortDirection() {
+    return state.getSortDirection();
+  }
+
+  /**
+   * Sets the sort direction, applied to the current sort option.
+   *
+   * @param direction The sort direction to set
+   */
+  public void setSortDirection(@NonNull SortDirection direction) {
+    state.setSortDirection(direction);
+    resortShownFiles();
+  }
+
+  /** Re-sorts the shown files or search results with the current sorting options. */
+  private void resortShownFiles() {
     if (state.getSearchMode()) {
-      // Re-sort search results
       List<SmbFileItem> results = state.getSearchResults().getValue();
       if (results != null) {
         List<SmbFileItem> sorted = new ArrayList<>(results);
@@ -164,20 +182,7 @@ public class FileListViewModel extends ViewModel {
    */
   public void setDirectoriesFirst(boolean directoriesFirst) {
     state.setDirectoriesFirst(directoriesFirst);
-
-    // Reload files with new sorting
-    if (state.getSearchMode()) {
-      // Re-sort search results
-      List<SmbFileItem> results = state.getSearchResults().getValue();
-      if (results != null) {
-        List<SmbFileItem> sorted = new ArrayList<>(results);
-        sortFiles(sorted);
-        state.setSearchResults(sorted);
-      }
-    } else {
-      // Reload from current state
-      refreshUIFromCurrentState();
-    }
+    resortShownFiles();
   }
 
   /** Gets the current "show hidden files" flag as LiveData. */
@@ -241,23 +246,29 @@ public class FileListViewModel extends ViewModel {
   }
 
   /**
-   * Sorts a list of files according to the current sorting options.
+   * Sorts a list of files according to the current sorting options. The sort direction reverses the
+   * selected criterion only: directories stay first if "directories first" is set, files without a
+   * date stay last, and equal values are ordered by name A–Z.
    *
    * @param fileList The list of files to sort
    */
   public void sortFiles(@NonNull List<SmbFileItem> fileList) {
+    FileSortOption option = state.getCurrentSortOption();
+    boolean descending = state.getCurrentSortDirection() == SortDirection.DESCENDING;
+    boolean directoriesFirst = state.isDirectoriesFirst();
     LogUtils.d(
         "FileListViewModel",
         "Sorting files with option: "
-            + state.getCurrentSortOption()
+            + option
+            + (descending ? " descending" : " ascending")
             + ", directoriesFirst: "
-            + state.isDirectoriesFirst());
+            + directoriesFirst);
 
     Collections.sort(
         fileList,
         (file1, file2) -> {
           // If directoriesFirst is true, directories come before files
-          if (state.isDirectoriesFirst()) {
+          if (directoriesFirst) {
             if (file1.isDirectory() && !file2.isDirectory()) {
               return -1;
             }
@@ -266,42 +277,32 @@ public class FileListViewModel extends ViewModel {
             }
           }
 
-          // Both are directories or both are files, sort according to the current sort option
-          if (state.getCurrentSortOption() == FileSortOption.NAME) {
-            return file1.getName().compareToIgnoreCase(file2.getName());
-          } else if (state.getCurrentSortOption() == FileSortOption.DATE) {
-            // If lastModified is null, treat it as oldest (comes last)
-            if (file1.getLastModified() == null) {
-              return file2.getLastModified() == null
-                  ? file1.getName().compareToIgnoreCase(file2.getName())
-                  : 1;
+          int byName = file1.getName().compareToIgnoreCase(file2.getName());
+          int result;
+          if (option == FileSortOption.DATE) {
+            // Files without a date come last in both directions
+            if (file1.getLastModified() == null || file2.getLastModified() == null) {
+              if (file1.getLastModified() != null) return -1;
+              if (file2.getLastModified() != null) return 1;
+              return byName;
             }
-            if (file2.getLastModified() == null) {
-              return -1;
+            result = file1.getLastModified().compareTo(file2.getLastModified());
+          } else if (option == FileSortOption.SIZE) {
+            // Directories have no size: without directoriesFirst they still come before files,
+            // ordered by name
+            if (!directoriesFirst && (file1.isDirectory() || file2.isDirectory())) {
+              if (file1.isDirectory() && file2.isDirectory()) return byName;
+              return file1.isDirectory() ? -1 : 1;
             }
-            // Sort by date, newest first; equal timestamps by name so the order is deterministic
-            int byDate = file2.getLastModified().compareTo(file1.getLastModified());
-            return byDate != 0 ? byDate : file1.getName().compareToIgnoreCase(file2.getName());
-          } else if (state.getCurrentSortOption() == FileSortOption.SIZE) {
-            // Directories have size 0, so if directoriesFirst is false, we need to handle this case
-            if (!state.isDirectoriesFirst()) {
-              if (file1.isDirectory() && file2.isDirectory()) {
-                // Both are directories, sort by name
-                return file1.getName().compareToIgnoreCase(file2.getName());
-              }
-              if (file1.isDirectory()) {
-                return -1; // Directories come before files when sorting by size
-              }
-              if (file2.isDirectory()) {
-                return 1; // Files come after directories when sorting by size
-              }
-            }
-            // Sort by size, largest first; equal sizes by name
-            int bySize = Long.compare(file2.getSize(), file1.getSize());
-            return bySize != 0 ? bySize : file1.getName().compareToIgnoreCase(file2.getName());
+            result = Long.compare(file1.getSize(), file2.getSize());
           } else {
-            return file1.getName().compareToIgnoreCase(file2.getName());
+            result = byName;
           }
+          if (result == 0) {
+            // Equal dates or sizes: by name so the order is deterministic
+            return byName;
+          }
+          return descending ? -result : result;
         });
   }
 

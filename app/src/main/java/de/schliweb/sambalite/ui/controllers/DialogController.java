@@ -375,6 +375,9 @@ public class DialogController {
 
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sort, null);
     RadioGroup sortGroup = dialogView.findViewById(R.id.sort_type_radio_group);
+    RadioGroup directionGroup = dialogView.findViewById(R.id.sort_direction_radio_group);
+    CompoundButton ascendingButton = dialogView.findViewById(R.id.radio_ascending);
+    CompoundButton descendingButton = dialogView.findViewById(R.id.radio_descending);
     CompoundButton directoriesFirstCheckbox =
         dialogView.findViewById(R.id.directories_first_checkbox);
     CompoundButton showHiddenFilesCheckbox =
@@ -383,6 +386,7 @@ public class DialogController {
 
     // Set initial values
     FileSortOption currentSortOption = fileListViewModel.getSortOption().getValue();
+    SortDirection currentSortDirection = fileListViewModel.getSortDirection().getValue();
     boolean directoriesFirst =
         Boolean.TRUE.equals(fileListViewModel.getDirectoriesFirst().getValue());
     boolean showHiddenFiles =
@@ -397,6 +401,23 @@ public class DialogController {
       sortGroup.check(R.id.radio_size);
     }
 
+    // The direction is labelled for the selected criterion (A–Z, newest first, ...); choosing
+    // another criterion starts with its usual direction
+    applyDirectionLabels(ascendingButton, descendingButton, sortOptionFor(sortGroup));
+    directionGroup.check(
+        currentSortDirection == SortDirection.DESCENDING
+            ? R.id.radio_descending
+            : R.id.radio_ascending);
+    sortGroup.setOnCheckedChangeListener(
+        (group, checkedId) -> {
+          FileSortOption option = sortOptionFor(sortGroup);
+          applyDirectionLabels(ascendingButton, descendingButton, option);
+          directionGroup.check(
+              option.getDefaultDirection() == SortDirection.DESCENDING
+                  ? R.id.radio_descending
+                  : R.id.radio_ascending);
+        });
+
     directoriesFirstCheckbox.setChecked(directoriesFirst);
     showHiddenFilesCheckbox.setChecked(showHiddenFiles);
     showThumbnailsCheckbox.setChecked(showThumbnails);
@@ -406,18 +427,14 @@ public class DialogController {
         .setPositiveButton(
             R.string.ok,
             (dialog, which) -> {
-              // Get selected sort option
-              FileSortOption sortOption;
-              int checkedId = sortGroup.getCheckedRadioButtonId();
-              if (checkedId == R.id.radio_date) {
-                sortOption = FileSortOption.DATE;
-              } else if (checkedId == R.id.radio_size) {
-                sortOption = FileSortOption.SIZE;
-              } else {
-                sortOption = FileSortOption.NAME;
-              }
+              FileSortOption sortOption = sortOptionFor(sortGroup);
+              SortDirection sortDirection =
+                  directionGroup.getCheckedRadioButtonId() == R.id.radio_descending
+                      ? SortDirection.DESCENDING
+                      : SortDirection.ASCENDING;
 
               // Apply sort settings
+              fileListViewModel.setSortDirection(sortDirection);
               fileListViewModel.setSortOption(sortOption);
               fileListViewModel.setDirectoriesFirst(directoriesFirstCheckbox.isChecked());
               fileListViewModel.setShowHiddenFiles(showHiddenFilesCheckbox.isChecked());
@@ -425,6 +442,32 @@ public class DialogController {
             })
         .setNegativeButton(R.string.cancel, null)
         .show();
+  }
+
+  /** Returns the sort option checked in the sort dialog. */
+  private static FileSortOption sortOptionFor(RadioGroup sortGroup) {
+    int checkedId = sortGroup.getCheckedRadioButtonId();
+    if (checkedId == R.id.radio_date) {
+      return FileSortOption.DATE;
+    } else if (checkedId == R.id.radio_size) {
+      return FileSortOption.SIZE;
+    }
+    return FileSortOption.NAME;
+  }
+
+  /** Labels the direction buttons of the sort dialog for the given sort option. */
+  private static void applyDirectionLabels(
+      CompoundButton ascendingButton, CompoundButton descendingButton, FileSortOption option) {
+    if (option == FileSortOption.DATE) {
+      ascendingButton.setText(R.string.sort_date_ascending);
+      descendingButton.setText(R.string.sort_date_descending);
+    } else if (option == FileSortOption.SIZE) {
+      ascendingButton.setText(R.string.sort_size_ascending);
+      descendingButton.setText(R.string.sort_size_descending);
+    } else {
+      ascendingButton.setText(R.string.sort_name_ascending);
+      descendingButton.setText(R.string.sort_name_descending);
+    }
   }
 
   /** Shows a dialog for searching files. */

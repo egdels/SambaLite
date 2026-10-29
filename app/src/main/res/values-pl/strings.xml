@@ -153,6 +153,11 @@
     <string name="sort_by_name">Nazwa</string>
     <string name="sort_by_date">Data</string>
     <string name="sort_by_size">Rozmiar</string>
+    <string name="sort_order">Kolejność</string>
+    <string name="sort_date_ascending">Najstarsze najpierw</string>
+    <string name="sort_date_descending">Najnowsze najpierw</string>
+    <string name="sort_size_ascending">Najmniejsze najpierw</string>
+    <string name="sort_size_descending">Największe najpierw</string>
     <string name="directories_first">Katalogi na początku</string>
     <string name="show_hidden_files">Pokaż ukryte pliki/foldery</string>
     <string name="show_thumbnails">Pokaż miniatury</string>

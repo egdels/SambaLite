@@ -23,4 +23,11 @@ public class FileSortOptionTest {
   public void valueOf_invalidName_throwsException() {
     FileSortOption.valueOf("INVALID");
   }
+
+  @Test
+  public void defaultDirections_matchThePreviousFixedOrders() {
+    assertEquals(SortDirection.ASCENDING, FileSortOption.NAME.getDefaultDirection());
+    assertEquals(SortDirection.DESCENDING, FileSortOption.DATE.getDefaultDirection());
+    assertEquals(SortDirection.DESCENDING, FileSortOption.SIZE.getDefaultDirection());
+  }
 }

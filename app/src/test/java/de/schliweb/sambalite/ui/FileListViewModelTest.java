@@ -340,6 +340,8 @@ public class FileListViewModelTest {
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
     when(state.isDirectoriesFirst()).thenReturn(true);
 
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
+
     viewModel.sortFiles(files);
 
     assertEquals(Arrays.asList("newest.jpg", "middle.jpg", "old.jpg"), names(files));
@@ -358,6 +360,8 @@ public class FileListViewModelTest {
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
     when(state.isDirectoriesFirst()).thenReturn(true);
 
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
+
     viewModel.sortFiles(files);
 
     assertEquals(
@@ -374,6 +378,8 @@ public class FileListViewModelTest {
     java.util.Collections.reverse(reversed);
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
     when(state.isDirectoriesFirst()).thenReturn(true);
+
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
 
     viewModel.sortFiles(files);
     viewModel.sortFiles(reversed);
@@ -393,6 +399,8 @@ public class FileListViewModelTest {
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
     when(state.isDirectoriesFirst()).thenReturn(true);
 
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
+
     viewModel.sortFiles(files);
 
     assertEquals(Arrays.asList("newFolder", "oldFolder", "new.jpg", "old.jpg"), names(files));
@@ -410,6 +418,8 @@ public class FileListViewModelTest {
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.DATE);
     when(state.isDirectoriesFirst()).thenReturn(false);
 
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
+
     viewModel.sortFiles(files);
 
     assertEquals(Arrays.asList("new.jpg", "newFolder", "old.jpg", "oldFolder"), names(files));
@@ -424,9 +434,116 @@ public class FileListViewModelTest {
     when(state.getCurrentSortOption()).thenReturn(FileSortOption.SIZE);
     when(state.isDirectoriesFirst()).thenReturn(true);
 
+    when(state.getCurrentSortDirection()).thenReturn(SortDirection.DESCENDING);
+
     viewModel.sortFiles(files);
 
     assertEquals(Arrays.asList("a.jpg", "b.jpg", "c.jpg"), names(files));
+  }
+
+  /** Sorts the given files with the given options and returns their names in order. */
+  private List<String> sorted(
+      FileSortOption option,
+      SortDirection direction,
+      boolean directoriesFirst,
+      SmbFileItem... files) {
+    when(state.getCurrentSortOption()).thenReturn(option);
+    when(state.getCurrentSortDirection()).thenReturn(direction);
+    when(state.isDirectoriesFirst()).thenReturn(directoriesFirst);
+    List<SmbFileItem> list = new ArrayList<>(Arrays.asList(files));
+    viewModel.sortFiles(list);
+    return names(list);
+  }
+
+  @Test
+  public void sortByName_bothDirections() {
+    SmbFileItem[] files = {item("b.txt", false, 1), item("C.txt", false, 1), item("a.txt", false, 1)};
+    assertEquals(
+        Arrays.asList("a.txt", "b.txt", "C.txt"),
+        sorted(FileSortOption.NAME, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("C.txt", "b.txt", "a.txt"),
+        sorted(FileSortOption.NAME, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void sortByDate_bothDirections() {
+    SmbFileItem[] files = {
+      item("middle.jpg", false, 2000), item("newest.jpg", false, 3000), item("oldest.jpg", false, 1000)
+    };
+    assertEquals(
+        Arrays.asList("oldest.jpg", "middle.jpg", "newest.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("newest.jpg", "middle.jpg", "oldest.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void sortBySize_bothDirections() {
+    SmbFileItem[] files = {
+      new SmbFileItem("medium", "medium", SmbFileItem.Type.FILE, 200, new Date(1)),
+      new SmbFileItem("large", "large", SmbFileItem.Type.FILE, 300, new Date(1)),
+      new SmbFileItem("small", "small", SmbFileItem.Type.FILE, 100, new Date(1))
+    };
+    assertEquals(
+        Arrays.asList("small", "medium", "large"),
+        sorted(FileSortOption.SIZE, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("large", "medium", "small"),
+        sorted(FileSortOption.SIZE, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void directoriesFirst_isKeptInBothDirections() {
+    SmbFileItem[] files = {
+      item("b.txt", false, 1), item("zFolder", true, 1), item("a.txt", false, 1), item("aFolder", true, 1)
+    };
+    assertEquals(
+        Arrays.asList("aFolder", "zFolder", "a.txt", "b.txt"),
+        sorted(FileSortOption.NAME, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("zFolder", "aFolder", "b.txt", "a.txt"),
+        sorted(FileSortOption.NAME, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void equalValues_areOrderedByNameInBothDirections() {
+    SmbFileItem[] files = {item("c.jpg", false, 1000), item("a.jpg", false, 1000), item("b.jpg", false, 1000)};
+    assertEquals(
+        Arrays.asList("a.jpg", "b.jpg", "c.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("a.jpg", "b.jpg", "c.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void filesWithoutDate_comeLastInBothDirections() {
+    SmbFileItem undated = new SmbFileItem("undated.jpg", "undated.jpg", SmbFileItem.Type.FILE, 1, null);
+    SmbFileItem[] files = {undated, item("new.jpg", false, 2000), item("old.jpg", false, 1000)};
+    assertEquals(
+        Arrays.asList("old.jpg", "new.jpg", "undated.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.ASCENDING, true, files));
+    assertEquals(
+        Arrays.asList("new.jpg", "old.jpg", "undated.jpg"),
+        sorted(FileSortOption.DATE, SortDirection.DESCENDING, true, files));
+  }
+
+  @Test
+  public void sortBySizeWithoutDirectoriesFirst_keepsDirectoriesBeforeFiles() {
+    SmbFileItem[] files = {
+      new SmbFileItem("big", "big", SmbFileItem.Type.FILE, 500, new Date(1)),
+      item("bFolder", true, 1),
+      new SmbFileItem("tiny", "tiny", SmbFileItem.Type.FILE, 5, new Date(1)),
+      item("aFolder", true, 1)
+    };
+    assertEquals(
+        Arrays.asList("aFolder", "bFolder", "tiny", "big"),
+        sorted(FileSortOption.SIZE, SortDirection.ASCENDING, false, files));
+    assertEquals(
+        Arrays.asList("aFolder", "bFolder", "big", "tiny"),
+        sorted(FileSortOption.SIZE, SortDirection.DESCENDING, false, files));
   }
 
   /** Helper method to create a test file. */

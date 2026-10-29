@@ -147,6 +147,11 @@
     <string name="sort_by_name">Naam</string>
     <string name="sort_by_date">Datum</string>
     <string name="sort_by_size">Grootte</string>
+    <string name="sort_order">Volgorde</string>
+    <string name="sort_date_ascending">Oudste eerst</string>
+    <string name="sort_date_descending">Nieuwste eerst</string>
+    <string name="sort_size_ascending">Kleinste eerst</string>
+    <string name="sort_size_descending">Grootste eerst</string>
     <string name="directories_first">Mappen eerst</string>
     <string name="show_hidden_files">Verborgen bestanden/mappen tonen</string>
     <string name="show_thumbnails">Miniaturen tonen</string>

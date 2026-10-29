@@ -21,6 +21,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
+import de.schliweb.sambalite.ui.SortDirection;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -60,6 +61,7 @@ public class FileListControllerSelectionTest {
     when(viewModel.getErrorMessage()).thenReturn(new MutableLiveData<>(null));
     when(viewModel.getSortOption()).thenReturn(new MutableLiveData<>(FileSortOption.NAME));
     when(viewModel.getDirectoriesFirst()).thenReturn(new MutableLiveData<>(true));
+    when(viewModel.getSortDirection()).thenReturn(new MutableLiveData<>(SortDirection.ASCENDING));
 
     AppCompatActivity activity =
         Robolectric.buildActivity(AppCompatActivity.class).create().start().resume().get();

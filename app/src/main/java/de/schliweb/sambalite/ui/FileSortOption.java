@@ -14,7 +14,18 @@ package de.schliweb.sambalite.ui;
  * dependencies.
  */
 public enum FileSortOption {
-  NAME,
-  DATE,
-  SIZE
+  NAME(SortDirection.ASCENDING),
+  DATE(SortDirection.DESCENDING),
+  SIZE(SortDirection.DESCENDING);
+
+  private final SortDirection defaultDirection;
+
+  FileSortOption(SortDirection defaultDirection) {
+    this.defaultDirection = defaultDirection;
+  }
+
+  /** The direction this option sorts in unless the user chose another: A–Z, newest, largest. */
+  public SortDirection getDefaultDirection() {
+    return defaultDirection;
+  }
 }

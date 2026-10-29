@@ -149,6 +149,11 @@
     <string name="sort_by_name">Nombre</string>
     <string name="sort_by_date">Fecha</string>
     <string name="sort_by_size">Tamaño</string>
+    <string name="sort_order">Orden</string>
+    <string name="sort_date_ascending">Más antiguos primero</string>
+    <string name="sort_date_descending">Más recientes primero</string>
+    <string name="sort_size_ascending">Más pequeños primero</string>
+    <string name="sort_size_descending">Más grandes primero</string>
     <string name="directories_first">Directorios primero</string>
     <string name="show_hidden_files">Mostrar archivos/carpetas ocultos</string>
     <string name="show_thumbnails">Mostrar miniaturas</string>

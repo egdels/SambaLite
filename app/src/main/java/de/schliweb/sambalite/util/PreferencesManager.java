@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
 import de.schliweb.sambalite.ui.FileSortOption;
+import de.schliweb.sambalite.ui.SortDirection;
 
 /**
  * Manager for handling application preferences. This class provides methods for storing and
@@ -21,6 +22,7 @@ import de.schliweb.sambalite.ui.FileSortOption;
 public class PreferencesManager {
   private static final String PREFS_NAME = "de.schliweb.sambalite.preferences";
   private static final String KEY_SORT_OPTION = "sort_option";
+  private static final String KEY_SORT_DIRECTION = "sort_direction";
   private static final String KEY_DIRECTORIES_FIRST = "directories_first";
   private static final String KEY_SHOW_HIDDEN_FILES = "show_hidden_files";
   private static final String KEY_AUTH_REQUIRED_FOR_ACCESS = "auth_required_for_access";
@@ -66,6 +68,34 @@ public class PreferencesManager {
           "PreferencesManager", "Invalid sort option name: " + sortOptionName + ", using default");
       return FileSortOption.NAME;
     }
+  }
+
+  /**
+   * Saves the sort direction.
+   *
+   * @param sortDirection The sort direction to save
+   */
+  public void saveSortDirection(@NonNull SortDirection sortDirection) {
+    LogUtils.d("PreferencesManager", "Saving sort direction: " + sortDirection);
+    preferences.edit().putString(KEY_SORT_DIRECTION, sortDirection.name()).apply();
+  }
+
+  /**
+   * Gets the saved sort direction.
+   *
+   * @return The saved sort direction, or the default direction of the saved sort option if none is
+   *     saved, so existing users keep the order they had
+   */
+  public @NonNull SortDirection getSortDirection() {
+    String sortDirectionName = preferences.getString(KEY_SORT_DIRECTION, null);
+    if (sortDirectionName != null) {
+      try {
+        return SortDirection.valueOf(sortDirectionName);
+      } catch (IllegalArgumentException e) {
+        LogUtils.w("PreferencesManager", "Invalid sort direction name: " + sortDirectionName);
+      }
+    }
+    return getSortOption().getDefaultDirection();
   }
 
   /**
