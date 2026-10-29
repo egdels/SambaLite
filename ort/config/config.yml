@@ -7,6 +7,9 @@ ort:
       - PIP
       - NuGet
       - Bazel
+      # ORT >= 97 analyzes the CI workflows with the external "abom" tool, which the
+      # runner lacks (one error per workflow). The app's licenses do not depend on it.
+      - GitHubAction
     # ORT >= 89 is built with Java 25 and defaults the Gradle daemon to that
     # version, which Gradle 8.13/Groovy of this project cannot parse
     # ("Unsupported class file major version 69"). The "javaVersion" option

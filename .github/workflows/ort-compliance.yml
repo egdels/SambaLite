@@ -38,9 +38,13 @@ jobs:
 
       - name: Install ORT
         run: |
-          ORT_URL=$(curl -s https://api.github.com/repos/oss-review-toolkit/ort/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^ort-.*\\.tgz$")) | .browser_download_url')
-          curl -L -o ort.tgz "$ORT_URL"
+          # Pinned: a new ORT release can add analyzers or checks that fail the job unnoticed.
+          ORT_VERSION=97.2.0
+          # The release asset's URL directly: asking the API for it, unauthenticated from a shared
+          # runner, can hit the rate limit and return an error without assets (jq: "Cannot iterate
+          # over null"). -f fails the step on an HTTP error instead of extracting an error page.
+          curl -fsSL -o ort.tgz \
+            "https://github.com/oss-review-toolkit/ort/releases/download/${ORT_VERSION}/ort-${ORT_VERSION}.tgz"
           tar -xzf ort.tgz
           sudo mv ort-*/ /opt/ort
           sudo ln -s /opt/ort/bin/ort /usr/local/bin/ort
@@ -68,7 +72,8 @@ jobs:
 
       - name: Install ScanCode
         run: |
-          pip install scancode-toolkit
+          # plugincode 32 finds no hooks with pluggy 1.7 ("did not find any 'pre_scan' hooks").
+          pip install "scancode-toolkit==32.5.0" "pluggy<1.7"
           scancode --version
 
       - name: Run ScanCode
