@@ -50,8 +50,8 @@ import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
-import de.schliweb.sambalite.ui.adapters.DiscoveredServerAdapter;
 import de.schliweb.sambalite.ui.adapters.SharesAdapter;
+import de.schliweb.sambalite.ui.dialogs.NetworkSearchDialog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.util.*;
 import java.util.HashSet;
@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity
   private LoadingIndicator loadingIndicator;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
   private NetworkScanner networkScanner;
+  private SmbServiceDiscovery smbServiceDiscovery;
   private PreferencesManager preferencesManager;
 
   // Track running sync config IDs from WorkManager to apply after config reloads
@@ -185,6 +186,7 @@ public class MainActivity extends AppCompatActivity
 
     // Initialize network scanner
     networkScanner = new NetworkScanner(this);
+    smbServiceDiscovery = new SmbServiceDiscovery(this);
     LogUtils.d("MainActivity", "Network scanner initialized");
 
     // Initialize preferences manager
@@ -1267,7 +1269,7 @@ public class MainActivity extends AppCompatActivity
     scanNetworkButton.setOnClickListener(
         v -> {
           LogUtils.d("MainActivity", "Scan network button clicked");
-          showNetworkScanDialog(serverEditText, nameEditText);
+          showNetworkScanDialog(serverEditText, portEditText, nameEditText);
         });
   }
 
@@ -1376,6 +1378,7 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.domain_edit_text);
 
     Button testConnectionButton = dialogView.findViewById(R.id.test_connection_button);
+    Button scanNetworkButton = dialogView.findViewById(R.id.scan_network_button);
     com.google.android.material.materialswitch.MaterialSwitch encryptSwitchEdit =
         dialogView.findViewById(R.id.encrypt_switch);
     com.google.android.material.materialswitch.MaterialSwitch signingSwitchEdit =
@@ -1687,6 +1690,13 @@ public class MainActivity extends AppCompatActivity
             focusFirstInvalidField(firstInvalidField);
           }
         });
+
+    // Set up the scan network button
+    scanNetworkButton.setOnClickListener(
+        v -> {
+          LogUtils.d("MainActivity", "Scan network button clicked (edit dialog)");
+          showNetworkScanDialog(serverEditText, portEditText, nameEditText);
+        });
   }
 
   /** Shows a confirmation dialog for deleting a connection. */
@@ -1848,354 +1858,29 @@ public class MainActivity extends AppCompatActivity
         .show();
   }
 
-  /** Shows the network scan dialog to discover SMB servers. */
+  /**
+   * Shows the network search dialog (port scan and mDNS/DNS-SD) and fills the chosen server, its
+   * port and, if still empty, a connection name into the connection dialog.
+   */
   private void showNetworkScanDialog(
       com.google.android.material.textfield.TextInputEditText serverEditText,
+      com.google.android.material.textfield.TextInputEditText portEditText,
       com.google.android.material.textfield.TextInputEditText nameEditText) {
-    LogUtils.d("MainActivity", "Showing network scan dialog");
-
-    // Check if scanning is supported
-    if (!networkScanner.isScanningSupported()) {
-      EnhancedUIUtils.showError(
-          this, "Network scanning is not available. Please check your network connection.");
-      return;
-    }
-
-    // Inflate the dialog layout
-    View dialogView = getLayoutInflater().inflate(R.layout.dialog_network_scan, null);
-
-    // Get UI elements with null checks
-    View scanProgressSection = dialogView.findViewById(R.id.scan_progress_section);
-    View serverListSection = dialogView.findViewById(R.id.server_list_section);
-    ProgressBar progressIndicator = dialogView.findViewById(R.id.scan_progress_indicator);
-    TextView scanStatusText = dialogView.findViewById(R.id.scan_status_text);
-    TextView scanProgressText = dialogView.findViewById(R.id.scan_progress_text);
-    TextView serversFoundLabel = dialogView.findViewById(R.id.servers_found_label);
-    androidx.recyclerview.widget.RecyclerView serversRecyclerView =
-        dialogView.findViewById(R.id.servers_recycler_view);
-    TextView noServersText = dialogView.findViewById(R.id.no_servers_text);
-    LinearLayout customButtonBar = dialogView.findViewById(R.id.custom_button_bar);
-    Button customCancelButton = dialogView.findViewById(R.id.btn_cancel);
-    Button customScanButton = dialogView.findViewById(R.id.btn_scan);
-    Button customUseServerButton = dialogView.findViewById(R.id.btn_use_server);
-
-    // Check for critical UI elements
-    if (customButtonBar == null) {
-      LogUtils.e(
-          "MainActivity",
-          "Critical UI element customButtonBar is null - dialog layout may be missing elements");
-      EnhancedUIUtils.showError(
-          this, "Network scan dialog layout is incomplete. Please check the app installation.");
-      return;
-    }
-
-    if (serversRecyclerView == null) {
-      LogUtils.e("MainActivity", "Critical UI element serversRecyclerView is null");
-      EnhancedUIUtils.showError(this, "Network scan dialog is not properly configured.");
-      return;
-    }
-
-    // Set up RecyclerView
-    DiscoveredServerAdapter adapter = new DiscoveredServerAdapter();
-    serversRecyclerView.setLayoutManager(
-        new androidx.recyclerview.widget.LinearLayoutManager(this));
-    serversRecyclerView.setAdapter(adapter);
-
-    // Create the dialog without default buttons (use custom ones)
-    AlertDialog scanDialog =
-        new MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.scan_network)
-            .setView(dialogView)
-            .create();
-
-    // Set up custom buttons
-    scanDialog.setOnShowListener(
-        dialogInterface -> {
-          // Show custom button bar
-          if (customButtonBar != null) {
-            customButtonBar.setVisibility(View.VISIBLE);
-          }
-
-          // Initially hide the "OK" button - will be shown when server is selected
-          if (customUseServerButton != null) {
-            customUseServerButton.setVisibility(View.GONE);
-          }
-
-          // Set up button click listeners
-          if (customCancelButton != null) {
-            customCancelButton.setOnClickListener(
-                v -> {
-                  LogUtils.d("MainActivity", "Network scan cancelled by user");
-                  networkScanner.cancelScan();
-                  scanDialog.dismiss();
-                });
-          }
-
-          if (customScanButton != null) {
-            customScanButton.setOnClickListener(
-                v -> {
-                  LogUtils.d("MainActivity", "Starting network scan");
-                  startNetworkScan(
-                      scanProgressSection,
-                      serverListSection,
-                      progressIndicator,
-                      scanStatusText,
-                      scanProgressText,
-                      serversFoundLabel,
-                      noServersText,
-                      adapter,
-                      customScanButton,
-                      customUseServerButton);
-                });
-          }
-
-          if (customUseServerButton != null) {
-            customUseServerButton.setOnClickListener(
-                v -> {
-                  NetworkScanner.DiscoveredServer selectedServer = adapter.getSelectedServer();
-                  if (selectedServer != null) {
-                    LogUtils.d(
-                        "MainActivity",
-                        "Using selected server: " + selectedServer.getDisplayName());
-
-                    // Auto-fill the connection form
-                    serverEditText.setText(selectedServer.getIpAddress());
-
-                    // Generate a name if empty
-                    if (nameEditText.getText().toString().trim().isEmpty()) {
-                      String suggestedName =
-                          selectedServer.getHostname() != null
-                              ? selectedServer.getHostname()
-                              : "Server " + selectedServer.getIpAddress();
-                      nameEditText.setText(suggestedName);
-                    }
-
-                    EnhancedUIUtils.showInfo(
-                        MainActivity.this,
-                        getString(R.string.server_info_applied, selectedServer.getDisplayName()));
-                    scanDialog.dismiss();
-                  }
-                  // Note: Since OK button is only visible when server is selected,
-                  // the else case should never happen
-                });
-          }
-        });
-
-    // Set up server selection
-    adapter.setOnServerSelectedListener(
-        server -> {
-          LogUtils.d("MainActivity", "Server selected: " + server.getDisplayName());
-          // Show and update the "OK" button when server is selected
-          if (customUseServerButton != null) {
-            customUseServerButton.setVisibility(View.VISIBLE);
-            customUseServerButton.setText(R.string.ok);
-          }
-        });
-
-    // Prevent accidental dismissal by touching outside the dialog
-    scanDialog.setCanceledOnTouchOutside(false);
-    scanDialog.setCancelable(false);
-
-    // Show the dialog
-    scanDialog.show();
-
-    // Start initial scan automatically
-    startNetworkScan(
-        scanProgressSection,
-        serverListSection,
-        progressIndicator,
-        scanStatusText,
-        scanProgressText,
-        serversFoundLabel,
-        noServersText,
-        adapter,
-        customScanButton,
-        customUseServerButton);
-  }
-
-  /** Starts the network scan operation. */
-  private void startNetworkScan(
-      View scanProgressSection,
-      View serverListSection,
-      ProgressBar progressIndicator,
-      TextView scanStatusText,
-      TextView scanProgressText,
-      TextView serversFoundLabel,
-      TextView noServersText,
-      DiscoveredServerAdapter adapter,
-      Button scanButton,
-      Button okButton) {
-
-    LogUtils.d("MainActivity", "Starting network scan operation");
-
-    // Show progress section, hide server list (with null checks)
-    if (scanProgressSection != null) {
-      scanProgressSection.setVisibility(View.VISIBLE);
-    }
-    if (serverListSection != null) {
-      serverListSection.setVisibility(View.GONE);
-    }
-
-    // Hide both scan and OK buttons during scanning
-    if (scanButton != null) {
-      scanButton.setVisibility(View.GONE);
-    }
-    if (okButton != null) {
-      okButton.setVisibility(View.GONE);
-    }
-
-    // Reset progress (with null checks)
-    if (progressIndicator != null) {
-      progressIndicator.setProgress(0);
-    }
-    if (scanStatusText != null) {
-      scanStatusText.setText(R.string.scanning_network);
-    }
-    if (scanProgressText != null) {
-      scanProgressText.setText(R.string.hosts_scan_progress);
-    }
-
-    // Clear previous results
-    if (adapter != null) {
-      adapter.setServers(new java.util.ArrayList<>());
-    }
-
-    // Start the scan
-    networkScanner.scanLocalNetwork(
-        new NetworkScanner.ScanProgressListener() {
-          @Override
-          public void onProgressUpdate(int scannedHosts, int totalHosts, String currentHost) {
-            runOnUiThread(
-                () -> {
-                  int progress = (int) ((scannedHosts / (float) totalHosts) * 100);
-                  if (progressIndicator != null) {
-                    progressIndicator.setProgress(progress);
-                  }
-                  if (scanProgressText != null) {
-                    scanProgressText.setText(
-                        getResources()
-                            .getQuantityString(
-                                R.plurals.hosts_scanned, scannedHosts, scannedHosts, totalHosts));
-                  }
-                  if (scanStatusText != null) {
-                    scanStatusText.setText(getString(R.string.currently_scanning, currentHost));
-                  }
-                });
-          }
-
-          @Override
-          public void onServerFound(NetworkScanner.DiscoveredServer server) {
-            runOnUiThread(
-                () -> {
-                  LogUtils.d("MainActivity", "Found SMB server: " + server.getDisplayName());
-                  if (adapter != null) {
-                    adapter.addServer(server);
-                    // Update the label with count
-                    int serverCount = adapter.getItemCount();
-                    LogUtils.d(
-                        "MainActivity", "Added server to adapter. New count: " + serverCount);
-                    if (serversFoundLabel != null) {
-                      serversFoundLabel.setText(
-                          getResources()
-                              .getQuantityString(
-                                  R.plurals.servers_found_count, serverCount, serverCount));
-                    }
-                  }
-                });
-          }
-
-          @Override
-          public void onScanComplete(java.util.List<NetworkScanner.DiscoveredServer> servers) {
-            runOnUiThread(
-                () -> {
-                  int serverCount = (adapter != null) ? adapter.getItemCount() : 0;
-                  LogUtils.i(
-                      "MainActivity",
-                      "Network scan completed. Scanner found "
-                          + servers.size()
-                          + " servers, adapter has "
-                          + serverCount
-                          + " servers");
-
-                  // Hide progress section, show results (with null checks)
-                  if (scanProgressSection != null) {
-                    scanProgressSection.setVisibility(View.GONE);
-                  }
-                  if (serverListSection != null) {
-                    serverListSection.setVisibility(View.VISIBLE);
-                  }
-
-                  // Show scan button again
-                  if (scanButton != null) {
-                    scanButton.setVisibility(View.VISIBLE);
-                    scanButton.setEnabled(true);
-                    scanButton.setText(R.string.scan_network);
-                  }
-
-                  if (serverCount == 0) {
-                    if (noServersText != null) {
-                      noServersText.setVisibility(View.VISIBLE);
-                    }
-                    if (serversFoundLabel != null) {
-                      serversFoundLabel.setVisibility(View.GONE);
-                    }
-                    // Keep OK button hidden when no servers found
-                    if (okButton != null) {
-                      okButton.setVisibility(View.GONE);
-                    }
-                  } else {
-                    if (noServersText != null) {
-                      noServersText.setVisibility(View.GONE);
-                    }
-                    if (serversFoundLabel != null) {
-                      serversFoundLabel.setVisibility(View.VISIBLE);
-                      serversFoundLabel.setText(
-                          getResources()
-                              .getQuantityString(
-                                  R.plurals.servers_found_count, serverCount, serverCount));
-                    }
-                    // OK button will be shown when user selects a server
-                  }
-
-                  EnhancedUIUtils.showInfo(MainActivity.this, getString(R.string.scan_complete));
-                });
-          }
-
-          @Override
-          public void onScanError(String error) {
-            runOnUiThread(
-                () -> {
-                  LogUtils.e("MainActivity", "Network scan error: " + error);
-
-                  // Hide progress section, show results (with null checks)
-                  if (scanProgressSection != null) {
-                    scanProgressSection.setVisibility(View.GONE);
-                  }
-                  if (serverListSection != null) {
-                    serverListSection.setVisibility(View.VISIBLE);
-                  }
-
-                  // Show scan button again
-                  if (scanButton != null) {
-                    scanButton.setVisibility(View.VISIBLE);
-                    scanButton.setEnabled(true);
-                    scanButton.setText(R.string.scan_network);
-                  }
-
-                  // Keep OK button hidden on error
-                  if (okButton != null) {
-                    okButton.setVisibility(View.GONE);
-                  }
-
-                  // Show error
-                  EnhancedUIUtils.showError(
-                      MainActivity.this, getString(R.string.scan_error, error));
-                  if (noServersText != null) {
-                    noServersText.setVisibility(View.VISIBLE);
-                  }
-                });
-          }
-        });
+    LogUtils.d("MainActivity", "Showing network search dialog");
+    new NetworkSearchDialog(
+            this,
+            networkScanner,
+            smbServiceDiscovery,
+            (server, port, suggestedName) -> {
+              serverEditText.setText(server);
+              if (port > 0) {
+                portEditText.setText(String.valueOf(port));
+              }
+              if (nameEditText.getText().toString().trim().isEmpty()) {
+                nameEditText.setText(suggestedName);
+              }
+            })
+        .show();
   }
 
   /**
@@ -2310,6 +1995,9 @@ public class MainActivity extends AppCompatActivity
     // Clean up network scanner
     if (networkScanner != null) {
       networkScanner.shutdown();
+    }
+    if (smbServiceDiscovery != null) {
+      smbServiceDiscovery.stop();
     }
     LogUtils.d("MainActivity", "onDestroy called");
   }

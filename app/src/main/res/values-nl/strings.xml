@@ -188,7 +188,9 @@
     <string name="scanning_network">Scannen…</string>
     <string name="servers_found">Beschikbare servers</string>
     <string name="no_servers_found">Geen SMB-servers gevonden in het lokale netwerk.\n\nJe kunt nog steeds handmatig serverdetails invoeren.</string>
-    <string name="network_scan_instructions">Selecteer een server om verbindingsdetails automatisch in te vullen, of tik op &#8220;Netwerk scannen&#8221; om naar meer servers te zoeken.</string>
+    <string name="network_scan_instructions">Zoekt in het lokale netwerk naar SMB-servers, via de poorten 445 en 139 en via servers die zich via mDNS aankondigen (bijv. Avahi). Selecteer een server om de verbindingsdetails in te vullen.</string>
+    <string name="discovering_services">Zoeken naar SMB-servers…</string>
+    <string name="discovery_resolving">Bezig met omzetten…</string>
     <string name="scan_complete">Netwerkcan voltooid</string>
     <string name="scan_error">Scanfout: %1$s</string>
     <string name="server_icon">Server</string>

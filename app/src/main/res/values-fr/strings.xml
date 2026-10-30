@@ -191,7 +191,9 @@
     <string name="scanning_network">Analyse en cours…</string>
     <string name="servers_found">Serveurs disponibles</string>
     <string name="no_servers_found">Aucun serveur SMB trouvé sur le réseau local.\n\nVous pouvez toujours entrer les détails du serveur manuellement.</string>
-    <string name="network_scan_instructions">Sélectionnez un serveur pour remplir automatiquement les détails de connexion, ou appuyez sur &#8220;Scanner le réseau&#8221; pour rechercher plus de serveurs.</string>
+    <string name="network_scan_instructions">Recherche des serveurs SMB sur le réseau local, en vérifiant les ports 445 et 139 et en écoutant les serveurs qui s\'annoncent via mDNS (p. ex. Avahi). Sélectionnez un serveur pour remplir les détails de connexion.</string>
+    <string name="discovering_services">Recherche de serveurs SMB…</string>
+    <string name="discovery_resolving">Résolution…</string>
     <string name="scan_complete">Analyse du réseau terminée</string>
     <string name="scan_error">Erreur d’analyse : %1$s</string>
     <string name="server_icon">Serveur</string>

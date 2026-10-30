@@ -19,51 +19,56 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
+import de.schliweb.sambalite.util.DiscoveredServers.Entry;
 import de.schliweb.sambalite.util.LogUtils;
-import de.schliweb.sambalite.util.NetworkScanner.DiscoveredServer;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.Getter;
 
-/** Adapter for displaying discovered SMB servers in the network scan dialog. */
+/**
+ * Adapter for the servers found by the network search dialog: hosts found by the port scan and SMB
+ * services announced via mDNS, merged into one list. Entries that are still being resolved are
+ * shown but cannot be selected.
+ */
 public class DiscoveredServerAdapter
     extends RecyclerView.Adapter<DiscoveredServerAdapter.ServerViewHolder> {
 
   private static final String TAG = "DiscoveredServerAdapter";
 
-  List<DiscoveredServer> servers = new ArrayList<>();
-  @Getter DiscoveredServer selectedServer = null;
+  List<Entry> servers = new ArrayList<>();
+  int selectedKey = -1;
   OnServerSelectedListener listener;
 
   public void setOnServerSelectedListener(@Nullable OnServerSelectedListener listener) {
     this.listener = listener;
   }
 
-  @SuppressLint("NotifyDataSetChanged") // Acceptable for Eva's app - server discovery updates
-  public void setServers(@NonNull List<DiscoveredServer> servers) {
+  /**
+   * Replaces the list. The selection is kept if its entry is still there and usable, otherwise it
+   * is cleared.
+   */
+  @SuppressLint("NotifyDataSetChanged") // Small list, rebuilt as results come in
+  public void setServers(@NonNull List<Entry> servers) {
     this.servers = new ArrayList<>(servers);
+    if (selectedKey >= 0 && getSelectedServer() == null) {
+      selectedKey = -1;
+    }
     notifyDataSetChanged();
     LogUtils.d(TAG, "Updated server list with " + servers.size() + " servers");
   }
 
-  public void addServer(@NonNull DiscoveredServer server) {
-    servers.add(server);
-    int position = servers.size() - 1;
-    notifyItemInserted(position);
-    LogUtils.d(
-        TAG,
-        "Added server: "
-            + server.getDisplayName()
-            + " at position "
-            + position
-            + ". Total servers: "
-            + servers.size());
+  /** The selected entry, or null if none is selected or it can no longer be used. */
+  public @Nullable Entry getSelectedServer() {
+    for (Entry e : servers) {
+      if (e.getKey() == selectedKey) {
+        return e.isUsable() ? e : null;
+      }
+    }
+    return null;
   }
 
   @NonNull
   @Override
   public ServerViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    LogUtils.d(TAG, "onCreateViewHolder called");
     View view =
         LayoutInflater.from(parent.getContext())
             .inflate(R.layout.item_discovered_server, parent, false);
@@ -72,14 +77,7 @@ public class DiscoveredServerAdapter
 
   @Override
   public void onBindViewHolder(@NonNull ServerViewHolder holder, int position) {
-    DiscoveredServer server = servers.get(position);
-    LogUtils.d(
-        TAG,
-        "onBindViewHolder called for position "
-            + position
-            + ", server: "
-            + server.getDisplayName());
-    holder.bind(server);
+    holder.bind(servers.get(position));
   }
 
   @Override
@@ -88,7 +86,7 @@ public class DiscoveredServerAdapter
   }
 
   public interface OnServerSelectedListener {
-    void onServerSelected(@NonNull DiscoveredServer server);
+    void onServerSelected(@NonNull Entry server);
   }
 
   class ServerViewHolder extends RecyclerView.ViewHolder {
@@ -106,67 +104,62 @@ public class DiscoveredServerAdapter
           v -> {
             int position = getBindingAdapterPosition();
             if (position == RecyclerView.NO_POSITION) return;
-            DiscoveredServer server = servers.get(position);
+            Entry server = servers.get(position);
+            if (!server.isUsable()) return; // still resolving
             selectServer(server);
           });
     }
 
-    public void bind(DiscoveredServer server) {
-      // Set server name (hostname or IP)
+    public void bind(Entry server) {
       serverName.setText(server.getDisplayName());
+      serverDetails.setText(details(server));
 
-      // Build details string
-      StringBuilder details = new StringBuilder();
-
-      // Port status
-      if (server.isSmbPortOpen()) {
-        details.append("SMB: ✓ ");
-      } else {
-        details.append("SMB: ✗ ");
-      }
-
-      if (server.isNetbiosPortOpen()) {
-        details.append("NetBIOS: ✓ ");
-      } else {
-        details.append("NetBIOS: ✗ ");
-      }
-
-      // Response time
-      details.append("(").append(server.getResponseTime()).append("ms)");
-
-      serverDetails.setText(details.toString());
-
-      // Selection indicator
-      boolean isSelected = server.equals(selectedServer);
+      boolean isSelected = server.getKey() == selectedKey;
       selectionIndicator.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-
-      // Update card appearance for selection
       itemView.setSelected(isSelected);
+      itemView.setAlpha(server.isUsable() ? 1f : 0.6f);
     }
 
-    void selectServer(DiscoveredServer server) {
-      DiscoveredServer previousSelection = selectedServer;
-      selectedServer = server;
-
-      // Update UI for previous selection
-      if (previousSelection != null) {
-        int previousIndex = servers.indexOf(previousSelection);
-        if (previousIndex != -1) {
-          notifyItemChanged(previousIndex);
-        }
+    /** E.g. "nas.local • 192.168.1.10 • Port 4455 • mDNS" or "SMB: ✓ NetBIOS: ✗ (12ms)". */
+    private String details(Entry server) {
+      if (!server.isUsable()) {
+        return itemView.getContext().getString(R.string.discovery_resolving);
       }
-
-      // Update UI for new selection
-      int newIndex = servers.indexOf(server);
-      if (newIndex != -1) {
-        notifyItemChanged(newIndex);
+      List<String> parts = new ArrayList<>();
+      if (server.getMdnsHostName() != null) {
+        parts.add(server.getMdnsHostName());
       }
+      if (server.getAddress() != null && !server.getAddress().equals(server.getDisplayName())) {
+        parts.add(server.getAddress());
+      }
+      if (server.getPortToUse() > 0) {
+        parts.add(itemView.getContext().getString(R.string.port) + " " + server.getPortToUse());
+      }
+      if (server.isFoundByMdns()) {
+        parts.add("mDNS");
+      }
+      StringBuilder details = new StringBuilder(String.join(" • ", parts));
+      if (server.isFoundByScan()) {
+        if (details.length() > 0) details.append('\n');
+        details
+            .append("SMB: ")
+            .append(server.isSmbPortOpen() ? "✓ " : "✗ ")
+            .append("NetBIOS: ")
+            .append(server.isNetbiosPortOpen() ? "✓ " : "✗ ")
+            .append("(")
+            .append(server.getResponseTime())
+            .append("ms)");
+      }
+      return details.toString();
+    }
 
-      // Notify listener
+    @SuppressLint("NotifyDataSetChanged") // The previous selection may be anywhere in the list
+    void selectServer(Entry server) {
+      selectedKey = server.getKey();
+      notifyDataSetChanged();
       if (listener != null) {
         listener.onServerSelected(server);
       }
-
       LogUtils.d(TAG, "Selected server: " + server.getDisplayName());
     }
   }

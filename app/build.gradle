@@ -242,6 +242,7 @@ dependencies {
     errorprone 'com.google.errorprone:error_prone_core:2.48.0'
     annotationProcessor 'com.google.errorprone:error_prone_core:2.48.0'
     testAnnotationProcessor 'com.google.errorprone:error_prone_core:2.48.0'
+    androidTestAnnotationProcessor 'com.google.errorprone:error_prone_core:2.48.0'
     
     // SLF4J simple provider to suppress "No SLF4J providers were found" warning
     testImplementation 'org.slf4j:slf4j-simple:2.0.17'

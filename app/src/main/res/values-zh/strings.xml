@@ -186,7 +186,9 @@
     <string name="scanning_network">扫描中…</string>
     <string name="servers_found">可用的服务器</string>
     <string name="no_servers_found">本地网络没有找到 SMB 服务器。\n\n你仍可以手动输入服务器详情。</string>
-    <string name="network_scan_instructions">选择要自动填充连接详情的服务器，或轻触 “扫描网络”获取更多服务器。</string>
+    <string name="network_scan_instructions">在本地网络中搜索 SMB 服务器：检查端口 445 和 139，并监听通过 mDNS（例如 Avahi）宣告自身的服务器。选择一个服务器以填写连接详情。</string>
+    <string name="discovering_services">正在搜索 SMB 服务器…</string>
+    <string name="discovery_resolving">正在解析…</string>
     <string name="scan_complete">完成了网络扫描</string>
     <string name="scan_error">扫描错误：%1$s</string>
     <string name="server_icon">服务器</string>

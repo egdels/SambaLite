@@ -194,7 +194,9 @@
     <string name="scanning_network">Skanowanie…</string>
     <string name="servers_found">Dostępne serwery</string>
     <string name="no_servers_found">Nie znaleziono serwerów SMB w sieci lokalnej.\n\nMożesz nadal wprowadzić szczegóły serwera ręcznie.</string>
-    <string name="network_scan_instructions">Wybierz serwer, aby automatycznie wypełnić szczegóły połączenia, lub dotknij &#8220;Skanuj sieć&#8221;, aby wyszukać więcej serwerów.</string>
+    <string name="network_scan_instructions">Wyszukuje serwery SMB w sieci lokalnej, sprawdzając porty 445 i 139 oraz nasłuchując serwerów ogłaszających się przez mDNS (np. Avahi). Wybierz serwer, aby wypełnić szczegóły połączenia.</string>
+    <string name="discovering_services">Wyszukiwanie serwerów SMB…</string>
+    <string name="discovery_resolving">Rozwiązywanie…</string>
     <string name="scan_complete">Skanowanie sieci zakończone</string>
     <string name="scan_error">Błąd skanowania: %1$s</string>
     <string name="server_icon">Serwer</string>

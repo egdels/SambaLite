@@ -50,6 +50,32 @@ apksigner verify --print-certs SambaLite-vX.Y.Z.apk
 | Security/Privacy       | ✅     | Encrypted credential storage, no telemetry      |
 | Folder Sync            | ✅     | Automatic background sync between device and share ([User Guide](docs/sync_user_guide.md)) |
 | Transfer Queue         | ✅     | Background queuing for uploads and downloads ([User Guide](docs/transfer_queue_user_guide.md)) |
+| Server Search          | ✅     | Finds SMB servers in the local network by port scan and mDNS/Avahi ([details](#finding-servers-in-the-local-network)) |
+
+## Finding Servers in the Local Network
+
+"Scan" in the add/edit connection dialog searches the local network in two ways at once and lists the results together:
+
+- **Port scan**: checks every address of the local subnet for the SMB ports 445 and 139.
+- **mDNS/DNS-SD**: listens for servers that announce the `_smb._tcp` service, for example via Avahi, using Android's built-in Network Service Discovery (`NsdManager`). This also finds servers on a port other than 445, because the announcement includes the port.
+
+A server found both ways is listed once. Selecting it fills in server, port and, if still empty, the connection name; credentials and share are not touched. For an announced server, SambaLite uses its mDNS name (e.g. `nas.local`) only if your device can resolve such names, otherwise its IP address. The search runs only after you tap the button and stops when the dialog closes; the mDNS part stops after 15 seconds. Servers that are not found can still be entered manually.
+
+To make a Linux server discoverable with Avahi, install `avahi-daemon` and create `/etc/avahi/services/smb.service`:
+
+```xml
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h</name>
+  <service>
+    <type>_smb._tcp</type>
+    <port>445</port>
+  </service>
+</service-group>
+```
+
+Then restart Avahi (`sudo systemctl restart avahi-daemon`) and verify with `avahi-browse -rt _smb._tcp`. Many NAS systems can announce `_smb._tcp` already, often via a Bonjour/mDNS option in their settings.
 
 ## Mobile Document Pipeline
 
