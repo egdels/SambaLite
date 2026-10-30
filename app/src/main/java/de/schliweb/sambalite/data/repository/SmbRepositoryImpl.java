@@ -293,7 +293,8 @@ public class SmbRepositoryImpl implements SmbRepository {
     List<SmbFileItem> result = new ArrayList<>();
     String folderPath = path == null || path.isEmpty() ? "" : path;
 
-    try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
+    try (Connection conn =
+        getClientFor(connection).connect(connection.getServer(), connection.getPort())) {
       AuthenticationContext authContext = createAuthContext(connection);
       try (Session session = conn.authenticate(authContext)) {
         enforceSecurityRequirements(connection, session);
@@ -662,9 +663,10 @@ public class SmbRepositoryImpl implements SmbRepository {
 
   private CachedShare getOrCreateShare(SmbConnection connection) throws Exception {
     String connectionId = cacheKey(connection);
+    String settings = sessionSettings(connection);
 
     CachedShare cached = sessionCache.get(connectionId);
-    if (cached != null && cached.share.isConnected()) {
+    if (cached != null && cached.settings.equals(settings) && cached.share.isConnected()) {
       cached.lastAccess = System.currentTimeMillis();
       return cached;
     }
@@ -674,15 +676,21 @@ public class SmbRepositoryImpl implements SmbRepository {
     try {
       // Re-check after locking
       cached = sessionCache.get(connectionId);
-      if (cached != null && cached.share.isConnected()) {
+      if (cached != null && cached.settings.equals(settings) && cached.share.isConnected()) {
         cached.lastAccess = System.currentTimeMillis();
         return cached;
       }
 
-      // If existing but not connected, clean up
+      // An edited connection (other server, port, share, credentials or security settings) must
+      // not keep using the session opened with the old settings; operations still running on it
+      // finish first. A disconnected share is dropped the same way.
       if (cached != null) {
-        closeCachedShare(cached);
-        sessionCache.remove(connectionId);
+        LogUtils.d(
+            "SmbRepositoryImpl",
+            cached.settings.equals(settings)
+                ? "Cached share disconnected, reconnecting"
+                : "Connection settings changed, replacing cached share");
+        retireCachedShare(connectionId, cached);
       }
 
       LogUtils.d(
@@ -705,7 +713,7 @@ public class SmbRepositoryImpl implements SmbRepository {
             throw new IOException("Share connection failed for: " + shareName);
           }
 
-          CachedShare newCached = new CachedShare(conn, session, share);
+          CachedShare newCached = new CachedShare(conn, session, share, settings);
           sessionCache.put(connectionId, newCached);
           return newCached;
         } catch (Exception e) {
@@ -1755,7 +1763,8 @@ public class SmbRepositoryImpl implements SmbRepository {
   @Override
   public @NonNull List<String> listShares(@NonNull SmbConnection connection) throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Listing shares on server: " + connection.getServer());
-    try (Connection conn = getClientFor(connection).connect(connection.getServer())) {
+    try (Connection conn =
+        getClientFor(connection).connect(connection.getServer(), connection.getPort())) {
       AuthenticationContext authContext = createAuthContext(connection);
       try (Session session = conn.authenticate(authContext)) {
         // Enforce per-connection security requirements (encryption/signing)
@@ -2459,6 +2468,29 @@ public class SmbRepositoryImpl implements SmbRepository {
         : connection.getServer() + ":" + connection.getShare();
   }
 
+  /**
+   * Everything a cached session depends on. A cached share is only reused while the connection
+   * still has the settings it was opened with. The password enters as a hash only, so the cache
+   * keeps no second copy of it.
+   */
+  static String sessionSettings(SmbConnection connection) {
+    return connection.getServer()
+        + ":"
+        + connection.getPort()
+        + "/"
+        + connection.getShare()
+        + "|"
+        + connection.getDomain()
+        + "\\"
+        + connection.getUsername()
+        + "|"
+        + Objects.hashCode(connection.getPassword())
+        + "|"
+        + connection.isEncryptData()
+        + connection.isSigningRequired()
+        + connection.isAsyncTransport();
+  }
+
   /** The attempt number of the enclosing share operation on this thread, 1 when unknown. */
   private int shareAttempt() {
     Integer attempt = currentShareAttempt.get();
@@ -2558,6 +2590,10 @@ public class SmbRepositoryImpl implements SmbRepository {
     final Connection connection;
     final Session session;
     final DiskShare share;
+
+    /** The {@link #sessionSettings} of the connection the share was opened for. */
+    final String settings;
+
     volatile long lastAccess;
 
     /** Operations currently running on the share; the idle cleanup leaves busy shares alone. */
@@ -2569,10 +2605,11 @@ public class SmbRepositoryImpl implements SmbRepository {
     /** Guards against closing the share twice. */
     final AtomicBoolean closed = new AtomicBoolean();
 
-    CachedShare(Connection connection, Session session, DiskShare share) {
+    CachedShare(Connection connection, Session session, DiskShare share, String settings) {
       this.connection = connection;
       this.session = session;
       this.share = share;
+      this.settings = settings;
       this.lastAccess = System.currentTimeMillis();
     }
   }

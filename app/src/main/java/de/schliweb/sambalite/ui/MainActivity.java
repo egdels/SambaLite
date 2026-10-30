@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity
   // Temporary flags for share discovery to honor per-connection security during discovery
   boolean discoverRequireEncrypt = false;
   boolean discoverRequireSigning = false;
+  int discoverPort = SmbConnection.DEFAULT_PORT;
 
   // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
   private static final String PREFS = "perm_prefs";
@@ -630,6 +631,36 @@ public class MainActivity extends AppCompatActivity
     return true;
   }
 
+  /**
+   * Parses the port entered in the connection dialog. An empty field means the default SMB port.
+   *
+   * @return the port, or -1 if the input is not a number between 1 and 65535
+   */
+  static int parsePort(@Nullable String text) {
+    if (text == null || text.trim().isEmpty()) {
+      return SmbConnection.DEFAULT_PORT;
+    }
+    try {
+      int port = Integer.parseInt(text.trim());
+      return port >= 1 && port <= 65535 ? port : -1;
+    } catch (NumberFormatException e) {
+      return -1;
+    }
+  }
+
+  private boolean validatePort(
+      @NonNull com.google.android.material.textfield.TextInputLayout portLayout,
+      @Nullable String port,
+      @NonNull String logPrefix) {
+    if (parsePort(port) < 0) {
+      LogUtils.d("MainActivity", logPrefix + ": port is invalid");
+      portLayout.setError(getString(R.string.error_port_invalid));
+      return false;
+    }
+    portLayout.setError(null);
+    return true;
+  }
+
   private boolean validateShareName(
       @NonNull com.google.android.material.textfield.TextInputLayout shareLayout,
       @Nullable String share,
@@ -970,6 +1001,10 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.name_edit_text);
     com.google.android.material.textfield.TextInputEditText serverEditText =
         dialogView.findViewById(R.id.server_edit_text);
+    com.google.android.material.textfield.TextInputLayout portLayout =
+        dialogView.findViewById(R.id.port_layout);
+    com.google.android.material.textfield.TextInputEditText portEditText =
+        dialogView.findViewById(R.id.port_edit_text);
     com.google.android.material.textfield.TextInputEditText shareEditText =
         dialogView.findViewById(R.id.share_edit_text);
     com.google.android.material.textfield.TextInputLayout defaultFolderLayout =
@@ -1030,6 +1065,8 @@ public class MainActivity extends AppCompatActivity
                 () -> {
                   discoverRequireEncrypt = (encryptSwitch != null && encryptSwitch.isChecked());
                   discoverRequireSigning = (signingSwitch != null && signingSwitch.isChecked());
+                  int port = parsePort(portEditText.getText().toString());
+                  discoverPort = port > 0 ? port : SmbConnection.DEFAULT_PORT;
                   discoverShares(
                       serverText,
                       usernameEditText.getText().toString().trim(),
@@ -1068,6 +1105,7 @@ public class MainActivity extends AppCompatActivity
         };
 
     serverEditText.addTextChangedListener(discoveryWatcher);
+    portEditText.addTextChangedListener(discoveryWatcher);
     usernameEditText.addTextChangedListener(discoveryWatcher);
     passwordEditText.addTextChangedListener(discoveryWatcher);
     domainEditText.addTextChangedListener(discoveryWatcher);
@@ -1130,6 +1168,12 @@ public class MainActivity extends AppCompatActivity
             serverLayout.setError(null);
           }
 
+          String portText = portEditText.getText().toString();
+          if (!validatePort(portLayout, portText, "Validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = portEditText;
+            isValid = false;
+          }
+
           String share = shareEditText.getText().toString().trim();
           if (!validateShareName(shareLayout, share, "Validation failed")) {
             if (firstInvalidField == null) firstInvalidField = shareEditText;
@@ -1148,6 +1192,7 @@ public class MainActivity extends AppCompatActivity
             SmbConnection connection = new SmbConnection();
             connection.setName(name);
             connection.setServer(server);
+            connection.setPort(parsePort(portText));
             connection.setShare(share);
             connection.setInitialPath(normalizeInitialPath(defaultFolder));
             connection.setUsername(usernameEditText.getText().toString().trim());
@@ -1184,6 +1229,12 @@ public class MainActivity extends AppCompatActivity
             serverLayout.setError(null);
           }
 
+          String portText = portEditText.getText().toString();
+          if (!validatePort(portLayout, portText, "Test validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = portEditText;
+            isValid = false;
+          }
+
           String share = shareEditText.getText().toString().trim();
           if (!validateShareName(shareLayout, share, "Test validation failed")) {
             if (firstInvalidField == null) firstInvalidField = shareEditText;
@@ -1195,6 +1246,7 @@ public class MainActivity extends AppCompatActivity
             LogUtils.d("MainActivity", "Test validation passed, creating test connection object");
             SmbConnection testConnection = new SmbConnection();
             testConnection.setServer(server);
+            testConnection.setPort(parsePort(portText));
             testConnection.setShare(share);
             testConnection.setUsername(usernameEditText.getText().toString().trim());
             testConnection.setPassword(passwordEditText.getText().toString().trim());
@@ -1306,6 +1358,10 @@ public class MainActivity extends AppCompatActivity
         dialogView.findViewById(R.id.name_edit_text);
     com.google.android.material.textfield.TextInputEditText serverEditText =
         dialogView.findViewById(R.id.server_edit_text);
+    com.google.android.material.textfield.TextInputLayout portLayout =
+        dialogView.findViewById(R.id.port_layout);
+    com.google.android.material.textfield.TextInputEditText portEditText =
+        dialogView.findViewById(R.id.port_edit_text);
     com.google.android.material.textfield.TextInputEditText shareEditText =
         dialogView.findViewById(R.id.share_edit_text);
     com.google.android.material.textfield.TextInputLayout defaultFolderLayout =
@@ -1411,6 +1467,8 @@ public class MainActivity extends AppCompatActivity
                       (encryptSwitchEdit != null && encryptSwitchEdit.isChecked());
                   discoverRequireSigning =
                       (signingSwitchEdit != null && signingSwitchEdit.isChecked());
+                  int port = parsePort(portEditText.getText().toString());
+                  discoverPort = port > 0 ? port : SmbConnection.DEFAULT_PORT;
                   discoverShares(
                       serverText,
                       usernameEditText.getText().toString().trim(),
@@ -1449,6 +1507,7 @@ public class MainActivity extends AppCompatActivity
         };
 
     serverEditText.addTextChangedListener(discoveryWatcher);
+    portEditText.addTextChangedListener(discoveryWatcher);
     usernameEditText.addTextChangedListener(discoveryWatcher);
     passwordEditText.addTextChangedListener(discoveryWatcher);
     domainEditText.addTextChangedListener(discoveryWatcher);
@@ -1456,6 +1515,7 @@ public class MainActivity extends AppCompatActivity
     // Pre-populate fields with existing connection data
     nameEditText.setText(connection.getName());
     serverEditText.setText(connection.getServer());
+    portEditText.setText(String.valueOf(connection.getPort()));
     shareEditText.setText(connection.getShare());
     defaultFolderEditText.setText(connection.getInitialPath());
     usernameEditText.setText(connection.getUsername());
@@ -1524,6 +1584,12 @@ public class MainActivity extends AppCompatActivity
             serverLayout.setError(null);
           }
 
+          String portText = portEditText.getText().toString();
+          if (!validatePort(portLayout, portText, "Edit validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = portEditText;
+            isValid = false;
+          }
+
           String share = shareEditText.getText().toString().trim();
           if (!validateShareName(shareLayout, share, "Edit validation failed")) {
             if (firstInvalidField == null) firstInvalidField = shareEditText;
@@ -1544,6 +1610,7 @@ public class MainActivity extends AppCompatActivity
             updatedConnection.setId(connection.getId());
             updatedConnection.setName(name);
             updatedConnection.setServer(server);
+            updatedConnection.setPort(parsePort(portText));
             updatedConnection.setShare(share);
             updatedConnection.setInitialPath(normalizeInitialPath(defaultFolder));
             updatedConnection.setUsername(usernameEditText.getText().toString().trim());
@@ -1583,6 +1650,12 @@ public class MainActivity extends AppCompatActivity
             serverLayout.setError(null);
           }
 
+          String portText = portEditText.getText().toString();
+          if (!validatePort(portLayout, portText, "Edit test validation failed")) {
+            if (firstInvalidField == null) firstInvalidField = portEditText;
+            isValid = false;
+          }
+
           String share = shareEditText.getText().toString().trim();
           if (!validateShareName(shareLayout, share, "Edit test validation failed")) {
             if (firstInvalidField == null) firstInvalidField = shareEditText;
@@ -1595,6 +1668,7 @@ public class MainActivity extends AppCompatActivity
                 "MainActivity", "Edit test validation passed, creating test connection object");
             SmbConnection testConnection = new SmbConnection();
             testConnection.setServer(server);
+            testConnection.setPort(parsePort(portText));
             testConnection.setShare(share);
             testConnection.setUsername(usernameEditText.getText().toString().trim());
             testConnection.setPassword(passwordEditText.getText().toString().trim());
@@ -2172,6 +2246,7 @@ public class MainActivity extends AppCompatActivity
     // Create a temporary connection for share discovery
     SmbConnection tempConnection = new SmbConnection();
     tempConnection.setServer(server);
+    tempConnection.setPort(discoverPort);
     tempConnection.setUsername(username);
     tempConnection.setPassword(password);
     tempConnection.setDomain(domain);

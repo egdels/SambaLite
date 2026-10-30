@@ -11,12 +11,14 @@ package de.schliweb.sambalite.data.repository;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.mssmb2.SMB2MessageCommandCode;
 import com.hierynomus.mssmb2.SMBApiException;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
+import de.schliweb.sambalite.data.model.SmbConnection;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +39,7 @@ public class SmbRepositorySessionCacheTest {
   private static final long TIMEOUT = 30_000;
 
   private static SmbRepositoryImpl.CachedShare cachedShare(long lastAccess) {
-    SmbRepositoryImpl.CachedShare cached = new SmbRepositoryImpl.CachedShare(null, null, null);
+    SmbRepositoryImpl.CachedShare cached = new SmbRepositoryImpl.CachedShare(null, null, null, "");
     cached.lastAccess = lastAccess;
     return cached;
   }
@@ -170,5 +172,58 @@ public class SmbRepositorySessionCacheTest {
     assertEquals(0, SmbRepositoryImpl.resumeOffset(true, 0, 10_000));
     assertEquals(0, SmbRepositoryImpl.resumeOffset(true, 10_001, 10_000));
     assertEquals(0, SmbRepositoryImpl.resumeOffset(true, 5_000, 0));
+  }
+
+  // ── sessionSettings ────────────────────────────────────────────────────────
+
+  private static SmbConnection connection() {
+    SmbConnection connection = new SmbConnection();
+    connection.setId("c");
+    connection.setServer("nas");
+    connection.setShare("share");
+    connection.setUsername("user");
+    connection.setPassword("secret");
+    connection.setDomain("WORKGROUP");
+    return connection;
+  }
+
+  @Test
+  public void sessionSettings_equalForAnUnchangedConnection() {
+    assertEquals(
+        SmbRepositoryImpl.sessionSettings(connection()),
+        SmbRepositoryImpl.sessionSettings(connection()));
+    // The name and the default folder do not concern the session
+    SmbConnection renamed = connection();
+    renamed.setName("Renamed");
+    renamed.setInitialPath("docs");
+    assertEquals(
+        SmbRepositoryImpl.sessionSettings(connection()),
+        SmbRepositoryImpl.sessionSettings(renamed));
+  }
+
+  @Test
+  public void sessionSettings_changeWithEverySettingTheSessionDependsOn() {
+    String original = SmbRepositoryImpl.sessionSettings(connection());
+    java.util.List<java.util.function.Consumer<SmbConnection>> edits =
+        java.util.List.of(
+            c -> c.setServer("other"),
+            c -> c.setPort(4455),
+            c -> c.setShare("other"),
+            c -> c.setUsername("other"),
+            c -> c.setPassword("other"),
+            c -> c.setDomain("other"),
+            c -> c.setEncryptData(true),
+            c -> c.setSigningRequired(true),
+            c -> c.setAsyncTransport(true));
+    for (java.util.function.Consumer<SmbConnection> edit : edits) {
+      SmbConnection edited = connection();
+      edit.accept(edited);
+      assertNotEquals(original, SmbRepositoryImpl.sessionSettings(edited));
+    }
+  }
+
+  @Test
+  public void sessionSettings_doNotContainThePassword() {
+    assertFalse(SmbRepositoryImpl.sessionSettings(connection()).contains("secret"));
   }
 }

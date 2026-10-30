@@ -49,6 +49,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">Le nom de la connexion est requis</string>
     <string name="error_server_required">Le serveur est requis</string>
+    <string name="port">Port</string>
+    <string name="port_helper">Port SMB, 445 par défaut</string>
+    <string name="error_port_invalid">Le port doit être un nombre entre 1 et 65535</string>
     <string name="error_share_required">Le nom du partage est requis</string>
     <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \ : * ? &quot; &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>
     <string name="default_folder">Dossier par défaut (optionnel)</string>

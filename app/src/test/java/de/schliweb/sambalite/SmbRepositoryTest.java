@@ -125,6 +125,79 @@ public class SmbRepositoryTest {
     assertTrue("Should be able to connect to the Samba server", connected);
   }
 
+  /**
+   * Issue #46: share discovery and the streaming search used to connect on port 445 regardless of
+   * the configured port. The container's SMB port is mapped to a random host port, so both only
+   * succeed if they honor {@link SmbConnection#getPort()}.
+   */
+  @Test
+  public void testListSharesUsesConfiguredPort() throws Exception {
+    assertNotEquals(SmbConnection.DEFAULT_PORT, testConnection.getPort());
+    // listShares probes common share names only, so "testshare" is not expected in the result;
+    // what matters is that it reaches the server on the configured port and fails on a closed one
+    assertNotNull(smbRepository.listShares(testConnection));
+
+    SmbConnection closed = copyOf(testConnection);
+    closed.setPort(closedPort());
+    try {
+      smbRepository.listShares(closed);
+      fail("listShares must connect to the configured port");
+    } catch (Exception expected) {
+      // nothing listens there
+    }
+  }
+
+  /**
+   * The session cache is keyed by the connection ID. An edited connection with the same ID must
+   * not keep using the session opened with its old settings: here the port is changed to one
+   * nothing listens on, so listing has to fail instead of succeeding over the cached session.
+   */
+  @Test
+  public void testEditedConnectionDoesNotReuseCachedSession() throws Exception {
+    testConnection.setId("edited-connection");
+    assertFalse(smbRepository.listFiles(testConnection, "").isEmpty());
+
+    SmbConnection edited = copyOf(testConnection);
+    edited.setPort(closedPort());
+    try {
+      smbRepository.listFiles(edited, "");
+      fail("Listing must not succeed over the session cached for the old port");
+    } catch (Exception expected) {
+      // connecting to the new port fails
+    }
+
+    // Changing it back connects again
+    assertFalse(smbRepository.listFiles(copyOf(testConnection), "").isEmpty());
+  }
+
+  private static SmbConnection copyOf(SmbConnection source) {
+    SmbConnection copy = new SmbConnection();
+    copy.setId(source.getId());
+    copy.setServer(source.getServer());
+    copy.setPort(source.getPort());
+    copy.setShare(source.getShare());
+    copy.setUsername(source.getUsername());
+    copy.setPassword(source.getPassword());
+    copy.setDomain(source.getDomain());
+    return copy;
+  }
+
+  /** A local port nothing listens on. */
+  private static int closedPort() throws IOException {
+    try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
+      return socket.getLocalPort();
+    }
+  }
+
+  @Test
+  public void testSearchFilesStreamingUsesConfiguredPort() throws Exception {
+    assertNotEquals(SmbConnection.DEFAULT_PORT, testConnection.getPort());
+    List<SmbFileItem> found = new java.util.ArrayList<>();
+    smbRepository.searchFilesStreaming(testConnection, "", "testfile*", 0, true, found::add);
+    assertEquals(1, found.size());
+    assertEquals("testfile.txt", found.get(0).getName());
+  }
+
   @SuppressWarnings("MissingFail")
   @Test
   public void testConnectionWithEmptyCredentials() throws Exception {

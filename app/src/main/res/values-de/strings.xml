@@ -48,6 +48,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">Verbindungsname ist erforderlich</string>
     <string name="error_server_required">Server ist erforderlich</string>
+    <string name="port">Port</string>
+    <string name="port_helper">SMB-Port, Standard 445</string>
+    <string name="error_port_invalid">Der Port muss eine Zahl zwischen 1 und 65535 sein</string>
     <string name="error_share_required">Freigabe-Name ist erforderlich</string>
     <string name="error_share_invalid">Der Freigabe-Name darf / \ : * ? &quot; &lt; &gt; | nicht enthalten. Verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
     <string name="default_folder">Standardordner (optional)</string>

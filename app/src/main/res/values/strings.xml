@@ -48,6 +48,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">Connection name is required</string>
     <string name="error_server_required">Server is required</string>
+    <string name="port">Port</string>
+    <string name="port_helper">SMB port, default 445</string>
+    <string name="error_port_invalid">Port must be a number between 1 and 65535</string>
     <string name="error_share_required">Share name is required</string>
     <string name="error_share_invalid">Share name must not contain / \ : * ? &quot; &lt; &gt; |. Use only the SMB share name, not a path.</string>
     <string name="default_folder">Default folder (optional)</string>

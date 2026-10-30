@@ -48,6 +48,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">Verbindingsnaam is vereist</string>
     <string name="error_server_required">Server is vereist</string>
+    <string name="port">Poort</string>
+    <string name="port_helper">SMB-poort, standaard 445</string>
+    <string name="error_port_invalid">De poort moet een getal tussen 1 en 65535 zijn</string>
     <string name="error_share_required">Share naam is vereist</string>
     <string name="error_share_invalid">Share naam mag geen / \ : * ? &quot; &lt; &gt; | bevatten. Gebruik alleen de SMB-share naam, geen pad.</string>
     <string name="default_folder">Standaardmap (optioneel)</string>

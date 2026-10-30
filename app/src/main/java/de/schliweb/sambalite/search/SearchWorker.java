@@ -112,7 +112,7 @@ public class SearchWorker extends Worker {
     try {
       SMBClient client = createSmbClient(connection);
       try (client;
-          Connection conn = client.connect(connection.getServer())) {
+          Connection conn = client.connect(connection.getServer(), connection.getPort())) {
         if (isStopped()) return Result.success();
 
         AuthenticationContext authContext = createAuthContext(connection);

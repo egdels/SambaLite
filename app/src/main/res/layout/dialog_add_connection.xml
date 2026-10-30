@@ -157,6 +157,27 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Server Port -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/port_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="@string/port"
+            app:helperText="@string/port_helper"
+            app:startIconDrawable="@android:drawable/ic_menu_manage"
+            app:startIconTint="?attr/colorOnSurface">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/port_edit_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:maxLength="5"
+                android:maxLines="1"
+                android:text="445" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Share Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/share_layout"

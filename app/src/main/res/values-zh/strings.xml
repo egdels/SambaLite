@@ -49,6 +49,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">连接名是必需的</string>
     <string name="error_server_required">服务器是必需的</string>
+    <string name="port">端口</string>
+    <string name="port_helper">SMB 端口，默认 445</string>
+    <string name="error_port_invalid">端口必须是 1 到 65535 之间的数字</string>
     <string name="error_share_required">分享名是必需的</string>
     <string name="error_share_invalid">分享名不能包含 / \ : * ? &quot; &lt; &gt; |。请只使用 SMB 分享名，不要使用路径。</string>
     <string name="default_folder">默认文件夹（可选）</string>

@@ -49,6 +49,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">Nazwa połączenia jest wymagana</string>
     <string name="error_server_required">Serwer jest wymagany</string>
+    <string name="port">Port</string>
+    <string name="port_helper">Port SMB, domyślnie 445</string>
+    <string name="error_port_invalid">Port musi być liczbą od 1 do 65535</string>
     <string name="error_share_required">Nazwa udziału jest wymagana</string>
     <string name="error_share_invalid">Nazwa udziału nie może zawierać / \ : * ? &quot; &lt; &gt; |. Użyj tylko nazwy udziału SMB, a nie ścieżki.</string>
     <string name="default_folder">Folder domyślny (opcjonalnie)</string>

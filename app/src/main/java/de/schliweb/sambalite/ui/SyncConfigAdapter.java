@@ -128,6 +128,9 @@ public class SyncConfigAdapter
       if (conn.getId().equals(config.getConnectionId())) {
         StringBuilder sb = new StringBuilder("//");
         sb.append(conn.getServer());
+        if (conn.getPort() != SmbConnection.DEFAULT_PORT) {
+          sb.append(":").append(conn.getPort());
+        }
         if (conn.getShare() != null && !conn.getShare().isEmpty()) {
           sb.append("/").append(conn.getShare());
         }

@@ -49,6 +49,9 @@
     <!-- Validation Messages -->
     <string name="error_name_required">El nombre de la conexión es obligatorio</string>
     <string name="error_server_required">El servidor es obligatorio</string>
+    <string name="port">Puerto</string>
+    <string name="port_helper">Puerto SMB, por defecto 445</string>
+    <string name="error_port_invalid">El puerto debe ser un número entre 1 y 65535</string>
     <string name="error_share_required">El nombre del recurso compartido es obligatorio</string>
     <string name="error_share_invalid">El nombre del recurso compartido no debe contener / \ : * ? &quot; &lt; &gt; |. Usa solo el nombre del recurso SMB, no una ruta.</string>
     <string name="default_folder">Carpeta predeterminada (opcional)</string>

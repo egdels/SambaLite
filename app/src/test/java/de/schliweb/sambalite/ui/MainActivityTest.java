@@ -11,6 +11,8 @@ package de.schliweb.sambalite.ui;
 
 import static org.junit.Assert.assertEquals;
 
+import de.schliweb.sambalite.data.model.SmbConnection;
+
 import org.junit.Test;
 
 /**
@@ -67,5 +69,31 @@ public class MainActivityTest {
     // The exact request from Issue #27: default subfolder "AA/AA/AA/AA" inside the share.
     assertEquals("AA/AA/AA/AA", MainActivity.normalizeInitialPath("AA/AA/AA/AA"));
     assertEquals("AA/AA/AA/AA", MainActivity.normalizeInitialPath("/AA/AA/AA/AA/"));
+  }
+
+  // --- parsePort (Issue #46: custom SMB port per connection) ---
+
+  @Test
+  public void parsePort_emptyOrNull_returnsDefault() {
+    assertEquals(SmbConnection.DEFAULT_PORT, MainActivity.parsePort(null));
+    assertEquals(SmbConnection.DEFAULT_PORT, MainActivity.parsePort(""));
+    assertEquals(SmbConnection.DEFAULT_PORT, MainActivity.parsePort("  "));
+  }
+
+  @Test
+  public void parsePort_validPort_isReturned() {
+    assertEquals(445, MainActivity.parsePort("445"));
+    assertEquals(4455, MainActivity.parsePort(" 4455 "));
+    assertEquals(1, MainActivity.parsePort("1"));
+    assertEquals(65535, MainActivity.parsePort("65535"));
+  }
+
+  @Test
+  public void parsePort_outOfRangeOrNotANumber_returnsMinusOne() {
+    assertEquals(-1, MainActivity.parsePort("0"));
+    assertEquals(-1, MainActivity.parsePort("65536"));
+    assertEquals(-1, MainActivity.parsePort("-1"));
+    assertEquals(-1, MainActivity.parsePort("abc"));
+    assertEquals(-1, MainActivity.parsePort("99999999999"));
   }
 }

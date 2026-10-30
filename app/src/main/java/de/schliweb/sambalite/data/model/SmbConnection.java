@@ -20,10 +20,13 @@ public class SmbConnection implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
+  /** The standard SMB port over TCP. */
+  public static final int DEFAULT_PORT = 445;
+
   private String id;
   private String name;
   private String server;
-  private int port = 445;
+  private int port = DEFAULT_PORT;
   private String share;
   // Optional default folder inside the share (share-relative path) opened on connect
   private String initialPath;
@@ -54,6 +57,8 @@ public class SmbConnection implements Serializable {
         + ", server='"
         + server
         + '\''
+        + ", port="
+        + port
         + ", share='"
         + share
         + '\''

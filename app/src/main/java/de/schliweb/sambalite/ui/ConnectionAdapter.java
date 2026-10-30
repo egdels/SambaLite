@@ -150,7 +150,11 @@ public class ConnectionAdapter
       nameTextView.setText(connection.getName());
 
       // Combine server and share into details
-      String details = connection.getServer() + "/" + connection.getShare();
+      String details = connection.getServer();
+      if (connection.getPort() != SmbConnection.DEFAULT_PORT) {
+        details += ":" + connection.getPort();
+      }
+      details += "/" + connection.getShare();
       detailsTextView.setText(details);
 
       // Show user info if available

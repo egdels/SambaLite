@@ -166,6 +166,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     jsonObject.put("id", connection.getId());
     jsonObject.put("name", connection.getName());
     jsonObject.put("server", connection.getServer());
+    jsonObject.put("port", connection.getPort());
     jsonObject.put("share", connection.getShare());
     jsonObject.put("initialPath", connection.getInitialPath());
     jsonObject.put("username", connection.getUsername());
@@ -184,6 +185,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     connection.setId(jsonObject.getString("id"));
     connection.setName(jsonObject.getString("name"));
     connection.setServer(jsonObject.getString("server"));
+    connection.setPort(jsonObject.optInt("port", SmbConnection.DEFAULT_PORT));
     connection.setShare(jsonObject.optString("share", ""));
     connection.setInitialPath(jsonObject.optString("initialPath", ""));
     connection.setUsername(jsonObject.optString("username", ""));

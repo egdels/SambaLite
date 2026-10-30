@@ -394,7 +394,7 @@ public class TransferWorker extends Worker {
     boolean allSuccess = true;
 
     try (SMBClient client = createSmbClient(connection);
-        Connection conn = client.connect(connection.getServer())) {
+        Connection conn = client.connect(connection.getServer(), connection.getPort())) {
 
       // Log negotiated SMB protocol details
       try {

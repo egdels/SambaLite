@@ -344,7 +344,7 @@ public class FolderSyncWorker extends Worker {
     }
 
     try (SMBClient client = createSmbClient(connection);
-        Connection conn = client.connect(connection.getServer())) {
+        Connection conn = client.connect(connection.getServer(), connection.getPort())) {
 
       AuthenticationContext authContext = createAuthContext(connection);
       try (Session session = conn.authenticate(authContext)) {
