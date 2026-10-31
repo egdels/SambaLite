@@ -312,12 +312,10 @@ public class SystemMonitorActivity extends AppCompatActivity {
   private String getPerformanceMetrics() {
     StringBuilder metrics = new StringBuilder();
     metrics.append("=== Performance Metrics ===\n");
-    metrics.append("Memory: ").append(SimplePerformanceMonitor.getMemoryInfo()).append("\n");
-    metrics.append("Device: ").append(SimplePerformanceMonitor.getDeviceInfo()).append("\n");
-    metrics
-        .append("Performance: ")
-        .append(SimplePerformanceMonitor.getPerformanceStats())
-        .append("\n");
+    // The monitor's texts already start with "Memory:", "Device:" and "Performance:"
+    metrics.append(SimplePerformanceMonitor.getMemoryInfo()).append("\n");
+    metrics.append(SimplePerformanceMonitor.getDeviceInfo()).append("\n");
+    metrics.append(SimplePerformanceMonitor.getPerformanceStats()).append("\n");
 
     metrics.append("\n").append(StorageStatusReport.build(this, getSyncTargets()));
 

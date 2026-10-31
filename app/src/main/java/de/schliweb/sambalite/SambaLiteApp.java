@@ -126,8 +126,8 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
       LogUtils.i("SambaLiteApp", "Logging system initialized");
 
       // Initialize performance monitoring (static methods)
-      LogUtils.i("SambaLiteApp", "Memory: " + SimplePerformanceMonitor.getMemoryInfo());
-      LogUtils.i("SambaLiteApp", "Device: " + SimplePerformanceMonitor.getDeviceInfo());
+      LogUtils.i("SambaLiteApp", SimplePerformanceMonitor.getMemoryInfo());
+      LogUtils.i("SambaLiteApp", SimplePerformanceMonitor.getDeviceInfo());
       LogUtils.i("SambaLiteApp", "Performance monitoring initialized");
 
       // Initialize advanced systems

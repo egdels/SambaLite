@@ -356,7 +356,7 @@ public class MainActivity extends AppCompatActivity
 
     // Log performance metrics
 
-    LogUtils.i("MainActivity", "Memory: " + SimplePerformanceMonitor.getMemoryInfo());
+    LogUtils.i("MainActivity", SimplePerformanceMonitor.getMemoryInfo());
 
     // Force trigger the initial connections load for debugging
     LogUtils.d("MainActivity", "Triggering initial connections load");
