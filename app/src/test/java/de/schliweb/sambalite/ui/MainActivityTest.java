@@ -96,4 +96,17 @@ public class MainActivityTest {
     assertEquals(-1, MainActivity.parsePort("abc"));
     assertEquals(-1, MainActivity.parsePort("99999999999"));
   }
+
+  // --- passwordFrom (passwords may start or end with spaces) ---
+
+  @Test
+  public void passwordFrom_keepsLeadingAndTrailingSpaces() {
+    assertEquals(" pw x ", MainActivity.passwordFrom(" pw x "));
+    assertEquals("secret123", MainActivity.passwordFrom("secret123"));
+  }
+
+  @Test
+  public void passwordFrom_null_returnsEmpty() {
+    assertEquals("", MainActivity.passwordFrom(null));
+  }
 }

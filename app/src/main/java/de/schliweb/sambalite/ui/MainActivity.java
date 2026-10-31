@@ -638,6 +638,15 @@ public class MainActivity extends AppCompatActivity
   }
 
   /**
+   * Returns the password as typed. Unlike the other fields it is not trimmed, because leading and
+   * trailing spaces are valid parts of a password.
+   */
+  @NonNull
+  static String passwordFrom(@Nullable CharSequence text) {
+    return text == null ? "" : text.toString();
+  }
+
+  /**
    * Parses the port entered in the connection dialog. An empty field means the default SMB port.
    *
    * @return the port, or -1 if the input is not a number between 1 and 65535
@@ -1076,7 +1085,7 @@ public class MainActivity extends AppCompatActivity
                   discoverShares(
                       serverText,
                       usernameEditText.getText().toString().trim(),
-                      passwordEditText.getText().toString().trim(),
+                      passwordFrom(passwordEditText.getText()),
                       domainEditText.getText().toString().trim(),
                       sharesSection,
                       sharesProgress,
@@ -1202,7 +1211,7 @@ public class MainActivity extends AppCompatActivity
             connection.setShare(share);
             connection.setInitialPath(normalizeInitialPath(defaultFolder));
             connection.setUsername(usernameEditText.getText().toString().trim());
-            connection.setPassword(passwordEditText.getText().toString().trim());
+            connection.setPassword(passwordFrom(passwordEditText.getText()));
             connection.setDomain(domainEditText.getText().toString().trim());
             if (encryptSwitch != null) connection.setEncryptData(encryptSwitch.isChecked());
             if (signingSwitch != null) connection.setSigningRequired(signingSwitch.isChecked());
@@ -1255,7 +1264,7 @@ public class MainActivity extends AppCompatActivity
             testConnection.setPort(parsePort(portText));
             testConnection.setShare(share);
             testConnection.setUsername(usernameEditText.getText().toString().trim());
-            testConnection.setPassword(passwordEditText.getText().toString().trim());
+            testConnection.setPassword(passwordFrom(passwordEditText.getText()));
             testConnection.setDomain(domainEditText.getText().toString().trim());
             if (encryptSwitch != null) testConnection.setEncryptData(encryptSwitch.isChecked());
             if (signingSwitch != null) testConnection.setSigningRequired(signingSwitch.isChecked());
@@ -1509,7 +1518,7 @@ public class MainActivity extends AppCompatActivity
                   discoverShares(
                       serverText,
                       usernameEditText.getText().toString().trim(),
-                      passwordEditText.getText().toString().trim(),
+                      passwordFrom(passwordEditText.getText()),
                       domainEditText.getText().toString().trim(),
                       sharesSection,
                       sharesProgress,
@@ -1651,7 +1660,7 @@ public class MainActivity extends AppCompatActivity
             updatedConnection.setShare(share);
             updatedConnection.setInitialPath(normalizeInitialPath(defaultFolder));
             updatedConnection.setUsername(usernameEditText.getText().toString().trim());
-            updatedConnection.setPassword(passwordEditText.getText().toString().trim());
+            updatedConnection.setPassword(passwordFrom(passwordEditText.getText()));
             updatedConnection.setDomain(domainEditText.getText().toString().trim());
 
             if (encryptSwitchEdit != null)
@@ -1708,7 +1717,7 @@ public class MainActivity extends AppCompatActivity
             testConnection.setPort(parsePort(portText));
             testConnection.setShare(share);
             testConnection.setUsername(usernameEditText.getText().toString().trim());
-            testConnection.setPassword(passwordEditText.getText().toString().trim());
+            testConnection.setPassword(passwordFrom(passwordEditText.getText()));
             testConnection.setDomain(domainEditText.getText().toString().trim());
 
             LogUtils.i(
