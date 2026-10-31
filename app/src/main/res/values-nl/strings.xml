@@ -74,7 +74,7 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbinding verwijderen</string>
-    <string name="confirm_delete_connection">Weet je zeker dat je de verbinding ’%1$s’ wilt verwijderen?</string>
+    <string name="confirm_delete_connection">Weet je zeker dat je de verbinding ‘%1$s’ wilt verwijderen?</string>
     <string name="delete">Verwijderen</string>
 
     <!-- File Browser -->
@@ -180,7 +180,7 @@
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Bestand verwijderen</string>
-    <string name="confirm_delete_file">Weet je zeker dat je ’%1$s’ wilt verwijderen?</string>
+    <string name="confirm_delete_file">Weet je zeker dat je ‘%1$s’ wilt verwijderen?</string>
     <string name="delete_success">Bestand succesvol verwijderd</string>
     <string name="delete_error">Fout bij verwijderen van bestand</string>
 
@@ -377,7 +377,7 @@
     <string name="sync_edit_option">Synchronisatie bewerken</string>
     <string name="sync_remove_option">Synchronisatie verwijderen</string>
     <string name="sync_delete_confirm_title">Synchronisatieconfiguratie verwijderen</string>
-    <string name="sync_delete_confirm_message">Weet je zeker dat je de synchronisatieconfiguratie voor de map ’%1$s’ wilt verwijderen?</string>
+    <string name="sync_delete_confirm_message">Weet je zeker dat je de synchronisatieconfiguratie voor de map ‘%1$s’ wilt verwijderen?</string>
     <string name="sync_config_removed">Synchronisatieconfiguratie verwijderd</string>
     <string name="sync_config_updated">Synchronisatieconfiguratie bijgewerkt</string>
     <string name="sync_max_configs_reached">Maximaal aantal synchronisatieconfiguraties (%1$d) bereikt. Verwijder eerst een bestaande configuratie.</string>

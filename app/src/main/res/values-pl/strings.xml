@@ -75,7 +75,7 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Usuń połączenie</string>
-    <string name="confirm_delete_connection">Czy na pewno chcesz usunąć połączenie ’%1$s’?</string>
+    <string name="confirm_delete_connection">Czy na pewno chcesz usunąć połączenie „%1$s”?</string>
     <string name="delete">Usuń</string>
 
     <!-- File Browser -->
@@ -188,7 +188,7 @@
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Usuń plik</string>
-    <string name="confirm_delete_file">Czy na pewno chcesz usunąć ’%1$s’?</string>
+    <string name="confirm_delete_file">Czy na pewno chcesz usunąć „%1$s”?</string>
     <string name="delete_success">Plik usunięty pomyślnie</string>
     <string name="delete_error">Błąd usuwania pliku</string>
 
@@ -387,7 +387,7 @@
     <string name="sync_edit_option">Edytuj synchronizację</string>
     <string name="sync_remove_option">Usuń synchronizację</string>
     <string name="sync_delete_confirm_title">Usuń konfigurację synchronizacji</string>
-    <string name="sync_delete_confirm_message">Czy na pewno chcesz usunąć konfigurację synchronizacji dla folderu ’%1$s’?</string>
+    <string name="sync_delete_confirm_message">Czy na pewno chcesz usunąć konfigurację synchronizacji dla folderu „%1$s”?</string>
     <string name="sync_config_removed">Konfiguracja synchronizacji usunięta</string>
     <string name="sync_config_updated">Konfiguracja synchronizacji zaktualizowana</string>
     <string name="sync_max_configs_reached">Osiągnięto maksymalną liczbę konfiguracji synchronizacji (%1$d). Najpierw usuń istniejącą konfigurację.</string>

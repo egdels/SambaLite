@@ -75,7 +75,7 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Eliminar conexión</string>
-    <string name="confirm_delete_connection">¿Estás seguro de que quieres eliminar la conexión ’%1$s’?</string>
+    <string name="confirm_delete_connection">¿Estás seguro de que quieres eliminar la conexión «%1$s»?</string>
     <string name="delete">Eliminar</string>
 
     <!-- File Browser -->
@@ -183,7 +183,7 @@
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Eliminar archivo</string>
-    <string name="confirm_delete_file">¿Estás seguro de que quieres eliminar ’%1$s’?</string>
+    <string name="confirm_delete_file">¿Estás seguro de que quieres eliminar «%1$s»?</string>
     <string name="delete_success">Archivo eliminado exitosamente</string>
     <string name="delete_error">Error al eliminar archivo</string>
 
@@ -381,7 +381,7 @@
     <string name="sync_edit_option">Editar sincronización</string>
     <string name="sync_remove_option">Eliminar sincronización</string>
     <string name="sync_delete_confirm_title">Eliminar configuración de sincronización</string>
-    <string name="sync_delete_confirm_message">¿Estás seguro de que quieres eliminar la configuración de sincronización para la carpeta ’%1$s’?</string>
+    <string name="sync_delete_confirm_message">¿Estás seguro de que quieres eliminar la configuración de sincronización para la carpeta «%1$s»?</string>
     <string name="sync_config_removed">Configuración de sincronización eliminada</string>
     <string name="sync_config_updated">Configuración de sincronización actualizada</string>
     <string name="sync_max_configs_reached">Se alcanzó el número máximo de configuraciones de sincronización (%1$d). Elimine primero una configuración existente.</string>

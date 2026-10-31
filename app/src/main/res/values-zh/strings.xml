@@ -75,7 +75,7 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">删除连接</string>
-    <string name="confirm_delete_connection">确定要删除 ’%1$s’ 连接？</string>
+    <string name="confirm_delete_connection">确定要删除 “%1$s” 连接？</string>
     <string name="delete">删除</string>
 
     <!-- File Browser -->
@@ -177,7 +177,7 @@
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">删除文件</string>
-    <string name="confirm_delete_file">确定要删除 ’%1$s’？</string>
+    <string name="confirm_delete_file">确定要删除 “%1$s”？</string>
     <string name="delete_success">成功删除了文件</string>
     <string name="delete_error">删除文件出错</string>
 

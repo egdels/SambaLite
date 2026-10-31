@@ -74,7 +74,7 @@
 
     <!-- Delete Dialog -->
     <string name="delete_connection">Verbindung löschen</string>
-    <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung ’%1$s’ löschen möchten?</string>
+    <string name="confirm_delete_connection">Sind Sie sicher, dass Sie die Verbindung „%1$s“ löschen möchten?</string>
     <string name="delete">Löschen</string>
 
     <!-- File Browser -->
@@ -180,7 +180,7 @@
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Datei löschen</string>
-    <string name="confirm_delete_file">Sind Sie sicher, dass Sie ’%1$s’ löschen möchten?</string>
+    <string name="confirm_delete_file">Sind Sie sicher, dass Sie „%1$s“ löschen möchten?</string>
     <string name="delete_success">Datei erfolgreich gelöscht</string>
     <string name="delete_error">Fehler beim Löschen der Datei</string>
 
@@ -377,7 +377,7 @@
     <string name="sync_edit_option">Sync bearbeiten</string>
     <string name="sync_remove_option">Sync entfernen</string>
     <string name="sync_delete_confirm_title">Sync-Konfiguration löschen</string>
-    <string name="sync_delete_confirm_message">Sind Sie sicher, dass Sie die Sync-Konfiguration für den Ordner ’%1$s’ entfernen möchten?</string>
+    <string name="sync_delete_confirm_message">Sind Sie sicher, dass Sie die Sync-Konfiguration für den Ordner „%1$s“ entfernen möchten?</string>
     <string name="sync_config_removed">Sync-Konfiguration entfernt</string>
     <string name="sync_config_updated">Sync-Konfiguration aktualisiert</string>
     <string name="sync_max_configs_reached">Maximale Anzahl an Sync-Konfigurationen (%1$d) erreicht. Bitte entfernen Sie zuerst eine bestehende Konfiguration.</string>
