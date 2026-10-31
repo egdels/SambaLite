@@ -110,6 +110,14 @@ public class FileListViewModel extends ViewModel {
     return state.getErrorMessage();
   }
 
+  /**
+   * Gets the technical error of the last folder listing as LiveData, or null if the listing
+   * succeeded.
+   */
+  public @NonNull LiveData<String> getLoadError() {
+    return state.getLoadError();
+  }
+
   /** Gets the current path as LiveData (display path including share name). */
   public @NonNull LiveData<String> getCurrentPath() {
     return state.getCurrentPath();
@@ -370,17 +378,19 @@ public class FileListViewModel extends ViewModel {
             IntelligentCacheManager.getInstance()
                 .cacheFileList(state.getConnection(), state.getCurrentPathString(), fileList);
 
+            state.setLoadError(null);
             state.setFiles(fileList);
             if (showLoadingIndicator) {
               state.setLoading(false);
             }
           } catch (Exception e) {
             LogUtils.e("FileListViewModel", "Failed to load files: " + e.getMessage());
+            // Set before the empty list, so the empty list is shown as a load error
+            state.setLoadError(MainViewModel.describeFailure(e));
             state.setFiles(new ArrayList<>());
             if (showLoadingIndicator) {
               state.setLoading(false);
             }
-            state.setErrorMessage("Failed to load files: " + e.getMessage());
           }
         });
   }
@@ -444,6 +454,7 @@ public class FileListViewModel extends ViewModel {
               // Sort and filter cached files according to current options
               sortFiles(cachedFiles);
               List<SmbFileItem> filteredCachedFiles = filterHiddenFiles(cachedFiles);
+              state.setLoadError(null);
               state.setFiles(filteredCachedFiles);
               if (showLoadingIndicator) {
                 state.setLoading(false);
@@ -461,6 +472,7 @@ public class FileListViewModel extends ViewModel {
             // Sort and filter files according to the current options
             sortFiles(fileList);
             List<SmbFileItem> filteredFileList = filterHiddenFiles(fileList);
+            state.setLoadError(null);
 
             // Cache the loaded file list (the full list, not filtered)
             IntelligentCacheManager.getInstance()
@@ -479,11 +491,12 @@ public class FileListViewModel extends ViewModel {
             }
           } catch (Exception e) {
             LogUtils.e("FileListViewModel", "Failed to load files: " + e.getMessage());
+            // Set before the empty list, so the empty list is shown as a load error
+            state.setLoadError(MainViewModel.describeFailure(e));
             state.setFiles(new ArrayList<>());
             if (showLoadingIndicator) {
               state.setLoading(false);
             }
-            state.setErrorMessage("Failed to load files: " + e.getMessage());
           }
         });
   }

@@ -11,11 +11,13 @@ package de.schliweb.sambalite.ui.controllers;
 
 import android.os.Parcelable;
 import android.view.View;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.sync.SyncDirection;
@@ -26,6 +28,7 @@ import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
 import de.schliweb.sambalite.ui.SortDirection;
 import de.schliweb.sambalite.ui.ThumbnailManager;
+import de.schliweb.sambalite.ui.utils.TransferErrorText;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.HashSet;
 import java.util.List;
@@ -59,6 +62,9 @@ public class FileListController
   private FileSortOption lastSortOption;
   private SortDirection lastSortDirection;
   private Boolean lastDirectoriesFirst;
+
+  // Technical error of the last folder listing, null if it succeeded
+  @Nullable private String loadError;
 
   // Folder whose entries the list shows, or is about to show
   @Nullable private String shownPath;
@@ -168,6 +174,19 @@ public class FileListController
               }
             });
 
+    // A failed listing arrives as an empty list; the error is posted just before it, so the empty
+    // state can say that the folder could not be loaded instead of calling it empty
+    viewModel
+        .getLoadError()
+        .observe(
+            getLifecycleOwner(),
+            error -> {
+              loadError = error;
+              if (emptyView.getVisibility() == View.VISIBLE && !searchMode) {
+                updateEmptyText();
+              }
+            });
+
     // Observe file list changes
     viewModel
         .getFiles()
@@ -243,11 +262,36 @@ public class FileListController
    */
   private void updateEmptyView(List<SmbFileItem> files) {
     if (files.isEmpty()) {
+      updateEmptyText();
       emptyView.setVisibility(View.VISIBLE);
       recyclerView.setVisibility(View.GONE);
     } else {
       emptyView.setVisibility(View.GONE);
       recyclerView.setVisibility(View.VISIBLE);
+    }
+  }
+
+  /**
+   * Shows in the empty state either that the folder is empty or, after a failed listing outside
+   * search mode, that it could not be loaded and why.
+   */
+  private void updateEmptyText() {
+    TextView title = emptyView.findViewById(R.id.empty_state_title);
+    TextView message = emptyView.findViewById(R.id.empty_state_message);
+    if (title == null || message == null) {
+      return;
+    }
+    android.content.Context context = emptyView.getContext();
+    if (loadError != null && !searchMode) {
+      String reason = TransferErrorText.shortReason(context, loadError);
+      title.setText(R.string.folder_load_failed);
+      message.setText(
+          context.getString(
+              R.string.folder_load_failed_message,
+              reason != null ? reason : context.getString(R.string.transfer_error_connection)));
+    } else {
+      title.setText(R.string.empty_directory);
+      message.setText(R.string.empty_folder);
     }
   }
 

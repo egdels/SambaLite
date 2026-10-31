@@ -178,6 +178,8 @@
     <string name="files_tab">Files</string>
     <string name="folders_tab">Folders</string>
     <string name="empty_folder">This folder is empty. Use the + button to upload files or create folders.</string>
+    <string name="folder_load_failed">Could not load this folder</string>
+    <string name="folder_load_failed_message">%1$s. Pull down to try again.</string>
 
     <!-- Dialog Subtitles -->
     <string name="rename_subtitle">Enter a new name for this item</string>

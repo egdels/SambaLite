@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import de.schliweb.sambalite.data.model.SmbConnection;
@@ -41,6 +42,8 @@ public class FileBrowserState {
 
   @NonNull private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
   @NonNull private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+  // Error of the last folder listing, null if it succeeded
+  @NonNull private final MutableLiveData<String> loadError = new MutableLiveData<>();
   // Sorting state
   @NonNull private final MutableLiveData<FileSortOption> sortOption;
   @NonNull private final MutableLiveData<SortDirection> sortDirection;
@@ -129,6 +132,7 @@ public class FileBrowserState {
   public void resetNavigation() {
     pathStack.clear();
     currentPath = "";
+    loadError.setValue(null);
     if (connection != null) {
       currentPathLiveData.setValue(connection.getShare());
     }
@@ -197,6 +201,22 @@ public class FileBrowserState {
   /** Sets the error message. */
   public void setErrorMessage(@NonNull String message) {
     errorMessage.postValue(message);
+  }
+
+  /**
+   * Gets the error of the last folder listing as LiveData, or null if it succeeded. Kept apart from
+   * {@link #getErrorMessage()}, which also carries errors of file operations.
+   */
+  public @NonNull LiveData<String> getLoadError() {
+    return loadError;
+  }
+
+  /**
+   * Sets the technical error of the last folder listing, or clears it with {@code null} after a
+   * successful listing.
+   */
+  public void setLoadError(@Nullable String error) {
+    loadError.postValue(error);
   }
 
   /** Gets the current path as LiveData. */

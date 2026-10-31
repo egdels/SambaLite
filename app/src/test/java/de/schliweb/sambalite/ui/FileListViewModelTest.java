@@ -141,6 +141,65 @@ public class FileListViewModelTest {
   }
 
   @Test
+  public void loadFiles_failure_postsLoadErrorWithCauseBeforeEmptyList() throws Exception {
+    Exception failure =
+        new RuntimeException(
+            "Failed to execute share operation after 3 attempts",
+            new java.net.ConnectException("Connection refused"));
+    when(smbRepository.listFiles(any(SmbConnection.class), anyString())).thenThrow(failure);
+
+    try (MockedStatic<IntelligentCacheManager> mockedStatic =
+        mockStatic(IntelligentCacheManager.class)) {
+      mockedStatic.when(IntelligentCacheManager::getInstance).thenReturn(cacheManager);
+      when(cacheManager.getCachedFileList(any(SmbConnection.class), anyString())).thenReturn(null);
+
+      viewModel.loadFiles();
+
+      // The error must arrive before the empty list, so the list is shown as a load error
+      org.mockito.InOrder inOrder = inOrder(state);
+      inOrder
+          .verify(state)
+          .setLoadError(
+              "Failed to execute share operation after 3 attempts: Connection refused");
+      inOrder.verify(state).setFiles(eq(new ArrayList<>()));
+      verify(state).setLoading(false);
+    }
+  }
+
+  @Test
+  public void refreshCurrentDirectory_success_clearsLoadError() throws Exception {
+    when(smbRepository.listFiles(any(SmbConnection.class), anyString()))
+        .thenReturn(new ArrayList<>(testFiles));
+
+    try (MockedStatic<IntelligentCacheManager> mockedStatic =
+        mockStatic(IntelligentCacheManager.class)) {
+      mockedStatic.when(IntelligentCacheManager::getInstance).thenReturn(cacheManager);
+
+      viewModel.refreshCurrentDirectory();
+
+      org.mockito.InOrder inOrder = inOrder(state);
+      inOrder.verify(state).setLoadError(null);
+      inOrder.verify(state).setFiles(anyList());
+    }
+  }
+
+  @Test
+  public void refreshCurrentDirectory_failure_postsLoadError() throws Exception {
+    when(smbRepository.listFiles(any(SmbConnection.class), anyString()))
+        .thenThrow(new RuntimeException("STATUS_ACCESS_DENIED (0xc0000022)"));
+
+    try (MockedStatic<IntelligentCacheManager> mockedStatic =
+        mockStatic(IntelligentCacheManager.class)) {
+      mockedStatic.when(IntelligentCacheManager::getInstance).thenReturn(cacheManager);
+
+      viewModel.refreshCurrentDirectory();
+
+      verify(state).setLoadError("STATUS_ACCESS_DENIED (0xc0000022)");
+      verify(state).setFiles(eq(new ArrayList<>()));
+    }
+  }
+
+  @Test
   public void testNavigateToDirectory() throws Exception {
     // Arrange
     SmbFileItem directory = createTestFile("folder1", true);
