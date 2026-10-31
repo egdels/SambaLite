@@ -89,7 +89,6 @@
     <string name="download_error">Error downloading file</string>
 
     <!-- Upload -->
-    <string name="upload">Upload</string>
     <string name="uploading">Uploading…</string>
     <string name="file_exists_title">File already exists</string>
     <string name="file_exists_message">The file &#8220;%1$s&#8221; already exists. Do you want to overwrite it?</string>
@@ -165,8 +164,6 @@
     <string name="enter_server_details">Enter server details to discover shares</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Go to parent directory</string>
-    <string name="refresh_directory">Refresh directory</string>
     <string name="files_tab">Files</string>
     <string name="folders_tab">Folders</string>
     <string name="empty_folder">This folder is empty. Use the + button to upload files or create folders.</string>
@@ -436,8 +433,10 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Upload already queued</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; is already in the transfer queue. Upload again anyway?</string>
-    <string name="transfer_already_queued_confirm">Upload again</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; is already in the transfer queue and is not added again. It will be uploaded from there.</item>
+        <item quantity="other">%1$d files are already in the transfer queue and are not added again: %2$s. They will be uploaded from there.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Choose how to organize your transfers</string>
     <string name="transfer_sort_by_name">By name</string>
     <string name="transfer_sort_by_date">By date</string>
@@ -462,4 +461,25 @@
     <string name="transfer_error_source_access_lost">Access to the local file was lost. Please select the file again.</string>
     <string name="transfer_error_target_lost">The local target file is gone and could not be recreated. Please start the download again.</string>
     <string name="upload_share_temporary_access_warning">The shared files stay accessible only while SambaLite is open. Keep the app open until the uploads have finished.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">New</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">No permission on the server</string>
+    <string name="transfer_error_not_found">File or folder not found on the server</string>
+    <string name="transfer_error_disk_full">Server storage is full</string>
+    <string name="transfer_error_in_use">File is in use on the server</string>
+    <string name="transfer_error_login">Login to the server failed</string>
+    <string name="transfer_error_connection">Connection to the server failed</string>
+    <string name="transfer_error_server">The server refused the operation</string>
+    <string name="transfer_error_details">Error details</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d transfer completed</item>
+        <item quantity="other">%d transfers completed</item>
+    </plurals>
 </resources>

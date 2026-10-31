@@ -105,8 +105,11 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Subida ya en cola</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; ya está en la cola de transferencias. ¿Subir de nuevo?</string>
-    <string name="transfer_already_queued_confirm">Subir de nuevo</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; ya está en la cola de transferencias y no se añade de nuevo. Se subirá desde allí.</item>
+        <item quantity="many">%1$d archivos ya están en la cola de transferencias y no se añaden de nuevo: %2$s. Se subirán desde allí.</item>
+        <item quantity="other">%1$d archivos ya están en la cola de transferencias y no se añaden de nuevo: %2$s. Se subirán desde allí.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Elige cómo organizar tus transferencias</string>
     <string name="transfer_sort_by_name">Por nombre</string>
     <string name="transfer_sort_by_date">Por fecha</string>
@@ -133,7 +136,6 @@
     <string name="download_error">Error al descargar archivo</string>
 
     <!-- Upload -->
-    <string name="upload">Subir</string>
     <string name="uploading">Subiendo…</string>
     <string name="file_exists_title">El archivo ya existe</string>
     <string name="file_exists_message">El archivo &#8220;%1$s&#8221; ya existe. ¿Quieres sobrescribirlo?</string>
@@ -207,8 +209,6 @@
     <string name="enter_server_details">Introduce los detalles del servidor para descubrir recursos compartidos</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Ir al directorio padre</string>
-    <string name="refresh_directory">Actualizar directorio</string>
     <string name="files_tab">Archivos</string>
     <string name="folders_tab">Carpetas</string>
     <string name="empty_folder">Esta carpeta está vacía. Usa el botón + para subir archivos o crear carpetas.</string>
@@ -463,4 +463,27 @@
     <string name="transfer_error_source_access_lost">Se perdió el acceso al archivo local. Seleccione el archivo de nuevo.</string>
     <string name="transfer_error_target_lost">El archivo de destino local ha desaparecido y no se pudo volver a crear. Inicie la descarga de nuevo.</string>
     <string name="upload_share_temporary_access_warning">Los archivos compartidos solo siguen siendo accesibles mientras SambaLite esté abierto. Mantenga la aplicación abierta hasta que las subidas hayan terminado.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">Nuevo</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d elemento</item>
+        <item quantity="many">%d elementos</item>
+        <item quantity="other">%d elementos</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">Sin permiso en el servidor</string>
+    <string name="transfer_error_not_found">Archivo o carpeta no encontrado en el servidor</string>
+    <string name="transfer_error_disk_full">El almacenamiento del servidor está lleno</string>
+    <string name="transfer_error_in_use">El archivo está en uso en el servidor</string>
+    <string name="transfer_error_login">Error al iniciar sesión en el servidor</string>
+    <string name="transfer_error_connection">Error de conexión con el servidor</string>
+    <string name="transfer_error_server">El servidor rechazó la operación</string>
+    <string name="transfer_error_details">Detalles del error</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d transferencia completada</item>
+        <item quantity="many">%d transferencias completadas</item>
+        <item quantity="other">%d transferencias completadas</item>
+    </plurals>
 </resources>

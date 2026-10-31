@@ -1002,6 +1002,13 @@ public class FileOperationsViewModel extends ViewModel {
           // Insert and re-take the source grant under the grant lock: a completing upload from
           // the same source must not release the grant between the picker result and this insert
           synchronized (UploadSourceGrants.lock()) {
+            // Never queue a second upload to a target that still has an open one
+            if (dao.getOpenUploadRemotePaths(transfer.connectionId).contains(remotePath)) {
+              LogUtils.i(
+                  "FileOperationsViewModel",
+                  "Skipped upload, target already queued: " + displayName);
+              return;
+            }
             id = dao.insert(transfer);
             UploadSourceGrants.retain(context, sourceUri);
           }
@@ -1058,6 +1065,23 @@ public class FileOperationsViewModel extends ViewModel {
           // folder takes a while, and a completing upload from the same source must not release
           // the grant before these rows exist in the database
           synchronized (UploadSourceGrants.lock()) {
+            // Never queue a second upload to a target that still has an open one
+            java.util.Set<String> open =
+                new java.util.HashSet<>(dao.getOpenUploadRemotePaths(connectionId));
+            int before = transfers.size();
+            transfers.removeIf(t -> !open.add(t.remotePath));
+            if (transfers.size() < before) {
+              LogUtils.i(
+                  "FileOperationsViewModel",
+                  "Skipped "
+                      + (before - transfers.size())
+                      + " uploads whose target is already queued (batch="
+                      + batchId
+                      + ")");
+            }
+            if (transfers.isEmpty()) {
+              return;
+            }
             dao.insertAll(transfers);
             if (grantUri != null) {
               UploadSourceGrants.retain(context, grantUri);

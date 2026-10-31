@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui.controllers;
 
 import android.net.Uri;
+import android.os.Parcelable;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.documentfile.provider.DocumentFile;
@@ -27,6 +28,19 @@ import lombok.Setter;
  */
 @Getter
 public class FileBrowserUIState {
+
+  // Scroll position per folder (display path) of the file list. Kept here, in the app-wide
+  // singleton, so it survives the activity being recreated on rotation. Bounded, least recently
+  // used folders are dropped.
+  private static final int MAX_SCROLL_STATES = 64;
+
+  private final java.util.Map<String, Parcelable> scrollStates =
+      new java.util.LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, Parcelable> eldest) {
+          return size() > MAX_SCROLL_STATES;
+        }
+      };
 
   // Progress state
   private final MutableLiveData<Integer> progressPercentage = new MutableLiveData<>(0);

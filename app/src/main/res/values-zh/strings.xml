@@ -101,8 +101,9 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">上传已在队列中</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; 已在传输队列中。是否再次上传？</string>
-    <string name="transfer_already_queued_confirm">再次上传</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="other">%1$d 个文件已在传输队列中，不会重复添加：%2$s。它们将从队列中上传。</item>
+    </plurals>
     <string name="transfer_sort_subtitle">选择如何排序传输</string>
     <string name="transfer_sort_by_name">按名称</string>
     <string name="transfer_sort_by_date">按日期</string>
@@ -129,7 +130,6 @@
     <string name="download_error">下载文件出错</string>
 
     <!-- Upload -->
-    <string name="upload">上传</string>
     <string name="uploading">上传中…</string>
     <string name="file_exists_title">文件已存在</string>
     <string name="file_exists_message">&#8220;%1$s&#8221; 文件已存在。要覆盖它吗？</string>
@@ -203,8 +203,6 @@
     <string name="enter_server_details">输入服务器详情来发现分享</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">转到主目录</string>
-    <string name="refresh_directory">刷新目录</string>
     <string name="files_tab">文件</string>
     <string name="folders_tab">文件夹</string>
     <string name="empty_folder">此文件夹是空的。用 + 按钮上传文件或创建文件夹。</string>
@@ -442,4 +440,23 @@
     <string name="transfer_error_source_access_lost">对本地文件的访问权限已丢失。请重新选择该文件。</string>
     <string name="transfer_error_target_lost">本地目标文件已丢失且无法重新创建。请重新开始下载。</string>
     <string name="upload_share_temporary_access_warning">共享的文件仅在 SambaLite 打开时可访问。请保持应用打开，直到上传完成。</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">新建</string>
+    <plurals name="folder_item_count">
+        <item quantity="other">%d 项</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">服务器上无权限</string>
+    <string name="transfer_error_not_found">服务器上未找到文件或文件夹</string>
+    <string name="transfer_error_disk_full">服务器存储空间已满</string>
+    <string name="transfer_error_in_use">文件在服务器上正被使用</string>
+    <string name="transfer_error_login">登录服务器失败</string>
+    <string name="transfer_error_connection">连接服务器失败</string>
+    <string name="transfer_error_server">服务器拒绝了该操作</string>
+    <string name="transfer_error_details">错误详情</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="other">%d 个传输已完成</item>
+    </plurals>
 </resources>

@@ -105,8 +105,11 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Téléversement déjà en file</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; est déjà dans la file de transfert. Téléverser à nouveau ?</string>
-    <string name="transfer_already_queued_confirm">Téléverser à nouveau</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; est déjà dans la file de transfert et n&#8217;est pas ajouté à nouveau. Il sera téléversé depuis la file.</item>
+        <item quantity="many">%1$d fichiers sont déjà dans la file de transfert et ne sont pas ajoutés à nouveau : %2$s. Ils seront téléversés depuis la file.</item>
+        <item quantity="other">%1$d fichiers sont déjà dans la file de transfert et ne sont pas ajoutés à nouveau : %2$s. Ils seront téléversés depuis la file.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Choisissez comment organiser vos transferts</string>
     <string name="transfer_sort_by_name">Par nom</string>
     <string name="transfer_sort_by_date">Par date</string>
@@ -134,7 +137,6 @@
     <string name="download_error">Erreur lors du téléchargement du fichier</string>
 
     <!-- Upload -->
-    <string name="upload">Téléverser</string>
     <string name="uploading">Téléversement…</string>
     <string name="file_exists_title">Le fichier existe déjà</string>
     <string name="file_exists_message">Le fichier &#8220;%1$s&#8221; existe déjà. Voulez-vous le remplacer ?</string>
@@ -208,8 +210,6 @@
     <string name="enter_server_details">Entrez les détails du serveur pour découvrir les partages</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Aller au répertoire parent</string>
-    <string name="refresh_directory">Actualiser le répertoire</string>
     <string name="files_tab">Fichiers</string>
     <string name="folders_tab">Dossiers</string>
     <string name="empty_folder">Ce dossier est vide. Utilisez le bouton + pour téléverser des fichiers ou créer des dossiers.</string>
@@ -463,4 +463,27 @@
     <string name="transfer_error_source_access_lost">L’accès au fichier local a été perdu. Veuillez sélectionner le fichier à nouveau.</string>
     <string name="transfer_error_target_lost">Le fichier cible local a disparu et n’a pas pu être recréé. Veuillez relancer le téléchargement.</string>
     <string name="upload_share_temporary_access_warning">Les fichiers partagés ne restent accessibles que tant que SambaLite est ouvert. Laissez l’application ouverte jusqu’à la fin des téléversements.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">Nouveau</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d élément</item>
+        <item quantity="many">%d éléments</item>
+        <item quantity="other">%d éléments</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">Pas d’autorisation sur le serveur</string>
+    <string name="transfer_error_not_found">Fichier ou dossier introuvable sur le serveur</string>
+    <string name="transfer_error_disk_full">Le stockage du serveur est plein</string>
+    <string name="transfer_error_in_use">Le fichier est utilisé sur le serveur</string>
+    <string name="transfer_error_login">Échec de l’authentification sur le serveur</string>
+    <string name="transfer_error_connection">Échec de la connexion au serveur</string>
+    <string name="transfer_error_server">Le serveur a refusé l’opération</string>
+    <string name="transfer_error_details">Détails de l’erreur</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d transfert terminé</item>
+        <item quantity="many">%d transferts terminés</item>
+        <item quantity="other">%d transferts terminés</item>
+    </plurals>
 </resources>

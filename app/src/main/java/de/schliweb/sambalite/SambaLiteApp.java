@@ -14,7 +14,6 @@ import android.os.StatFs;
 import androidx.annotation.NonNull;
 import androidx.work.Configuration;
 import androidx.work.WorkManager;
-import com.google.android.material.color.DynamicColors;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.di.DaggerAppComponent;
@@ -118,8 +117,6 @@ public class SambaLiteApp extends Application implements Configuration.Provider 
   @Override
   public void onCreate() {
     super.onCreate();
-    // Material You: wallpaper colours on Android 12+, the logo palette below that.
-    DynamicColors.applyToActivitiesIfAvailable(this);
 
     LogUtils.i("SambaLiteApp", "Starting SambaLite application initialization");
 

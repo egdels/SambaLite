@@ -103,6 +103,15 @@ public class TransferWorker extends Worker {
   private static final long PROGRESS_SAVE_INTERVAL = 2 * 1024 * 1024;
 
   /**
+   * Progress is also saved at least this often, so that the queue and the notification keep moving
+   * on slow connections, where 2 MiB can take many seconds.
+   */
+  private static final long PROGRESS_SAVE_MILLIS = 1000;
+
+  /** When the progress of the running transfer was last saved (elapsed realtime). */
+  private long lastProgressSaveAt = 0;
+
+  /**
    * Files at or above this size are downloaded with multiple concurrently outstanding SMB READ
    * requests (pipelined). Smaller files use the simple streamed path.
    */
@@ -825,10 +834,11 @@ public class TransferWorker extends Worker {
           transfer.bytesTransferred += read;
           bytesSinceLastSave += read;
 
-          if (bytesSinceLastSave >= PROGRESS_SAVE_INTERVAL) {
+          if (progressSaveDue(bytesSinceLastSave)) {
             dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
             updateTransferNotification(transfer);
             bytesSinceLastSave = 0;
+            lastProgressSaveAt = android.os.SystemClock.elapsedRealtime();
           }
         }
 
@@ -1364,6 +1374,30 @@ public class TransferWorker extends Worker {
   }
 
   /**
+   * Whether the progress should be saved now: after {@link #PROGRESS_SAVE_INTERVAL} bytes, or after
+   * {@link #PROGRESS_SAVE_MILLIS} once any bytes have moved since the last save.
+   *
+   * @param bytesSinceLastSave bytes transferred since the progress was last saved
+   * @return true if the progress should be saved
+   */
+  private boolean progressSaveDue(long bytesSinceLastSave) {
+    return isProgressSaveDue(
+        bytesSinceLastSave, android.os.SystemClock.elapsedRealtime() - lastProgressSaveAt);
+  }
+
+  /**
+   * Pure decision behind {@link #progressSaveDue(long)}.
+   *
+   * @param bytesSinceLastSave bytes transferred since the progress was last saved
+   * @param millisSinceLastSave time since the progress was last saved
+   * @return true if the progress should be saved
+   */
+  static boolean isProgressSaveDue(long bytesSinceLastSave, long millisSinceLastSave) {
+    return bytesSinceLastSave >= PROGRESS_SAVE_INTERVAL
+        || (bytesSinceLastSave > 0 && millisSinceLastSave >= PROGRESS_SAVE_MILLIS);
+  }
+
+  /**
    * Periodic checkpoint during a download: persists progress, updates the notification, verifies
    * available disk space and evaluates stop/cancellation requests.
    *
@@ -1374,7 +1408,7 @@ public class TransferWorker extends Worker {
    */
   private boolean downloadCheckpoint(
       PendingTransferDao dao, PendingTransfer transfer, long[] counters) throws IOException {
-    if (counters[0] >= PROGRESS_SAVE_INTERVAL) {
+    if (progressSaveDue(counters[0])) {
       if (counters[1] >= DISK_CHECK_INTERVAL) {
         if (!hasEnoughDiskSpace(transfer)) {
           dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
@@ -1392,6 +1426,7 @@ public class TransferWorker extends Worker {
       dao.updateProgress(transfer.id, transfer.bytesTransferred, System.currentTimeMillis());
       updateTransferNotification(transfer);
       counters[0] = 0;
+      lastProgressSaveAt = android.os.SystemClock.elapsedRealtime();
     }
 
     if (isStopped() || isTransferCancelled(dao, transfer.id)) {

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Numbers in the transfer queue statistics card; smaller in landscape (values-land) -->
+    <style name="TextAppearance.SambaLite.QueueStatNumber" parent="TextAppearance.Material3.HeadlineSmall" />
+</resources>

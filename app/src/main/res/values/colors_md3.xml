@@ -4,7 +4,8 @@
   Utilities bundled in com.google.android.material (SchemeFidelity) from the
   logo blue #3DB7DC, so primaryContainer is the logo colour itself.
   values/ and values-night/ define the same names; the themes reference them
-  once. On Android 12+ DynamicColors replaces them with the wallpaper colours.
+  once. No DynamicColors: the app keeps the colour of its launcher icon on
+  every Android version instead of taking the wallpaper colours.
 -->
 <resources>
     <color name="md_primary">#006780</color>

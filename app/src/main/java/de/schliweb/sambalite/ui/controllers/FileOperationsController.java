@@ -258,31 +258,9 @@ public class FileOperationsController {
                   .post(
                       () -> {
                         if (alreadyQueued) {
-                          // Show duplicate confirmation dialog
-                          showDuplicateQueueDialog(
-                              fileName,
-                              () -> {
-                                if (existsOnServer) {
-                                  showOverwriteDialog(
-                                      fileName,
-                                      () ->
-                                          enqueueAndNotify(
-                                              uri,
-                                              remotePath,
-                                              fileName,
-                                              fileSize,
-                                              batchId,
-                                              "overwrite+duplicate"));
-                                } else {
-                                  enqueueAndNotify(
-                                      uri,
-                                      remotePath,
-                                      fileName,
-                                      fileSize,
-                                      batchId,
-                                      "duplicate-confirmed");
-                                }
-                              });
+                          // The open transfer uploads this file already; queuing it a second
+                          // time would write the same remote file twice
+                          showDuplicateQueueDialog(fileName, 1, null);
                         } else if (existsOnServer) {
                           showOverwriteDialog(
                               fileName,
@@ -312,23 +290,35 @@ public class FileOperationsController {
         "FileOperationsController", "Enqueued single file upload" + suffix + ": " + fileName);
   }
 
-  /** Shows a dialog asking the user to confirm re-uploading a file already in the queue. */
-  private void showDuplicateQueueDialog(String fileName, Runnable confirmAction) {
-    if (progressCallback == null) return;
+  /**
+   * Tells the user that files are already in the transfer queue and are not added again. Their open
+   * transfers read the local files only when they run, so nothing is lost.
+   *
+   * @param names the file name, or a shortened list of names
+   * @param count how many files are affected
+   * @param then runs after the user closed the notice, or null
+   */
+  private void showDuplicateQueueDialog(String names, int count, @Nullable Runnable then) {
+    if (progressCallback == null) {
+      if (then != null) then.run();
+      return;
+    }
     new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
         .setTitle(de.schliweb.sambalite.R.string.transfer_already_queued_title)
         .setMessage(
-            context.getString(
-                de.schliweb.sambalite.R.string.transfer_already_queued_message, fileName))
+            context
+                .getResources()
+                .getQuantityString(
+                    de.schliweb.sambalite.R.plurals.transfer_already_queued_info,
+                    count,
+                    count,
+                    names))
         .setPositiveButton(
-            de.schliweb.sambalite.R.string.transfer_already_queued_confirm,
-            (dialog, which) -> confirmAction.run())
-        .setNegativeButton(
-            de.schliweb.sambalite.R.string.cancel,
-            (dialog, which) ->
-                LogUtils.i(
-                    "FileOperationsController",
-                    "Upload cancelled by user (already queued): " + fileName))
+            android.R.string.ok,
+            (dialog, which) -> {
+              LogUtils.i("FileOperationsController", "Skipped already queued upload(s): " + names);
+              if (then != null) then.run();
+            })
         .setCancelable(false)
         .show();
   }
@@ -419,10 +409,16 @@ public class FileOperationsController {
     boolean hasQueued = !conflicts.queued.isEmpty();
     boolean hasExisting = !conflicts.existing.isEmpty();
 
+    // Files already in the queue are never queued again, whatever the user picks below
+    java.util.Set<String> queuedPaths = new java.util.HashSet<>();
+    for (UploadRequest f : conflicts.queued) {
+      queuedPaths.add(f.remotePath);
+    }
     java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
         (excludedNames) -> {
           java.util.List<UploadRequest> selected = new java.util.ArrayList<>();
           for (UploadRequest f : allFiles) {
+            if (queuedPaths.contains(f.remotePath)) continue;
             if (excludedNames != null && excludedNames.contains(f.displayName)) continue;
             selected.add(f);
           }
@@ -450,6 +446,7 @@ public class FileOperationsController {
       String queuedNames = buildConflictNames(conflicts.queued);
       showDuplicateQueueDialog(
           queuedNames,
+          conflicts.queued.size(),
           () -> {
             if (hasExisting) {
               showMultiFileExistsDialog(conflicts.existing, doEnqueueFiltered);

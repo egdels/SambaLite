@@ -15,6 +15,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.RadioGroup;
@@ -53,14 +54,22 @@ public class TransferQueueActivity extends AppCompatActivity
   private TextView countActive;
   private TextView countCompleted;
   private TextView countFailed;
-  private TextView queueInfoText;
 
   private static final String PREFS_NAME = "transfer_queue_prefs";
   private static final String PREF_SORT_MODE = "sort_mode";
   private static final String PREF_HIDE_COMPLETED = "hide_completed";
 
-  /** Current sort mode: 0 = name, 1 = date, 2 = status. */
-  private int currentSort = 1; // default: by date (newest first)
+  /** Sort mode: 0 = name, 1 = date, 2 = status. */
+  private static final int SORT_BY_STATUS = 2;
+
+  /**
+   * Current sort mode. Status is the default: running transfers first, then pending ones in the
+   * order they will run, then failed and completed ones.
+   */
+  private int currentSort = SORT_BY_STATUS;
+
+  /** Number of transfers in the queue, shown as toolbar subtitle outside selection mode. */
+  private int queueCount = 0;
 
   private boolean hideCompleted = false;
 
@@ -83,7 +92,12 @@ public class TransferQueueActivity extends AppCompatActivity
     setContentView(R.layout.activity_transfer_queue);
 
     toolbar = findViewById(R.id.toolbar);
+    if (toolbar != null) {
+      de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
+    }
     toolbar.setNavigationOnClickListener(v -> finish());
+    toolbar.inflateMenu(R.menu.menu_transfer_queue);
+    toolbar.setOnMenuItemClickListener(this::onToolbarItemClicked);
 
     transferList = findViewById(R.id.transfer_list);
     emptyState = findViewById(R.id.empty_state);
@@ -92,16 +106,23 @@ public class TransferQueueActivity extends AppCompatActivity
     countActive = findViewById(R.id.count_active);
     countCompleted = findViewById(R.id.count_completed);
     countFailed = findViewById(R.id.count_failed);
-    queueInfoText = findViewById(R.id.queue_info_text);
 
     SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-    currentSort = prefs.getInt(PREF_SORT_MODE, 1);
+    currentSort = prefs.getInt(PREF_SORT_MODE, SORT_BY_STATUS);
     hideCompleted = prefs.getBoolean(PREF_HIDE_COMPLETED, false);
-
-    findViewById(R.id.sort_button).setOnClickListener(v -> showSortDialog());
+    MenuItem hideCompletedItem = toolbar.getMenu().findItem(R.id.action_hide_completed);
+    if (hideCompletedItem != null) {
+      hideCompletedItem.setChecked(hideCompleted);
+    }
 
     adapter = new TransferItemAdapter(this);
     transferList.setAdapter(adapter);
+    // Progress is saved every second; without this, each update cross-fades the old and new
+    // state of the running transfer and the list flickers
+    if (transferList.getItemAnimator()
+        instanceof androidx.recyclerview.widget.SimpleItemAnimator animator) {
+      animator.setSupportsChangeAnimations(false);
+    }
 
     fabSelectAll = findViewById(R.id.fab_select_all);
     fabClearSelection = findViewById(R.id.fab_clear_selection);
@@ -142,13 +163,46 @@ public class TransferQueueActivity extends AppCompatActivity
         .observe(
             this,
             count -> {
-              if (count != null && count > 0) {
-                queueInfoText.setText(
-                    getResources().getQuantityString(R.plurals.transfer_queue_count, count, count));
-              } else {
-                queueInfoText.setText(getString(R.string.transfer_queue_empty));
+              queueCount = count != null ? count : 0;
+              if (!selectionMode) {
+                showQueueSubtitle();
               }
             });
+  }
+
+  /** Shows the number of transfers as toolbar subtitle; the empty state speaks for itself. */
+  private void showQueueSubtitle() {
+    toolbar.setSubtitle(
+        queueCount > 0
+            ? getResources()
+                .getQuantityString(R.plurals.transfer_queue_count, queueCount, queueCount)
+            : null);
+  }
+
+  private boolean onToolbarItemClicked(MenuItem item) {
+    if (item.getItemId() == R.id.action_sort) {
+      showSortDialog();
+      return true;
+    } else if (item.getItemId() == R.id.action_hide_completed) {
+      setHideCompleted(!hideCompleted);
+      return true;
+    }
+    return false;
+  }
+
+  private void setHideCompleted(boolean hide) {
+    hideCompleted = hide;
+    MenuItem item = toolbar.getMenu().findItem(R.id.action_hide_completed);
+    if (item != null) {
+      item.setChecked(hide);
+    }
+    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        .edit()
+        .putBoolean(PREF_HIDE_COMPLETED, hide)
+        .apply();
+    if (lastTransfers != null) {
+      onTransfersChanged(lastTransfers);
+    }
   }
 
   private void selectAllTransfers() {
@@ -191,7 +245,7 @@ public class TransferQueueActivity extends AppCompatActivity
               .getQuantityString(
                   R.plurals.transfer_selection_count, selectedIds.size(), selectedIds.size()));
     } else {
-      toolbar.setSubtitle(null);
+      showQueueSubtitle();
       selectedIds.clear();
     }
     adapter.setSelectedIds(selectedIds);
@@ -223,7 +277,8 @@ public class TransferQueueActivity extends AppCompatActivity
               }
               clearSelection();
             })
-        .setNegativeButton(R.string.cancel, null)
+        // "Close", not "Cancel": the list already has "Cancel" for cancelling the transfer
+        .setNegativeButton(R.string.close, null)
         .show();
   }
 
@@ -257,7 +312,16 @@ public class TransferQueueActivity extends AppCompatActivity
                   .filter(t -> !"COMPLETED".equals(t.status))
                   .collect(java.util.stream.Collectors.toList())
               : transfers;
-      adapter.submitList(sortTransfers(filtered));
+      // Stay at the top when the list was there: ListAdapter otherwise keeps the first visible
+      // entry in place, and as transfers finish and move down the list follows them
+      boolean atTop = !transferList.canScrollVertically(-1);
+      adapter.submitList(
+          sortTransfers(filtered),
+          () -> {
+            if (atTop) {
+              transferList.scrollToPosition(0);
+            }
+          });
     } else {
       adapter.submitList(null);
     }
@@ -326,17 +390,12 @@ public class TransferQueueActivity extends AppCompatActivity
                 currentSort = 2;
               }
 
-              hideCompleted = hideCompletedSwitch.isChecked();
-
               getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                   .edit()
                   .putInt(PREF_SORT_MODE, currentSort)
-                  .putBoolean(PREF_HIDE_COMPLETED, hideCompleted)
                   .apply();
-
-              if (lastTransfers != null) {
-                onTransfersChanged(lastTransfers);
-              }
+              // Also refreshes the list for the new sort order
+              setHideCompleted(hideCompletedSwitch.isChecked());
             })
         .setNegativeButton(R.string.cancel, null)
         .show();
@@ -382,16 +441,22 @@ public class TransferQueueActivity extends AppCompatActivity
   }
 
   private void showTransferActionDialog(PendingTransfer transfer) {
-    String[] items = {
-      getString(R.string.transfer_retry),
-      getString(R.string.transfer_cancel),
-      getString(R.string.transfer_remove)
-    };
+    boolean hasError =
+        "FAILED".equals(transfer.status)
+            && transfer.lastError != null
+            && !transfer.lastError.trim().isEmpty();
+    List<String> items = new ArrayList<>();
+    items.add(getString(R.string.transfer_retry));
+    items.add(getString(R.string.transfer_cancel));
+    items.add(getString(R.string.transfer_remove));
+    if (hasError) {
+      items.add(getString(R.string.transfer_error_details));
+    }
 
     new MaterialAlertDialogBuilder(this)
         .setTitle(transfer.displayName)
         .setItems(
-            items,
+            items.toArray(new String[0]),
             (dialog, which) -> {
               switch (which) {
                 case 0:
@@ -403,9 +468,22 @@ public class TransferQueueActivity extends AppCompatActivity
                 case 2:
                   viewModel.removeTransfer(transfer.id);
                   break;
+                case 3:
+                  showErrorDetails(transfer);
+                  break;
               }
             })
-        .setNegativeButton(R.string.cancel, null)
+        // "Close", not "Cancel": the list already has "Cancel" for cancelling the transfer
+        .setNegativeButton(R.string.close, null)
+        .show();
+  }
+
+  /** Shows the full stored error of a failed transfer, e.g. the SMB status and remote path. */
+  private void showErrorDetails(PendingTransfer transfer) {
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.transfer_error_details)
+        .setMessage(transfer.displayName + "\n\n" + transfer.lastError.trim())
+        .setPositiveButton(R.string.ok, null)
         .show();
   }
 }

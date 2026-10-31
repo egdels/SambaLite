@@ -16,7 +16,6 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.*;
-import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -25,6 +24,7 @@ import androidx.core.content.IntentCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
@@ -33,7 +33,6 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.di.AppComponent;
-import de.schliweb.sambalite.security.BiometricAuthHelper;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
@@ -43,7 +42,6 @@ import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.utils.PreferenceUtils;
 import de.schliweb.sambalite.util.KeyboardUtils;
 import de.schliweb.sambalite.util.LogUtils;
-import de.schliweb.sambalite.util.PreferencesManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -80,8 +78,6 @@ public class FileBrowserActivity extends AppCompatActivity
 
   @Inject SyncManager syncManager;
 
-  @Inject PreferencesManager preferencesManager;
-
   @Inject SmbRepository smbRepository;
 
   private ThumbnailManager thumbnailManager;
@@ -111,9 +107,12 @@ public class FileBrowserActivity extends AppCompatActivity
   private RecyclerView recyclerView;
   private SwipeRefreshLayout swipeRefreshLayout;
   private View emptyView;
-  private TextView currentPathView;
-  FloatingActionButton fab;
-  FloatingActionButton fabCreateFolder;
+  private BreadcrumbView currentPathView;
+
+  /** Entries in the current folder, shown as toolbar subtitle; -1 until the first listing. */
+  private int folderItemCount = -1;
+
+  ExtendedFloatingActionButton fab;
   private FloatingActionButton fabMultiOptions;
   private FloatingActionButton fabSelectAll;
   private FloatingActionButton fabClearSelection;
@@ -122,6 +121,20 @@ public class FileBrowserActivity extends AppCompatActivity
   private boolean folderPickerMode = false;
   // True until the connection's default folder has been applied on a fresh start
   private boolean navigateToDefaultFolderPending = false;
+
+  /** Transfers completed since the last summary message. */
+  private int completedSinceSummary = 0;
+
+  /** Message for a single completed transfer, used when the summary covers just one. */
+  @Nullable private String lastCompletedLabel;
+
+  /** Pending and running transfers; -1 until the database reported the first count. */
+  private int openTransferCount = -1;
+
+  private static final long SUMMARY_DELAY_MS = 800;
+  private final android.os.Handler summaryHandler =
+      new android.os.Handler(android.os.Looper.getMainLooper());
+  private final Runnable showTransferSummaryRunnable = this::showTransferSummary;
 
   private final BroadcastReceiver transferCompletedReceiver =
       new BroadcastReceiver() {
@@ -135,8 +148,12 @@ public class FileBrowserActivity extends AppCompatActivity
                   ? getString(R.string.transfer_upload_success, displayName)
                   : getString(R.string.transfer_download_success, displayName);
           LogUtils.i("FileBrowserActivity", "Transfer completed broadcast: " + displayName);
-          if (progressController != null) {
-            progressController.showSuccess(label);
+          // One message when the queue is done instead of one per file: a batch of 50 files
+          // would otherwise show 50 snackbars in a row
+          completedSinceSummary++;
+          lastCompletedLabel = label;
+          if (openTransferCount == 0) {
+            scheduleTransferSummary();
           }
           // Only refresh the file list for uploads (remote directory changed) AND only when the
           // upload target directory matches the directory currently displayed. Otherwise we
@@ -159,6 +176,34 @@ public class FileBrowserActivity extends AppCompatActivity
           }
         }
       };
+
+  /**
+   * Shows the summary shortly after the queue ran empty. The database reports the empty queue a
+   * moment before the broadcast of the last completed transfer arrives; waiting briefly lets both
+   * end up in one message instead of a summary followed by a message for the last file.
+   */
+  private void scheduleTransferSummary() {
+    summaryHandler.removeCallbacks(showTransferSummaryRunnable);
+    summaryHandler.postDelayed(showTransferSummaryRunnable, SUMMARY_DELAY_MS);
+  }
+
+  /** Shows one message for the transfers completed since the last one, once the queue is empty. */
+  private void showTransferSummary() {
+    if (completedSinceSummary == 0 || progressController == null) {
+      return;
+    }
+    String text =
+        completedSinceSummary == 1 && lastCompletedLabel != null
+            ? lastCompletedLabel
+            : getResources()
+                .getQuantityString(
+                    R.plurals.transfers_completed_summary,
+                    completedSinceSummary,
+                    completedSinceSummary);
+    completedSinceSummary = 0;
+    lastCompletedLabel = null;
+    progressController.showSuccess(text);
+  }
 
   /**
    * Returns {@code true} when the parent directory of {@code remotePath} (as published by {@link
@@ -339,6 +384,7 @@ public class FileBrowserActivity extends AppCompatActivity
     // Skip reset on configuration changes (e.g. rotation) where savedInstanceState is non-null.
     if (savedInstanceState == null) {
       fileListViewModel.resetNavigation();
+      fileListController.clearScrollStates();
       // Only apply the connection's default folder on a fresh start, not after rotation
       navigateToDefaultFolderPending = true;
     }
@@ -376,6 +422,15 @@ public class FileBrowserActivity extends AppCompatActivity
             });
   }
 
+  @Override
+  protected void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    // Keep the list position across a rotation
+    if (fileListController != null) {
+      fileListController.saveScrollState();
+    }
+  }
+
   /** Configures edge-to-edge display for better landscape experience without deprecated flags. */
   private void configureEdgeToEdgeDisplay() {
     // Use Activity EdgeToEdge helper for backward-compatible, borderless display
@@ -385,18 +440,70 @@ public class FileBrowserActivity extends AppCompatActivity
   /** Resets the toolbar title and subtitle after leaving search mode. */
   void resetToolbarAfterSearch() {
     if (getSupportActionBar() != null) {
-      getSupportActionBar().setTitle(getString(R.string.files_tab));
-      getSupportActionBar().setSubtitle(null);
+      getSupportActionBar().setTitle(connectionTitle());
     }
+    showFolderSubtitle();
+  }
+
+  /** The toolbar title: the connection name, or "Files" before the connection is known. */
+  private String connectionTitle() {
+    SmbConnection conn = fileListViewModel != null ? fileListViewModel.getConnection() : null;
+    if (conn != null && conn.getName() != null && !conn.getName().isEmpty()) {
+      return conn.getName();
+    }
+    return getString(R.string.files_tab);
+  }
+
+  /**
+   * Shows the number of entries in the current folder as toolbar subtitle. Search and selection
+   * mode use the subtitle themselves and are left alone.
+   */
+  void showFolderSubtitle() {
+    if (getSupportActionBar() == null) return;
+    if (searchViewModel != null && searchViewModel.isInSearchMode()) return;
+    if (fileListController != null && fileListController.isSelectionMode() && selectionCount > 0) {
+      return;
+    }
+    getSupportActionBar()
+        .setSubtitle(
+            folderItemCount < 0
+                ? null
+                : getResources()
+                    .getQuantityString(
+                        R.plurals.folder_item_count, folderItemCount, folderItemCount));
+  }
+
+  /**
+   * Navigates to the folder of a breadcrumb segment.
+   *
+   * @param depth 0 for the share root, n for the n-th folder below it
+   */
+  void navigateToBreadcrumb(int depth) {
+    LogUtils.d("FileBrowserActivity", "Breadcrumb clicked, depth " + depth);
+    if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+      searchViewModel.cancelSearch();
+      fileListController.setSearchMode(false);
+      resetToolbarAfterSearch();
+    }
+    String internal = fileListViewModel.getCurrentPathInternal();
+    java.util.List<String> parts = BreadcrumbView.splitPath(internal);
+    if (depth >= parts.size()) {
+      return; // current folder
+    }
+    String target = depth == 0 ? "/" : String.join("/", parts.subList(0, depth));
+    fileListViewModel.navigateToPathWithHierarchy(target);
   }
 
   /** Sets up the toolbar. */
   private void setupToolbar() {
     androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+    if (toolbar != null) {
+      de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
+    }
     setSupportActionBar(toolbar);
     if (getSupportActionBar() != null) {
       getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-      getSupportActionBar().setTitle(getString(R.string.files_tab));
+      getSupportActionBar().setTitle(connectionTitle());
     }
     LogUtils.d("FileBrowserActivity", "Toolbar set up");
   }
@@ -407,8 +514,8 @@ public class FileBrowserActivity extends AppCompatActivity
     swipeRefreshLayout = findViewById(R.id.swipe_refresh);
     emptyView = findViewById(R.id.empty_state);
     currentPathView = findViewById(R.id.current_path);
+    de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(currentPathView);
     fab = findViewById(R.id.fab);
-    fabCreateFolder = findViewById(R.id.fab_create_folder);
     fabMultiOptions = findViewById(R.id.fab_multi_options);
     fabSelectAll = findViewById(R.id.fab_select_all);
     fabClearSelection = findViewById(R.id.fab_clear_selection);
@@ -434,6 +541,21 @@ public class FileBrowserActivity extends AppCompatActivity
 
   /** Sets up observers for ViewModels. */
   private void setupViewModelObservers() {
+    // The summary of completed transfers is shown when the queue has run empty
+    de.schliweb.sambalite.transfer.db.TransferDatabase.getInstance(getApplicationContext())
+        .pendingTransferDao()
+        .observePendingCount()
+        .observe(
+            this,
+            count -> {
+              openTransferCount = count != null ? count : 0;
+              if (openTransferCount == 0) {
+                scheduleTransferSummary();
+              } else {
+                summaryHandler.removeCallbacks(showTransferSummaryRunnable);
+              }
+            });
+
     searchViewModel
         .isSearching()
         .observe(
@@ -517,15 +639,12 @@ public class FileBrowserActivity extends AppCompatActivity
               if (folderPickerMode) {
                 // In folder picker mode, keep regular FABs hidden
                 fab.setVisibility(View.GONE);
-                fabCreateFolder.setVisibility(View.GONE);
               } else if (selectionActive) {
                 // Keep regular FABs fully gone so they don't take space
                 fab.setVisibility(View.GONE);
-                fabCreateFolder.setVisibility(View.GONE);
               } else {
                 // Ensure upload and create-folder buttons are visible
                 if (!fab.isShown()) fab.show();
-                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
               }
             });
 
@@ -812,6 +931,7 @@ public class FileBrowserActivity extends AppCompatActivity
               getSupportActionBar().setSubtitle(subtitle);
             } else {
               getSupportActionBar().setSubtitle(null);
+              showFolderSubtitle();
             }
           }
           // Toggle FAB visibility for multi-select actions
@@ -819,7 +939,6 @@ public class FileBrowserActivity extends AppCompatActivity
           if (showMultiFabs) {
             // Ensure regular FABs do not take space
             fab.setVisibility(View.GONE);
-            fabCreateFolder.setVisibility(View.GONE);
             // Improve placement of multi-select FABs when regular ones are hidden
             adjustMultiSelectFabPlacement();
             if (fabMultiOptions.getVisibility() != View.VISIBLE) fabMultiOptions.show();
@@ -828,7 +947,6 @@ public class FileBrowserActivity extends AppCompatActivity
           } else {
             // Restore default visibility of regular FABs
             fab.setVisibility(View.VISIBLE);
-            fabCreateFolder.setVisibility(View.VISIBLE);
             if (fabMultiOptions.isShown()) fabMultiOptions.hide();
             if (fabSelectAll.isShown()) fabSelectAll.hide();
             if (fabClearSelection.isShown()) fabClearSelection.hide();
@@ -892,51 +1010,15 @@ public class FileBrowserActivity extends AppCompatActivity
 
   /** Sets up UI event listeners. */
   private void setupUIEventListeners() {
-    // Set up search button
-    findViewById(R.id.search_button)
-        .setOnClickListener(
-            v -> {
-              LogUtils.d("FileBrowserActivity", "Search button clicked");
-              dialogController.showSearchDialog();
-            });
-
-    // Set up sort button
-    findViewById(R.id.sort_button)
-        .setOnClickListener(
-            v -> {
-              LogUtils.d("FileBrowserActivity", "Sort button clicked");
-              dialogController.showSortDialog();
-            });
-
-    // Set up upload button (FAB)
+    // "New" FAB: create a folder or upload files / folder contents
     fab.setOnClickListener(
         v -> {
           LogUtils.d("FileBrowserActivity", "Main FAB clicked");
           dialogController.showUploadOptionsDialog();
         });
 
-    // Set up create folder button
-    fabCreateFolder.setOnClickListener(
-        v -> {
-          LogUtils.d("FileBrowserActivity", "Create folder button clicked");
-          dialogController.showCreateFolderDialog();
-        });
-
-    // Set up parent directory button
-    findViewById(R.id.parent_directory_button)
-        .setOnClickListener(
-            v -> {
-              LogUtils.d("FileBrowserActivity", "Parent directory button clicked");
-              fileListController.navigateUp();
-            });
-
-    // Set up refresh button
-    findViewById(R.id.refresh_button)
-        .setOnClickListener(
-            v -> {
-              LogUtils.d("FileBrowserActivity", "Refresh button clicked");
-              fileListViewModel.refreshCurrentDirectory();
-            });
+    // Breadcrumbs: jump straight to a parent folder
+    currentPathView.setOnSegmentClickListener(this::navigateToBreadcrumb);
 
     // Auto-hide/show FABs on scroll
     recyclerView.addOnScrollListener(
@@ -955,11 +1037,9 @@ public class FileBrowserActivity extends AppCompatActivity
             if (dy > 0) {
               // Scrolling down -> hide
               if (fab.isShown()) fab.hide();
-              if (fabCreateFolder.isShown()) fabCreateFolder.hide();
             } else if (dy < 0) {
               // Scrolling up -> show
               if (!fab.isShown()) fab.show();
-              if (!fabCreateFolder.isShown()) fabCreateFolder.show();
             }
           }
 
@@ -974,14 +1054,12 @@ public class FileBrowserActivity extends AppCompatActivity
               if (selectionActive) {
                 // Keep regular FABs gone during selection
                 fab.setVisibility(View.GONE);
-                fabCreateFolder.setVisibility(View.GONE);
                 return;
               }
               // If at top or idle, ensure FABs are visible
               boolean canScrollUp = recyclerView.canScrollVertically(-1);
               if (!canScrollUp) {
                 if (!fab.isShown()) fab.show();
-                if (!fabCreateFolder.isShown()) fabCreateFolder.show();
               }
             }
           }
@@ -1051,6 +1129,10 @@ public class FileBrowserActivity extends AppCompatActivity
                   fileListViewModel.setConnection(connection);
                   if (thumbnailManager != null) {
                     thumbnailManager.setConnection(connection);
+                  }
+                  if (getSupportActionBar() != null
+                      && (searchViewModel == null || !searchViewModel.isInSearchMode())) {
+                    getSupportActionBar().setTitle(connectionTitle());
                   }
 
                   // Check if we were opened from a notification or share handoff and handle it
@@ -1150,7 +1232,6 @@ public class FileBrowserActivity extends AppCompatActivity
   private void setupFolderPickerMode() {
     LogUtils.d("FileBrowserActivity", "Setting up folder picker mode");
     fab.setVisibility(View.GONE);
-    fabCreateFolder.setVisibility(View.GONE);
     fabSelectFolder.setVisibility(View.VISIBLE);
     fabSelectFolder.setOnClickListener(
         v -> {
@@ -1543,78 +1624,22 @@ public class FileBrowserActivity extends AppCompatActivity
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
     MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.menu_main, menu);
+    inflater.inflate(R.menu.menu_file_browser, menu);
     return true;
   }
 
   @Override
   public boolean onPrepareOptionsMenu(Menu menu) {
-    /*MenuItem multiDownload = menu.findItem(R.id.action_multi_download);
-    MenuItem multiDelete = menu.findItem(R.id.action_multi_delete);
-    MenuItem selectAll = menu.findItem(R.id.action_select_all);
-    MenuItem clearSel = menu.findItem(R.id.action_clear_selection);
-    boolean hasSelection = selectionCount > 0;
-    boolean opActive = Boolean.TRUE.equals(fileOperationsViewModel.isAnyOperationActive().getValue());
-    boolean enableActions = hasSelection && !opActive;
-    if (multiDownload != null) {
-        multiDownload.setVisible(hasSelection);
-        multiDownload.setEnabled(enableActions);
-    }
-    if (multiDelete != null) {
-        multiDelete.setVisible(hasSelection);
-        multiDelete.setEnabled(enableActions);
-    }
-    // Selection mode helpers
-    boolean inSelectionMode = fileListController != null && fileListController.isSelectionMode();
-    if (selectAll != null) {
-        selectAll.setVisible(inSelectionMode);
-        selectAll.setEnabled(!opActive);
-    }
-    if (clearSel != null) {
-        clearSel.setVisible(inSelectionMode);
-        clearSel.setEnabled(hasSelection && !opActive);
-    }*/
+    // Search, sort and new folder do not apply while picking a target folder for shared files
+    MenuItem search = menu.findItem(R.id.action_search);
+    MenuItem sort = menu.findItem(R.id.action_sort);
+    if (search != null) search.setVisible(!folderPickerMode);
+    if (sort != null) sort.setVisible(!folderPickerMode);
     return super.onPrepareOptionsMenu(menu);
   }
 
   @Override
   public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-    // Multi-select actions
-    /*int id = item.getItemId();
-
-    if (id == R.id.action_multi_download) {
-        if (selectionCount > 0) {
-            // Delegate to controller
-            fileOperationsController.handleMultipleFileDownloads(fileListController.getSelectedItems());
-            // Minimal UX: exit selection mode immediately after starting batch action
-            fileListController.enableSelectionMode(false);
-            if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
-            invalidateOptionsMenu();
-        }
-        return true;
-    } else if (id == R.id.action_multi_delete) {
-        if (selectionCount > 0) {
-            fileOperationsController.handleMultipleFileDelete(fileListController.getSelectedItems());
-            // Minimal UX: exit selection mode immediately after starting batch action
-            fileListController.enableSelectionMode(false);
-            if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
-            invalidateOptionsMenu();
-        }
-        return true;
-    } else if (id == R.id.action_select_all) {
-        if (fileListController != null && fileListController.isSelectionMode()) {
-            fileListController.selectAllVisible();
-            invalidateOptionsMenu();
-        }
-        return true;
-    } else if (id == R.id.action_clear_selection) {
-        if (fileListController != null && fileListController.isSelectionMode()) {
-            fileListController.clearSelection();
-            if (getSupportActionBar() != null) getSupportActionBar().setSubtitle(null);
-            invalidateOptionsMenu();
-        }
-        return true;
-    }*/
     // Handle toolbar navigation
     if (item.getItemId() == android.R.id.home) {
       LogUtils.d("FileBrowserActivity", "Toolbar back button clicked");
@@ -1634,102 +1659,17 @@ public class FileBrowserActivity extends AppCompatActivity
       // Already at top-level -> finish to return to connections
       confirmFinishIfBusy();
       return true;
+    } else if (item.getItemId() == R.id.action_search) {
+      dialogController.showSearchDialog();
+      return true;
+    } else if (item.getItemId() == R.id.action_sort) {
+      dialogController.showSortDialog();
+      return true;
     } else if (item.getItemId() == R.id.action_transfer_queue) {
       startActivity(TransferQueueActivity.createIntent(this));
       return true;
-    } else if (item.getItemId() == R.id.action_security_settings) {
-      LogUtils.d("FileBrowserActivity", "Security settings menu item selected");
-      authenticateBeforeSecuritySettings();
-      return true;
-    } else if (item.getItemId() == R.id.action_system_monitor) {
-      LogUtils.d("FileBrowserActivity", "System Monitor menu item selected");
-      Intent intent = SystemMonitorActivity.createIntent(this);
-      startActivity(intent);
-      return true;
-    } else if (item.getItemId() == R.id.action_quit) {
-      handleQuit();
-      return true;
     }
     return super.onOptionsItemSelected(item);
-  }
-
-  /**
-   * Requires authentication before opening the security settings dialog if any auth setting is
-   * currently enabled. This prevents unauthorized users from disabling security protections.
-   */
-  private void authenticateBeforeSecuritySettings() {
-    boolean anyAuthEnabled =
-        preferencesManager.isAuthRequiredForAccess()
-            || preferencesManager.isAuthRequiredForPasswordReveal();
-
-    if (anyAuthEnabled && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
-      BiometricAuthHelper.authenticate(
-          this,
-          getString(R.string.auth_title_access),
-          getString(R.string.auth_subtitle_security_settings),
-          new BiometricAuthHelper.AuthCallback() {
-            @Override
-            public void onAuthSuccess() {
-              showSecuritySettingsDialog();
-            }
-
-            @Override
-            public void onAuthFailure(String errorMessage) {
-              progressController.showError(getString(R.string.auth_failed, errorMessage), null);
-            }
-
-            @Override
-            public void onAuthCancelled() {
-              LogUtils.d(
-                  "FileBrowserActivity", "Security settings authentication cancelled by user");
-            }
-          });
-    } else {
-      showSecuritySettingsDialog();
-    }
-  }
-
-  /** Shows a dialog for configuring security settings. */
-  private void showSecuritySettingsDialog() {
-    LogUtils.d("FileBrowserActivity", "Showing security settings dialog");
-
-    boolean deviceAuthAvailable = BiometricAuthHelper.isDeviceAuthAvailable(this);
-
-    View dialogView = getLayoutInflater().inflate(R.layout.dialog_security_settings, null);
-    com.google.android.material.materialswitch.MaterialSwitch authAccessSwitch =
-        dialogView.findViewById(R.id.auth_access_switch);
-    com.google.android.material.materialswitch.MaterialSwitch authPasswordSwitch =
-        dialogView.findViewById(R.id.auth_password_reveal_switch);
-    TextView authNotAvailableText = dialogView.findViewById(R.id.auth_not_available_text);
-
-    authAccessSwitch.setChecked(preferencesManager.isAuthRequiredForAccess());
-    authPasswordSwitch.setChecked(preferencesManager.isAuthRequiredForPasswordReveal());
-
-    if (!deviceAuthAvailable) {
-      authAccessSwitch.setEnabled(false);
-      authPasswordSwitch.setEnabled(false);
-      authNotAvailableText.setVisibility(View.VISIBLE);
-    } else {
-      authNotAvailableText.setVisibility(View.GONE);
-    }
-
-    new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.security_settings_title)
-        .setView(dialogView)
-        .setPositiveButton(
-            R.string.save,
-            (dialog, which) -> {
-              preferencesManager.saveAuthRequiredForAccess(authAccessSwitch.isChecked());
-              preferencesManager.saveAuthRequiredForPasswordReveal(authPasswordSwitch.isChecked());
-              LogUtils.i(
-                  "FileBrowserActivity",
-                  "Security settings saved: access="
-                      + authAccessSwitch.isChecked()
-                      + ", passwordReveal="
-                      + authPasswordSwitch.isChecked());
-            })
-        .setNegativeButton(R.string.cancel, null)
-        .show();
   }
 
   /** Builds the full remote path for a folder item in the current directory. */
@@ -2034,28 +1974,6 @@ public class FileBrowserActivity extends AppCompatActivity
     }
   }
 
-  private void handleQuit() {
-    if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
-      int count = backgroundSmbManager.getActiveOperationCount();
-      new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-          .setTitle(R.string.quit_app_confirm_title)
-          .setMessage(
-              getResources().getQuantityString(R.plurals.quit_app_confirm_message, count, count))
-          .setPositiveButton(R.string.quit_app_confirm_positive, (dialog, which) -> performQuit())
-          .setNegativeButton(R.string.cancel, null)
-          .show();
-    } else {
-      performQuit();
-    }
-  }
-
-  private void performQuit() {
-    if (backgroundSmbManager != null) {
-      backgroundSmbManager.requestStopService();
-    }
-    finishAffinity();
-  }
-
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
     // Delegate to InputController
@@ -2081,6 +1999,7 @@ public class FileBrowserActivity extends AppCompatActivity
 
   @Override
   protected void onDestroy() {
+    summaryHandler.removeCallbacks(showTransferSummaryRunnable);
     super.onDestroy();
     LogUtils.d("FileBrowserActivity", "onDestroy called");
 
@@ -2177,30 +2096,11 @@ public class FileBrowserActivity extends AppCompatActivity
   // FileListController.FileStatisticsCallback implementation
   @Override
   public void onFileStatisticsUpdated(@NonNull java.util.List<SmbFileItem> files) {
-    int fileCount = 0;
-    int folderCount = 0;
-
-    for (SmbFileItem file : files) {
-      if (file.isDirectory()) {
-        folderCount++;
-      } else {
-        fileCount++;
-      }
+    if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+      return; // the search observers own the subtitle while results are shown
     }
-
-    TextView filesCountView = findViewById(R.id.files_count);
-    TextView foldersCountView = findViewById(R.id.folders_count);
-
-    if (filesCountView != null) {
-      filesCountView.setText(String.valueOf(fileCount));
-    }
-    if (foldersCountView != null) {
-      foldersCountView.setText(String.valueOf(folderCount));
-    }
-
-    LogUtils.d(
-        "FileBrowserActivity",
-        "Statistics updated: " + fileCount + " files, " + folderCount + " folders");
+    folderItemCount = files.size();
+    showFolderSubtitle();
   }
 
   // FileOperationsController.FileOperationListener implementation
@@ -2218,9 +2118,7 @@ public class FileBrowserActivity extends AppCompatActivity
         fileListController.clearSelection();
         fileListController.enableSelectionMode(false);
       }
-      if (getSupportActionBar() != null) {
-        getSupportActionBar().setSubtitle(null);
-      }
+      showFolderSubtitle();
       invalidateOptionsMenu();
     } catch (Throwable t) {
       LogUtils.w(
@@ -2251,9 +2149,7 @@ public class FileBrowserActivity extends AppCompatActivity
         fileListController.clearSelection();
         fileListController.enableSelectionMode(false);
       }
-      if (getSupportActionBar() != null) {
-        getSupportActionBar().setSubtitle(null);
-      }
+      showFolderSubtitle();
       invalidateOptionsMenu();
     } catch (Throwable t) {
       LogUtils.w(

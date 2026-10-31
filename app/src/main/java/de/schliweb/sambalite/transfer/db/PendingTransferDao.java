@@ -247,16 +247,38 @@ public interface PendingTransferDao {
           + " WHERE id IN (:ids)")
   void resetToPendingByIds(@NonNull java.util.List<Long> ids, long now);
 
-  /** Counts PENDING/ACTIVE transfers for a given remote path (duplicate detection). */
+  /**
+   * Counts open transfers for a given remote path (duplicate detection). Open means pending,
+   * running, or failed with retries left: the worker picks those up again by itself.
+   */
   @Query(
       "SELECT COUNT(*) FROM pending_transfer WHERE remote_path = :remotePath"
-          + " AND status IN ('PENDING', 'ACTIVE')")
+          + " AND (status IN ('PENDING', 'ACTIVE')"
+          + " OR (status = 'FAILED' AND retry_count < max_retries))")
   int countActiveForPath(@NonNull String remotePath);
 
-  /** Remote paths of all PENDING/ACTIVE transfers (duplicate detection for batch uploads). */
-  @Query("SELECT remote_path FROM pending_transfer WHERE status IN ('PENDING', 'ACTIVE')")
+  /**
+   * Remote paths of all open transfers (duplicate detection for batch uploads); see {@link
+   * #countActiveForPath(String)} for what counts as open.
+   */
+  @Query(
+      "SELECT remote_path FROM pending_transfer WHERE status IN ('PENDING', 'ACTIVE')"
+          + " OR (status = 'FAILED' AND retry_count < max_retries)")
   @NonNull
   List<String> getActiveRemotePaths();
+
+  /**
+   * Remote paths of the open uploads of one connection. Used right before inserting new uploads, so
+   * that a file is never queued twice for the same target: two uploads of the same remote file
+   * write it concurrently, and a failing second one can leave the first one's result truncated.
+   */
+  @Query(
+      "SELECT remote_path FROM pending_transfer WHERE connection_id = :connectionId"
+          + " AND transfer_type = 'UPLOAD'"
+          + " AND (status IN ('PENDING', 'ACTIVE')"
+          + " OR (status = 'FAILED' AND retry_count < max_retries))")
+  @NonNull
+  List<String> getOpenUploadRemotePaths(@NonNull String connectionId);
 
   /**
    * Returns local URIs of uploads that may still need their persisted SAF source grant

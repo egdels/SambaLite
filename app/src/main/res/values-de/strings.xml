@@ -102,8 +102,10 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Upload bereits in Warteschlange</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; befindet sich bereits in der Übertragungswarteschlange. Trotzdem erneut hochladen?</string>
-    <string name="transfer_already_queued_confirm">Erneut hochladen</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; ist bereits in der Übertragungswarteschlange und wird nicht erneut hinzugefügt. Die Datei wird von dort hochgeladen.</item>
+        <item quantity="other">%1$d Dateien sind bereits in der Übertragungswarteschlange und werden nicht erneut hinzugefügt: %2$s. Sie werden von dort hochgeladen.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Wähle die Sortierung deiner Übertragungen</string>
     <string name="transfer_sort_by_name">Nach Name</string>
     <string name="transfer_sort_by_date">Nach Datum</string>
@@ -131,7 +133,6 @@
     <string name="download_error">Fehler beim Herunterladen der Datei</string>
 
     <!-- Upload -->
-    <string name="upload">Hochladen</string>
     <string name="uploading">Hochladen…</string>
     <string name="file_exists_title">Datei existiert bereits</string>
     <string name="file_exists_message">Die Datei &#8220;%1$s&#8221; existiert bereits. Möchten Sie sie überschreiben?</string>
@@ -205,8 +206,6 @@
     <string name="enter_server_details">Server-Details eingeben um Freigaben zu entdecken</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Zum übergeordneten Verzeichnis</string>
-    <string name="refresh_directory">Verzeichnis aktualisieren</string>
     <string name="files_tab">Dateien</string>
     <string name="folders_tab">Ordner</string>
     <string name="empty_folder">Dieser Ordner ist leer. Verwende den + Button, um Dateien hochzuladen oder Ordner zu erstellen.</string>
@@ -451,4 +450,25 @@
     <string name="transfer_error_source_access_lost">Der Zugriff auf die lokale Datei ist verloren gegangen. Bitte wählen Sie die Datei erneut aus.</string>
     <string name="transfer_error_target_lost">Die lokale Zieldatei ist verschwunden und konnte nicht neu angelegt werden. Bitte starten Sie den Download erneut.</string>
     <string name="upload_share_temporary_access_warning">Die geteilten Dateien bleiben nur zugänglich, solange SambaLite geöffnet ist. Lassen Sie die App geöffnet, bis die Uploads abgeschlossen sind.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">Neu</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d Element</item>
+        <item quantity="other">%d Elemente</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">Keine Berechtigung auf dem Server</string>
+    <string name="transfer_error_not_found">Datei oder Ordner auf dem Server nicht gefunden</string>
+    <string name="transfer_error_disk_full">Speicher auf dem Server ist voll</string>
+    <string name="transfer_error_in_use">Datei ist auf dem Server in Benutzung</string>
+    <string name="transfer_error_login">Anmeldung am Server fehlgeschlagen</string>
+    <string name="transfer_error_connection">Verbindung zum Server fehlgeschlagen</string>
+    <string name="transfer_error_server">Der Server hat den Vorgang abgelehnt</string>
+    <string name="transfer_error_details">Fehlerdetails</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d Übertragung abgeschlossen</item>
+        <item quantity="other">%d Übertragungen abgeschlossen</item>
+    </plurals>
 </resources>

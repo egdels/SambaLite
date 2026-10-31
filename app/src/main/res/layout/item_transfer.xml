@@ -80,46 +80,40 @@
             app:layout_constraintTop_toTopOf="@id/icon_container"
             tools:text="Video_Urlaub.mp4" />
 
-        <!-- Transfer status details -->
-        <LinearLayout
+        <!-- One line: status (or a readable failure reason) · size or progress · folder -->
+        <TextView
+            android:id="@+id/transfer_status"
+            tools:ignore="SelectableText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="4dp"
-            android:orientation="horizontal"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:maxLines="2"
+            android:ellipsize="end"
             app:layout_constraintStart_toEndOf="@id/icon_container"
             app:layout_constraintEnd_toStartOf="@id/more_options"
-            app:layout_constraintTop_toBottomOf="@id/transfer_name">
+            app:layout_constraintTop_toBottomOf="@id/transfer_name"
+            tools:text="Transferring · 1.2 GB / 1.8 GB · Photos" />
 
-            <TextView
-                android:id="@+id/transfer_status"
-                tools:ignore="SelectableText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginEnd="12dp"
-                tools:text="Completed" />
-
-            <View
-                android:id="@+id/detail_dot"
-                android:layout_width="4dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center_vertical"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/circle_dot"
-                android:alpha="0.5" />
-
-            <TextView
-                android:id="@+id/transfer_size"
-                tools:ignore="SelectableText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="1.2 GB / 1.8 GB" />
-
-        </LinearLayout>
+        <!-- Progress of the running transfer -->
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/transfer_progress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:max="1000"
+            android:visibility="gone"
+            app:trackCornerRadius="2dp"
+            app:layout_constraintStart_toEndOf="@id/icon_container"
+            app:layout_constraintEnd_toStartOf="@id/more_options"
+            app:layout_constraintTop_toBottomOf="@id/transfer_status"
+            tools:progress="650"
+            tools:visibility="visible" />
 
         <!-- More options button -->
         <ImageButton

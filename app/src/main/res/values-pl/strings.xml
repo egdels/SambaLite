@@ -107,8 +107,12 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Wysyłanie już w kolejce</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; jest już w kolejce transferów. Wysłać ponownie?</string>
-    <string name="transfer_already_queued_confirm">Wyślij ponownie</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; jest już w kolejce transferów i nie zostanie dodany ponownie. Zostanie wysłany z kolejki.</item>
+        <item quantity="few">%1$d pliki są już w kolejce transferów i nie zostaną dodane ponownie: %2$s. Zostaną wysłane z kolejki.</item>
+        <item quantity="many">%1$d plików jest już w kolejce transferów i nie zostaną dodane ponownie: %2$s. Zostaną wysłane z kolejki.</item>
+        <item quantity="other">%1$d pliku jest już w kolejce transferów i nie zostaną dodane ponownie: %2$s. Zostaną wysłane z kolejki.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Wybierz sposób sortowania transferów</string>
     <string name="transfer_sort_by_name">Według nazwy</string>
     <string name="transfer_sort_by_date">Według daty</string>
@@ -137,7 +141,6 @@
     <string name="download_error">Błąd pobierania pliku</string>
 
     <!-- Upload -->
-    <string name="upload">Wyślij</string>
     <string name="uploading">Wysyłanie…</string>
     <string name="file_exists_title">Plik już istnieje</string>
     <string name="file_exists_message">Plik &#8220;%1$s&#8221; już istnieje. Czy chcesz go zastąpić?</string>
@@ -211,8 +214,6 @@
     <string name="enter_server_details">Wprowadź szczegóły serwera, aby odkryć udziały</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Przejdź do katalogu nadrzędnego</string>
-    <string name="refresh_directory">Odśwież katalog</string>
     <string name="files_tab">Pliki</string>
     <string name="folders_tab">Foldery</string>
     <string name="empty_folder">Ten folder jest pusty. Użyj przycisku +, aby wysłać pliki lub utworzyć foldery.</string>
@@ -476,4 +477,29 @@
     <string name="transfer_error_source_access_lost">Utracono dostęp do lokalnego pliku. Wybierz plik ponownie.</string>
     <string name="transfer_error_target_lost">Lokalny plik docelowy zniknął i nie można było go utworzyć ponownie. Uruchom pobieranie jeszcze raz.</string>
     <string name="upload_share_temporary_access_warning">Udostępnione pliki pozostają dostępne tylko wtedy, gdy SambaLite jest otwarte. Pozostaw aplikację otwartą do zakończenia przesyłania.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">Nowy</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d element</item>
+        <item quantity="few">%d elementy</item>
+        <item quantity="many">%d elementów</item>
+        <item quantity="other">%d elementu</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">Brak uprawnień na serwerze</string>
+    <string name="transfer_error_not_found">Nie znaleziono pliku lub folderu na serwerze</string>
+    <string name="transfer_error_disk_full">Pamięć serwera jest pełna</string>
+    <string name="transfer_error_in_use">Plik jest używany na serwerze</string>
+    <string name="transfer_error_login">Logowanie do serwera nie powiodło się</string>
+    <string name="transfer_error_connection">Połączenie z serwerem nie powiodło się</string>
+    <string name="transfer_error_server">Serwer odrzucił operację</string>
+    <string name="transfer_error_details">Szczegóły błędu</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d transfer zakończony</item>
+        <item quantity="few">%d transfery zakończone</item>
+        <item quantity="many">%d transferów zakończonych</item>
+        <item quantity="other">%d transferu zakończonego</item>
+    </plurals>
 </resources>

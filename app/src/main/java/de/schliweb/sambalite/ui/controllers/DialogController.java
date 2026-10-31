@@ -487,25 +487,30 @@ public class DialogController {
         });
   }
 
-  /** Shows a dialog for upload options. */
+  /** Shows the "New" dialog: create a folder, upload files or upload folder contents. */
   public void showUploadOptionsDialog() {
     Context context = getContext();
     if (context == null) return;
 
-    LogUtils.d("DialogController", "Showing upload options dialog");
+    LogUtils.d("DialogController", "Showing new/upload options dialog");
 
     String[] options =
         new String[] {
-          context.getString(R.string.upload), context.getString(R.string.zip_download_folder)
+          context.getString(R.string.create_folder),
+          context.getString(R.string.upload_files),
+          context.getString(R.string.zip_download_folder)
         };
 
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.upload)
+        .setTitle(R.string.new_item)
         .setItems(
             options,
             (dialog, which) -> {
               switch (which) {
-                case 0: // Upload file
+                case 0: // Create folder
+                  showCreateFolderDialog();
+                  break;
+                case 1: // Upload file
                   // First request the file upload operation through the requester
                   if (fileOperationRequester != null) {
                     fileOperationRequester.requestFileUpload();
@@ -515,7 +520,7 @@ public class DialogController {
                     uploadCallback.onFileUploadRequested();
                   }
                   break;
-                case 1: // Upload folder contents
+                case 2: // Upload folder contents
                   // First request the folder contents upload operation through the requester
                   if (fileOperationRequester != null) {
                     fileOperationRequester.requestFolderContentsUpload();

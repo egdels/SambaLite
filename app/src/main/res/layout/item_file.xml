@@ -81,6 +81,7 @@
                 tools:text="Mar 15, 2024" />
 
             <View
+                android:id="@+id/file_meta_separator"
                 android:layout_width="4dp"
                 android:layout_height="4dp"
                 android:layout_gravity="center_vertical"

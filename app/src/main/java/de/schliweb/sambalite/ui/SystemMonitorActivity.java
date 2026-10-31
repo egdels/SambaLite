@@ -87,6 +87,9 @@ public class SystemMonitorActivity extends AppCompatActivity {
     // Set up the toolbar
     androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
     if (toolbar != null) {
+      de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
+    }
+    if (toolbar != null) {
       setSupportActionBar(toolbar);
       if (getSupportActionBar() != null) {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);

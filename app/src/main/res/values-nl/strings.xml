@@ -102,8 +102,10 @@
     <string name="transfer_delete_selected">@string/delete</string>
     <string name="transfer_retry_selected">@string/transfer_retry</string>
     <string name="transfer_already_queued_title">Upload al in wachtrij</string>
-    <string name="transfer_already_queued_message">&#8220;%1$s&#8221; staat al in de overdrachtswachtrij. Toch opnieuw uploaden?</string>
-    <string name="transfer_already_queued_confirm">Opnieuw uploaden</string>
+    <plurals name="transfer_already_queued_info">
+        <item quantity="one">&#8220;%2$s&#8221; staat al in de overdrachtswachtrij en wordt niet opnieuw toegevoegd. Het wordt vanuit de wachtrij geüpload.</item>
+        <item quantity="other">%1$d bestanden staan al in de overdrachtswachtrij en worden niet opnieuw toegevoegd: %2$s. Ze worden vanuit de wachtrij geüpload.</item>
+    </plurals>
     <string name="transfer_sort_subtitle">Kies hoe je overdrachten wilt sorteren</string>
     <string name="transfer_sort_by_name">Op naam</string>
     <string name="transfer_sort_by_date">Op datum</string>
@@ -131,7 +133,6 @@
     <string name="download_error">Fout bij downloaden van bestand</string>
 
     <!-- Upload -->
-    <string name="upload">Uploaden</string>
     <string name="uploading">Uploaden…</string>
     <string name="file_exists_title">Bestand bestaat al</string>
     <string name="file_exists_message">Het bestand &#8220;%1$s&#8221; bestaat al. Wil je het overschrijven?</string>
@@ -205,8 +206,6 @@
     <string name="enter_server_details">Voer serverdetails in om shares te ontdekken</string>
 
     <!-- File Browser Additional Strings -->
-    <string name="go_to_parent_directory">Ga naar bovenliggende directory</string>
-    <string name="refresh_directory">Directory vernieuwen</string>
     <string name="files_tab">Bestanden</string>
     <string name="folders_tab">Mappen</string>
     <string name="empty_folder">Deze map is leeg. Gebruik de + knop om bestanden te uploaden of mappen te maken.</string>
@@ -451,4 +450,25 @@
     <string name="transfer_error_source_access_lost">De toegang tot het lokale bestand is verloren gegaan. Selecteer het bestand opnieuw.</string>
     <string name="transfer_error_target_lost">Het lokale doelbestand is verdwenen en kon niet opnieuw worden aangemaakt. Start de download opnieuw.</string>
     <string name="upload_share_temporary_access_warning">De gedeelde bestanden blijven alleen toegankelijk zolang SambaLite geopend is. Houd de app open totdat de uploads zijn voltooid.</string>
+
+    <!-- File browser: "New" button and entry count in the toolbar -->
+    <string name="new_item">Nieuw</string>
+    <plurals name="folder_item_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <!-- Transfer queue: readable failure reasons and the summary after a batch -->
+    <string name="transfer_error_access_denied">Geen toestemming op de server</string>
+    <string name="transfer_error_not_found">Bestand of map niet gevonden op de server</string>
+    <string name="transfer_error_disk_full">Opslag op de server is vol</string>
+    <string name="transfer_error_in_use">Bestand is in gebruik op de server</string>
+    <string name="transfer_error_login">Aanmelden bij de server mislukt</string>
+    <string name="transfer_error_connection">Verbinding met de server mislukt</string>
+    <string name="transfer_error_server">De server heeft de bewerking geweigerd</string>
+    <string name="transfer_error_details">Foutdetails</string>
+    <plurals name="transfers_completed_summary">
+        <item quantity="one">%d overdracht voltooid</item>
+        <item quantity="other">%d overdrachten voltooid</item>
+    </plurals>
 </resources>

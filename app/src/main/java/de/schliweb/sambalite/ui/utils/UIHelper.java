@@ -11,12 +11,16 @@ package de.schliweb.sambalite.ui.utils;
 
 import android.app.Activity;
 import android.content.Context;
+import android.view.View;
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import de.schliweb.sambalite.R;
@@ -31,6 +35,56 @@ public class UIHelper {
   private static final int SUCCESS_COLOR = android.R.color.holo_green_dark;
   private static final int ERROR_COLOR = android.R.color.holo_red_dark;
   private static final int INFO_COLOR = android.R.color.holo_blue_dark;
+
+  /**
+   * Like {@link #applyHorizontalSystemInsets(View)}, but adds the insets to the left and right
+   * margins, for views with their own background such as a card in the app bar.
+   *
+   * @param view the view to move in; its own horizontal margins are kept
+   */
+  public static void applyHorizontalSystemInsetsAsMargin(@NonNull View view) {
+    if (!(view.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams start)) {
+      return;
+    }
+    final int left = start.leftMargin;
+    final int right = start.rightMargin;
+    ViewCompat.setOnApplyWindowInsetsListener(
+        view,
+        (v, windowInsets) -> {
+          Insets insets =
+              windowInsets.getInsets(
+                  WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+          if (v.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp
+              && (lp.leftMargin != left + insets.left || lp.rightMargin != right + insets.right)) {
+            lp.leftMargin = left + insets.left;
+            lp.rightMargin = right + insets.right;
+            v.setLayoutParams(lp);
+          }
+          return windowInsets;
+        });
+  }
+
+  /**
+   * Pads a top bar view (toolbar, breadcrumb row) on the left and right by the system bars and the
+   * display cutout, so that in landscape it lines up with the content below instead of reaching
+   * under the camera cutout or the navigation bar.
+   *
+   * @param view the view to pad; its own horizontal padding is kept
+   */
+  public static void applyHorizontalSystemInsets(@NonNull View view) {
+    final int left = view.getPaddingLeft();
+    final int right = view.getPaddingRight();
+    ViewCompat.setOnApplyWindowInsetsListener(
+        view,
+        (v, windowInsets) -> {
+          Insets insets =
+              windowInsets.getInsets(
+                  WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+          v.setPadding(
+              left + insets.left, v.getPaddingTop(), right + insets.right, v.getPaddingBottom());
+          return windowInsets;
+        });
+  }
 
   /** Beautiful success feedback with elegant animation. */
   public static void showSuccess(@NonNull Activity activity, @StringRes int messageRes) {

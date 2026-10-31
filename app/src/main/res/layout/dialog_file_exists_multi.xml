@@ -91,12 +91,20 @@
             app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
-            <LinearLayout
-                android:id="@+id/files_exist_list"
+            <!-- Scrolls on its own; its height is capped for long lists so the buttons stay visible -->
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/files_exist_scroll"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp" />
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:id="@+id/files_exist_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp" />
+
+            </androidx.core.widget.NestedScrollView>
 
         </com.google.android.material.card.MaterialCardView>
 

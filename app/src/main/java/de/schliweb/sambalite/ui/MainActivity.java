@@ -215,6 +215,9 @@ public class MainActivity extends AppCompatActivity
     // Set up the toolbar as action bar
     androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
     if (toolbar != null) {
+      de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
+    }
+    if (toolbar != null) {
       setSupportActionBar(toolbar);
       LogUtils.d("MainActivity", "Toolbar set as action bar");
     } else {

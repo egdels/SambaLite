@@ -14,11 +14,11 @@ import static org.mockito.Mockito.*;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
-import android.widget.TextView;
 import androidx.lifecycle.MutableLiveData;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import de.schliweb.sambalite.data.model.SmbFileItem;
+import de.schliweb.sambalite.ui.BreadcrumbView;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
 import de.schliweb.sambalite.ui.SortDirection;
@@ -69,7 +69,7 @@ public class FileListControllerSelectionTest {
     RecyclerView recyclerView = new RecyclerView(activity);
     SwipeRefreshLayout swipeRefresh = new SwipeRefreshLayout(activity);
     View emptyView = new View(activity);
-    TextView pathView = new TextView(activity);
+    BreadcrumbView pathView = new BreadcrumbView(activity);
     FileBrowserUIState uiState = new FileBrowserUIState();
 
     controller =

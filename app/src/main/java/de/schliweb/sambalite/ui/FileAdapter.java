@@ -317,6 +317,23 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     }
   }
 
+  /**
+   * Returns the adapter position of the directory with the given name, counting the parent
+   * directory row if it is shown.
+   *
+   * @param name the directory name
+   * @return the adapter position, or -1 if the list has no such directory
+   */
+  public int getDirectoryPosition(@NonNull String name) {
+    for (int i = 0; i < files.size(); i++) {
+      SmbFileItem file = files.get(i);
+      if (file.isDirectory() && name.equals(file.getName())) {
+        return showParentDirectory ? i + 1 : i;
+      }
+    }
+    return -1;
+  }
+
   @Override
   public int getItemCount() {
     int count = files.size() + (showParentDirectory ? 1 : 0);
@@ -424,6 +441,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final TextView nameView;
     private final TextView dateView;
     private final TextView sizeView;
+    private final View metaSeparator;
     private final ImageButton moreOptionsButton;
     private final MaterialCardView rootCard;
     private final View syncIndicator;
@@ -438,6 +456,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       nameView = itemView.findViewById(R.id.file_name);
       dateView = itemView.findViewById(R.id.file_date);
       sizeView = itemView.findViewById(R.id.file_size);
+      metaSeparator = itemView.findViewById(R.id.file_meta_separator);
       moreOptionsButton = itemView.findViewById(R.id.more_options);
       rootCard = (itemView instanceof MaterialCardView matched) ? matched : null;
       syncIndicator = itemView.findViewById(R.id.sync_indicator);
@@ -563,6 +582,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         nameView.setText(R.string.parent_directory);
         dateView.setText("");
         sizeView.setText("");
+        if (metaSeparator != null) {
+          metaSeparator.setVisibility(View.GONE);
+        }
         if (syncIndicator != null) {
           syncIndicator.setVisibility(View.GONE);
         }
@@ -635,7 +657,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
       // Set file date
       if (file.getLastModified() != null) {
-        String formattedDate = DateFormat.format("MMM dd, yyyy", file.getLastModified()).toString();
+        // Medium date in the user's locale and date settings, e.g. "Oct 31, 2026" or "31.10.2026"
+        String formattedDate =
+            DateFormat.getMediumDateFormat(itemView.getContext()).format(file.getLastModified());
         LogUtils.d("FileAdapter", "Setting date for " + file.getName() + ": " + formattedDate);
         dateView.setText(formattedDate);
       } else {
@@ -651,6 +675,12 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       } else {
         LogUtils.d("FileAdapter", "No size for directory: " + file.getName());
         sizeView.setText("");
+      }
+
+      // The dot separates date and size; folders have no size, so it would dangle
+      if (metaSeparator != null) {
+        boolean both = dateView.getText().length() > 0 && sizeView.getText().length() > 0;
+        metaSeparator.setVisibility(both ? View.VISIBLE : View.GONE);
       }
 
       // Show sync direction indicator

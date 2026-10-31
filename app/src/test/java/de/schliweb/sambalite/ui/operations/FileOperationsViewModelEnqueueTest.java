@@ -252,6 +252,76 @@ public class FileOperationsViewModelEnqueueTest {
     assertTrue("tree grant must be (re-)taken after the insert", treeGrant);
   }
 
+  /**
+   * Queuing the same folder again while its uploads are still open, including ones that failed
+   * and wait for a retry, adds nothing: two uploads of one remote file would write it concurrently.
+   */
+  @Test
+  public void enqueueUploads_skipsTargetsThatAreStillQueued() throws Exception {
+    androidx.work.testing.WorkManagerTestInitHelper.initializeTestWorkManager(context);
+    android.net.Uri tree =
+        android.net.Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADup");
+    java.util.List<UploadRequest> requests =
+        java.util.Arrays.asList(
+            new UploadRequest(
+                android.net.Uri.parse(tree + "/document/primary%3ADup%2Fa.jpg"),
+                "dup/a.jpg",
+                "a.jpg",
+                10),
+            new UploadRequest(
+                android.net.Uri.parse(tree + "/document/primary%3ADup%2Fb.jpg"),
+                "dup/b.jpg",
+                "b.jpg",
+                20));
+    PendingTransferDao appDao = TransferDatabase.getInstance(context).pendingTransferDao();
+    java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
+    try {
+      int before = io.submit(appDao::countAll).get(10, TimeUnit.SECONDS);
+
+      viewModel.enqueueUploads(requests, tree, "batch-first");
+      long deadline = System.currentTimeMillis() + 10_000;
+      while (io.submit(appDao::countAll).get(10, TimeUnit.SECONDS) < before + 2
+          && System.currentTimeMillis() < deadline) {
+        Thread.sleep(20);
+      }
+      assertEquals(before + 2, (int) io.submit(appDao::countAll).get(10, TimeUnit.SECONDS));
+
+      // The first upload failed and waits for its retry: still open
+      io.submit(
+              () -> {
+                for (PendingTransfer t : appDao.getPendingForConnection("test-conn-1")) {
+                  if ("dup/a.jpg".equals(t.remotePath)) {
+                    appDao.updateStatus(t.id, "FAILED", System.currentTimeMillis());
+                  }
+                }
+                return null;
+              })
+          .get(10, TimeUnit.SECONDS);
+
+      viewModel.enqueueUploads(requests, tree, "batch-second");
+      Thread.sleep(500);
+      io.submit(() -> null).get(10, TimeUnit.SECONDS);
+
+      assertEquals(
+          "second enqueue of the same targets adds nothing",
+          before + 2,
+          (int) io.submit(appDao::countAll).get(10, TimeUnit.SECONDS));
+    } finally {
+      // Leave no open rows behind: the shared app database is used by other tests
+      io.submit(
+              () -> {
+                for (PendingTransfer t : appDao.getPendingForConnection("test-conn-1")) {
+                  if (t.remotePath.startsWith("dup/")) {
+                    appDao.updateStatus(t.id, "COMPLETED", System.currentTimeMillis());
+                  }
+                }
+                return null;
+              })
+          .get(10, TimeUnit.SECONDS);
+      io.shutdownNow();
+    }
+  }
+
   @Test
   public void scanFolderForQueue_buildsCorrectTransferEntries() {
     // Test that the scanFolderForQueue method is accessible and the ViewModel

@@ -9,9 +9,10 @@
  */
 package de.schliweb.sambalite.ui.controllers;
 
+import android.os.Parcelable;
 import android.view.View;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -19,6 +20,7 @@ import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.transfer.db.TransferDatabase;
+import de.schliweb.sambalite.ui.BreadcrumbView;
 import de.schliweb.sambalite.ui.FileAdapter;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.FileSortOption;
@@ -44,7 +46,7 @@ public class FileListController
   private final RecyclerView recyclerView;
   private final SwipeRefreshLayout swipeRefreshLayout;
   private final View emptyView;
-  private final TextView currentPathView;
+  private final BreadcrumbView currentPathView;
   private final FileAdapter adapter;
   private final FileListViewModel viewModel;
   private final FileBrowserUIState uiState;
@@ -57,6 +59,13 @@ public class FileListController
   private FileSortOption lastSortOption;
   private SortDirection lastSortDirection;
   private Boolean lastDirectoriesFirst;
+
+  // Folder whose entries the list shows, or is about to show
+  @Nullable private String shownPath;
+  // Set on a folder change until the first listing of the new folder has been positioned
+  @Nullable private String pendingPath;
+  // Folder the user came from on the last folder change
+  @Nullable private String previousPath;
 
   // Selection state
   @Getter private boolean selectionMode = false;
@@ -76,7 +85,7 @@ public class FileListController
    * @param recyclerView The RecyclerView for displaying files
    * @param swipeRefreshLayout The SwipeRefreshLayout for pull-to-refresh
    * @param emptyView The view to show when the file list is empty
-   * @param currentPathView The TextView for displaying the current path
+   * @param currentPathView The breadcrumb row that shows the current path
    * @param viewModel The FileListViewModel for business logic
    * @param uiState The shared UI state
    */
@@ -84,7 +93,7 @@ public class FileListController
       @NonNull RecyclerView recyclerView,
       @NonNull SwipeRefreshLayout swipeRefreshLayout,
       @NonNull View emptyView,
-      @NonNull TextView currentPathView,
+      @NonNull BreadcrumbView currentPathView,
       @NonNull FileListViewModel viewModel,
       @NonNull FileBrowserUIState uiState) {
     this.recyclerView = recyclerView;
@@ -113,6 +122,15 @@ public class FileListController
   /** Sets up the RecyclerView. */
   private void setupRecyclerView() {
     recyclerView.setLayoutManager(new LinearLayoutManager(recyclerView.getContext()));
+    recyclerView.addOnScrollListener(
+        new RecyclerView.OnScrollListener() {
+          @Override
+          public void onScrollStateChanged(@NonNull RecyclerView view, int newState) {
+            if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+              saveScrollState();
+            }
+          }
+        });
     recyclerView.setAdapter(adapter);
   }
 
@@ -127,6 +145,29 @@ public class FileListController
 
   /** Observes the ViewModel for changes. */
   private void observeViewModel() {
+    // Observe current path changes. Registered first, so that after the activity is recreated the
+    // folder is known before its listing arrives and the listing can return to its position.
+    viewModel
+        .getCurrentPath()
+        .observe(
+            getLifecycleOwner(),
+            path -> {
+              LogUtils.d("FileListController", "Current path updated: " + path);
+              currentPathView.setPath(path);
+              onFolderChanging(path);
+
+              // If user navigated to a different folder while in multi-select, clear and exit
+              // selection mode
+              if (selectionMode) {
+                clearSelection();
+                enableSelectionMode(false);
+              }
+
+              if (folderChangeCallback != null) {
+                folderChangeCallback.onFolderChanged(path);
+              }
+            });
+
     // Observe file list changes
     viewModel
         .getFiles()
@@ -183,27 +224,6 @@ public class FileListController
                 scrollToTopOnNextUpdate = true;
               }
               lastDirectoriesFirst = directoriesFirst;
-            });
-
-    // Observe current path changes
-    viewModel
-        .getCurrentPath()
-        .observe(
-            getLifecycleOwner(),
-            path -> {
-              LogUtils.d("FileListController", "Current path updated: " + path);
-              currentPathView.setText(path);
-
-              // If user navigated to a different folder while in multi-select, clear and exit
-              // selection mode
-              if (selectionMode) {
-                clearSelection();
-                enableSelectionMode(false);
-              }
-
-              if (folderChangeCallback != null) {
-                folderChangeCallback.onFolderChanged(path);
-              }
             });
 
     // Observe loading state
@@ -449,9 +469,130 @@ public class FileListController
    * order, end up above the visible area (issue #37).
    */
   private void showFiles(@NonNull List<SmbFileItem> files) {
+    if (pendingPath != null && !searchMode) {
+      // First listing after a folder change: position it for the way the user got there
+      Runnable position = positionForFolder(pendingPath, previousPath);
+      pendingPath = null;
+      scrollToTopOnNextUpdate = false;
+      adapter.setFiles(files, position);
+      return;
+    }
     boolean scrollToTop = scrollToTopOnNextUpdate || !recyclerView.canScrollVertically(-1);
     scrollToTopOnNextUpdate = false;
     adapter.setFiles(files, scrollToTop ? () -> recyclerView.scrollToPosition(0) : null);
+  }
+
+  /**
+   * Remembers the scroll position of the folder being left and marks the new folder for positioning
+   * once its entries arrive.
+   *
+   * @param path display path of the folder now shown
+   */
+  private void onFolderChanging(@Nullable String path) {
+    if (path == null || path.equals(shownPath)) {
+      return;
+    }
+    if (shownPath != null && !searchMode) {
+      RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+      Parcelable state = layoutManager != null ? layoutManager.onSaveInstanceState() : null;
+      if (state != null) {
+        uiState.getScrollStates().put(shownPath, state);
+      }
+    }
+    previousPath = shownPath;
+    pendingPath = path;
+    shownPath = path;
+  }
+
+  /**
+   * Decides where the first listing of a folder starts. Going up (back, or a breadcrumb) returns to
+   * where the user left that folder; without a remembered position, for instance after opening a
+   * connection's default folder, the subfolder the user came from is brought into view. Entering a
+   * folder starts at the top.
+   *
+   * @param to display path of the folder now shown
+   * @param from display path of the folder shown before, or null
+   * @return the positioning to run once the entries are shown
+   */
+  @NonNull
+  private Runnable positionForFolder(@NonNull String to, @Nullable String from) {
+    if (from != null && isAncestorPath(to, from)) {
+      Parcelable saved = uiState.getScrollStates().get(to);
+      if (saved != null) {
+        return () -> {
+          RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+          if (layoutManager != null) {
+            layoutManager.onRestoreInstanceState(saved);
+          }
+        };
+      }
+      String child = childBelow(to, from);
+      return () -> {
+        int position = adapter.getDirectoryPosition(child);
+        if (position >= 0
+            && recyclerView.getLayoutManager() instanceof LinearLayoutManager layoutManager) {
+          layoutManager.scrollToPositionWithOffset(position, recyclerView.getHeight() / 3);
+        } else {
+          recyclerView.scrollToPosition(0);
+        }
+      };
+    }
+    if (from == null) {
+      // First listing after the activity was created: after a rotation, return to the position
+      // the list had; on a fresh start the states were cleared and the list starts at the top
+      Parcelable saved = uiState.getScrollStates().get(to);
+      if (saved != null) {
+        return () -> {
+          RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+          if (layoutManager != null) {
+            layoutManager.onRestoreInstanceState(saved);
+          }
+        };
+      }
+    }
+    return () -> recyclerView.scrollToPosition(0);
+  }
+
+  /** Remembers the scroll position of the shown folder, e.g. before the activity is recreated. */
+  public void saveScrollState() {
+    if (shownPath == null || pendingPath != null || searchMode) {
+      return;
+    }
+    RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+    Parcelable state = layoutManager != null ? layoutManager.onSaveInstanceState() : null;
+    if (state != null) {
+      uiState.getScrollStates().put(shownPath, state);
+    }
+  }
+
+  /** Forgets all remembered scroll positions, for a fresh start of the file browser. */
+  public void clearScrollStates() {
+    uiState.getScrollStates().clear();
+  }
+
+  /**
+   * Whether {@code ancestor} is a parent folder of {@code path}, at any depth.
+   *
+   * @param ancestor a display path such as {@code share/photos}
+   * @param path a display path such as {@code share/photos/2026/october}
+   * @return true if path lies below ancestor
+   */
+  static boolean isAncestorPath(@NonNull String ancestor, @NonNull String path) {
+    return path.startsWith(ancestor + "/");
+  }
+
+  /**
+   * The name of the folder directly below {@code ancestor} on the way to {@code path}.
+   *
+   * @param ancestor a display path such as {@code share/photos}
+   * @param path a display path below it, such as {@code share/photos/2026/october}
+   * @return the first segment below ancestor, e.g. {@code 2026}
+   */
+  @NonNull
+  static String childBelow(@NonNull String ancestor, @NonNull String path) {
+    String rest = path.substring(ancestor.length() + 1);
+    int slash = rest.indexOf('/');
+    return slash < 0 ? rest : rest.substring(0, slash);
   }
 
   // --- Selection mode APIs ---

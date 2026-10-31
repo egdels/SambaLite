@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Landscape: little height, so the statistics card leaves room for the list -->
+    <dimen name="queue_stats_padding">6dp</dimen>
+    <dimen name="queue_stats_margin_vertical">4dp</dimen>
+</resources>

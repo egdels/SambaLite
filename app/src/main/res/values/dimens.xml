@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Transfer queue statistics card; smaller in landscape (values-land) -->
+    <dimen name="queue_stats_padding">16dp</dimen>
+    <dimen name="queue_stats_margin_vertical">8dp</dimen>
+</resources>

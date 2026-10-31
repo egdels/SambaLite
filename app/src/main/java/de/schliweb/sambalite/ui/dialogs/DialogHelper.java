@@ -583,6 +583,17 @@ public class DialogHelper {
       checkBoxes.add(cb);
     }
 
+    // A long list scrolls inside a box of about a third of the screen, so that the buttons below
+    // it stay visible without scrolling the whole dialog
+    if (fileNames.size() > 6) {
+      View scroll = dialogView.findViewById(R.id.files_exist_scroll);
+      if (scroll != null) {
+        android.view.ViewGroup.LayoutParams lp = scroll.getLayoutParams();
+        lp.height = (int) (context.getResources().getDisplayMetrics().heightPixels * 0.33f);
+        scroll.setLayoutParams(lp);
+      }
+    }
+
     // Select-all toggle logic
     selectAllCheckBox.setOnCheckedChangeListener(
         (buttonView, isChecked) -> {
