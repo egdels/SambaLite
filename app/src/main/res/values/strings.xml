@@ -83,7 +83,14 @@
     <string name="parent_directory">Parent Directory</string>
     <string name="search_files">Search files</string>
     <string name="searching_files">Searching files…</string>
-    <string name="search_results_found">results found</string>
+    <plurals name="search_result_count">
+        <item quantity="one">%d result found</item>
+        <item quantity="other">%d results found</item>
+    </plurals>
+    <string name="search_failed">Search failed: %1$s</string>
+    <string name="search_failed_title">Search failed</string>
+    <string name="search_no_matches">No matches found</string>
+    <string name="search_no_matches_message">Try another search term or include subfolders.</string>
     <string name="search_query_hint">Enter search term</string>
     <string name="search_wildcard_hint">Supports wildcards: * (any characters), ? (single character)</string>
     <string name="search_type">Search for</string>

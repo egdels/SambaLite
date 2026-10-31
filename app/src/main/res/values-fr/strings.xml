@@ -84,7 +84,15 @@
     <string name="parent_directory">Répertoire parent</string>
     <string name="search_files">Rechercher des fichiers</string>
     <string name="searching_files">Recherche de fichiers…</string>
-    <string name="search_results_found">résultats trouvés</string>
+    <plurals name="search_result_count">
+        <item quantity="one">%d résultat trouvé</item>
+        <item quantity="many">%d résultats trouvés</item>
+        <item quantity="other">%d résultats trouvés</item>
+    </plurals>
+    <string name="search_failed">Échec de la recherche : %1$s</string>
+    <string name="search_failed_title">Échec de la recherche</string>
+    <string name="search_no_matches">Aucun résultat</string>
+    <string name="search_no_matches_message">Essayez un autre terme de recherche ou incluez les sous-dossiers.</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">File de transfert</string>

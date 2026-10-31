@@ -84,7 +84,16 @@
     <string name="parent_directory">Katalog nadrzędny</string>
     <string name="search_files">Szukaj plików</string>
     <string name="searching_files">Szukanie plików…</string>
-    <string name="search_results_found">wyników znaleziono</string>
+    <plurals name="search_result_count">
+        <item quantity="one">Znaleziono %d wynik</item>
+        <item quantity="few">Znaleziono %d wyniki</item>
+        <item quantity="many">Znaleziono %d wyników</item>
+        <item quantity="other">Znaleziono %d wyniku</item>
+    </plurals>
+    <string name="search_failed">Wyszukiwanie nie powiodło się: %1$s</string>
+    <string name="search_failed_title">Wyszukiwanie nie powiodło się</string>
+    <string name="search_no_matches">Nie znaleziono wyników</string>
+    <string name="search_no_matches_message">Spróbuj innego wyszukiwanego hasła lub uwzględnij podfoldery.</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Kolejka transferów</string>

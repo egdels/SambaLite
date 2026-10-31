@@ -48,6 +48,7 @@ public class FileListControllerLoadErrorTest {
       new MutableLiveData<>(Collections.emptyList());
   private final MutableLiveData<String> loadError = new MutableLiveData<>(null);
   private View emptyView;
+  private FileListController controller;
 
   @Before
   public void setUp() {
@@ -66,7 +67,8 @@ public class FileListControllerLoadErrorTest {
     View root = LayoutInflater.from(activity).inflate(R.layout.activity_file_browser, null);
     emptyView = root.findViewById(R.id.empty_state);
 
-    new FileListController(
+    controller =
+        new FileListController(
         root.findViewById(R.id.files_recycler_view),
         root.findViewById(R.id.swipe_refresh),
         emptyView,
@@ -120,5 +122,21 @@ public class FileListControllerLoadErrorTest {
         List.of(new SmbFileItem("a.txt", "a.txt", SmbFileItem.Type.FILE, 1, new Date())));
 
     assertEquals(View.GONE, emptyView.getVisibility());
+  }
+
+  @Test
+  public void searchWithoutResults_showsSearchStatusInsteadOfEmptyFolder() {
+    controller.setSearchMode(true);
+    controller.setSearchEmptyText("Search failed", "Connection to the server failed");
+    controller.updateAdapter(new ArrayList<>());
+
+    assertEquals(View.VISIBLE, emptyView.getVisibility());
+    assertEquals("Search failed", title());
+    assertEquals("Connection to the server failed", message());
+
+    controller.setSearchEmptyText("Searching files…", null);
+    assertEquals("Searching files…", title());
+    assertEquals(
+        View.GONE, emptyView.findViewById(R.id.empty_state_message).getVisibility());
   }
 }

@@ -83,7 +83,14 @@
     <string name="parent_directory">Bovenliggende directory</string>
     <string name="search_files">Bestanden zoeken</string>
     <string name="searching_files">Bestanden zoeken…</string>
-    <string name="search_results_found">resultaten gevonden</string>
+    <plurals name="search_result_count">
+        <item quantity="one">%d resultaat gevonden</item>
+        <item quantity="other">%d resultaten gevonden</item>
+    </plurals>
+    <string name="search_failed">Zoeken mislukt: %1$s</string>
+    <string name="search_failed_title">Zoeken mislukt</string>
+    <string name="search_no_matches">Geen resultaten gevonden</string>
+    <string name="search_no_matches_message">Probeer een andere zoekterm of neem submappen mee.</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Overdrachtswachtrij</string>

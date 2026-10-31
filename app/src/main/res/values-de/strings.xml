@@ -83,7 +83,14 @@
     <string name="parent_directory">Übergeordnetes Verzeichnis</string>
     <string name="search_files">Dateien suchen</string>
     <string name="searching_files">Dateien werden durchsucht…</string>
-    <string name="search_results_found">Ergebnisse gefunden</string>
+    <plurals name="search_result_count">
+        <item quantity="one">%d Ergebnis gefunden</item>
+        <item quantity="other">%d Ergebnisse gefunden</item>
+    </plurals>
+    <string name="search_failed">Suche fehlgeschlagen: %1$s</string>
+    <string name="search_failed_title">Suche fehlgeschlagen</string>
+    <string name="search_no_matches">Keine Treffer</string>
+    <string name="search_no_matches_message">Versuche einen anderen Suchbegriff oder schließe Unterordner ein.</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Übertragungswarteschlange</string>

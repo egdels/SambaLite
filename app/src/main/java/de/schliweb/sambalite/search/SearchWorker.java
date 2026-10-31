@@ -56,6 +56,9 @@ public class SearchWorker extends Worker {
   public static final String KEY_SEARCH_TYPE = "search_type";
   public static final String KEY_INCLUDE_SUBFOLDERS = "include_subfolders";
 
+  /** Output key of a failed search: the error with its causes. */
+  public static final String KEY_ERROR = "error";
+
   private NotificationManager notificationManager;
   private long lastNotificationUpdateMs;
   private static final long NOTIFICATION_MIN_INTERVAL_MS = 1000;
@@ -158,7 +161,10 @@ public class SearchWorker extends Worker {
         } catch (Exception ignored) {
         }
       }
-      return Result.failure(new Data.Builder().putString("error", e.getMessage()).build());
+      return Result.failure(
+          new Data.Builder()
+              .putString(KEY_ERROR, de.schliweb.sambalite.ui.MainViewModel.describeFailure(e))
+              .build());
     }
 
     LogUtils.i(TAG, "Search completed: " + hitCount + " results for query=" + query);

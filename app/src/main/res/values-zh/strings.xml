@@ -84,7 +84,13 @@
     <string name="parent_directory">主目录</string>
     <string name="search_files">搜索文件</string>
     <string name="searching_files">正在搜索文件…</string>
-    <string name="search_results_found">个结果</string>
+    <plurals name="search_result_count">
+        <item quantity="other">找到 %d 个结果</item>
+    </plurals>
+    <string name="search_failed">搜索失败：%1$s</string>
+    <string name="search_failed_title">搜索失败</string>
+    <string name="search_no_matches">未找到匹配项</string>
+    <string name="search_no_matches_message">请尝试其他搜索词，或包含子文件夹。</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">传输队列</string>

@@ -84,7 +84,15 @@
     <string name="parent_directory">Directorio padre</string>
     <string name="search_files">Buscar archivos</string>
     <string name="searching_files">Buscando archivos…</string>
-    <string name="search_results_found">resultados encontrados</string>
+    <plurals name="search_result_count">
+        <item quantity="one">%d resultado encontrado</item>
+        <item quantity="many">%d resultados encontrados</item>
+        <item quantity="other">%d resultados encontrados</item>
+    </plurals>
+    <string name="search_failed">La búsqueda ha fallado: %1$s</string>
+    <string name="search_failed_title">La búsqueda ha fallado</string>
+    <string name="search_no_matches">No se encontraron coincidencias</string>
+    <string name="search_no_matches_message">Prueba con otro término de búsqueda o incluye las subcarpetas.</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Cola de transferencias</string>

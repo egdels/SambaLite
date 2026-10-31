@@ -437,6 +437,18 @@ public class FileBrowserActivity extends AppCompatActivity
     EdgeToEdge.enable(this);
   }
 
+  /**
+   * The toolbar subtitle in search mode.
+   *
+   * @param count results found so far
+   * @param done whether the search has finished
+   * @return e.g. "3 results found…" while searching, "✓ 1 result found" when done
+   */
+  String searchSubtitle(int count, boolean done) {
+    String text = getResources().getQuantityString(R.plurals.search_result_count, count, count);
+    return done ? "✓ " + text : text + "…";
+  }
+
   /** Resets the toolbar title and subtitle after leaving search mode. */
   void resetToolbarAfterSearch() {
     if (getSupportActionBar() != null) {
@@ -564,6 +576,7 @@ public class FileBrowserActivity extends AppCompatActivity
               if (isSearching) {
                 // Prevent the getFiles() observer from overwriting search results
                 fileListController.setSearchMode(true);
+                fileListController.setSearchEmptyText(getString(R.string.searching_files), null);
 
                 // Update toolbar to show search is in progress
                 if (getSupportActionBar() != null) {
@@ -577,10 +590,37 @@ public class FileBrowserActivity extends AppCompatActivity
                     "FileBrowserActivity",
                     "isSearching=false, isInSearchMode=" + searchViewModel.isInSearchMode());
                 if (searchViewModel.isInSearchMode() && getSupportActionBar() != null) {
+                  String failure = searchViewModel.getSearchFailure();
+                  if (failure != null) {
+                    // The worker could not search, e.g. the server is unreachable: say so
+                    // instead of reporting "0 results"
+                    String reason =
+                        de.schliweb.sambalite.ui.utils.TransferErrorText.shortReason(
+                            FileBrowserActivity.this, failure);
+                    String msg =
+                        getString(
+                            R.string.search_failed,
+                            reason != null
+                                ? reason
+                                : getString(R.string.transfer_error_connection));
+                    getSupportActionBar().setSubtitle(msg);
+                    fileListController.setSearchEmptyText(
+                        getString(R.string.search_failed_title),
+                        reason != null ? reason : getString(R.string.transfer_error_connection));
+                    de.schliweb.sambalite.ui.utils.UIHelper.with(FileBrowserActivity.this)
+                        .message(msg)
+                        .error()
+                        .show();
+                    LogUtils.w("FileBrowserActivity", "Search failed: " + failure);
+                    return;
+                  }
                   java.util.List<?> results = searchViewModel.getSearchResults().getValue();
                   int count = results != null ? results.size() : 0;
-                  String msg = "✓ " + count + " " + getString(R.string.search_results_found);
+                  String msg = searchSubtitle(count, true);
                   getSupportActionBar().setSubtitle(msg);
+                  fileListController.setSearchEmptyText(
+                      getString(R.string.search_no_matches),
+                      getString(R.string.search_no_matches_message));
                   de.schliweb.sambalite.ui.utils.UIHelper.showInfo(FileBrowserActivity.this, msg);
                   LogUtils.i("FileBrowserActivity", "Search complete: " + count + " results found");
                 }
@@ -602,20 +642,9 @@ public class FileBrowserActivity extends AppCompatActivity
                       .setTitle("\uD83D\uDD0D " + searchViewModel.getCurrentSearchQuery());
                   boolean stillSearching =
                       Boolean.TRUE.equals(searchViewModel.isSearching().getValue());
-                  if (stillSearching) {
+                  if (stillSearching || searchViewModel.getSearchFailure() == null) {
                     getSupportActionBar()
-                        .setSubtitle(
-                            searchResults.size()
-                                + " "
-                                + getString(R.string.search_results_found)
-                                + "…");
-                  } else {
-                    getSupportActionBar()
-                        .setSubtitle(
-                            "✓ "
-                                + searchResults.size()
-                                + " "
-                                + getString(R.string.search_results_found));
+                        .setSubtitle(searchSubtitle(searchResults.size(), !stillSearching));
                   }
                 }
                 LogUtils.d(

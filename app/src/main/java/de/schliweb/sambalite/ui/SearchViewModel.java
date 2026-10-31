@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.app.Application;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.Transformations;
@@ -48,6 +49,12 @@ public class SearchViewModel extends ViewModel {
 
   private String currentSearchId = "";
 
+  // Work request of the current search, to tell its failure apart from older searches
+  @Nullable private UUID currentWorkId;
+
+  // Technical error of the current search if its worker failed, otherwise null
+  @Nullable private String searchFailure;
+
   /** LiveData that maps SearchResult rows to SmbFileItem list for the UI. */
   private final MediatorLiveData<List<SmbFileItem>> searchResults = new MediatorLiveData<>();
 
@@ -79,6 +86,7 @@ public class SearchViewModel extends ViewModel {
             workInfos,
             infos -> {
               if (infos == null || infos.isEmpty()) return false;
+              searchFailure = failureOf(infos, currentWorkId);
               for (WorkInfo info : infos) {
                 if (info.getState() == WorkInfo.State.RUNNING
                     || info.getState() == WorkInfo.State.ENQUEUED) {
@@ -109,6 +117,35 @@ public class SearchViewModel extends ViewModel {
   /** Gets the search results as LiveData (mapped from DB). */
   public @NonNull LiveData<List<SmbFileItem>> getSearchResults() {
     return searchResults;
+  }
+
+  /**
+   * Returns the error of the current search if its worker failed, e.g. because the server could not
+   * be reached. Updated before {@link #isSearching()} reports the end of the search.
+   *
+   * @return the technical error, an empty string if the worker gave none, or null if the search did
+   *     not fail
+   */
+  public @Nullable String getSearchFailure() {
+    return searchFailure;
+  }
+
+  /**
+   * Finds the failure of the given search work among the work infos.
+   *
+   * @param infos the infos of the unique search work
+   * @param workId the id of the current search request, or null if none was started
+   * @return the error stored by the worker (empty if none), or null if the work did not fail
+   */
+  static @Nullable String failureOf(@NonNull List<WorkInfo> infos, @Nullable UUID workId) {
+    if (workId == null) return null;
+    for (WorkInfo info : infos) {
+      if (workId.equals(info.getId()) && info.getState() == WorkInfo.State.FAILED) {
+        String error = info.getOutputData().getString(SearchWorker.KEY_ERROR);
+        return error != null ? error : "";
+      }
+    }
+    return null;
   }
 
   /** Gets the searching state as LiveData (derived from WorkManager). */
@@ -178,6 +215,8 @@ public class SearchViewModel extends ViewModel {
     OneTimeWorkRequest request =
         new OneTimeWorkRequest.Builder(SearchWorker.class).setInputData(inputData).build();
 
+    currentWorkId = request.getId();
+    searchFailure = null;
     WorkManager.getInstance(application)
         .enqueueUniqueWork(UNIQUE_SEARCH_WORK, ExistingWorkPolicy.REPLACE, request);
 

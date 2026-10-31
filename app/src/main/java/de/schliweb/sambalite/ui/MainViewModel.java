@@ -279,7 +279,7 @@ public class MainViewModel extends ViewModel {
    * @return the messages of the exception and its causes, separated by ": "
    */
   @NonNull
-  static String describeFailure(@NonNull Throwable error) {
+  public static String describeFailure(@NonNull Throwable error) {
     StringBuilder text = new StringBuilder();
     java.util.Set<Throwable> seen =
         java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());

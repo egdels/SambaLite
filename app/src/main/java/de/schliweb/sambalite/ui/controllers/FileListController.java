@@ -66,6 +66,10 @@ public class FileListController
   // Technical error of the last folder listing, null if it succeeded
   @Nullable private String loadError;
 
+  // Empty state texts in search mode, set by the activity from the search status
+  @Nullable private CharSequence searchEmptyTitle;
+  @Nullable private CharSequence searchEmptyMessage;
+
   // Folder whose entries the list shows, or is about to show
   @Nullable private String shownPath;
   // Set on a folder change until the first listing of the new folder has been positioned
@@ -282,6 +286,16 @@ public class FileListController
       return;
     }
     android.content.Context context = emptyView.getContext();
+    if (searchMode && searchEmptyTitle != null) {
+      title.setText(searchEmptyTitle);
+      message.setText(searchEmptyMessage != null ? searchEmptyMessage : "");
+      message.setVisibility(
+          searchEmptyMessage == null || searchEmptyMessage.length() == 0
+              ? View.GONE
+              : View.VISIBLE);
+      return;
+    }
+    message.setVisibility(View.VISIBLE);
     if (loadError != null && !searchMode) {
       String reason = TransferErrorText.shortReason(context, loadError);
       title.setText(R.string.folder_load_failed);
@@ -292,6 +306,21 @@ public class FileListController
     } else {
       title.setText(R.string.empty_directory);
       message.setText(R.string.empty_folder);
+    }
+  }
+
+  /**
+   * Sets what the empty state says in search mode while there are no results, e.g. that the search
+   * is running, found nothing or failed.
+   *
+   * @param title the headline, or null for the normal empty folder text
+   * @param message the text below it, or null for none
+   */
+  public void setSearchEmptyText(@Nullable CharSequence title, @Nullable CharSequence message) {
+    searchEmptyTitle = title;
+    searchEmptyMessage = message;
+    if (emptyView.getVisibility() == View.VISIBLE) {
+      updateEmptyText();
     }
   }
 
