@@ -91,6 +91,10 @@
     <string name="search_failed_title">搜索失败</string>
     <string name="search_no_matches">未找到匹配项</string>
     <string name="search_no_matches_message">请尝试其他搜索词，或包含子文件夹。</string>
+    <string name="search_notification_title">搜索：%1$s</string>
+    <string name="search_notification_matches">已找到匹配项…</string>
+    <string name="search_channel_name">文件搜索</string>
+    <string name="search_channel_description">显示文件搜索的进度</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">传输队列</string>

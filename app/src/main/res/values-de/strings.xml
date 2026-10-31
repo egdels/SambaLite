@@ -91,6 +91,10 @@
     <string name="search_failed_title">Suche fehlgeschlagen</string>
     <string name="search_no_matches">Keine Treffer</string>
     <string name="search_no_matches_message">Versuche einen anderen Suchbegriff oder schließe Unterordner ein.</string>
+    <string name="search_notification_title">Suche: %1$s</string>
+    <string name="search_notification_matches">Treffer gefunden…</string>
+    <string name="search_channel_name">Dateisuche</string>
+    <string name="search_channel_description">Zeigt den Fortschritt der Dateisuche an</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Übertragungswarteschlange</string>

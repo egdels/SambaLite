@@ -93,6 +93,10 @@
     <string name="search_failed_title">Échec de la recherche</string>
     <string name="search_no_matches">Aucun résultat</string>
     <string name="search_no_matches_message">Essayez un autre terme de recherche ou incluez les sous-dossiers.</string>
+    <string name="search_notification_title">Recherche : %1$s</string>
+    <string name="search_notification_matches">Résultats trouvés…</string>
+    <string name="search_channel_name">Recherche de fichiers</string>
+    <string name="search_channel_description">Affiche la progression des recherches de fichiers</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">File de transfert</string>

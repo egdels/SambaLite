@@ -91,6 +91,10 @@
     <string name="search_failed_title">Zoeken mislukt</string>
     <string name="search_no_matches">Geen resultaten gevonden</string>
     <string name="search_no_matches_message">Probeer een andere zoekterm of neem submappen mee.</string>
+    <string name="search_notification_title">Zoeken: %1$s</string>
+    <string name="search_notification_matches">Resultaten gevonden…</string>
+    <string name="search_channel_name">Bestanden zoeken</string>
+    <string name="search_channel_description">Toont de voortgang van zoekopdrachten naar bestanden</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Overdrachtswachtrij</string>

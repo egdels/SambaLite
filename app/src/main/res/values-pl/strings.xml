@@ -94,6 +94,10 @@
     <string name="search_failed_title">Wyszukiwanie nie powiodło się</string>
     <string name="search_no_matches">Nie znaleziono wyników</string>
     <string name="search_no_matches_message">Spróbuj innego wyszukiwanego hasła lub uwzględnij podfoldery.</string>
+    <string name="search_notification_title">Wyszukiwanie: %1$s</string>
+    <string name="search_notification_matches">Znaleziono wyniki…</string>
+    <string name="search_channel_name">Wyszukiwanie plików</string>
+    <string name="search_channel_description">Pokazuje postęp wyszukiwania plików</string>
 
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Kolejka transferów</string>

@@ -70,7 +70,8 @@ public class SearchWorker extends Worker {
   @NonNull
   @Override
   public ForegroundInfo getForegroundInfo() {
-    return createForegroundInfo("Suche läuft…", "");
+    return createForegroundInfo(
+        getApplicationContext().getString(de.schliweb.sambalite.R.string.searching_files), "");
   }
 
   @NonNull
@@ -91,7 +92,11 @@ public class SearchWorker extends Worker {
     LogUtils.i(TAG, "Starting search: query=" + query + ", searchId=" + searchId);
 
     try {
-      setForegroundAsync(createForegroundInfo("Suche: " + query, ""));
+      setForegroundAsync(
+          createForegroundInfo(
+              getApplicationContext()
+                  .getString(de.schliweb.sambalite.R.string.search_notification_title, query),
+              ""));
     } catch (Exception e) {
       LogUtils.w(TAG, "Could not promote to foreground: " + e.getMessage());
     }
@@ -214,7 +219,11 @@ public class SearchWorker extends Worker {
           if (batch.size() >= BATCH_SIZE) {
             dao.insertAll(batch);
             batch.clear();
-            updateNotification("Suche: " + query, "Treffer gefunden…");
+            updateNotification(
+                getApplicationContext()
+                    .getString(de.schliweb.sambalite.R.string.search_notification_title, query),
+                getApplicationContext()
+                    .getString(de.schliweb.sambalite.R.string.search_notification_matches));
           }
         }
 
@@ -292,8 +301,12 @@ public class SearchWorker extends Worker {
     Context context = getApplicationContext();
 
     NotificationChannel channel =
-        new NotificationChannel(CHANNEL_ID, "Dateisuche", NotificationManager.IMPORTANCE_LOW);
-    channel.setDescription("Shows the status of file search operations");
+        new NotificationChannel(
+            CHANNEL_ID,
+            context.getString(de.schliweb.sambalite.R.string.search_channel_name),
+            NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription(
+        context.getString(de.schliweb.sambalite.R.string.search_channel_description));
     channel.setShowBadge(false);
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     if (manager != null) {

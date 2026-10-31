@@ -91,6 +91,10 @@
     <string name="search_failed_title">Search failed</string>
     <string name="search_no_matches">No matches found</string>
     <string name="search_no_matches_message">Try another search term or include subfolders.</string>
+    <string name="search_notification_title">Search: %1$s</string>
+    <string name="search_notification_matches">Matches found…</string>
+    <string name="search_channel_name">File search</string>
+    <string name="search_channel_description">Shows the progress of file searches</string>
     <string name="search_query_hint">Enter search term</string>
     <string name="search_wildcard_hint">Supports wildcards: * (any characters), ? (single character)</string>
     <string name="search_type">Search for</string>
