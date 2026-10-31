@@ -57,6 +57,10 @@
     <string name="error_server_required">El servidor es obligatorio</string>
     <string name="port">Puerto</string>
     <string name="port_helper">Puerto SMB, por defecto 445</string>
+    <string name="server_helper">Dirección IP o nombre de host</string>
+    <string name="share_helper">Nombre de la carpeta compartida</string>
+    <string name="username_helper">Déjalo vacío para el acceso de invitado</string>
+    <string name="domain_helper">Opcional: déjalo vacío si no es necesario</string>
     <string name="error_port_invalid">El puerto debe ser un número entre 1 y 65535</string>
     <string name="error_share_required">El nombre del recurso compartido es obligatorio</string>
     <string name="error_share_invalid">El nombre del recurso compartido no debe contener / \\ : * ? \" &lt; &gt; |. Usa solo el nombre del recurso SMB, no una ruta.</string>

@@ -179,7 +179,7 @@ public class SystemMonitorActivity extends AppCompatActivity {
 
     if (getSupportActionBar() != null) {
       getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-      getSupportActionBar().setTitle("System Monitor");
+      getSupportActionBar().setTitle(getString(R.string.system_monitor));
     }
 
     LogUtils.d(TAG, "Fallback layout created");

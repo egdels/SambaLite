@@ -57,6 +57,10 @@
     <string name="error_server_required">服务器是必需的</string>
     <string name="port">端口</string>
     <string name="port_helper">SMB 端口，默认 445</string>
+    <string name="server_helper">IP 地址或主机名</string>
+    <string name="share_helper">共享文件夹的名称</string>
+    <string name="username_helper">留空以使用访客访问</string>
+    <string name="domain_helper">可选 - 如不需要请留空</string>
     <string name="error_port_invalid">端口必须是 1 到 65535 之间的数字</string>
     <string name="error_share_required">分享名是必需的</string>
     <string name="error_share_invalid">分享名不能包含 / \\ : * ? \" &lt; &gt; |。请只使用 SMB 分享名，不要使用路径。</string>

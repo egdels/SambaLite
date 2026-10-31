@@ -145,7 +145,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="@string/server"
-            app:helperText="IP address or hostname"
+            app:helperText="@string/server_helper"
             app:startIconDrawable="@drawable/ic_server"
             app:startIconTint="?attr/colorOnSurface">
 
@@ -185,7 +185,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
             android:hint="@string/share_name"
-            app:helperText="Name of the shared folder"
+            app:helperText="@string/share_helper"
             app:startIconDrawable="@drawable/ic_folder_shared"
             app:startIconTint="?attr/colorOnSurface">
 
@@ -280,7 +280,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="@string/username"
-            app:helperText="Leave empty for guest access"
+            app:helperText="@string/username_helper"
             app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="?attr/colorOnSurface">
 
@@ -317,7 +317,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="@string/domain"
-            app:helperText="Optional - leave empty if not needed"
+            app:helperText="@string/domain_helper"
             app:startIconDrawable="@drawable/ic_public"
             app:startIconTint="?attr/colorOnSurface">
 

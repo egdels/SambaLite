@@ -57,6 +57,10 @@
     <string name="error_server_required">Le serveur est requis</string>
     <string name="port">Port</string>
     <string name="port_helper">Port SMB, 445 par défaut</string>
+    <string name="server_helper">Adresse IP ou nom d’hôte</string>
+    <string name="share_helper">Nom du dossier partagé</string>
+    <string name="username_helper">Laisser vide pour un accès invité</string>
+    <string name="domain_helper">Facultatif – laisser vide si inutile</string>
     <string name="error_port_invalid">Le port doit être un nombre entre 1 et 65535</string>
     <string name="error_share_required">Le nom du partage est requis</string>
     <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \\ : * ? \" &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>

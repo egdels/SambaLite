@@ -56,6 +56,10 @@
     <string name="error_server_required">Server is vereist</string>
     <string name="port">Poort</string>
     <string name="port_helper">SMB-poort, standaard 445</string>
+    <string name="server_helper">IP-adres of hostnaam</string>
+    <string name="share_helper">Naam van de gedeelde map</string>
+    <string name="username_helper">Leeg laten voor gasttoegang</string>
+    <string name="domain_helper">Optioneel – leeg laten als dit niet nodig is</string>
     <string name="error_port_invalid">De poort moet een getal tussen 1 en 65535 zijn</string>
     <string name="error_share_required">Share naam is vereist</string>
     <string name="error_share_invalid">Share naam mag geen / \\ : * ? \" &lt; &gt; | bevatten. Gebruik alleen de SMB-share naam, geen pad.</string>

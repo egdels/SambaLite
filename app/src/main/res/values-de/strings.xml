@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">SambaLite</string>
     <string name="add_connection">Verbindung hinzufügen</string>
-    <string name="system_monitor">System Monitor</string>
+    <string name="system_monitor">Systemmonitor</string>
     
     <!-- Welcome Screen -->
     <string name="welcome_title">Willkommen bei SambaLite</string>
@@ -56,6 +56,10 @@
     <string name="error_server_required">Server ist erforderlich</string>
     <string name="port">Port</string>
     <string name="port_helper">SMB-Port, Standard 445</string>
+    <string name="server_helper">IP-Adresse oder Hostname</string>
+    <string name="share_helper">Name des freigegebenen Ordners</string>
+    <string name="username_helper">Für Gastzugang leer lassen</string>
+    <string name="domain_helper">Optional – leer lassen, wenn nicht benötigt</string>
     <string name="error_port_invalid">Der Port muss eine Zahl zwischen 1 und 65535 sein</string>
     <string name="error_share_required">Freigabe-Name ist erforderlich</string>
     <string name="error_share_invalid">Der Freigabe-Name darf / \\ : * ? \" &lt; &gt; | nicht enthalten. Verwenden Sie nur den SMB-Freigabe-Namen, keinen Pfad.</string>
