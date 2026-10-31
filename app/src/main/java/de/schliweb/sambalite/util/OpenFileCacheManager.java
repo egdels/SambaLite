@@ -13,11 +13,19 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import java.io.File;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Manages the open-file cache directory ({@code getCacheDir()/open_files/}).
+ *
+ * <p>Each remote file gets its own subfolder named after a hash of its connection and path, with
+ * the file inside under its own name ({@code open_files/<hash>/report.pdf}): viewers show the real
+ * name, and two files with the same name in different folders or on different connections never
+ * share a cache entry.
  *
  * <p>Strategy: Lazy cleanup on app start (files older than 1 hour) combined with a size limit (100
  * MB, evicts oldest first down to 50 MB).
@@ -41,17 +49,15 @@ public final class OpenFileCacheManager {
     if (!cacheDir.exists()) return;
 
     long now = System.currentTimeMillis();
-    File[] files = cacheDir.listFiles();
-    if (files == null) return;
-
     int deleted = 0;
-    for (File file : files) {
+    for (File file : listCacheFiles(cacheDir)) {
       if (now - file.lastModified() > MAX_AGE_MS) {
         if (file.delete()) {
           deleted++;
         }
       }
     }
+    deleteEmptySubfolders(cacheDir);
     if (deleted > 0) {
       LogUtils.d(TAG, "Cleaned up " + deleted + " expired cache file(s)");
     }
@@ -73,16 +79,14 @@ public final class OpenFileCacheManager {
     File cacheDir = new File(context.getCacheDir(), CACHE_DIR_NAME);
     if (!cacheDir.exists()) return;
 
-    File[] files = cacheDir.listFiles();
-    if (files == null) return;
-
+    List<File> files = listCacheFiles(cacheDir);
     long totalSize = 0;
     for (File f : files) totalSize += f.length();
 
     if (totalSize <= MAX_CACHE_SIZE_BYTES) return;
 
     // Sort by last modified, oldest first
-    Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+    files.sort(Comparator.comparingLong(File::lastModified));
     int deleted = 0;
     for (File f : files) {
       if (totalSize <= TARGET_CACHE_SIZE_BYTES) break;
@@ -94,6 +98,7 @@ public final class OpenFileCacheManager {
         deleted++;
       }
     }
+    deleteEmptySubfolders(cacheDir);
     if (deleted > 0) {
       LogUtils.d(TAG, "Evicted " + deleted + " cache file(s) to enforce size limit");
     }
@@ -107,5 +112,92 @@ public final class OpenFileCacheManager {
       cacheDir.mkdirs();
     }
     return cacheDir;
+  }
+
+  /**
+   * Returns the cache file for a remote file, in a subfolder that is unique for the connection and
+   * the remote path. The subfolder is created if necessary.
+   *
+   * @param context the context
+   * @param connectionKey identifies the connection, e.g. its id
+   * @param remotePath the path of the file on the share
+   * @param fileName the name of the file, used as the name of the cache file
+   * @return the cache file, which may not exist yet
+   */
+  @NonNull
+  public static File getCacheFile(
+      @NonNull Context context,
+      @Nullable String connectionKey,
+      @NonNull String remotePath,
+      @NonNull String fileName) {
+    File folder = new File(getCacheDir(context), entryFolderName(connectionKey, remotePath));
+    if (!folder.exists()) {
+      folder.mkdirs();
+    }
+    return new File(folder, fileName);
+  }
+
+  /**
+   * Name of the subfolder for one remote file: the first 16 hex digits of the SHA-256 of connection
+   * and path.
+   */
+  @NonNull
+  static String entryFolderName(@Nullable String connectionKey, @NonNull String remotePath) {
+    String key = connectionKey + "\n" + remotePath;
+    try {
+      byte[] hash =
+          MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+      StringBuilder hex = new StringBuilder();
+      for (int i = 0; i < 8; i++) {
+        hex.append(String.format(java.util.Locale.ROOT, "%02x", hash[i]));
+      }
+      return hex.toString();
+    } catch (java.security.NoSuchAlgorithmException e) {
+      return Integer.toHexString(key.hashCode());
+    }
+  }
+
+  /**
+   * Lists all cached files: those in the per-file subfolders and, from older versions, those
+   * directly in the cache folder.
+   *
+   * @param context the context
+   * @return the cached files, empty if there are none
+   */
+  @NonNull
+  public static List<File> listCacheFiles(@NonNull Context context) {
+    return listCacheFiles(new File(context.getCacheDir(), CACHE_DIR_NAME));
+  }
+
+  @NonNull
+  private static List<File> listCacheFiles(@NonNull File cacheDir) {
+    List<File> result = new ArrayList<>();
+    File[] entries = cacheDir.listFiles();
+    if (entries == null) return result;
+    for (File entry : entries) {
+      if (entry.isDirectory()) {
+        File[] inner = entry.listFiles();
+        if (inner != null) {
+          for (File f : inner) {
+            if (f.isFile()) result.add(f);
+          }
+        }
+      } else {
+        result.add(entry);
+      }
+    }
+    return result;
+  }
+
+  /** Removes per-file subfolders whose file has been deleted. */
+  private static void deleteEmptySubfolders(@NonNull File cacheDir) {
+    File[] entries = cacheDir.listFiles();
+    if (entries == null) return;
+    for (File entry : entries) {
+      String[] inner = entry.isDirectory() ? entry.list() : null;
+      if (inner != null && inner.length == 0) {
+        entry.delete();
+      }
+    }
   }
 }

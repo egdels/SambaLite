@@ -175,6 +175,15 @@ public class FileOperationsViewModel extends ViewModel {
     smbRepository.cancelUpload();
   }
 
+  /** Identifies a connection for the open-file cache: its id, or server, port and share. */
+  @NonNull
+  static String connectionCacheKey(@NonNull de.schliweb.sambalite.data.model.SmbConnection c) {
+    if (c.getId() != null && !c.getId().isEmpty()) {
+      return c.getId();
+    }
+    return c.getServer() + ":" + c.getPort() + "/" + c.getShare();
+  }
+
   /**
    * Downloads a file into the open-file cache directory for viewing with an external app. Reports
    * download progress via the {@link #getTransferProgress()} LiveData and supports cancellation.
@@ -194,8 +203,10 @@ public class FileOperationsViewModel extends ViewModel {
       return;
     }
 
-    File cacheDir = OpenFileCacheManager.getCacheDir(context);
-    File targetFile = new File(cacheDir, file.getName());
+    // One cache entry per connection and remote path: report.pdf in two folders are two files
+    File targetFile =
+        OpenFileCacheManager.getCacheFile(
+            context, connectionCacheKey(state.getConnection()), file.getPath(), file.getName());
 
     // Check if file already exists in cache with matching size and timestamp
     if (targetFile.exists() && targetFile.length() > 0) {

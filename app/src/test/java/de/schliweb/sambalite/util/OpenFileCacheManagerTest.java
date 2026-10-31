@@ -2,6 +2,7 @@ package de.schliweb.sambalite.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -124,6 +125,57 @@ public class OpenFileCacheManagerTest {
     OpenFileCacheManager.enforceMaxSize(context);
 
     assertTrue("File at exactly 100 MB should remain", file.exists());
+  }
+
+  @Test
+  public void getCacheFile_samePathAndConnection_givesSameFile() {
+    File a = OpenFileCacheManager.getCacheFile(context, "c1", "Docs/report.pdf", "report.pdf");
+    File b = OpenFileCacheManager.getCacheFile(context, "c1", "Docs/report.pdf", "report.pdf");
+
+    assertEquals(a.getAbsolutePath(), b.getAbsolutePath());
+    assertEquals("report.pdf", a.getName());
+    assertEquals(cacheDir.getAbsolutePath(), a.getParentFile().getParentFile().getAbsolutePath());
+  }
+
+  @Test
+  public void getCacheFile_otherFolderOrConnection_givesOtherFile() {
+    File docs = OpenFileCacheManager.getCacheFile(context, "c1", "Docs/report.pdf", "report.pdf");
+    File other = OpenFileCacheManager.getCacheFile(context, "c1", "Other/report.pdf", "report.pdf");
+    File otherConnection =
+        OpenFileCacheManager.getCacheFile(context, "c2", "Docs/report.pdf", "report.pdf");
+
+    assertNotEquals(docs.getAbsolutePath(), other.getAbsolutePath());
+    assertNotEquals(docs.getAbsolutePath(), otherConnection.getAbsolutePath());
+  }
+
+  @Test
+  public void cleanupOnAppStart_deletesOldFilesInEntryFolders() throws IOException {
+    File old = OpenFileCacheManager.getCacheFile(context, "c1", "a/old.pdf", "old.pdf");
+    createFileWithSize(old.getParentFile(), old.getName(), 1024);
+    old.setLastModified(System.currentTimeMillis() - 2 * 60 * 60 * 1000);
+    File recent = OpenFileCacheManager.getCacheFile(context, "c1", "a/new.pdf", "new.pdf");
+    createFileWithSize(recent.getParentFile(), recent.getName(), 1024);
+
+    OpenFileCacheManager.cleanupOnAppStart(context);
+
+    assertFalse(old.exists());
+    assertFalse("The empty entry folder is removed", old.getParentFile().exists());
+    assertTrue(recent.exists());
+  }
+
+  @Test
+  public void enforceMaxSize_countsFilesInEntryFolders() throws IOException {
+    File oldest = OpenFileCacheManager.getCacheFile(context, "c1", "x/1.bin", "1.bin");
+    createFileWithSize(oldest.getParentFile(), "1.bin", 60 * 1024 * 1024);
+    oldest.setLastModified(System.currentTimeMillis() - 3000);
+    File newest = OpenFileCacheManager.getCacheFile(context, "c1", "x/2.bin", "2.bin");
+    createFileWithSize(newest.getParentFile(), "2.bin", 45 * 1024 * 1024);
+
+    OpenFileCacheManager.enforceMaxSize(context);
+
+    assertFalse(oldest.exists());
+    assertTrue(newest.exists());
+    assertEquals(1, OpenFileCacheManager.listCacheFiles(context).size());
   }
 
   @Test

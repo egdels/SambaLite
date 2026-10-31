@@ -76,12 +76,7 @@ public class FileOperationsViewModelCacheTest {
   public void tearDown() throws Exception {
     // Clean up cache files
     if (cacheDir != null && cacheDir.exists()) {
-      File[] files = cacheDir.listFiles();
-      if (files != null) {
-        for (File f : files) {
-          f.delete();
-        }
-      }
+      deleteRecursive(cacheDir);
     }
     mocks.close();
   }
@@ -101,7 +96,7 @@ public class FileOperationsViewModelCacheTest {
             "test.txt", "/share/test.txt", SmbFileItem.Type.FILE, remoteSize, remoteDate);
 
     // Create a cached file with matching size and newer timestamp
-    File cachedFile = new File(cacheDir, "test.txt");
+    File cachedFile = cacheFileFor("/share/test.txt", "test.txt");
     writeBytes(cachedFile, remoteSize);
     cachedFile.setLastModified(remoteDate.getTime() + 1000);
 
@@ -130,7 +125,7 @@ public class FileOperationsViewModelCacheTest {
             "test.txt", "/share/test.txt", SmbFileItem.Type.FILE, remoteSize, remoteDate);
 
     // Create a cached file with WRONG size
-    File cachedFile = new File(cacheDir, "test.txt");
+    File cachedFile = cacheFileFor("/share/test.txt", "test.txt");
     writeBytes(cachedFile, 512L); // different size
     cachedFile.setLastModified(remoteDate.getTime() + 1000);
 
@@ -158,7 +153,7 @@ public class FileOperationsViewModelCacheTest {
             "test.txt", "/share/test.txt", SmbFileItem.Type.FILE, remoteSize, remoteDate);
 
     // Create a cached file with matching size but OLDER timestamp
-    File cachedFile = new File(cacheDir, "test.txt");
+    File cachedFile = cacheFileFor("/share/test.txt", "test.txt");
     writeBytes(cachedFile, remoteSize);
     cachedFile.setLastModified(remoteDate.getTime() - 60000); // 1 minute older
 
@@ -170,6 +165,71 @@ public class FileOperationsViewModelCacheTest {
     // Verify that a download was attempted (cache was stale)
     verify(smbRepository, timeout(2000))
         .downloadFileWithProgress(eq(connection), eq("/share/test.txt"), any(File.class), any());
+  }
+
+  /**
+   * A file with the same name, size and age in another folder must not be served from the cache
+   * entry of the first one.
+   */
+  @Test
+  public void downloadToCache_sameNameInOtherFolder_isNotACacheHit() throws Exception {
+    long remoteSize = 612L;
+    Date remoteDate = new Date(1000000L);
+    File docsCopy = cacheFileFor("/share/Docs/report.pdf", "report.pdf");
+    writeBytes(docsCopy, remoteSize);
+    docsCopy.setLastModified(remoteDate.getTime() + 1000);
+
+    SmbFileItem other =
+        new SmbFileItem(
+            "report.pdf", "/share/Other/report.pdf", SmbFileItem.Type.FILE, remoteSize, remoteDate);
+    viewModel.downloadToCache(other, f -> {}, e -> {});
+    ShadowLooper.idleMainLooper();
+
+    org.mockito.ArgumentCaptor<File> target = org.mockito.ArgumentCaptor.forClass(File.class);
+    verify(smbRepository, timeout(2000))
+        .downloadFileWithProgress(
+            eq(connection), eq("/share/Other/report.pdf"), target.capture(), any());
+    assertEquals("report.pdf", target.getValue().getName());
+    assertNotEquals(docsCopy.getAbsolutePath(), target.getValue().getAbsolutePath());
+    assertTrue("The other folder's copy stays cached", docsCopy.exists());
+  }
+
+  /** The same path on another connection is another file. */
+  @Test
+  public void downloadToCache_samePathOnOtherConnection_isNotACacheHit() throws Exception {
+    connection.setId("connection-a");
+    File copyA = cacheFileFor("/share/report.pdf", "report.pdf");
+    writeBytes(copyA, 612L);
+    copyA.setLastModified(1000000L + 1000);
+
+    SmbConnection other = new SmbConnection();
+    other.setId("connection-b");
+    other.setShare("share");
+    when(state.getConnection()).thenReturn(other);
+
+    SmbFileItem file =
+        new SmbFileItem(
+            "report.pdf", "/share/report.pdf", SmbFileItem.Type.FILE, 612L, new Date(1000000L));
+    viewModel.downloadToCache(file, f -> {}, e -> {});
+    ShadowLooper.idleMainLooper();
+
+    verify(smbRepository, timeout(2000))
+        .downloadFileWithProgress(eq(other), eq("/share/report.pdf"), any(File.class), any());
+  }
+
+  private File cacheFileFor(String remotePath, String name) {
+    return OpenFileCacheManager.getCacheFile(
+        context, FileOperationsViewModel.connectionCacheKey(connection), remotePath, name);
+  }
+
+  private static void deleteRecursive(File file) {
+    File[] children = file.listFiles();
+    if (children != null) {
+      for (File child : children) {
+        deleteRecursive(child);
+      }
+    }
+    file.delete();
   }
 
   // ========== Phase 2: Download Integrity Tests ==========
