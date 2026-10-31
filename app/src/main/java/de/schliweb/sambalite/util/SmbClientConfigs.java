@@ -18,6 +18,9 @@ import com.hierynomus.smbj.SmbConfig;
 /** App-wide SMBJ client settings shared by the repository and the background workers. */
 public final class SmbClientConfigs {
 
+  /** Marker used by {@link #describeSecurity} for sessions without encryption. */
+  public static final String UNENCRYPTED = "unencrypted";
+
   private SmbClientConfigs() {}
 
   /**
@@ -44,7 +47,7 @@ public final class SmbClientConfigs {
       @NonNull SMB2Dialect dialect, @Nullable SMB3EncryptionCipher cipher, boolean encrypted) {
     String protocol = "SMB " + dialect.name().substring("SMB_".length()).replace('_', '.');
     if (!encrypted || cipher == null) {
-      return protocol + ", unencrypted";
+      return protocol + ", " + UNENCRYPTED;
     }
     return protocol + ", " + cipher.name().replace('_', '-');
   }

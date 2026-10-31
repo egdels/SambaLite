@@ -240,11 +240,10 @@ public class MainViewModel extends ViewModel {
         () -> {
           try {
             boolean success = smbRepository.testConnection(connection);
-            String message = "Connection failed";
+            String detail = null;
             if (success) {
-              message = "Connection successful";
               try {
-                message += " (" + smbRepository.getConnectionSecurityInfo(connection) + ")";
+                detail = smbRepository.getConnectionSecurityInfo(connection);
               } catch (Exception e) {
                 LogUtils.w(
                     "MainViewModel", "Could not read connection security: " + e.getMessage());
@@ -252,11 +251,11 @@ public class MainViewModel extends ViewModel {
             }
             isLoading.postValue(false);
             if (success) {
-              LogUtils.i("MainViewModel", "Connection test successful: " + message);
+              LogUtils.i("MainViewModel", "Connection test successful: " + detail);
             } else {
               LogUtils.w("MainViewModel", "Connection test failed: " + connection.getName());
             }
-            callback.onResult(success, message);
+            callback.onResult(success, detail);
           } catch (Exception e) {
             LogUtils.e("MainViewModel", "Connection test error: " + e.getMessage());
 
@@ -265,9 +264,38 @@ public class MainViewModel extends ViewModel {
                 e, "MainViewModel.testConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
 
             isLoading.postValue(false);
-            callback.onResult(false, "Connection failed: " + e.getMessage());
+            callback.onResult(false, describeFailure(e));
           }
         });
+  }
+
+  /**
+   * Joins the messages of an exception and its causes. The repository wraps SMB errors (e.g. {@code
+   * STATUS_LOGON_FAILURE}) in a generic "Failed to execute share operation" exception, so the
+   * reason is only found in the cause chain.
+   *
+   * @param error the exception thrown by the connection test
+   * @return the messages of the exception and its causes, separated by ": "
+   */
+  @NonNull
+  static String describeFailure(@NonNull Throwable error) {
+    StringBuilder text = new StringBuilder();
+    java.util.Set<Throwable> seen =
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    for (Throwable t = error; t != null && seen.add(t); t = t.getCause()) {
+      String message = t.getMessage();
+      if (message == null || message.trim().isEmpty()) {
+        message = t.getClass().getSimpleName();
+      }
+      if (text.indexOf(message) >= 0) {
+        continue;
+      }
+      if (text.length() > 0) {
+        text.append(": ");
+      }
+      text.append(message.trim());
+    }
+    return text.toString();
   }
 
   /**
@@ -333,7 +361,12 @@ public class MainViewModel extends ViewModel {
 
   /** Callback interface for connection testing. */
   public interface ConnectionTestCallback {
-    void onResult(boolean success, @NonNull String message);
+    /**
+     * @param success whether the connection could be opened
+     * @param detail on success the negotiated protocol and cipher (may be null), on failure the
+     *     technical error including its causes
+     */
+    void onResult(boolean success, @Nullable String detail);
   }
 
   /** Callback interface for share listing operations. */

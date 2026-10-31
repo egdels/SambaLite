@@ -53,6 +53,7 @@ import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.ui.adapters.SharesAdapter;
 import de.schliweb.sambalite.ui.dialogs.NetworkSearchDialog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
+import de.schliweb.sambalite.ui.utils.TransferErrorText;
 import de.schliweb.sambalite.util.*;
 import java.util.HashSet;
 import java.util.List;
@@ -1279,7 +1280,11 @@ public class MainActivity extends AppCompatActivity
   /** Shows a dialog with options for a connection. */
   private void showConnectionOptionsDialog(SmbConnection connection) {
     LogUtils.d("MainActivity", "Showing options dialog for connection: " + connection.getName());
-    String[] options = {"Edit", "Test Connection", "Delete"};
+    String[] options = {
+      getString(R.string.connection_option_edit),
+      getString(R.string.test_connection),
+      getString(R.string.delete)
+    };
 
     AlertDialog.Builder builder = new MaterialAlertDialogBuilder(this);
     builder
@@ -1324,12 +1329,13 @@ public class MainActivity extends AppCompatActivity
         "Testing connection to: " + connection.getServer() + "/" + connection.getShare());
     viewModel.testConnection(
         connection,
-        (success, message) -> {
+        (success, detail) -> {
           LogUtils.d(
               "MainActivity",
-              "Connection test result: " + (success ? "success" : "failure") + " - " + message);
+              "Connection test result: " + (success ? "success" : "failure") + " - " + detail);
           runOnUiThread(
               () -> {
+                String message = connectionTestMessage(success, detail);
                 if (success) {
                   de.schliweb.sambalite.ui.utils.UIHelper.with(this)
                       .message(message)
@@ -1343,6 +1349,31 @@ public class MainActivity extends AppCompatActivity
                 }
               });
         });
+  }
+
+  /**
+   * Builds the localized result message of a connection test.
+   *
+   * @param success whether the test succeeded
+   * @param detail on success the negotiated protocol and cipher, on failure the technical error
+   * @return e.g. "Connection successful (SMB 3.1.1, AES-128-GCM)" or "Connection failed: Login to
+   *     the server failed"
+   */
+  @NonNull
+  String connectionTestMessage(boolean success, @Nullable String detail) {
+    if (success) {
+      if (detail == null || detail.trim().isEmpty()) {
+        return getString(R.string.connection_test_success);
+      }
+      String security =
+          detail.replace(
+              SmbClientConfigs.UNENCRYPTED, getString(R.string.connection_security_unencrypted));
+      return getString(R.string.connection_test_success_details, security);
+    }
+    String reason = TransferErrorText.shortReason(this, detail);
+    return reason == null
+        ? getString(R.string.connection_test_failed)
+        : getString(R.string.connection_test_failed_reason, reason);
   }
 
   /** Shows a dialog for editing an existing connection. */

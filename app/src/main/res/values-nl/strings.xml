@@ -40,6 +40,12 @@
     <string name="password">Wachtwoord</string>
     <string name="domain">Domein (optioneel)</string>
     <string name="test_connection">Verbinding testen</string>
+    <string name="connection_option_edit">Bewerken</string>
+    <string name="connection_test_success">Verbinding geslaagd</string>
+    <string name="connection_test_success_details">Verbinding geslaagd (%1$s)</string>
+    <string name="connection_test_failed">Verbinding mislukt</string>
+    <string name="connection_test_failed_reason">Verbinding mislukt: %1$s</string>
+    <string name="connection_security_unencrypted">onversleuteld</string>
     <string name="save">Opslaan</string>
     <string name="cancel">Annuleren</string>
     <string name="add_new_connection">Nieuwe verbinding toevoegen</string>

@@ -41,6 +41,12 @@
     <string name="password">Contraseña</string>
     <string name="domain">Dominio (opcional)</string>
     <string name="test_connection">Probar conexión</string>
+    <string name="connection_option_edit">Editar</string>
+    <string name="connection_test_success">Conexión correcta</string>
+    <string name="connection_test_success_details">Conexión correcta (%1$s)</string>
+    <string name="connection_test_failed">La conexión ha fallado</string>
+    <string name="connection_test_failed_reason">La conexión ha fallado: %1$s</string>
+    <string name="connection_security_unencrypted">sin cifrar</string>
     <string name="save">Guardar</string>
     <string name="cancel">Cancelar</string>
     <string name="add_new_connection">Añadir nueva conexión</string>

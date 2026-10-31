@@ -40,6 +40,12 @@
     <string name="password">Password</string>
     <string name="domain">Domain (optional)</string>
     <string name="test_connection">Test Connection</string>
+    <string name="connection_option_edit">Edit</string>
+    <string name="connection_test_success">Connection successful</string>
+    <string name="connection_test_success_details">Connection successful (%1$s)</string>
+    <string name="connection_test_failed">Connection failed</string>
+    <string name="connection_test_failed_reason">Connection failed: %1$s</string>
+    <string name="connection_security_unencrypted">unencrypted</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="add_new_connection">Add New Connection</string>
