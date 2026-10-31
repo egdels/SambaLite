@@ -77,20 +77,31 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     List<SmbConnection> connections = getAllConnections();
 
     // Generate ID if it's a new connection
+    int index = -1;
     if (connection.getId() == null || connection.getId().isEmpty()) {
       connection.setId(UUID.randomUUID().toString());
       LogUtils.d(
           "ConnectionRepositoryImpl", "Generated new ID for connection: " + connection.getId());
     } else {
-      // Remove existing connection with the same ID
+      // Replace an existing connection with the same ID in place, so editing keeps its position
       LogUtils.d(
           "ConnectionRepositoryImpl",
           "Updating existing connection with ID: " + connection.getId());
-      connections.removeIf(c -> c.getId().equals(connection.getId()));
+      for (int i = 0; i < connections.size(); i++) {
+        if (connection.getId().equals(connections.get(i).getId())) {
+          index = i;
+          break;
+        }
+      }
+      connections.removeIf(c -> connection.getId().equals(c.getId()));
     }
 
-    // Add the connection to the list
-    connections.add(connection);
+    // Add new connections at the end, updated ones where they were
+    if (index >= 0) {
+      connections.add(index, connection);
+    } else {
+      connections.add(connection);
+    }
 
     // Save the updated list
     saveConnectionsToPrefs(connections);
