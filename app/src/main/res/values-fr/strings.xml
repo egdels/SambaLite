@@ -53,10 +53,10 @@
     <string name="port_helper">Port SMB, 445 par défaut</string>
     <string name="error_port_invalid">Le port doit être un nombre entre 1 et 65535</string>
     <string name="error_share_required">Le nom du partage est requis</string>
-    <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \ : * ? &quot; &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>
+    <string name="error_share_invalid">Le nom du partage ne doit pas contenir / \\ : * ? \" &lt; &gt; |. Utilisez uniquement le nom du partage SMB, pas un chemin.</string>
     <string name="default_folder">Dossier par défaut (optionnel)</string>
     <string name="default_folder_helper">Sous-dossier du partage ouvert lors de la connexion, p. ex. Photos/2024</string>
-    <string name="error_default_folder_invalid">Le dossier par défaut ne doit pas contenir \ : * ? &quot; &lt; &gt; |. Utilisez / pour séparer les sous-dossiers.</string>
+    <string name="error_default_folder_invalid">Le dossier par défaut ne doit pas contenir : * ? \" &lt; &gt; |. Utilisez / pour séparer les sous-dossiers.</string>
     <string name="default_folder_not_found">Le dossier par défaut « %1$s » est introuvable. La racine du partage sera ouverte à la place.</string>
     <string name="error_default_folder_not_found">Le dossier par défaut « %1$s » est introuvable sur le serveur. Vérifiez le chemin.</string>
     <string name="invalid_share_name_title">Nom de partage invalide</string>

@@ -53,10 +53,10 @@
     <string name="port_helper">Port SMB, domyślnie 445</string>
     <string name="error_port_invalid">Port musi być liczbą od 1 do 65535</string>
     <string name="error_share_required">Nazwa udziału jest wymagana</string>
-    <string name="error_share_invalid">Nazwa udziału nie może zawierać / \ : * ? &quot; &lt; &gt; |. Użyj tylko nazwy udziału SMB, a nie ścieżki.</string>
+    <string name="error_share_invalid">Nazwa udziału nie może zawierać / \\ : * ? \" &lt; &gt; |. Użyj tylko nazwy udziału SMB, a nie ścieżki.</string>
     <string name="default_folder">Folder domyślny (opcjonalnie)</string>
     <string name="default_folder_helper">Podfolder w udziale otwierany po połączeniu, np. Zdjęcia/2024</string>
-    <string name="error_default_folder_invalid">Folder domyślny nie może zawierać \ : * ? &quot; &lt; &gt; |. Użyj / do oddzielania podfolderów.</string>
+    <string name="error_default_folder_invalid">Folder domyślny nie może zawierać : * ? \" &lt; &gt; |. Użyj / do oddzielania podfolderów.</string>
     <string name="default_folder_not_found">Nie znaleziono folderu domyślnego „%1$s”. Zamiast tego zostanie otwarty katalog główny udziału.</string>
     <string name="error_default_folder_not_found">Nie znaleziono folderu domyślnego „%1$s” na serwerze. Sprawdź ścieżkę.</string>
     <string name="invalid_share_name_title">Nieprawidłowa nazwa udziału</string>
