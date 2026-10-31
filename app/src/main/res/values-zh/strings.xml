@@ -47,6 +47,7 @@
     <string name="connection_test_failed">连接失败</string>
     <string name="connection_test_failed_reason">连接失败：%1$s</string>
     <string name="connection_security_unencrypted">未加密</string>
+    <string name="connecting_to_server">正在连接服务器…</string>
     <string name="save">保存</string>
     <string name="cancel">取消</string>
     <string name="add_new_connection">新增连接</string>

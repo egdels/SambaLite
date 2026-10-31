@@ -46,6 +46,7 @@
     <string name="connection_test_failed">Connection failed</string>
     <string name="connection_test_failed_reason">Connection failed: %1$s</string>
     <string name="connection_security_unencrypted">unencrypted</string>
+    <string name="connecting_to_server">Connecting to server…</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="add_new_connection">Add New Connection</string>

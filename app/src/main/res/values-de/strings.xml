@@ -46,6 +46,7 @@
     <string name="connection_test_failed">Verbindung fehlgeschlagen</string>
     <string name="connection_test_failed_reason">Verbindung fehlgeschlagen: %1$s</string>
     <string name="connection_security_unencrypted">unverschlüsselt</string>
+    <string name="connecting_to_server">Verbindung zum Server wird hergestellt…</string>
     <string name="save">Speichern</string>
     <string name="cancel">Abbrechen</string>
     <string name="add_new_connection">Neue Verbindung hinzufügen</string>

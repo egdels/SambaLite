@@ -47,6 +47,7 @@
     <string name="connection_test_failed">Échec de la connexion</string>
     <string name="connection_test_failed_reason">Échec de la connexion : %1$s</string>
     <string name="connection_security_unencrypted">non chiffré</string>
+    <string name="connecting_to_server">Connexion au serveur…</string>
     <string name="save">Enregistrer</string>
     <string name="cancel">Annuler</string>
     <string name="add_new_connection">Ajouter une nouvelle connexion</string>

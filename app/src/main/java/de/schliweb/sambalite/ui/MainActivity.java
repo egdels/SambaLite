@@ -348,7 +348,8 @@ public class MainActivity extends AppCompatActivity
             isLoading -> {
               LogUtils.d("MainActivity", "Loading state changed: " + isLoading);
               if (isLoading) {
-                loadingIndicator.show(R.string.loading_files);
+                // Only the connection test and the default folder check report loading here
+                loadingIndicator.show(R.string.connecting_to_server);
               } else {
                 loadingIndicator.hide();
               }

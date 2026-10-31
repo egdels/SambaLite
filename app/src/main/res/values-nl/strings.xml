@@ -46,6 +46,7 @@
     <string name="connection_test_failed">Verbinding mislukt</string>
     <string name="connection_test_failed_reason">Verbinding mislukt: %1$s</string>
     <string name="connection_security_unencrypted">onversleuteld</string>
+    <string name="connecting_to_server">Verbinden met de server…</string>
     <string name="save">Opslaan</string>
     <string name="cancel">Annuleren</string>
     <string name="add_new_connection">Nieuwe verbinding toevoegen</string>

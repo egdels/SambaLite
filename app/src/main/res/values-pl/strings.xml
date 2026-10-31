@@ -47,6 +47,7 @@
     <string name="connection_test_failed">Połączenie nie powiodło się</string>
     <string name="connection_test_failed_reason">Połączenie nie powiodło się: %1$s</string>
     <string name="connection_security_unencrypted">bez szyfrowania</string>
+    <string name="connecting_to_server">Łączenie z serwerem…</string>
     <string name="save">Zapisz</string>
     <string name="cancel">Anuluj</string>
     <string name="add_new_connection">Dodaj nowe połączenie</string>
