@@ -191,11 +191,17 @@ public class ThumbnailManager {
    *
    * @param remotePath The remote SMB file path
    * @param fileSize The file size in bytes (used to skip very large files)
+   * @param lastModified The modification time of the remote file in ms, 0 if unknown; together with
+   *     the size it makes a changed file get a new thumbnail
    * @param imageView The ImageView to load the thumbnail into
    * @param fallbackResId The fallback drawable resource ID to use if loading fails
    */
   public void loadThumbnail(
-      @NonNull String remotePath, long fileSize, @NonNull ImageView imageView, int fallbackResId) {
+      @NonNull String remotePath,
+      long fileSize,
+      long lastModified,
+      @NonNull ImageView imageView,
+      int fallbackResId) {
     if (connection == null) {
       LogUtils.d(TAG, "No connection set, using fallback icon");
       imageView.setImageResource(fallbackResId);
@@ -208,7 +214,7 @@ public class ThumbnailManager {
       return;
     }
 
-    String cacheKey = getCacheKey(remotePath);
+    String cacheKey = getCacheKey(remotePath, fileSize, lastModified);
 
     // Check memory cache first
     Bitmap cached = memoryCache.get(cacheKey);
@@ -345,16 +351,22 @@ public class ThumbnailManager {
    * downloaded.
    *
    * @param remotePath The remote path of the file
+   * @param fileSize The size of the remote file in bytes
+   * @param lastModified The modification time of the remote file in ms, 0 if unknown
    * @param localFile The local copy of the file
    * @param onComplete Optional callback to run on the main thread after update
    */
   public void updateThumbnailFromLocalFile(
-      @NonNull String remotePath, @NonNull File localFile, @Nullable Runnable onComplete) {
+      @NonNull String remotePath,
+      long fileSize,
+      long lastModified,
+      @NonNull File localFile,
+      @Nullable Runnable onComplete) {
     if (!isThumbnailSupported(remotePath)) return;
 
     executor.execute(
         () -> {
-          String cacheKey = getCacheKey(remotePath);
+          String cacheKey = getCacheKey(remotePath, fileSize, lastModified);
           try {
             Bitmap bitmap = decodeThumbnail(remotePath, localFile);
             if (bitmap != null) {
@@ -681,10 +693,21 @@ public class ThumbnailManager {
   }
 
   @NonNull
-  private String getCacheKey(@NonNull String remotePath) {
+  /**
+   * The cache key of a thumbnail: connection, path, size and modification time, so that the same
+   * path on another connection, or a file changed on the server, gets its own thumbnail.
+   */
+  private String getCacheKey(@NonNull String remotePath, long fileSize, long lastModified) {
+    SmbConnection conn = this.connection;
+    return cacheKeyOf(conn != null ? conn.getId() : null, remotePath, fileSize, lastModified);
+  }
+
+  static String cacheKeyOf(
+      @Nullable String connectionId, @NonNull String remotePath, long fileSize, long lastModified) {
+    String key = connectionId + "\n" + remotePath + "\n" + fileSize + "\n" + lastModified;
     try {
       MessageDigest md = MessageDigest.getInstance("MD5");
-      byte[] digest = md.digest(remotePath.getBytes(StandardCharsets.UTF_8));
+      byte[] digest = md.digest(key.getBytes(StandardCharsets.UTF_8));
       StringBuilder sb = new StringBuilder();
       for (byte b : digest) {
         sb.append(String.format(Locale.ROOT, "%02x", b));
@@ -692,7 +715,7 @@ public class ThumbnailManager {
       return sb.toString();
     } catch (Exception e) {
       // Fallback: simple hash
-      return String.valueOf(remotePath.hashCode());
+      return String.valueOf(key.hashCode());
     }
   }
 

@@ -619,7 +619,12 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
           iconContainer.setCardBackgroundColor(android.graphics.Color.TRANSPARENT);
         }
         int fallbackIcon = getFileIcon(file.getName());
-        thumbnailManager.loadThumbnail(file.getPath(), file.getSize(), iconView, fallbackIcon);
+        thumbnailManager.loadThumbnail(
+            file.getPath(),
+            file.getSize(),
+            file.getLastModified() != null ? file.getLastModified().getTime() : 0L,
+            iconView,
+            fallbackIcon);
       } else {
         // Restore default icon layout
         float density = itemView.getContext().getResources().getDisplayMetrics().density;

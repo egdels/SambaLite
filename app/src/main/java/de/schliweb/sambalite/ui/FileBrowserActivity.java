@@ -2080,6 +2080,8 @@ public class FileBrowserActivity extends AppCompatActivity
           if (thumbnailManager != null) {
             thumbnailManager.updateThumbnailFromLocalFile(
                 file.getPath(),
+                file.getSize(),
+                file.getLastModified() != null ? file.getLastModified().getTime() : 0L,
                 localFile,
                 () -> fileListController.refreshFileItem(file.getPath()));
           }
