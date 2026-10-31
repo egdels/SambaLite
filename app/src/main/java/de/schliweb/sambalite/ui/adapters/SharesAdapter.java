@@ -9,6 +9,8 @@
  */
 package de.schliweb.sambalite.ui.adapters;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.color.MaterialColors;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -96,21 +99,22 @@ public class SharesAdapter extends RecyclerView.Adapter<SharesAdapter.ShareViewH
       shareName.setText(share);
       itemView.setSelected(isSelected);
 
-      // Update visual state based on selection
+      // Selected share: M3 secondary container, like selected files and transfers
+      Context context = itemView.getContext();
       if (isSelected) {
-        // Use a simple highlight background
-        itemView.setBackgroundColor(0xFF2196F3); // Material Blue
-        shareName.setTextColor(android.graphics.Color.WHITE);
+        itemView.setBackgroundColor(
+            MaterialColors.getColor(
+                context, com.google.android.material.R.attr.colorSecondaryContainer, Color.LTGRAY));
+        shareName.setTextColor(
+            MaterialColors.getColor(
+                context,
+                com.google.android.material.R.attr.colorOnSecondaryContainer,
+                Color.BLACK));
       } else {
-        itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-        // Use theme-appropriate text color
-        android.content.res.TypedArray typedArray =
-            itemView
-                .getContext()
-                .obtainStyledAttributes(new int[] {android.R.attr.textColorPrimary});
-        int textColor = typedArray.getColor(0, android.graphics.Color.BLACK);
-        typedArray.recycle();
-        shareName.setTextColor(textColor);
+        itemView.setBackgroundColor(Color.TRANSPARENT);
+        shareName.setTextColor(
+            MaterialColors.getColor(
+                context, com.google.android.material.R.attr.colorOnSurface, Color.BLACK));
       }
     }
 

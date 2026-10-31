@@ -17,14 +17,14 @@
             android:layout_height="48dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary">
+            app:cardBackgroundColor="?attr/colorPrimaryContainer">
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_share"
+                android:src="@drawable/ic_folder"
                 android:contentDescription="@string/share_change_folder"
-                app:tint="?attr/colorOnPrimary" />
+                app:tint="?attr/colorOnPrimaryContainer" />
         </com.google.android.material.card.MaterialCardView>
         <LinearLayout
             android:layout_width="0dp"
@@ -54,7 +54,7 @@
         app:cardCornerRadius="12dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="?attr/colorSurface"
-        app:strokeColor="?attr/colorOutline"
+        app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp">
         <LinearLayout
             android:layout_width="match_parent"

@@ -11,11 +11,10 @@
     android:clickable="true"
     android:focusable="true"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
+    app:cardElevation="0dp"
     app:strokeWidth="1dp"
-    app:strokeColor="?attr/colorOnSurface"
-    app:cardBackgroundColor="?attr/colorSurface"
-    app:rippleColor="?attr/colorPrimary">
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:cardBackgroundColor="?attr/colorSurface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -29,7 +28,7 @@
             android:layout_height="40dp"
             app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -38,9 +37,9 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/stat_notify_sync"
+                android:src="@drawable/ic_sync"
                 android:contentDescription="@string/content_desc_sync_indicator"
-                app:tint="?attr/colorOnPrimary" />
+                app:tint="?attr/colorOnPrimaryContainer" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/sync_progress"
@@ -51,7 +50,7 @@
                 android:indeterminate="true"
                 app:indicatorSize="20dp"
                 app:trackThickness="2dp"
-                app:indicatorColor="?attr/colorOnPrimary"
+                app:indicatorColor="?attr/colorOnPrimaryContainer"
                 app:trackColor="@android:color/transparent"
                 tools:visibility="visible" />
 
@@ -171,7 +170,7 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/content_desc_more_options"
-            android:src="@android:drawable/ic_menu_more"
+            android:src="@drawable/ic_more_vert"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"

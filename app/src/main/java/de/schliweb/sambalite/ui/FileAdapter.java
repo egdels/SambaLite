@@ -340,63 +340,62 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    */
   int getFileIcon(String filename) {
     if (filename == null) {
-      return android.R.drawable.ic_menu_save;
+      return R.drawable.ic_file;
     }
 
     String extension = EnhancedFileUtils.getFileExtension(filename).toLowerCase(Locale.ROOT);
 
     switch (extension) {
       case "pdf":
-        return android.R.drawable.ic_menu_report_image;
+        return R.drawable.ic_picture_as_pdf;
       case "txt":
       case "md":
       case "log":
-        return android.R.drawable.ic_menu_edit;
+      case "doc":
+      case "docx":
+      case "odt":
+        return R.drawable.ic_description;
       case "jpg":
       case "jpeg":
       case "png":
       case "gif":
       case "bmp":
       case "webp":
-        return android.R.drawable.ic_menu_gallery;
+        return R.drawable.ic_image;
       case "mp4":
       case "avi":
       case "mkv":
       case "mov":
       case "wmv":
-        return android.R.drawable.ic_menu_slideshow;
+        return R.drawable.ic_movie;
       case "mp3":
       case "wav":
       case "flac":
       case "ogg":
       case "m4a":
-        return android.R.drawable.ic_media_play;
+        return R.drawable.ic_music_note;
       case "zip":
       case "rar":
       case "7z":
       case "tar":
       case "gz":
-        return android.R.drawable.ic_menu_compass;
-      case "doc":
-      case "docx":
-      case "odt":
-        return android.R.drawable.ic_menu_edit;
+        return R.drawable.ic_archive;
       case "xls":
       case "xlsx":
       case "ods":
-        return android.R.drawable.ic_menu_view;
+        return R.drawable.ic_table_chart;
       case "ppt":
       case "pptx":
       case "odp":
-        return android.R.drawable.ic_menu_slideshow;
+        return R.drawable.ic_slideshow;
       case "exe":
       case "msi":
       case "deb":
       case "rpm":
       case "apk":
-        return android.R.drawable.ic_menu_preferences;
+        return R.drawable.ic_apps;
       default:
-        return android.R.drawable.ic_menu_save;
+        return R.drawable.ic_file;
     }
   }
 
@@ -560,7 +559,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       if (file == null) {
         // Parent directory
         LogUtils.d("FileAdapter", "Binding parent directory item");
-        iconView.setImageResource(android.R.drawable.ic_menu_revert);
+        iconView.setImageResource(R.drawable.ic_arrow_upward);
         nameView.setText(R.string.parent_directory);
         dateView.setText("");
         sizeView.setText("");
@@ -612,19 +611,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             android.content.res.ColorStateList.valueOf(
                 MaterialColors.getColor(
                     iconView,
-                    com.google.android.material.R.attr.colorOnPrimary,
-                    android.graphics.Color.WHITE)));
+                    com.google.android.material.R.attr.colorOnPrimaryContainer,
+                    android.graphics.Color.BLACK)));
         if (iconContainer != null) {
           iconContainer.setCardBackgroundColor(
               MaterialColors.getColor(
                   iconContainer,
-                  androidx.appcompat.R.attr.colorPrimary,
-                  android.graphics.Color.BLUE));
+                  com.google.android.material.R.attr.colorPrimaryContainer,
+                  android.graphics.Color.LTGRAY));
         }
         iconView.setTag(null);
         if (file.isDirectory()) {
           LogUtils.d("FileAdapter", "Setting directory icon for: " + file.getName());
-          iconView.setImageResource(android.R.drawable.ic_menu_more);
+          iconView.setImageResource(R.drawable.ic_folder);
         } else {
           LogUtils.d("FileAdapter", "Setting file icon for: " + file.getName());
           iconView.setImageResource(getFileIcon(file.getName()));

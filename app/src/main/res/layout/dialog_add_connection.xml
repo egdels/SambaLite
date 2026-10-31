@@ -26,15 +26,15 @@
                 android:layout_height="48dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorPrimary">
+                app:cardBackgroundColor="?attr/colorPrimaryContainer">
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_share"
+                    android:src="@drawable/ic_server"
                     android:contentDescription="@string/add_connection"
-                    app:tint="?attr/colorOnPrimary" />
+                    app:tint="?attr/colorOnPrimaryContainer" />
 
             </com.google.android.material.card.MaterialCardView>
 
@@ -71,9 +71,9 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:cardBackgroundColor="?attr/colorSurface"
-            app:strokeColor="?attr/colorOutline"
+            app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -127,7 +127,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:hint="@string/connection_name"
-            app:startIconDrawable="@android:drawable/ic_menu_edit"
+            app:startIconDrawable="@drawable/ic_label"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -146,7 +146,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/server"
             app:helperText="IP address or hostname"
-            app:startIconDrawable="@android:drawable/ic_menu_mapmode"
+            app:startIconDrawable="@drawable/ic_server"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -165,7 +165,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/port"
             app:helperText="@string/port_helper"
-            app:startIconDrawable="@android:drawable/ic_menu_manage"
+            app:startIconDrawable="@drawable/ic_settings"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -186,7 +186,7 @@
             android:layout_marginBottom="8dp"
             android:hint="@string/share_name"
             app:helperText="Name of the shared folder"
-            app:startIconDrawable="@android:drawable/ic_menu_share"
+            app:startIconDrawable="@drawable/ic_folder_shared"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -253,7 +253,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/default_folder"
             app:helperText="@string/default_folder_helper"
-            app:startIconDrawable="@android:drawable/ic_menu_more"
+            app:startIconDrawable="@drawable/ic_folder"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -281,7 +281,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/username"
             app:helperText="Leave empty for guest access"
-            app:startIconDrawable="@android:drawable/ic_menu_myplaces"
+            app:startIconDrawable="@drawable/ic_person"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -300,7 +300,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/password"
             app:endIconMode="password_toggle"
-            app:startIconDrawable="@android:drawable/ic_lock_lock"
+            app:startIconDrawable="@drawable/ic_lock"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -318,7 +318,7 @@
             android:layout_marginBottom="16dp"
             android:hint="@string/domain"
             app:helperText="Optional - leave empty if not needed"
-            app:startIconDrawable="@android:drawable/ic_menu_compass"
+            app:startIconDrawable="@drawable/ic_public"
             app:startIconTint="?attr/colorOnSurface">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -367,7 +367,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/test_connection"
-            app:icon="@android:drawable/ic_menu_search" />
+            app:icon="@drawable/ic_search" />
 
         <!-- Custom button bar for vertical layout to support large fonts -->
         <LinearLayout

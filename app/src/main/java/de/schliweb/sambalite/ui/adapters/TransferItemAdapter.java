@@ -139,9 +139,7 @@ public class TransferItemAdapter
 
       // Icon based on transfer type
       icon.setImageResource(
-          "DOWNLOAD".equals(item.transferType)
-              ? android.R.drawable.stat_sys_download
-              : android.R.drawable.stat_sys_upload);
+          "DOWNLOAD".equals(item.transferType) ? R.drawable.ic_download : R.drawable.ic_upload);
 
       // Selection state visualization
       boolean isSelected = selectedIds.contains(item.id);
@@ -209,7 +207,7 @@ public class TransferItemAdapter
         case "CANCELLED":
           status.setText(R.string.transfer_status_cancelled);
           statusBadge.setVisibility(View.VISIBLE);
-          statusIcon.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+          statusIcon.setImageResource(R.drawable.ic_close);
           bindSize(item);
           break;
         default:

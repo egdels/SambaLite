@@ -7,8 +7,8 @@
     android:clickable="true"
     android:focusable="true"
     app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    app:strokeColor="?attr/colorOutline"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp"
     app:cardBackgroundColor="?attr/colorSurface">
 

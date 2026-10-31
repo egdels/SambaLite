@@ -7,8 +7,8 @@
     android:clickable="true"
     android:focusable="true"
     app:cardCornerRadius="6dp"
-    app:cardElevation="1dp"
-    app:strokeColor="?attr/colorOutline"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp"
     app:cardBackgroundColor="?attr/colorSurface">
 
@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:padding="12dp"
         android:gravity="center_vertical"
-        app:drawableStartCompat="@android:drawable/ic_menu_share"
+        app:drawableStartCompat="@drawable/ic_folder_shared"
         android:drawablePadding="12dp"
         app:drawableTint="?attr/colorPrimary"
         android:text="@string/example_share_name"

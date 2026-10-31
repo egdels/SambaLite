@@ -23,7 +23,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                app:cardBackgroundColor="?attr/colorPrimary"
+                app:cardBackgroundColor="?attr/colorPrimaryContainer"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp">
 
@@ -33,7 +33,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@string/battery_optimization_title"
                     android:src="@drawable/ic_battery_optimization"
-                    app:tint="?attr/colorOnPrimary" />
+                    app:tint="?attr/colorOnPrimaryContainer" />
 
             </com.google.android.material.card.MaterialCardView>
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Refreshed Material 3 look**: The app now follows the system colours (Material You) on Android 12 and later. On older versions it uses a full Material 3 colour scheme generated from the logo blue: the logo colour stays on icon tiles and buttons, while text, icons and buttons on light backgrounds use a darker shade of it that is easier to read. Dialogs no longer show the purple surface of the Material 3 default palette. The top bars use the surface colour instead of a solid blue bar, and cards are flat with a thin outline instead of a shadow. All icons are now Material icons that look the same on every device, replacing the old Android system icons. Folders show a folder icon, and files show an icon for their type (document, PDF, image, video, audio, archive, spreadsheet, presentation, installer). The six copies of the theme are merged into one, and light and dark colours come from one set of colour resources.
+
 ## [2.5.7] - 2026-10-30
 
 ### Added

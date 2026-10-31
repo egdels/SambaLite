@@ -19,15 +19,15 @@
             android:layout_height="48dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary">
+            app:cardBackgroundColor="?attr/colorPrimaryContainer">
 
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_edit"
                 android:contentDescription="@string/rename"
-                app:tint="?attr/colorOnPrimary" />
+                app:tint="?attr/colorOnPrimaryContainer" />
 
         </com.google.android.material.card.MaterialCardView>
 
@@ -62,7 +62,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/new_name"
-        app:startIconDrawable="@android:drawable/ic_menu_edit"
+        app:startIconDrawable="@drawable/ic_edit"
         app:startIconTint="?attr/colorOnSurface">
 
         <com.google.android.material.textfield.TextInputEditText

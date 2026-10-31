@@ -12,16 +12,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
-        app:elevation="4dp">
+        app:liftOnScroll="true">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:titleTextColor="?attr/colorOnPrimary"
-            app:subtitleTextColor="?attr/colorOnPrimary"
-            app:navigationIconTint="?attr/colorOnPrimary" />
+            android:layout_height="?attr/actionBarSize" />
 
         <!-- Breadcrumb Navigation mit Parent Directory Integration -->
         <com.google.android.material.card.MaterialCardView
@@ -29,8 +25,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorSurface">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainer">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -46,7 +42,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/go_to_parent_directory"
-                    app:icon="@android:drawable/ic_menu_revert"
+                    app:icon="@drawable/ic_arrow_upward"
                     app:iconTint="?attr/colorPrimary"
                     app:iconSize="24dp"
                     android:layout_marginEnd="8dp" />
@@ -87,7 +83,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/refresh_directory"
-                    app:icon="@android:drawable/ic_popup_sync"
+                    app:icon="@drawable/ic_refresh"
                     app:iconTint="?attr/colorPrimary"
                     app:iconSize="24dp"
                     android:layout_marginStart="8dp" />
@@ -99,7 +95,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/search_files"
-                    app:icon="@android:drawable/ic_menu_search"
+                    app:icon="@drawable/ic_search"
                     app:iconTint="?attr/colorPrimary"
                     app:iconSize="24dp"
                     android:layout_marginStart="4dp" />
@@ -111,7 +107,7 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:contentDescription="@string/sort"
-                    app:icon="@android:drawable/ic_menu_sort_by_size"
+                    app:icon="@drawable/ic_sort"
                     app:iconTint="?attr/colorPrimary"
                     app:iconSize="24dp"
                     android:layout_marginStart="4dp" />
@@ -137,8 +133,8 @@
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="?attr/colorSurface"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainer"
             android:visibility="visible">
 
                 <LinearLayout
@@ -243,12 +239,11 @@
         android:visibility="gone">
 
         <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:src="@android:drawable/ic_menu_gallery"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_folder"
             android:contentDescription="@string/empty_folder"
-            app:tint="?attr/colorOnSurface"
-            android:alpha="0.5"
+            app:tint="?attr/colorOutline"
             android:layout_marginBottom="16dp" />
 
         <TextView
@@ -307,10 +302,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="32dp"
         android:contentDescription="@string/upload_files"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        android:src="@drawable/ic_add" />
 
     <!-- Sekundär-FAB: Create Folder - logo blue -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -321,10 +313,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="104dp"
         android:contentDescription="@string/create_folder"
-        android:src="@android:drawable/ic_menu_agenda"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        android:src="@drawable/ic_create_new_folder" />
 
     <!-- Multi-select FABs: only visible in selection mode -->
     <!-- Order top to bottom: Select All (304dp) → Unselect (240dp) → Action (176dp) -->
@@ -337,10 +326,7 @@
         android:layout_marginBottom="304dp"
         android:contentDescription="@string/download_selected"
         android:visibility="gone"
-        android:src="@drawable/ic_menu_selectall"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        android:src="@drawable/ic_menu_selectall" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_clear_selection"
@@ -351,10 +337,7 @@
         android:layout_marginBottom="240dp"
         android:contentDescription="@string/clear_selection"
         android:visibility="gone"
-        android:src="@drawable/ic_menu_unselectall"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        android:src="@drawable/ic_menu_unselectall" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_multi_options"
@@ -365,10 +348,7 @@
         android:layout_marginBottom="176dp"
         android:contentDescription="@string/multi_select_options"
         android:visibility="gone"
-        android:src="@drawable/ic_menu_more"
-        app:backgroundTint="#3DB7DC"
-        app:tint="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        android:src="@drawable/ic_more_vert" />
 
     <!-- Folder Picker FAB: only visible in folder picker mode -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
@@ -380,11 +360,7 @@
         android:text="@string/select_this_folder"
         android:contentDescription="@string/select_this_folder"
         android:visibility="gone"
-        app:icon="@android:drawable/ic_menu_agenda"
-        app:backgroundTint="#3DB7DC"
-        app:iconTint="#FFFFFF"
-        android:textColor="#FFFFFF"
-        app:rippleColor="#693DB7DC" />
+        app:icon="@drawable/ic_check" />
 
     <!-- Search FAB - in TopBar integriert über Toolbar Menu -->
     <!-- Sort FAB - in TopBar integriert über Toolbar Menu -->

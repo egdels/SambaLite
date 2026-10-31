@@ -19,16 +19,16 @@
             android:layout_height="48dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary">
+            app:cardBackgroundColor="?attr/colorPrimaryContainer">
 
             <ImageView
                 android:id="@+id/progress_icon"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_upload"
+                android:src="@drawable/ic_upload"
                 android:contentDescription="@string/uploading"
-                app:tint="?attr/colorOnPrimary" />
+                app:tint="?attr/colorOnPrimaryContainer" />
 
         </com.google.android.material.card.MaterialCardView>
 

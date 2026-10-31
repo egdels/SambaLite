@@ -10,11 +10,10 @@
     android:clickable="true"
     android:focusable="true"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
+    app:cardElevation="0dp"
     app:strokeWidth="1dp"
-    app:strokeColor="?attr/colorOnSurface"
-    app:cardBackgroundColor="?attr/colorSurface"
-    app:rippleColor="?attr/colorPrimary">
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:cardBackgroundColor="?attr/colorSurface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -28,7 +27,7 @@
             android:layout_height="48dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorPrimary"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -36,9 +35,9 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@android:drawable/ic_menu_share"
+                android:src="@drawable/ic_server"
                 android:contentDescription="@string/smb_connection"
-                app:tint="?attr/colorOnPrimary" />
+                app:tint="?attr/colorOnPrimaryContainer" />
 
         </com.google.android.material.card.MaterialCardView>
 
@@ -66,8 +65,8 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="4dp"
             android:layout_marginEnd="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:ellipsize="end"
             android:maxLines="1"
             app:layout_constraintEnd_toStartOf="@id/status_indicator"
@@ -84,10 +83,9 @@
             android:layout_marginTop="2dp"
             android:layout_marginEnd="8dp"
             android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:ellipsize="end"
             android:maxLines="1"
-            android:alpha="0.7"
             app:layout_constraintEnd_toStartOf="@id/status_indicator"
             app:layout_constraintStart_toEndOf="@id/icon_container"
             app:layout_constraintTop_toBottomOf="@id/connection_details"
@@ -99,7 +97,7 @@
             android:layout_width="12dp"
             android:layout_height="12dp"
             android:layout_marginEnd="4dp"
-            android:src="@android:drawable/presence_online"
+            android:src="@drawable/circle_dot"
             android:contentDescription="@string/content_desc_connection_status"
             android:visibility="gone"
             app:layout_constraintEnd_toStartOf="@id/more_options"
@@ -113,9 +111,9 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:contentDescription="@string/content_desc_more_options"
-            android:src="@android:drawable/ic_menu_more"
+            android:src="@drawable/ic_more_vert"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="?attr/colorOnSurface"
+            app:tint="?attr/colorOnSurfaceVariant"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/icon_container"
             app:layout_constraintBottom_toBottomOf="@id/icon_container" />

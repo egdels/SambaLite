@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Material 3 colour roles, dark scheme. Generated with the Material Color
+  Utilities bundled in com.google.android.material (SchemeFidelity) from the
+  logo blue #3DB7DC, so primaryContainer is the logo colour itself.
+  values/ and values-night/ define the same names; the themes reference them
+  once. On Android 12+ DynamicColors replaces them with the wallpaper colours.
+-->
+<resources>
+    <color name="md_primary">#62D4FA</color>
+    <color name="md_onPrimary">#003544</color>
+    <color name="md_primaryContainer">#3DB7DC</color>
+    <color name="md_onPrimaryContainer">#004556</color>
+    <color name="md_inversePrimary">#006780</color>
+    <color name="md_secondary">#A5CDDD</color>
+    <color name="md_onSecondary">#083542</color>
+    <color name="md_secondaryContainer">#274E5C</color>
+    <color name="md_onSecondaryContainer">#97BECE</color>
+    <color name="md_tertiary">#FFB875</color>
+    <color name="md_onTertiary">#4B2800</color>
+    <color name="md_tertiaryContainer">#EA9742</color>
+    <color name="md_onTertiaryContainer">#5F3400</color>
+    <color name="md_error">#FFB4AB</color>
+    <color name="md_onError">#690005</color>
+    <color name="md_errorContainer">#93000A</color>
+    <color name="md_onErrorContainer">#FFDAD6</color>
+    <color name="md_background">#0F1416</color>
+    <color name="md_onBackground">#DEE3E6</color>
+    <color name="md_surface">#0F1416</color>
+    <color name="md_onSurface">#DEE3E6</color>
+    <color name="md_surfaceVariant">#3D484D</color>
+    <color name="md_onSurfaceVariant">#BDC8CE</color>
+    <color name="md_surfaceDim">#0F1416</color>
+    <color name="md_surfaceBright">#353A3C</color>
+    <color name="md_surfaceContainerLowest">#0A0F11</color>
+    <color name="md_surfaceContainerLow">#171C1F</color>
+    <color name="md_surfaceContainer">#1B2023</color>
+    <color name="md_surfaceContainerHigh">#262B2D</color>
+    <color name="md_surfaceContainerHighest">#303638</color>
+    <color name="md_inverseSurface">#DEE3E6</color>
+    <color name="md_inverseOnSurface">#2C3134</color>
+    <color name="md_outline">#879298</color>
+    <color name="md_outlineVariant">#3D484D</color>
+</resources>

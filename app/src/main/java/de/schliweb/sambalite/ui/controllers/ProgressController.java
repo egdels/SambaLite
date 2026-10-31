@@ -184,7 +184,7 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             if (progressIcon != null) {
               String downloadingText = activity.getString(R.string.downloading);
               if (finalTitle.contains(downloadingText) || finalMessage.contains(downloadingText)) {
-                progressIcon.setImageResource(android.R.drawable.stat_sys_download);
+                progressIcon.setImageResource(R.drawable.ic_download);
                 progressIcon.setContentDescription(downloadingText);
               }
             }
