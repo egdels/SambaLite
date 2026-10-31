@@ -206,16 +206,9 @@ public class FileListViewModel extends ViewModel {
   public void setShowHiddenFiles(boolean showHiddenFiles) {
     state.setShowHiddenFiles(showHiddenFiles);
 
-    // Reload files with new setting
-    if (state.getSearchMode()) {
-      List<SmbFileItem> results = state.getSearchResults().getValue();
-      if (results != null) {
-        List<SmbFileItem> filtered = filterHiddenFiles(results);
-        sortFiles(filtered);
-        state.setSearchResults(filtered);
-      }
-    } else {
-      // Reload from current state
+    // Search results are filtered by SearchViewModel, which observes the setting and keeps the
+    // unfiltered results, so that hidden results come back when the option is turned on again
+    if (!state.getSearchMode()) {
       refreshUIFromCurrentState();
     }
   }
@@ -251,6 +244,57 @@ public class FileListViewModel extends ViewModel {
       }
     }
     return filtered;
+  }
+
+  /**
+   * Removes hidden search results unless "Show hidden files/folders" is on: entries whose name
+   * starts with a dot and entries inside such a folder below the folder the search started in (e.g.
+   * {@code .config/settings.ini}), which could not be reached by browsing either.
+   *
+   * @param results the search results, with share-relative paths
+   * @param startPath the share-relative folder the search started in
+   * @return the visible results
+   */
+  public @NonNull List<SmbFileItem> filterHiddenSearchResults(
+      @NonNull List<SmbFileItem> results, @Nullable String startPath) {
+    if (state.isShowHiddenFiles()) {
+      return results;
+    }
+    List<SmbFileItem> filtered = new ArrayList<>();
+    for (SmbFileItem file : results) {
+      if (!isHiddenBelow(file, startPath)) {
+        filtered.add(file);
+      }
+    }
+    return filtered;
+  }
+
+  /**
+   * Whether a search result is hidden: its name or a folder between the search folder and the
+   * result starts with a dot.
+   *
+   * @param file the search result
+   * @param startPath the share-relative folder the search started in, may be null or empty
+   * @return true if the result is hidden
+   */
+  static boolean isHiddenBelow(@NonNull SmbFileItem file, @Nullable String startPath) {
+    if (file.getName().startsWith(".")) {
+      return true;
+    }
+    String path = file.getPath() == null ? "" : file.getPath().replace('\\', '/');
+    String start = startPath == null ? "" : startPath.replace('\\', '/');
+    while (start.startsWith("/")) start = start.substring(1);
+    while (start.endsWith("/")) start = start.substring(0, start.length() - 1);
+    while (path.startsWith("/")) path = path.substring(1);
+    if (!start.isEmpty() && path.startsWith(start + "/")) {
+      path = path.substring(start.length() + 1);
+    }
+    for (String segment : path.split("/")) {
+      if (segment.startsWith(".")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

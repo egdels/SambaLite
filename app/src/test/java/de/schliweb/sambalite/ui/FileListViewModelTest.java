@@ -200,6 +200,40 @@ public class FileListViewModelTest {
   }
 
   @Test
+  public void isHiddenBelow_dotNameOrDotFolderBelowSearchFolder() {
+    assertTrue(FileListViewModel.isHiddenBelow(item(".hidden.txt", ".hidden.txt"), ""));
+    assertTrue(
+        FileListViewModel.isHiddenBelow(item("settings.ini", ".config/settings.ini"), ""));
+    assertTrue(
+        FileListViewModel.isHiddenBelow(item("a.txt", "Docs/.cache/sub/a.txt"), "Docs"));
+    assertFalse(FileListViewModel.isHiddenBelow(item("notes.txt", "Docs/notes.txt"), ""));
+    // A search started inside a hidden folder shows what is below it
+    assertFalse(
+        FileListViewModel.isHiddenBelow(item("settings.ini", ".config/settings.ini"), ".config"));
+  }
+
+  @Test
+  public void filterHiddenSearchResults_respectsShowHiddenSetting() {
+    List<SmbFileItem> results =
+        Arrays.asList(
+            item(".hidden.txt", ".hidden.txt"),
+            item("settings.ini", ".config/settings.ini"),
+            item("readme.txt", "readme.txt"));
+
+    when(state.isShowHiddenFiles()).thenReturn(false);
+    List<SmbFileItem> visible = viewModel.filterHiddenSearchResults(results, "");
+    assertEquals(1, visible.size());
+    assertEquals("readme.txt", visible.get(0).getName());
+
+    when(state.isShowHiddenFiles()).thenReturn(true);
+    assertEquals(3, viewModel.filterHiddenSearchResults(results, "").size());
+  }
+
+  private static SmbFileItem item(String name, String path) {
+    return new SmbFileItem(name, path, SmbFileItem.Type.FILE, 1, new Date());
+  }
+
+  @Test
   public void testNavigateToDirectory() throws Exception {
     // Arrange
     SmbFileItem directory = createTestFile("folder1", true);

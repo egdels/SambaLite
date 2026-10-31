@@ -49,6 +49,9 @@ public class SearchViewModel extends ViewModel {
 
   private String currentSearchId = "";
 
+  // All results of the current search as stored by the worker, before hiding and sorting
+  @Nullable private List<SmbFileItem> lastDbItems;
+
   // Work request of the current search, to tell its failure apart from older searches
   @Nullable private UUID currentWorkId;
 
@@ -108,6 +111,15 @@ public class SearchViewModel extends ViewModel {
             if (current != stateResults) {
               searchResults.setValue(stateResults);
             }
+          }
+        });
+
+    // Turning "Show hidden files/folders" on or off applies to the results shown
+    searchResults.addSource(
+        state.getShowHiddenFiles(),
+        show -> {
+          if (state.getSearchMode()) {
+            publishResults();
           }
         });
 
@@ -199,6 +211,7 @@ public class SearchViewModel extends ViewModel {
     currentSearchId = UUID.randomUUID().toString();
 
     // Switch DB LiveData source to the new search ID
+    lastDbItems = null;
     switchDbSource(currentSearchId);
 
     // Build and enqueue the SearchWorker
@@ -250,6 +263,7 @@ public class SearchViewModel extends ViewModel {
     state.setCurrentSearchQuery("");
     state.setSearchResults(new ArrayList<>());
     searchResults.setValue(new ArrayList<>());
+    lastDbItems = null;
 
     // Navigate back to the folder where the search started
     String startPath = state.getSearchStartPath();
@@ -308,11 +322,8 @@ public class SearchViewModel extends ViewModel {
           for (SearchResult r : dbResults) {
             items.add(toSmbFileItem(r));
           }
-          // Apply current sort option to search results
-          fileListViewModel.sortFiles(items);
-          searchResults.setValue(items);
-          // Also update the state so other observers (e.g. FileBrowserActivity) see it
-          state.setSearchResults(items);
+          lastDbItems = items;
+          publishResults();
         });
 
     // Add new source for count
@@ -325,6 +336,22 @@ public class SearchViewModel extends ViewModel {
                 ((MediatorLiveData<Integer>) resultCount).setValue(count != null ? count : 0);
               });
     }
+  }
+
+  /**
+   * Shows the results of the current search, without hidden entries unless "Show hidden
+   * files/folders" is on, in the current sort order.
+   */
+  private void publishResults() {
+    if (lastDbItems == null) return;
+    List<SmbFileItem> items =
+        new ArrayList<>(
+            fileListViewModel.filterHiddenSearchResults(lastDbItems, state.getSearchStartPath()));
+    // Apply current sort option to search results
+    fileListViewModel.sortFiles(items);
+    searchResults.setValue(items);
+    // Also update the state so other observers (e.g. FileBrowserActivity) see it
+    state.setSearchResults(items);
   }
 
   /** Maps a SearchResult DB entity to an SmbFileItem for the UI. */
