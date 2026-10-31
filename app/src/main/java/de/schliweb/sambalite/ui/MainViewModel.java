@@ -211,6 +211,7 @@ public class MainViewModel extends ViewModel {
             syncManager.removeConfigsForConnection(connectionId);
             LogUtils.i("MainViewModel", "Connection deleted successfully: " + connectionId);
             loadConnections(); // Reload the list
+            loadSyncConfigs(); // Its sync configs are gone as well
           } catch (Exception e) {
             LogUtils.e("MainViewModel", "Failed to delete connection: " + e.getMessage());
 
