@@ -593,4 +593,5 @@
         <item quantity="one">%1$d Transfer wartet noch oder läuft. Er läuft nach dem Beenden im Hintergrund weiter.</item>
         <item quantity="other">%1$d Transfers warten noch oder laufen. Sie laufen nach dem Beenden im Hintergrund weiter.</item>
     </plurals>
+    <string name="stale_listing_notice">Der Server ist nicht erreichbar. Diese Liste wurde früher gespeichert und ist eventuell nicht aktuell.</string>
 </resources>

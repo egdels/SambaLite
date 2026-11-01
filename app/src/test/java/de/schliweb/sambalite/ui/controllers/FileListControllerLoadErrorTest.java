@@ -59,6 +59,7 @@ public class FileListControllerLoadErrorTest {
     MockitoAnnotations.openMocks(this);
     when(viewModel.getFiles()).thenReturn(files);
     when(viewModel.getLoadError()).thenReturn(loadError);
+    when(viewModel.getStaleListing()).thenReturn(new MutableLiveData<>(null));
     when(viewModel.getCurrentPath()).thenReturn(currentPath);
     when(viewModel.isLoading()).thenReturn(new MutableLiveData<>(false));
     when(viewModel.getSortOption()).thenReturn(new MutableLiveData<>(FileSortOption.NAME));

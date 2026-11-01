@@ -593,4 +593,5 @@
         <item quantity="one">%1$d overdracht staat nog in de wachtrij of is bezig. Deze gaat na het afsluiten op de achtergrond door.</item>
         <item quantity="other">%1$d overdrachten staan nog in de wachtrij of zijn bezig. Ze gaan na het afsluiten op de achtergrond door.</item>
     </plurals>
+    <string name="stale_listing_notice">De server is niet bereikbaar. Deze lijst is eerder opgeslagen en is mogelijk niet actueel.</string>
 </resources>

@@ -644,4 +644,5 @@
         <item quantity="many">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
         <item quantity="other">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
     </plurals>
+    <string name="stale_listing_notice">Nie można połączyć się z serwerem. Ta lista została zapisana wcześniej i może być nieaktualna.</string>
 </resources>

@@ -604,4 +604,5 @@
         <item quantity="one">%1$d transfer is still queued or running. It continues in the background after you quit.</item>
         <item quantity="other">%1$d transfers are still queued or running. They continue in the background after you quit.</item>
     </plurals>
+    <string name="stale_listing_notice">Could not reach the server. This list was saved earlier and may be out of date.</string>
 </resources>

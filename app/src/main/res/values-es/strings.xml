@@ -618,4 +618,5 @@
         <item quantity="many">%1$d transferencias siguen en cola o en curso. Continuarán en segundo plano al salir.</item>
         <item quantity="other">%1$d transferencias siguen en cola o en curso. Continuarán en segundo plano al salir.</item>
     </plurals>
+    <string name="stale_listing_notice">No se pudo conectar con el servidor. Esta lista se guardó antes y puede no estar actualizada.</string>
 </resources>

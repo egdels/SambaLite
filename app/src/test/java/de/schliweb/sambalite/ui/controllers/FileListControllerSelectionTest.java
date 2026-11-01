@@ -60,6 +60,7 @@ public class FileListControllerSelectionTest {
     when(viewModel.isLoading()).thenReturn(new MutableLiveData<>(false));
     when(viewModel.getErrorMessage()).thenReturn(new MutableLiveData<>(null));
     when(viewModel.getLoadError()).thenReturn(new MutableLiveData<>(null));
+    when(viewModel.getStaleListing()).thenReturn(new MutableLiveData<>(null));
     when(viewModel.getSortOption()).thenReturn(new MutableLiveData<>(FileSortOption.NAME));
     when(viewModel.getDirectoriesFirst()).thenReturn(new MutableLiveData<>(true));
     when(viewModel.getSortDirection()).thenReturn(new MutableLiveData<>(SortDirection.ASCENDING));

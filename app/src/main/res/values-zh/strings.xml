@@ -571,4 +571,5 @@
     <plurals name="quit_transfers_message">
         <item quantity="other">还有 %1$d 个传输在排队或进行中。退出后它们将在后台继续。</item>
     </plurals>
+    <string name="stale_listing_notice">无法连接服务器。此列表为之前保存的内容，可能已过时。</string>
 </resources>

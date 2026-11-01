@@ -618,4 +618,5 @@
         <item quantity="many">%1$d transferts sont encore en attente ou en cours. Ils continuent en arrière-plan après la fermeture.</item>
         <item quantity="other">%1$d transferts sont encore en attente ou en cours. Ils continuent en arrière-plan après la fermeture.</item>
     </plurals>
+    <string name="stale_listing_notice">Impossible de joindre le serveur. Cette liste a été enregistrée auparavant et n’est peut-être plus à jour.</string>
 </resources>

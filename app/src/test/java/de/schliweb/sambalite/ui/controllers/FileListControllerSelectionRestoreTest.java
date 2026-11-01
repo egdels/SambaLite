@@ -57,6 +57,7 @@ public class FileListControllerSelectionRestoreTest {
     when(viewModel.getFiles()).thenReturn(files);
     when(viewModel.getCurrentPath()).thenReturn(currentPath);
     when(viewModel.getLoadError()).thenReturn(new MutableLiveData<>(null));
+    when(viewModel.getStaleListing()).thenReturn(new MutableLiveData<>(null));
     when(viewModel.isLoading()).thenReturn(new MutableLiveData<>(false));
     when(viewModel.getSortOption()).thenReturn(new MutableLiveData<>(FileSortOption.NAME));
     when(viewModel.getDirectoriesFirst()).thenReturn(new MutableLiveData<>(true));

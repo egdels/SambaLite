@@ -44,6 +44,13 @@ public class FileBrowserState {
   @NonNull private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
   // Error of the last folder listing, null if it succeeded
   @NonNull private final MutableLiveData<String> loadError = new MutableLiveData<>();
+
+  /**
+   * Path of a folder shown from the cache whose check against the server failed, or null. The list
+   * may be outdated; the browser says so once.
+   */
+  @NonNull private final MutableLiveData<String> staleListing = new MutableLiveData<>();
+
   // Sorting state
   @NonNull private final MutableLiveData<FileSortOption> sortOption;
   @NonNull private final MutableLiveData<SortDirection> sortDirection;
@@ -217,6 +224,16 @@ public class FileBrowserState {
    */
   public void setLoadError(@Nullable String error) {
     loadError.postValue(error);
+  }
+
+  /** The folder whose cached list could not be checked against the server, or null. */
+  public @NonNull LiveData<String> getStaleListing() {
+    return staleListing;
+  }
+
+  /** Reports that the cached list of a folder could not be checked, or clears it with null. */
+  public void setStaleListing(@Nullable String path) {
+    staleListing.postValue(path);
   }
 
   /** Gets the current path as LiveData. */

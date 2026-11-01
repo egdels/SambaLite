@@ -118,6 +118,16 @@ public class FileListViewModel extends ViewModel {
     return state.getLoadError();
   }
 
+  /** The folder whose cached list could not be checked against the server, or null. */
+  public @NonNull LiveData<String> getStaleListing() {
+    return state.getStaleListing();
+  }
+
+  /** Clears the stale-list notice once it was shown. */
+  public void clearStaleListing() {
+    state.setStaleListing(null);
+  }
+
   /** Gets the current path as LiveData (display path including share name). */
   public @NonNull LiveData<String> getCurrentPath() {
     return state.getCurrentPath();
@@ -621,7 +631,9 @@ public class FileListViewModel extends ViewModel {
             // Set thread priority to background to avoid blocking the UI
             Thread.currentThread().setPriority(Thread.NORM_PRIORITY - 1);
             LogUtils.d("FileListViewModel", "Validating cache for: " + path);
-            SmbFileItem remoteDir = smbRepository.getFileItem(connection, path);
+            SmbFileItem remoteDir =
+                de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+                    () -> smbRepository.getFileItem(connection, path));
             if (remoteDir == null) return;
 
             // Retrieve currently cached data to compare with remote
@@ -668,6 +680,10 @@ public class FileListViewModel extends ViewModel {
             }
           } catch (Exception e) {
             LogUtils.w("FileListViewModel", "Cache validation failed: " + e.getMessage());
+            // The folder is shown from the cache, but the server could not be reached: say so
+            if (path.equals(state.getCurrentPathString())) {
+              state.setStaleListing(path);
+            }
           } finally {
             pendingValidations.remove(cacheKey);
           }

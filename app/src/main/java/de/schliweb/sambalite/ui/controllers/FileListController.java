@@ -197,6 +197,17 @@ public class FileListController
               }
             });
 
+    // A folder shown from the cache whose check against the server failed may be outdated
+    viewModel
+        .getStaleListing()
+        .observe(
+            getLifecycleOwner(),
+            stalePath -> {
+              if (stalePath == null || searchMode) return;
+              viewModel.clearStaleListing();
+              showStaleListingNotice();
+            });
+
     // Observe file list changes
     viewModel
         .getFiles()
@@ -885,5 +896,23 @@ public class FileListController
   /** Callback when the multi-selection changes. */
   public interface SelectionChangedCallback {
     void onSelectionChanged(int count, @NonNull java.util.List<SmbFileItem> selectedItems);
+  }
+
+  /** Says that the shown list comes from the cache because the server could not be reached. */
+  private void showStaleListingNotice() {
+    com.google.android.material.snackbar.Snackbar snackbar =
+        com.google.android.material.snackbar.Snackbar.make(
+                swipeRefreshLayout,
+                de.schliweb.sambalite.R.string.stale_listing_notice,
+                com.google.android.material.snackbar.Snackbar.LENGTH_LONG)
+            .setTextMaxLines(4)
+            .setAction(
+                de.schliweb.sambalite.R.string.transfer_retry,
+                v -> viewModel.refreshCurrentDirectory());
+    View fab = swipeRefreshLayout.getRootView().findViewById(de.schliweb.sambalite.R.id.fab);
+    if (fab != null && fab.isShown()) {
+      snackbar.setAnchorView(fab);
+    }
+    snackbar.show();
   }
 }
