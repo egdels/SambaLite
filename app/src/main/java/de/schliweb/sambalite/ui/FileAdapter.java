@@ -417,18 +417,35 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       case "gif":
       case "bmp":
       case "webp":
+      case "heic":
+      case "heif":
+      case "avif":
+      case "tif":
+      case "tiff":
+      case "svg":
+      case "dng":
         return R.drawable.ic_image;
       case "mp4":
       case "avi":
       case "mkv":
       case "mov":
       case "wmv":
+      case "webm":
+      case "m4v":
+      case "3gp":
+      case "mpg":
+      case "mpeg":
+      case "ts":
         return R.drawable.ic_movie;
       case "mp3":
       case "wav":
       case "flac":
       case "ogg":
       case "m4a":
+      case "aac":
+      case "opus":
+      case "wma":
+      case "aiff":
         return R.drawable.ic_music_note;
       case "zip":
       case "rar":

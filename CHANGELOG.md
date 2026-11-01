@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Photos from current phones got a generic file icon**: HEIC/HEIF photos (the iPhone and many Android cameras' default), AVIF, TIFF, SVG and DNG files were shown with the generic file icon when thumbnails were off, as were WebM, 3GP and MPEG videos and AAC, Opus, WMA and AIFF audio. They now get the image, video and audio icons.
 - **Search and sort dialogs had to be scrolled in landscape**: On a phone in landscape, part of the search types and the sort options were cut off and only reachable by scrolling. Both dialogs are more compact in landscape now, with the options of a group side by side, and fit without scrolling in all languages.
 - **A file could be renamed or deleted while it was being uploaded**: Long press and the ⋮ button were blocked during an upload or download of the file, but a plain tap still opened its actions with Rename and Delete. A tap on a file that is being transferred now shows "This file is currently being uploaded" (or downloaded) as well; folders still open.
 - **Deleting a large folder showed no progress**: Deleting a single folder with thousands of files gave no sign of progress, and after 30 seconds the notification claimed "Operation timed out" although the delete went on. The notification now counts the deleted items while the folder is removed ("2880 items deleted"), which also keeps the stall detection quiet. Verified with a folder of 3007 entries on a throttled server.
