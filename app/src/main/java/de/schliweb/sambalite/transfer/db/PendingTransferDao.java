@@ -24,7 +24,8 @@ public interface PendingTransferDao {
 
   /**
    * Observes transfers for the queue UI (active + recently completed within 1 hour). Limited to
-   * avoid CursorWindow overflow on large queues.
+   * avoid CursorWindow overflow on large queues. Open transfers come in the order the worker runs
+   * them; completed ones newest first, so that the limit drops the oldest ones.
    */
   @Query(
       "SELECT * FROM pending_transfer WHERE status NOT IN ('CANCELLED')"
@@ -34,7 +35,9 @@ public interface PendingTransferDao {
           + "   WHEN 'PENDING' THEN 1"
           + "   WHEN 'FAILED' THEN 2"
           + "   WHEN 'COMPLETED' THEN 3"
-          + "   ELSE 4 END, sort_order, created_at"
+          + "   ELSE 4 END,"
+          + " CASE WHEN status = 'COMPLETED' THEN -updated_at ELSE 0 END,"
+          + " sort_order, created_at"
           + " LIMIT 500")
   @NonNull
   LiveData<List<PendingTransfer>> observeActiveTransfers(long cutoff);
