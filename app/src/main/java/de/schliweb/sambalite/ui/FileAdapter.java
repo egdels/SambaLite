@@ -526,6 +526,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                         + file.getName()
                         + ", isDirectory: "
                         + file.isDirectory());
+                // A tap on a file opens its actions (rename, delete, ...), which must not run
+                // while the file is being transferred; folders still open
+                if (!file.isDirectory() && blockedByTransfer(v, file)) {
+                  return;
+                }
                 listener.onFileClick(file);
               }
             } else {
@@ -544,24 +549,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
               } else {
                 int filePosition = showParentDirectory ? position - 1 : position;
                 SmbFileItem file = files.get(filePosition);
-                if (file.getPath() != null && activeUploadPaths.contains(file.getPath())) {
-                  LogUtils.d(
-                      "FileAdapter", "Long click blocked for uploading file: " + file.getName());
-                  if (v.getContext() instanceof Activity) {
-                    UIHelper.showInfo(
-                        (Activity) v.getContext(),
-                        v.getContext().getString(R.string.file_upload_in_progress));
-                  }
-                  return true;
-                }
-                if (file.getPath() != null && activeDownloadPaths.contains(file.getPath())) {
-                  LogUtils.d(
-                      "FileAdapter", "Long click blocked for downloading file: " + file.getName());
-                  if (v.getContext() instanceof Activity) {
-                    UIHelper.showInfo(
-                        (Activity) v.getContext(),
-                        v.getContext().getString(R.string.file_download_in_progress));
-                  }
+                if (blockedByTransfer(v, file)) {
                   return true;
                 }
                 longClickListener.onFileLongClick(file);
@@ -589,23 +577,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                         + filePosition
                         + ": "
                         + file.getName());
-                if (file.getPath() != null && activeUploadPaths.contains(file.getPath())) {
-                  LogUtils.d(
-                      "FileAdapter", "Options blocked for uploading file: " + file.getName());
-                  if (v.getContext() instanceof Activity) {
-                    UIHelper.showInfo(
-                        (Activity) v.getContext(),
-                        v.getContext().getString(R.string.file_upload_in_progress));
-                  }
-                } else if (file.getPath() != null && activeDownloadPaths.contains(file.getPath())) {
-                  LogUtils.d(
-                      "FileAdapter", "Options blocked for downloading file: " + file.getName());
-                  if (v.getContext() instanceof Activity) {
-                    UIHelper.showInfo(
-                        (Activity) v.getContext(),
-                        v.getContext().getString(R.string.file_download_in_progress));
-                  }
-                } else {
+                if (!blockedByTransfer(v, file)) {
                   optionsClickListener.onFileOptionsClick(file);
                 }
               }
@@ -613,6 +585,34 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
               LogUtils.d("FileAdapter", "Options click ignored: position invalid or no listener");
             }
           });
+    }
+
+    /**
+     * Whether actions on the entry must wait because it is being uploaded or downloaded right now;
+     * tells the user so.
+     *
+     * @param v the tapped view, for the message
+     * @param file the entry
+     * @return true if the action is blocked
+     */
+    private boolean blockedByTransfer(View v, SmbFileItem file) {
+      String path = file.getPath();
+      if (path == null) {
+        return false;
+      }
+      int message;
+      if (activeUploadPaths.contains(path)) {
+        message = R.string.file_upload_in_progress;
+      } else if (activeDownloadPaths.contains(path)) {
+        message = R.string.file_download_in_progress;
+      } else {
+        return false;
+      }
+      LogUtils.d("FileAdapter", "Action blocked during transfer: " + file.getName());
+      if (v.getContext() instanceof Activity activity) {
+        UIHelper.showInfo(activity, v.getContext().getString(message));
+      }
+      return true;
     }
 
     void bind(SmbFileItem file) {
