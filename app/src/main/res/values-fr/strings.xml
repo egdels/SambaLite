@@ -295,6 +295,10 @@
 
     <string name="transfer_title">Transfert en cours …</string>
 
+    <string name="transfer_type_upload">Envoi</string>
+
+    <string name="transfer_type_download">Téléchargement</string>
+
     <string name="transfer_channel_description">Affiche la progression des envois et des téléchargements</string>
     <string name="preparing_transfer">@string/please_wait</string>
 

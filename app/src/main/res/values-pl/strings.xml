@@ -302,6 +302,10 @@
 
     <string name="transfer_title">Trwa przesyłanie …</string>
 
+    <string name="transfer_type_upload">Wysyłanie</string>
+
+    <string name="transfer_type_download">Pobieranie</string>
+
     <string name="transfer_channel_description">Pokazuje postęp wysyłania i pobierania</string>
     <string name="preparing_transfer">@string/please_wait</string>
 

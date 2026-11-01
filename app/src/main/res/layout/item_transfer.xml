@@ -57,7 +57,7 @@
                 android:layout_width="12dp"
                 android:layout_height="12dp"
                 android:layout_gravity="center"
-                android:contentDescription="@string/content_desc_connection_status"
+                android:importantForAccessibility="no"
                 tools:src="@drawable/ic_check_circle_green" />
 
         </com.google.android.material.card.MaterialCardView>

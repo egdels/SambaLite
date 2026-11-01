@@ -288,6 +288,10 @@
 
     <string name="transfer_title">Overdracht bezig …</string>
 
+    <string name="transfer_type_upload">Upload</string>
+
+    <string name="transfer_type_download">Download</string>
+
     <string name="transfer_channel_description">Toont de voortgang van uploads en downloads</string>
     <string name="preparing_transfer">@string/please_wait</string>
 

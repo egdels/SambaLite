@@ -140,8 +140,14 @@ public class TransferItemAdapter
       name.setText(item.displayName);
 
       // Icon based on transfer type
-      icon.setImageResource(
-          "DOWNLOAD".equals(item.transferType) ? R.drawable.ic_download : R.drawable.ic_upload);
+      boolean download = !"UPLOAD".equals(item.transferType);
+      icon.setImageResource(download ? R.drawable.ic_download : R.drawable.ic_upload);
+      // Screen readers announce the direction; the status is already in the text below the name
+      icon.setContentDescription(
+          itemView
+              .getContext()
+              .getString(
+                  download ? R.string.transfer_type_download : R.string.transfer_type_upload));
 
       // Selection state visualization
       boolean isSelected = selectedIds.contains(item.id);
