@@ -91,6 +91,33 @@ public class DialogHelper {
         .show();
   }
 
+  /** Characters that SMB does not allow in a file or folder name. */
+  private static final String FORBIDDEN_NAME_CHARACTERS = "/\\:*?\"<>|";
+
+  /**
+   * Checks a new file or folder name. A slash or backslash would put the entry into another folder
+   * (e.g. renaming to {@code ../x.txt} moves the file up), and the server refuses the other
+   * characters with an unclear error.
+   *
+   * @param name the trimmed name entered by the user
+   * @return the string resource of the error, or 0 if the name can be used
+   */
+  @androidx.annotation.StringRes
+  public static int fileNameError(@NonNull String name) {
+    if (name.isEmpty()) {
+      return R.string.error_file_name_required;
+    }
+    if (".".equals(name) || "..".equals(name)) {
+      return R.string.error_file_name_invalid;
+    }
+    for (int i = 0; i < name.length(); i++) {
+      if (FORBIDDEN_NAME_CHARACTERS.indexOf(name.charAt(i)) >= 0) {
+        return R.string.error_file_name_invalid;
+      }
+    }
+    return 0;
+  }
+
   /**
    * Shows a dialog for renaming a file.
    *
@@ -119,8 +146,9 @@ public class DialogHelper {
               .setOnClickListener(
                   v -> {
                     String newName = fileNameEditText.getText().toString().trim();
-                    if (newName.isEmpty()) {
-                      fileNameEditText.setError(context.getString(R.string.error_name_required));
+                    int error = fileNameError(newName);
+                    if (error != 0) {
+                      fileNameEditText.setError(context.getString(error));
                       return;
                     }
 
@@ -199,8 +227,9 @@ public class DialogHelper {
               .setOnClickListener(
                   v -> {
                     String text = input.getText().toString().trim();
-                    if (text.isEmpty()) {
-                      input.setError("Input is required");
+                    int error = fileNameError(text);
+                    if (error != 0) {
+                      input.setError(context.getString(error));
                       return;
                     }
 

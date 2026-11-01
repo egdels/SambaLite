@@ -55,6 +55,8 @@
 
     <!-- Validation Messages -->
     <string name="error_name_required">Nazwa połączenia jest wymagana</string>
+    <string name="error_file_name_required">Wpisz nazwę</string>
+    <string name="error_file_name_invalid">Nazwa nie może zawierać / \\ : * ? \" &lt; &gt; | ani być . lub ..</string>
     <string name="error_server_required">Serwer jest wymagany</string>
     <string name="port">Port</string>
     <string name="port_helper">Port SMB, domyślnie 445</string>

@@ -55,6 +55,8 @@
 
     <!-- Validation Messages -->
     <string name="error_name_required">Le nom de la connexion est requis</string>
+    <string name="error_file_name_required">Saisissez un nom</string>
+    <string name="error_file_name_invalid">Un nom ne doit pas contenir / \\ : * ? \" &lt; &gt; | ni être . ou ..</string>
     <string name="error_server_required">Le serveur est requis</string>
     <string name="port">Port</string>
     <string name="port_helper">Port SMB, 445 par défaut</string>

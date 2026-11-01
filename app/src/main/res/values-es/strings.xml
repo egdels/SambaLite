@@ -55,6 +55,8 @@
 
     <!-- Validation Messages -->
     <string name="error_name_required">El nombre de la conexión es obligatorio</string>
+    <string name="error_file_name_required">Introduce un nombre</string>
+    <string name="error_file_name_invalid">Los nombres no pueden contener / \\ : * ? \" &lt; &gt; | ni ser . o ..</string>
     <string name="error_server_required">El servidor es obligatorio</string>
     <string name="port">Puerto</string>
     <string name="port_helper">Puerto SMB, por defecto 445</string>

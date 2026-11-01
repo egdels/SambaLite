@@ -55,6 +55,8 @@
 
     <!-- Validation Messages -->
     <string name="error_name_required">连接名是必需的</string>
+    <string name="error_file_name_required">请输入名称</string>
+    <string name="error_file_name_invalid">名称不能包含 / \\ : * ? \" &lt; &gt; |，也不能是 . 或 ..</string>
     <string name="error_server_required">服务器是必需的</string>
     <string name="port">端口</string>
     <string name="port_helper">SMB 端口，默认 445</string>

@@ -54,6 +54,8 @@
 
     <!-- Validation Messages -->
     <string name="error_name_required">Verbindingsnaam is vereist</string>
+    <string name="error_file_name_required">Voer een naam in</string>
+    <string name="error_file_name_invalid">Namen mogen geen / \\ : * ? \" &lt; &gt; | bevatten en niet . of .. zijn</string>
     <string name="error_server_required">Server is vereist</string>
     <string name="port">Poort</string>
     <string name="port_helper">SMB-poort, standaard 445</string>
