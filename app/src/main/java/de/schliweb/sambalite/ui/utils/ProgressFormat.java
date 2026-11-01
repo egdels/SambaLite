@@ -10,6 +10,8 @@
 package de.schliweb.sambalite.ui.utils;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import java.util.Locale;
 import java.util.Optional;
@@ -21,22 +23,30 @@ public final class ProgressFormat {
   private ProgressFormat() {}
 
   public enum Op {
-    DOWNLOAD("Downloading"),
-    UPLOAD("Uploading"),
-    DELETE("Deleting"),
-    RENAME("Renaming"),
-    SEARCH("Searching"),
-    FINALIZING("Finalizing"),
-    UNKNOWN("Processing");
+    DOWNLOAD("Downloading", R.string.progress_op_download),
+    UPLOAD("Uploading", R.string.progress_op_upload),
+    DELETE("Deleting", R.string.progress_op_delete),
+    RENAME("Renaming", R.string.progress_op_rename),
+    SEARCH("Searching", R.string.progress_op_search),
+    FINALIZING("Finalizing", R.string.progress_op_finalizing),
+    UNKNOWN("Processing", R.string.progress_op_processing);
 
     private final String label;
+    @StringRes private final int labelRes;
 
-    Op(String label) {
+    Op(String label, @StringRes int labelRes) {
       this.label = label;
+      this.labelRes = labelRes;
     }
 
+    /** The English label; also part of the progress texts that {@link #parse} reads back. */
     public @NonNull String label() {
       return label;
+    }
+
+    /** The translated label for display (notification, progress dialog headline). */
+    public @StringRes int labelRes() {
+      return labelRes;
     }
 
     public static @NonNull Op fromString(@NonNull String s) {
@@ -224,12 +234,20 @@ public final class ProgressFormat {
   }
 
   public static @NonNull String toHeadlineNoPercent(@NonNull Result r) {
+    return r == null ? "" : toHeadlineNoPercent(r, r.op().label());
+  }
+
+  /**
+   * Like {@link #toHeadlineNoPercent(Result)}, with the operation shown as {@code label} (the
+   * translated {@link Op#labelRes()}).
+   */
+  public static @NonNull String toHeadlineNoPercent(@NonNull Result r, @NonNull String label) {
     if (r == null) return "";
-    if (r.op() == Op.FINALIZING) return r.op().label() + "…";
+    if (r.op() == Op.FINALIZING) return label + "…";
     if (r.cur().isPresent() && r.total().isPresent()) {
-      return r.op().label() + ": " + r.cur().get() + "/" + r.total().get();
+      return label + ": " + r.cur().get() + "/" + r.total().get();
     }
-    if (r.op() != Op.UNKNOWN) return r.op().label() + "…";
+    if (r.op() != Op.UNKNOWN) return label + "…";
     return "";
   }
 

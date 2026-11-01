@@ -527,4 +527,28 @@
     <string name="auth_lock_required_message">Der Zugriff ist geschützt, aber auf diesem Gerät ist keine Displaysperre (PIN, Muster oder Biometrie) mehr eingerichtet. Richte wieder eine Displaysperre ein oder schalte den Schutz in den Sicherheitsoptionen aus.</string>
     <string name="auth_open_lock_settings">Displaysperre einrichten</string>
     <string name="auth_not_available_active">Auf diesem Gerät ist keine Displaysperre eingerichtet. Eingeschaltete Optionen sperren deshalb den Zugriff, statt eine Authentifizierung abzufragen. Richte in den Systemeinstellungen eine PIN, ein Muster oder Biometrie ein oder schalte die Optionen hier aus.</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">SMB-Hintergrundvorgänge</string>
+    <string name="service_channel_description">Zeigt den Status von SMB-Vorgängen im Hintergrund</string>
+    <string name="service_ready_title">SMB-Dienst bereit</string>
+    <string name="service_ready_text">Bereit für Hintergrundvorgänge</string>
+    <plurals name="service_operations_active">
+        <item quantity="one">%d Vorgang aktiv</item>
+        <item quantity="other">%d Vorgänge aktiv</item>
+    </plurals>
+    <string name="service_operation_cancelled">Vorgang abgebrochen</string>
+    <string name="service_cancelled_by_user">Vom Benutzer abgebrochen</string>
+    <string name="service_cancelled_swiped_away">Die App wurde aus den letzten Apps entfernt</string>
+    <string name="service_cancelled_time_limit">Zeitlimit für Hintergrundvorgänge erreicht</string>
+    <string name="service_operation_timed_out">Zeitüberschreitung</string>
+    <string name="service_no_progress">Seit %d Sekunden kein Fortschritt. Wird abgebrochen…</string>
+    <string name="service_start_not_allowed">Zurzeit laufen zu viele Hintergrunddienste. Bitte später erneut versuchen.</string>
+    <string name="service_operation_error">Fehler: %1$s</string>
+    <string name="progress_op_download">Herunterladen</string>
+    <string name="progress_op_upload">Hochladen</string>
+    <string name="progress_op_delete">Löschen</string>
+    <string name="progress_op_rename">Umbenennen</string>
+    <string name="progress_op_search">Suchen</string>
+    <string name="progress_op_finalizing">Abschließen</string>
+    <string name="progress_op_processing">Verarbeiten</string>
 </resources>

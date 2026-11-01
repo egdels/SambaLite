@@ -545,4 +545,29 @@
     <string name="auth_lock_required_message">El acceso está protegido, pero este dispositivo ya no tiene bloqueo de pantalla (PIN, patrón o biometría). Vuelve a configurar un bloqueo de pantalla o desactiva la protección en las opciones de seguridad.</string>
     <string name="auth_open_lock_settings">Configurar bloqueo de pantalla</string>
     <string name="auth_not_available_active">Este dispositivo no tiene bloqueo de pantalla, por lo que las opciones activadas bloquean el acceso en lugar de pedir autenticación. Configura un PIN, un patrón o biometría en los ajustes del sistema, o desactiva las opciones aquí.</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">Operaciones SMB en segundo plano</string>
+    <string name="service_channel_description">Muestra el estado de las operaciones SMB en segundo plano</string>
+    <string name="service_ready_title">Servicio SMB listo</string>
+    <string name="service_ready_text">Listo para operaciones en segundo plano</string>
+    <plurals name="service_operations_active">
+        <item quantity="one">%d operación activa</item>
+        <item quantity="many">%d operaciones activas</item>
+        <item quantity="other">%d operaciones activas</item>
+    </plurals>
+    <string name="service_operation_cancelled">Operación cancelada</string>
+    <string name="service_cancelled_by_user">Cancelada por el usuario</string>
+    <string name="service_cancelled_swiped_away">La aplicación se cerró desde recientes</string>
+    <string name="service_cancelled_time_limit">Se alcanzó el límite de tiempo para operaciones en segundo plano</string>
+    <string name="service_operation_timed_out">Tiempo de espera agotado</string>
+    <string name="service_no_progress">Sin progreso durante %d segundos. Cancelando…</string>
+    <string name="service_start_not_allowed">Hay demasiados servicios en segundo plano. Inténtalo de nuevo más tarde.</string>
+    <string name="service_operation_error">Error: %1$s</string>
+    <string name="progress_op_download">Descargando</string>
+    <string name="progress_op_upload">Subiendo</string>
+    <string name="progress_op_delete">Eliminando</string>
+    <string name="progress_op_rename">Renombrando</string>
+    <string name="progress_op_search">Buscando</string>
+    <string name="progress_op_finalizing">Finalizando</string>
+    <string name="progress_op_processing">Procesando</string>
 </resources>

@@ -564,4 +564,30 @@
     <string name="auth_lock_required_message">Dostęp jest chroniony, ale to urządzenie nie ma już blokady ekranu (PIN, wzór lub biometria). Ustaw ponownie blokadę ekranu lub wyłącz ochronę w opcjach zabezpieczeń.</string>
     <string name="auth_open_lock_settings">Ustaw blokadę ekranu</string>
     <string name="auth_not_available_active">To urządzenie nie ma blokady ekranu, więc włączone opcje blokują dostęp zamiast prosić o uwierzytelnienie. Ustaw PIN, wzór lub biometrię w ustawieniach systemu albo wyłącz opcje tutaj.</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">Operacje SMB w tle</string>
+    <string name="service_channel_description">Pokazuje stan operacji SMB w tle</string>
+    <string name="service_ready_title">Usługa SMB gotowa</string>
+    <string name="service_ready_text">Gotowa do operacji w tle</string>
+    <plurals name="service_operations_active">
+        <item quantity="one">%d aktywna operacja</item>
+        <item quantity="few">%d aktywne operacje</item>
+        <item quantity="many">%d aktywnych operacji</item>
+        <item quantity="other">%d aktywnych operacji</item>
+    </plurals>
+    <string name="service_operation_cancelled">Operacja anulowana</string>
+    <string name="service_cancelled_by_user">Anulowano przez użytkownika</string>
+    <string name="service_cancelled_swiped_away">Aplikacja została usunięta z ostatnich aplikacji</string>
+    <string name="service_cancelled_time_limit">Osiągnięto limit czasu operacji w tle</string>
+    <string name="service_operation_timed_out">Przekroczono limit czasu</string>
+    <string name="service_no_progress">Brak postępu od %d sekund. Anulowanie…</string>
+    <string name="service_start_not_allowed">Obecnie działa zbyt wiele usług w tle. Spróbuj ponownie później.</string>
+    <string name="service_operation_error">Błąd: %1$s</string>
+    <string name="progress_op_download">Pobieranie</string>
+    <string name="progress_op_upload">Przesyłanie</string>
+    <string name="progress_op_delete">Usuwanie</string>
+    <string name="progress_op_rename">Zmiana nazwy</string>
+    <string name="progress_op_search">Wyszukiwanie</string>
+    <string name="progress_op_finalizing">Kończenie</string>
+    <string name="progress_op_processing">Przetwarzanie</string>
 </resources>

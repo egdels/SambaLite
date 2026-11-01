@@ -545,4 +545,29 @@
     <string name="auth_lock_required_message">L’accès est protégé, mais cet appareil n’a plus de verrouillage de l’écran (code PIN, schéma ou biométrie). Configurez à nouveau un verrouillage de l’écran ou désactivez la protection dans les options de sécurité.</string>
     <string name="auth_open_lock_settings">Configurer le verrouillage</string>
     <string name="auth_not_available_active">Cet appareil n’a pas de verrouillage de l’écran : les options activées bloquent donc l’accès au lieu de demander une authentification. Configurez un code PIN, un schéma ou la biométrie dans les paramètres du système, ou désactivez les options ici.</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">Opérations SMB en arrière-plan</string>
+    <string name="service_channel_description">Affiche l’état des opérations SMB en arrière-plan</string>
+    <string name="service_ready_title">Service SMB prêt</string>
+    <string name="service_ready_text">Prêt pour les opérations en arrière-plan</string>
+    <plurals name="service_operations_active">
+        <item quantity="one">%d opération en cours</item>
+        <item quantity="many">%d opérations en cours</item>
+        <item quantity="other">%d opérations en cours</item>
+    </plurals>
+    <string name="service_operation_cancelled">Opération annulée</string>
+    <string name="service_cancelled_by_user">Annulée par l’utilisateur</string>
+    <string name="service_cancelled_swiped_away">L’application a été fermée depuis les apps récentes</string>
+    <string name="service_cancelled_time_limit">Limite de temps des opérations en arrière-plan atteinte</string>
+    <string name="service_operation_timed_out">Délai dépassé</string>
+    <string name="service_no_progress">Aucune progression depuis %d secondes. Annulation…</string>
+    <string name="service_start_not_allowed">Trop de services en arrière-plan actuellement. Veuillez réessayer plus tard.</string>
+    <string name="service_operation_error">Erreur : %1$s</string>
+    <string name="progress_op_download">Téléchargement</string>
+    <string name="progress_op_upload">Téléversement</string>
+    <string name="progress_op_delete">Suppression</string>
+    <string name="progress_op_rename">Renommage</string>
+    <string name="progress_op_search">Recherche</string>
+    <string name="progress_op_finalizing">Finalisation</string>
+    <string name="progress_op_processing">Traitement</string>
 </resources>

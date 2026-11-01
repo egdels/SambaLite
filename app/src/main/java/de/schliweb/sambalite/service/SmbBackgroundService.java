@@ -103,21 +103,17 @@ public class SmbBackgroundService extends Service {
   // Temp storage for safe transfers
   @Getter private File tempDir;
 
-  private static String initialContentForOp(ProgressFormat.Op op) {
-    switch (op) {
-      case DOWNLOAD:
-        return "Preparing download…";
-      case UPLOAD:
-        return "Preparing upload…";
-      case DELETE:
-        return "Preparing delete…";
-      case RENAME:
-        return "Preparing rename…";
-      case SEARCH:
-        return "Preparing search…";
-      default:
-        return "Starting…";
-    }
+  private String initialContentForOp(ProgressFormat.Op op) {
+    return getString(R.string.preparing_ellipsis);
+  }
+
+  /** The translated operation name as notification title, e.g. "Downloading…". */
+  private String opTitle(ProgressFormat.Op op) {
+    return getString(op.labelRes()) + "…";
+  }
+
+  private String readyTitle() {
+    return getString(R.string.service_ready_title);
   }
 
   @Override
@@ -190,7 +186,7 @@ public class SmbBackgroundService extends Service {
       int count = getActiveOperationCount();
       LogUtils.w(TAG, "Task removed with " + count + " active operations — persisting state");
       persistCancelledOperationState();
-      cancelAllOperations("App was swiped away");
+      cancelAllOperations(getString(R.string.service_cancelled_swiped_away));
     }
     try {
       stopForeground(STOP_FOREGROUND_REMOVE);
@@ -273,7 +269,7 @@ public class SmbBackgroundService extends Service {
   @Override
   public void onTimeout(int startId, int fgType) {
     LogUtils.w(TAG, "onTimeout(type=" + fgType + ", startId=" + startId + ")");
-    cancelAllOperations("Foreground service time limit reached");
+    cancelAllOperations(getString(R.string.service_cancelled_time_limit));
     try {
       stopForeground(STOP_FOREGROUND_REMOVE);
     } catch (Throwable ignored) {
@@ -291,7 +287,7 @@ public class SmbBackgroundService extends Service {
     int count = activeOperations.incrementAndGet();
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
-    String title = op.label() + "…";
+    String title = opTitle(op);
     String content = initialContentForOp(op);
 
     // Update operation context flags based on the starting operation to ensure
@@ -365,9 +361,11 @@ public class SmbBackgroundService extends Service {
       isSearchOperation = false;
       isUploadOperation = false;
       isDownloadOperation = false;
-      updateNotificationThrottled("SMB Service ready", "Ready for background operations");
+      updateNotificationThrottled(readyTitle(), getString(R.string.service_ready_text));
     } else {
-      updateNotificationThrottled(currentOperation, count + " operations active");
+      updateNotificationThrottled(
+          currentOperation,
+          getResources().getQuantityString(R.plurals.service_operations_active, count, count));
     }
 
     if (wakeLock != null && wakeLock.isHeld()) {
@@ -381,7 +379,7 @@ public class SmbBackgroundService extends Service {
 
   public void updateOperationProgress(@NonNull String operationName, @NonNull String progressInfo) {
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
-    String title = op.label() + "…";
+    String title = opTitle(op);
     currentOperation = title; // <—
     updateNotificationThrottled(title, progressInfo != null ? progressInfo : "");
     lastProgressUpdate.set(System.currentTimeMillis());
@@ -395,10 +393,15 @@ public class SmbBackgroundService extends Service {
     int percentage = totalFiles > 0 ? ((currentFile * 100) / totalFiles) : 0;
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
-    String title = op.label() + "…";
+    String title = opTitle(op);
     String info =
-        ProgressFormat.buildUnified(
-            op, currentFile, totalFiles, currentFileName != null ? currentFileName : "");
+        getString(op.labelRes())
+            + ": "
+            + currentFile
+            + "/"
+            + totalFiles
+            + " - "
+            + (currentFileName != null ? currentFileName : "");
 
     if (shouldUpdateFileProgress(currentFile, totalFiles, percentage)) {
       currentOperation = title; // <—
@@ -412,9 +415,9 @@ public class SmbBackgroundService extends Service {
     int percentage = ProgressFormat.percentOfBytes(currentBytes, totalBytes);
 
     ProgressFormat.Op op = ProgressFormat.Op.fromString(operationName);
-    String title = op.label() + "…";
+    String title = opTitle(op);
     String info =
-        ProgressFormat.formatBytes(op.label(), currentBytes, totalBytes)
+        ProgressFormat.formatBytes(getString(op.labelRes()), currentBytes, totalBytes)
             + (fileName != null && !fileName.isEmpty() ? " - " + fileName : "");
 
     if (shouldUpdateBytesProgress(percentage)) {
@@ -442,7 +445,7 @@ public class SmbBackgroundService extends Service {
 
     // Immediately refresh notification intent to point to Upload context
     ProgressFormat.Op op = ProgressFormat.Op.UPLOAD;
-    String title = op.label() + "…";
+    String title = opTitle(op);
     currentOperation = title;
     updateNotificationImmediate(title, initialContentForOp(op));
   }
@@ -458,7 +461,7 @@ public class SmbBackgroundService extends Service {
 
     // Immediately refresh notification intent to point to Download context
     ProgressFormat.Op op = ProgressFormat.Op.DOWNLOAD;
-    String title = op.label() + "…";
+    String title = opTitle(op);
     currentOperation = title;
     updateNotificationImmediate(title, initialContentForOp(op));
   }
@@ -505,7 +508,8 @@ public class SmbBackgroundService extends Service {
             Future<?> f = ctx.future;
             if (f != null) f.cancel(true);
             updateNotificationImmediate(
-                "Operation timed out", "No progress for " + (idle / 1000) + "s, cancelling...");
+                getString(R.string.service_operation_timed_out),
+                getString(R.string.service_no_progress, (int) (idle / 1000)));
           }
         };
 
@@ -535,7 +539,8 @@ public class SmbBackgroundService extends Service {
                 return false;
               } catch (Exception e) {
                 LogUtils.e(TAG, "Error in SMB operation: " + operationName, e);
-                updateNotificationImmediate("Error: " + operationName, e.getMessage());
+                updateNotificationImmediate(
+                    getString(R.string.service_operation_error, operationName), e.getMessage());
                 return false;
               } finally {
                 if (ctx.inactivityTask != null) ctx.inactivityTask.cancel(false);
@@ -584,7 +589,7 @@ public class SmbBackgroundService extends Service {
     try {
       startForeground(
           NOTIFICATION_ID,
-          createNotification("SMB Service ready", "Ready for background operations"));
+          createNotification(readyTitle(), getString(R.string.service_ready_text)));
       if (!isRunning) {
         stopRequested = false;
       }
@@ -600,8 +605,7 @@ public class SmbBackgroundService extends Service {
           notificationManager.notify(
               NOTIFICATION_ID,
               createNotification(
-                  getString(R.string.app_name),
-                  "Foreground service limit reached. Please try again later."));
+                  getString(R.string.app_name), getString(R.string.service_start_not_allowed)));
         } catch (Throwable ignored) {
         }
         stopSelf();
@@ -615,7 +619,7 @@ public class SmbBackgroundService extends Service {
     if (intent != null) {
       String action = intent.getAction();
       if (ACTION_CANCEL.equals(action)) {
-        cancelAllOperations("Canceled by user");
+        cancelAllOperations(getString(R.string.service_cancelled_by_user));
         return START_NOT_STICKY;
       }
       if (ACTION_STOP.equals(action)) {
@@ -662,7 +666,9 @@ public class SmbBackgroundService extends Service {
       } catch (Throwable ignored) {
       }
     }
-    updateNotificationImmediate("Operation cancelled", reason != null ? reason : "Cancelled");
+    updateNotificationImmediate(
+        getString(R.string.service_operation_cancelled),
+        reason != null ? reason : getString(R.string.service_operation_cancelled));
     LogUtils.w(TAG, "All running operations cancelled");
     stopWatchdog(); // optional: cancel watchdog if no ops left
   }
@@ -678,8 +684,10 @@ public class SmbBackgroundService extends Service {
   private void createNotificationChannel() {
     NotificationChannel channel =
         new NotificationChannel(
-            CHANNEL_ID, "SMB Background Operations", NotificationManager.IMPORTANCE_LOW);
-    channel.setDescription("Shows the status of SMB operations in the background");
+            CHANNEL_ID,
+            getString(R.string.service_channel_name),
+            NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription(getString(R.string.service_channel_description));
     channel.setShowBadge(false);
     notificationManager.createNotificationChannel(channel);
   }
@@ -724,7 +732,7 @@ public class SmbBackgroundService extends Service {
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW);
-    if (!"SMB Service ready".equals(title)) {
+    if (!readyTitle().equals(title)) {
       builder.setContentIntent(contentIntent);
     }
 
@@ -836,8 +844,8 @@ public class SmbBackgroundService extends Service {
               LogUtils.w(
                   TAG, "Watchdog: stalled op (" + (idle / 1000) + "s) — setting cancel flag");
               updateNotificationImmediate(
-                  "Operation timed out",
-                  "No progress for " + (idle / 1000) + " seconds. Attempting to cancel.");
+                  getString(R.string.service_operation_timed_out),
+                  getString(R.string.service_no_progress, (int) (idle / 1000)));
             }
           }
         },

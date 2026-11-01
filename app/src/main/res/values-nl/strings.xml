@@ -527,4 +527,28 @@
     <string name="auth_lock_required_message">De toegang is beveiligd, maar dit apparaat heeft geen schermvergrendeling (pincode, patroon of biometrie) meer. Stel opnieuw een schermvergrendeling in of schakel de beveiliging uit in de beveiligingsopties.</string>
     <string name="auth_open_lock_settings">Schermvergrendeling instellen</string>
     <string name="auth_not_available_active">Dit apparaat heeft geen schermvergrendeling, dus ingeschakelde opties blokkeren de toegang in plaats van om verificatie te vragen. Stel in de systeeminstellingen een pincode, patroon of biometrie in, of schakel de opties hier uit.</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">SMB-achtergrondbewerkingen</string>
+    <string name="service_channel_description">Toont de status van SMB-bewerkingen op de achtergrond</string>
+    <string name="service_ready_title">SMB-dienst gereed</string>
+    <string name="service_ready_text">Gereed voor achtergrondbewerkingen</string>
+    <plurals name="service_operations_active">
+        <item quantity="one">%d bewerking actief</item>
+        <item quantity="other">%d bewerkingen actief</item>
+    </plurals>
+    <string name="service_operation_cancelled">Bewerking geannuleerd</string>
+    <string name="service_cancelled_by_user">Geannuleerd door gebruiker</string>
+    <string name="service_cancelled_swiped_away">De app is uit de recente apps verwijderd</string>
+    <string name="service_cancelled_time_limit">Tijdslimiet voor achtergrondbewerkingen bereikt</string>
+    <string name="service_operation_timed_out">Time-out van bewerking</string>
+    <string name="service_no_progress">Al %d seconden geen voortgang. Wordt geannuleerd…</string>
+    <string name="service_start_not_allowed">Er draaien nu te veel achtergronddiensten. Probeer het later opnieuw.</string>
+    <string name="service_operation_error">Fout: %1$s</string>
+    <string name="progress_op_download">Downloaden</string>
+    <string name="progress_op_upload">Uploaden</string>
+    <string name="progress_op_delete">Verwijderen</string>
+    <string name="progress_op_rename">Hernoemen</string>
+    <string name="progress_op_search">Zoeken</string>
+    <string name="progress_op_finalizing">Afronden</string>
+    <string name="progress_op_processing">Verwerken</string>
 </resources>

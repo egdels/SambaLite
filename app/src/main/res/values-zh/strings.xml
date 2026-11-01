@@ -512,4 +512,27 @@
     <string name="auth_lock_required_message">访问受到保护，但此设备已不再设置屏幕锁定（PIN 码、图案或生物识别）。请重新设置屏幕锁定，或在安全选项中关闭保护。</string>
     <string name="auth_open_lock_settings">设置屏幕锁定</string>
     <string name="auth_not_available_active">此设备未设置屏幕锁定，因此已开启的选项会阻止访问，而不是要求验证。请在系统设置中设置 PIN 码、图案或生物识别，或在此处关闭这些选项。</string>
+    <!-- Background service notification -->
+    <string name="service_channel_name">SMB 后台操作</string>
+    <string name="service_channel_description">显示后台 SMB 操作的状态</string>
+    <string name="service_ready_title">SMB 服务已就绪</string>
+    <string name="service_ready_text">可进行后台操作</string>
+    <plurals name="service_operations_active">
+        <item quantity="other">%d 个操作进行中</item>
+    </plurals>
+    <string name="service_operation_cancelled">操作已取消</string>
+    <string name="service_cancelled_by_user">已由用户取消</string>
+    <string name="service_cancelled_swiped_away">应用已从最近任务中移除</string>
+    <string name="service_cancelled_time_limit">已达到后台操作的时间限制</string>
+    <string name="service_operation_timed_out">操作超时</string>
+    <string name="service_no_progress">已 %d 秒没有进度，正在取消…</string>
+    <string name="service_start_not_allowed">当前后台服务过多，请稍后重试。</string>
+    <string name="service_operation_error">错误：%1$s</string>
+    <string name="progress_op_download">正在下载</string>
+    <string name="progress_op_upload">正在上传</string>
+    <string name="progress_op_delete">正在删除</string>
+    <string name="progress_op_rename">正在重命名</string>
+    <string name="progress_op_search">正在搜索</string>
+    <string name="progress_op_finalizing">正在完成</string>
+    <string name="progress_op_processing">正在处理</string>
 </resources>

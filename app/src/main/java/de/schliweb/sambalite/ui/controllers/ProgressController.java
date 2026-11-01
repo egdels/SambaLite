@@ -290,7 +290,8 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
           int filePct = r.filePct().orElse(overallPct);
           String baseName = r.fileName().orElse("");
 
-          String head = ProgressFormat.toHeadlineNoPercent(r);
+          String head =
+              ProgressFormat.toHeadlineNoPercent(r, activity.getString(r.op().labelRes()));
           if (head.isEmpty()) {
             if (cur > 0 && total > 0) {
               head = cur + "/" + total;
