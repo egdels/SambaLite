@@ -101,6 +101,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Overdrachtswachtrij</string>
     <string name="transfer_queue_empty">Geen overdrachten in de wachtrij</string>
+    <string name="transfer_queue_all_completed_hidden">Alle overdrachten zijn voltooid. Voltooide overdrachten zijn verborgen; zet ‘%1$s’ uit om ze te zien.</string>
     <string name="transfer_retry">Opnieuw proberen</string>
     <string name="transfer_remove">Verwijderen uit wachtrij</string>
     <string name="transfer_retry_failed">Nieuwe poging mislukt</string>

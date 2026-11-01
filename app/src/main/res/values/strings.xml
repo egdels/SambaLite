@@ -439,6 +439,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Transfer Queue</string>
     <string name="transfer_queue_empty">No transfers in queue</string>
+    <string name="transfer_queue_all_completed_hidden">All transfers are completed. Completed transfers are hidden; turn off “%1$s” to see them.</string>
     <string name="transfer_retry">Retry</string>
     <string name="transfer_remove">Remove</string>
     <string name="transfer_retry_failed">Retry failed</string>

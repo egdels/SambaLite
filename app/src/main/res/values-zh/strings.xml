@@ -101,6 +101,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">传输队列</string>
     <string name="transfer_queue_empty">队列中没有传输</string>
+    <string name="transfer_queue_all_completed_hidden">所有传输均已完成。已完成的传输已隐藏；关闭“%1$s”即可查看。</string>
     <string name="transfer_retry">重试</string>
     <string name="transfer_remove">移除</string>
     <string name="transfer_retry_failed">重试失败</string>

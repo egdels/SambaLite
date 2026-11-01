@@ -101,6 +101,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Übertragungswarteschlange</string>
     <string name="transfer_queue_empty">Keine Übertragungen in der Warteschlange</string>
+    <string name="transfer_queue_all_completed_hidden">Alle Übertragungen sind abgeschlossen. Abgeschlossene werden ausgeblendet; schalte „%1$s“ aus, um sie zu sehen.</string>
     <string name="transfer_retry">Wiederholen</string>
     <string name="transfer_remove">Entfernen</string>
     <string name="transfer_retry_failed">Wiederholung fehlgeschlagen</string>

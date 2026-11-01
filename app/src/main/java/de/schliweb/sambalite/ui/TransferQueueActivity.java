@@ -78,6 +78,7 @@ public class TransferQueueActivity extends AppCompatActivity
   private FloatingActionButton fabSelectAll;
   private FloatingActionButton fabClearSelection;
   private FloatingActionButton fabMultiOptions;
+  private TextView emptyStateMessage;
 
   private boolean selectionMode = false;
   private final Set<Long> selectedIds = new HashSet<>();
@@ -101,6 +102,7 @@ public class TransferQueueActivity extends AppCompatActivity
 
     transferList = findViewById(R.id.transfer_list);
     emptyState = findViewById(R.id.empty_state);
+    emptyStateMessage = findViewById(R.id.empty_state_message);
     statsCard = findViewById(R.id.stats_card);
     countPending = findViewById(R.id.count_pending);
     countActive = findViewById(R.id.count_active);
@@ -316,6 +318,7 @@ public class TransferQueueActivity extends AppCompatActivity
     transferList.setVisibility(empty ? View.GONE : View.VISIBLE);
     emptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
     statsCard.setVisibility(empty ? View.GONE : View.VISIBLE);
+    emptyStateMessage.setText(R.string.transfer_queue_empty);
 
     if (!empty) {
       // Sync selection with current items
@@ -338,6 +341,16 @@ public class TransferQueueActivity extends AppCompatActivity
                   .filter(t -> !"COMPLETED".equals(t.status))
                   .collect(java.util.stream.Collectors.toList())
               : transfers;
+      // Everything hidden: say why instead of showing a blank screen below the counters
+      boolean allHidden = filtered.isEmpty();
+      transferList.setVisibility(allHidden ? View.GONE : View.VISIBLE);
+      emptyState.setVisibility(allHidden ? View.VISIBLE : View.GONE);
+      if (allHidden) {
+        emptyStateMessage.setText(
+            getString(
+                R.string.transfer_queue_all_completed_hidden,
+                getString(R.string.transfer_hide_completed)));
+      }
       // Stay at the top when the list was there: ListAdapter otherwise keeps the first visible
       // entry in place, and as transfers finish and move down the list follows them
       boolean atTop = !transferList.canScrollVertically(-1);

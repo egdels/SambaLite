@@ -268,8 +268,10 @@
             android:layout_marginBottom="8dp" />
 
         <TextView
+            android:id="@+id/empty_state_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:text="@string/transfer_queue_empty"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurface"

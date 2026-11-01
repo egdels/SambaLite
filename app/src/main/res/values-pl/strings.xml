@@ -104,6 +104,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Kolejka transferów</string>
     <string name="transfer_queue_empty">Brak transferów w kolejce</string>
+    <string name="transfer_queue_all_completed_hidden">Wszystkie transfery zostały zakończone. Zakończone są ukryte; wyłącz „%1$s”, aby je zobaczyć.</string>
     <string name="transfer_retry">Ponów</string>
     <string name="transfer_remove">Usuń z kolejki</string>
     <string name="transfer_retry_failed">Ponowienie nie powiodło się</string>

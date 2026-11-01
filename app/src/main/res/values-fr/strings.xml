@@ -103,6 +103,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">File de transfert</string>
     <string name="transfer_queue_empty">Aucun transfert dans la file</string>
+    <string name="transfer_queue_all_completed_hidden">Tous les transferts sont terminés. Les transferts terminés sont masqués ; désactivez « %1$s » pour les voir.</string>
     <string name="transfer_retry">Réessayer</string>
     <string name="transfer_remove">Retirer</string>
     <string name="transfer_retry_failed">Échec de la nouvelle tentative</string>

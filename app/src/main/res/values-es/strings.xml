@@ -103,6 +103,7 @@
     <!-- Transfer Queue -->
     <string name="transfer_queue_title">Cola de transferencias</string>
     <string name="transfer_queue_empty">No hay transferencias en la cola</string>
+    <string name="transfer_queue_all_completed_hidden">Todas las transferencias se han completado. Las transferencias completadas están ocultas; desactiva «%1$s» para verlas.</string>
     <string name="transfer_retry">Reintentar</string>
     <string name="transfer_remove">Quitar</string>
     <string name="transfer_retry_failed">Reintento fallido</string>
