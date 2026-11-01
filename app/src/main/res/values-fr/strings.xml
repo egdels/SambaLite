@@ -422,6 +422,8 @@
     <string name="sync_never">Jamais</string>
     <string name="sync_never_synced">Jamais synchronisé</string>
     <string name="sync_running">Synchronisation en cours…</string>
+    <string name="sync_stop">Arrêter la synchronisation</string>
+    <string name="sync_stopped">Synchronisation arrêtée</string>
     <string name="sync_completed">Synchronisation terminée avec succès</string>
     <string name="sync_failed">Échec de la synchronisation</string>
     <string name="sync_cancelled">La synchronisation a été interrompue et sera réessayée</string>

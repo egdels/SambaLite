@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Stop a running folder sync** (#41): While a folder sync is running, its menu on the main screen offers "Stop Sync" instead of "Sync Now". The sync stops after the file it is transferring; its "Last sync" time stays unchanged, and a scheduled sync keeps its schedule and runs again after the next interval.
+
 ### Fixed
 - **Messages covered the "New" and "Add Connection" buttons**: Snackbar messages (e.g. "Upload complete", "Connection successful") appeared at the bottom edge on top of the floating button, which hid part of the message. They now appear above the button.
 - **Cancel did nothing after rotating while a file was opening**: When the device was rotated while a file was being downloaded for opening, the progress dialog came back as "Transfer in progress …", but its Cancel button did not stop the download, which then opened the file anyway. Cancel now stops it.

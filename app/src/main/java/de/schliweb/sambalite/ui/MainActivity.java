@@ -814,14 +814,22 @@ public class MainActivity extends AppCompatActivity
    */
   private void showSyncOptions(View view, SyncConfig config) {
     androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, view);
-    popup.getMenu().add(0, 1, 0, R.string.sync_now);
+    boolean running = config.isRunning();
+    // While the config syncs, "Sync Now" makes no sense; offer to stop the sync instead (#41).
+    popup.getMenu().add(0, 1, 0, running ? R.string.sync_stop : R.string.sync_now);
     popup.getMenu().add(0, 2, 1, R.string.sync_edit_option);
     popup.getMenu().add(0, 3, 2, R.string.sync_remove_option);
 
     popup.setOnMenuItemClickListener(
         item -> {
           int itemId = item.getItemId();
-          if (itemId == 1) {
+          if (itemId == 1 && running) {
+            // Running without its own "Sync Now" work means the periodic run syncs it.
+            boolean periodicRun = !currentRunningConfigIds.contains(config.getId());
+            viewModel.stopSync(config.getId(), periodicRun);
+            EnhancedUIUtils.showInfo(this, getString(R.string.sync_stopped));
+            return true;
+          } else if (itemId == 1) {
             viewModel.triggerSync(config.getId());
             EnhancedUIUtils.showInfo(this, getString(R.string.sync_running));
             return true;

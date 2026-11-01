@@ -293,4 +293,47 @@ public class SyncManagerTest {
       assertEquals(androidx.work.WorkInfo.State.CANCELLED, info.getState());
     }
   }
+
+  @Test
+  public void stopSync_cancelsTheSyncNowOfTheConfig() throws Exception {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AStop");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-1", uri, "QA/Stop", "Stop", SyncDirection.LOCAL_TO_REMOTE, 0);
+    syncManager.triggerImmediateSync(added.getId());
+
+    syncManager.stopSync(added.getId(), false);
+
+    List<androidx.work.WorkInfo> infos =
+        WorkManager.getInstance(ApplicationProvider.getApplicationContext())
+            .getWorkInfosForUniqueWork(SyncManager.manualSyncWorkName(added.getId()))
+            .get();
+    assertFalse(infos.isEmpty());
+    for (androidx.work.WorkInfo info : infos) {
+      assertEquals(androidx.work.WorkInfo.State.CANCELLED, info.getState());
+    }
+  }
+
+  @Test
+  public void stopSync_ofThePeriodicRun_keepsTheScheduleButDelaysTheNextRun() throws Exception {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AHourly");
+    SyncConfig added =
+        syncManager.addSyncConfig(
+            "conn-1", uri, "QA/Hourly", "Hourly", SyncDirection.LOCAL_TO_REMOTE, 60);
+    syncManager.schedulePeriodicSync();
+
+    syncManager.stopSync(added.getId(), true);
+
+    List<androidx.work.WorkInfo> infos =
+        WorkManager.getInstance(ApplicationProvider.getApplicationContext())
+            .getWorkInfosForUniqueWork(SyncManager.UNIQUE_WORK_NAME)
+            .get();
+    androidx.work.WorkInfo scheduled = null;
+    for (androidx.work.WorkInfo info : infos) {
+      if (info.getState() == androidx.work.WorkInfo.State.ENQUEUED) {
+        scheduled = info;
+      }
+    }
+    assertNotNull("periodic sync must stay scheduled", scheduled);
+    assertEquals(60L * 60L * 1000L, scheduled.getInitialDelayMillis());
+  }
 }

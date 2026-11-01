@@ -123,6 +123,25 @@ public class MainViewModel extends ViewModel {
   }
 
   /**
+   * Stops a running synchronization of a specific configuration.
+   *
+   * @param configId The ID of the sync configuration to stop
+   * @param stopPeriodicRun true if the config is synced by the periodic run, not by "Sync Now"
+   */
+  public void stopSync(@NonNull String configId, boolean stopPeriodicRun) {
+    executor.execute(
+        () -> {
+          try {
+            syncManager.stopSync(configId, stopPeriodicRun);
+          } catch (Exception e) {
+            LogUtils.e("MainViewModel", "Failed to stop sync: " + e.getMessage());
+            errorHandler.recordError(
+                e, "MainViewModel.stopSync", SmartErrorHandler.ErrorSeverity.MEDIUM);
+          }
+        });
+  }
+
+  /**
    * Updates an existing sync configuration.
    *
    * @param config The sync configuration to update

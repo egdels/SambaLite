@@ -317,8 +317,14 @@ public class FolderSyncWorker extends Worker {
       try {
         diskCheckTarget = parseLocalFolderUri(config);
         syncFolder(config, connection);
-        syncRepository.updateLastSyncTimestamp(config.getId(), System.currentTimeMillis());
-        LogUtils.i(TAG, "Sync completed for config: " + config.getId());
+        if (isStopped()) {
+          // Stopped by the user or the system: the folder was not fully synced, so the last-sync
+          // time must not move forward.
+          LogUtils.i(TAG, "Sync stopped for config: " + config.getId());
+        } else {
+          syncRepository.updateLastSyncTimestamp(config.getId(), System.currentTimeMillis());
+          LogUtils.i(TAG, "Sync completed for config: " + config.getId());
+        }
       } catch (InsufficientDiskSpaceException e) {
         LogUtils.e(TAG, "Sync aborted for config " + config.getId() + ": insufficient disk space");
         logLowSpaceAbort(config, "sync stopped: " + e.getMessage());
@@ -332,6 +338,13 @@ public class FolderSyncWorker extends Worker {
         diskCheckTarget = null;
         lock.unlock();
       }
+    }
+
+    if (isStopped()) {
+      // Stopped by the user (Stop Sync) or the system. WorkManager ignores the result of stopped
+      // work; a stop by the system reruns it anyway.
+      LogUtils.i(TAG, "Sync stopped before all configs were synced");
+      return Result.success();
     }
 
     if (anyFailure) {

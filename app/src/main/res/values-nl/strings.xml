@@ -411,6 +411,8 @@
     <string name="sync_never">Nooit</string>
     <string name="sync_never_synced">Nooit gesynchroniseerd</string>
     <string name="sync_running">Synchronisatie bezig…</string>
+    <string name="sync_stop">Synchronisatie stoppen</string>
+    <string name="sync_stopped">Synchronisatie gestopt</string>
     <string name="sync_completed">Synchronisatie succesvol voltooid</string>
     <string name="sync_failed">Synchronisatie mislukt</string>
     <string name="sync_cancelled">Synchronisatie werd onderbroken en wordt opnieuw geprobeerd</string>

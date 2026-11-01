@@ -371,6 +371,8 @@
     <string name="sync_never">Never</string>
     <string name="sync_never_synced">Never synced</string>
     <string name="sync_running">Sync running…</string>
+    <string name="sync_stop">Stop Sync</string>
+    <string name="sync_stopped">Sync stopped</string>
     <string name="sync_completed">Sync completed successfully</string>
     <string name="sync_failed">Sync failed</string>
     <string name="sync_cancelled">Sync was interrupted and will be retried</string>

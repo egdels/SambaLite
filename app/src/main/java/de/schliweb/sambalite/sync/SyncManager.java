@@ -317,8 +317,37 @@ public class SyncManager {
         .enqueueUniqueWork(manualSyncWorkName(configId), ExistingWorkPolicy.REPLACE, request);
   }
 
+  /**
+   * Stops a running sync of a config (issue #41).
+   *
+   * <p>A "Sync Now" of the config is cancelled. If the config is being synced by the periodic run
+   * (or by "sync all"), that run is cancelled as well. As cancelling the periodic work also drops
+   * its schedule, the periodic sync is scheduled again, starting after one interval, so the stopped
+   * sync does not start again right away.
+   *
+   * @param configId the ID of the sync configuration whose sync should stop
+   * @param stopPeriodicRun true if the config is synced by the periodic or "sync all" run
+   */
+  public void stopSync(@NonNull String configId, boolean stopPeriodicRun) {
+    LogUtils.i(TAG, "Stopping sync for config: " + configId + ", periodic run: " + stopPeriodicRun);
+    cancelManualSync(configId);
+    if (stopPeriodicRun) {
+      cancelPeriodicSync();
+      schedulePeriodicSync(true);
+    }
+  }
+
   /** Schedules periodic sync based on the minimum interval of all enabled configs. */
   public void schedulePeriodicSync() {
+    schedulePeriodicSync(false);
+  }
+
+  /**
+   * Schedules periodic sync based on the minimum interval of all enabled configs.
+   *
+   * @param delayFirstRun true to start the first run only after one interval
+   */
+  private void schedulePeriodicSync(boolean delayFirstRun) {
     List<SyncConfig> enabledConfigs = syncRepository.getAllEnabledConfigs();
     if (enabledConfigs.isEmpty()) {
       LogUtils.d(TAG, "No enabled configs, not scheduling periodic sync");
@@ -345,12 +374,15 @@ public class SyncManager {
     Constraints constraints =
         new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
 
-    PeriodicWorkRequest request =
+    PeriodicWorkRequest.Builder builder =
         new PeriodicWorkRequest.Builder(FolderSyncWorker.class, minInterval, TimeUnit.MINUTES)
             .setConstraints(constraints)
             .addTag(UNIQUE_WORK_NAME)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES)
-            .build();
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 5, TimeUnit.MINUTES);
+    if (delayFirstRun) {
+      builder.setInitialDelay(minInterval, TimeUnit.MINUTES);
+    }
+    PeriodicWorkRequest request = builder.build();
 
     WorkManager.getInstance(context)
         .enqueueUniquePeriodicWork(UNIQUE_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request);

@@ -402,6 +402,8 @@
     <string name="sync_never">从未</string>
     <string name="sync_never_synced">从未同步</string>
     <string name="sync_running">正在同步…</string>
+    <string name="sync_stop">停止同步</string>
+    <string name="sync_stopped">同步已停止</string>
     <string name="sync_completed">同步成功完成</string>
     <string name="sync_failed">同步失败</string>
     <string name="sync_cancelled">同步已中断，将重新尝试</string>
