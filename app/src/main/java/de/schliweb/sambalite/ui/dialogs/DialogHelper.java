@@ -91,6 +91,26 @@ public class DialogHelper {
         .show();
   }
 
+  /** Removes the error below a text field as soon as the user edits the text. */
+  private static void clearErrorOnEdit(
+      @NonNull EditText input,
+      @Nullable com.google.android.material.textfield.TextInputLayout layout) {
+    if (layout == null) return;
+    input.addTextChangedListener(
+        new android.text.TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {
+            layout.setError(null);
+          }
+
+          @Override
+          public void afterTextChanged(android.text.Editable s) {}
+        });
+  }
+
   /** Characters that SMB does not allow in a file or folder name. */
   private static final String FORBIDDEN_NAME_CHARACTERS = "/\\:*?\"<>|";
 
@@ -129,7 +149,10 @@ public class DialogHelper {
       @NonNull Context context, @NonNull String fileName, @Nullable RenameCallback callback) {
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_rename_file, null);
     TextInputEditText fileNameEditText = dialogView.findViewById(R.id.file_name_edit_text);
+    com.google.android.material.textfield.TextInputLayout fileNameLayout =
+        dialogView.findViewById(R.id.file_name_input_layout);
     fileNameEditText.setText(fileName);
+    clearErrorOnEdit(fileNameEditText, fileNameLayout);
 
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(context)
@@ -148,7 +171,9 @@ public class DialogHelper {
                     String newName = fileNameEditText.getText().toString().trim();
                     int error = fileNameError(newName);
                     if (error != 0) {
-                      fileNameEditText.setError(context.getString(error));
+                      // Shown below the field: the popup of EditText.setError covered the
+                      // dialog buttons, so they could not be tapped
+                      fileNameLayout.setError(context.getString(error));
                       return;
                     }
 
@@ -201,20 +226,27 @@ public class DialogHelper {
       @Nullable InputCallback callback) {
     LogUtils.d("DialogHelper", "Showing input dialog");
 
-    // Create an EditText with padding
-    final EditText input = new EditText(context);
-    input.setHint(hint);
-
-    // Add padding to the EditText
-    int padding = (int) (16 * context.getResources().getDisplayMetrics().density);
-    input.setPadding(padding, padding, padding, padding);
+    // Text field with the error shown below it (the popup of EditText.setError covered the
+    // dialog buttons, so they could not be tapped)
+    final com.google.android.material.textfield.TextInputLayout inputLayout =
+        new com.google.android.material.textfield.TextInputLayout(context);
+    final TextInputEditText input = new TextInputEditText(inputLayout.getContext());
+    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+    input.setMaxLines(1);
+    inputLayout.addView(input);
+    inputLayout.setHint(hint);
+    int padding = (int) (24 * context.getResources().getDisplayMetrics().density);
+    android.widget.FrameLayout container = new android.widget.FrameLayout(context);
+    container.setPadding(padding, padding / 3, padding, 0);
+    container.addView(inputLayout);
+    clearErrorOnEdit(input, inputLayout);
 
     // Create the dialog
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(context)
             .setTitle(title)
             .setMessage(message)
-            .setView(input)
+            .setView(container)
             .setPositiveButton(android.R.string.ok, null)
             .setNegativeButton(android.R.string.cancel, null)
             .create();
@@ -229,7 +261,7 @@ public class DialogHelper {
                     String text = input.getText().toString().trim();
                     int error = fileNameError(text);
                     if (error != 0) {
-                      input.setError(context.getString(error));
+                      inputLayout.setError(context.getString(error));
                       return;
                     }
 
