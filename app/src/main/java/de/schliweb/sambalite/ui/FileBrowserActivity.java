@@ -1860,7 +1860,7 @@ public class FileBrowserActivity extends AppCompatActivity
     SyncConfig config = findSyncConfigForFolder(folder);
     if (config != null) {
       syncManager.triggerImmediateSync(config.getId());
-      progressController.showSuccess(getString(R.string.sync_now));
+      progressController.showInfo(getString(R.string.sync_running));
     } else {
       LogUtils.w("FileBrowserActivity", "No sync config found for folder: " + folder.getName());
       progressController.showError(getString(R.string.sync_config_removed), null);

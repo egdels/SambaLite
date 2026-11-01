@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **"Sync Now" in the file browser answered with "Sync Now"**: After choosing Sync Now in a folder's options, the confirmation repeated the menu label in green. It now says "Sync running…", as on the main screen.
 - **Sync dialog title shown twice**: "Set Up Folder Sync" appeared twice one above the other, and the "Edit Sync" dialog also showed the "Set Up Folder Sync" header. Each dialog now has one title that matches it. Screen readers announce the WiFi only, Mirror mode and trash switches by name instead of only "switch, off".
 - **Edited syncs moved to the end of the list**: Saving "Edit Sync" moved the sync's card to the bottom of "Your Folder Syncs". An edited sync now keeps its place.
 - **"Edit Sync" in the file browser reset the sync**: Saving the edit dialog deleted the sync and created a new one, so the card showed "Never synced" again and the record of synced files was deleted even when the local folder stayed the same (Mirror mode relies on it). The sync is now changed in place; only choosing another local folder starts it afresh.
