@@ -89,6 +89,10 @@ public class FileListController
   @Setter private FileOptionsCallback fileOptionsCallback;
 
   @Setter private FileStatisticsCallback fileStatisticsCallback;
+
+  /** Ends search mode before a folder from the search results is opened. */
+  @Setter @Nullable private Runnable leaveSearchCallback;
+
   @Setter private FolderChangeCallback folderChangeCallback;
 
   /**
@@ -357,7 +361,14 @@ public class FileListController
 
     // If it's a directory, navigate to it
     if (file.isDirectory()) {
-      viewModel.navigateToDirectory(file);
+      if (searchMode && leaveSearchCallback != null) {
+        // A folder among the search results: end the search and open the folder with its
+        // parents, so that back goes up from there
+        leaveSearchCallback.run();
+        viewModel.navigateToPathWithHierarchy(file.getPath());
+      } else {
+        viewModel.navigateToDirectory(file);
+      }
     } else {
       // For files, show the file options dialog
       onFileOptionsClick(file);

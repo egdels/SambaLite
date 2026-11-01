@@ -256,6 +256,23 @@ public class SearchViewModel extends ViewModel {
     }
   }
 
+  /**
+   * Ends search mode without returning to the folder the search started in, e.g. because a folder
+   * from the results is opened. A running search is cancelled.
+   */
+  public void leaveSearchMode() {
+    if (Boolean.TRUE.equals(searching.getValue())) {
+      WorkManager.getInstance(application).cancelUniqueWork(UNIQUE_SEARCH_WORK);
+      state.setSearching(false);
+    }
+    state.setSearchMode(false);
+    state.setCurrentSearchQuery("");
+    state.setSearchResults(new ArrayList<>());
+    state.setSearchStartPath("");
+    searchResults.setValue(new ArrayList<>());
+    lastDbItems = null;
+  }
+
   /** Clears the search results and returns to normal browsing. */
   public void clearSearch() {
     LogUtils.d(TAG, "Clearing search results");

@@ -945,6 +945,12 @@ public class FileBrowserActivity extends AppCompatActivity
         });
 
     // Listen for selection changes to update toolbar actions
+    fileListController.setLeaveSearchCallback(
+        () -> {
+          searchViewModel.leaveSearchMode();
+          fileListController.setSearchMode(false);
+          resetToolbarAfterSearch();
+        });
     fileListController.setSelectionChangedCallback(
         (count, items) -> {
           selectionCount = count;

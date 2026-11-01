@@ -103,4 +103,31 @@ public class FileListControllerSelectionRestoreTest {
     controller.restoreSelection(null);
     assertFalse(controller.isSelectionMode());
   }
+
+  @Test
+  public void folderInSearchResults_leavesSearchAndOpensWithHierarchy() {
+    java.util.concurrent.atomic.AtomicBoolean left =
+        new java.util.concurrent.atomic.AtomicBoolean();
+    controller.setLeaveSearchCallback(() -> left.set(true));
+    controller.setSearchMode(true);
+    SmbFileItem folder =
+        new SmbFileItem("Ordner_12", "Archiv/Ordner_12", SmbFileItem.Type.DIRECTORY, 0, new Date());
+
+    controller.onFileClick(folder);
+
+    assertTrue(left.get());
+    org.mockito.Mockito.verify(viewModel).navigateToPathWithHierarchy("Archiv/Ordner_12");
+    org.mockito.Mockito.verify(viewModel, org.mockito.Mockito.never())
+        .navigateToDirectory(org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  public void folderOutsideSearch_isOpenedNormally() {
+    controller.setLeaveSearchCallback(() -> {});
+    SmbFileItem folder = new SmbFileItem("Docs", "Docs", SmbFileItem.Type.DIRECTORY, 0, new Date());
+
+    controller.onFileClick(folder);
+
+    org.mockito.Mockito.verify(viewModel).navigateToDirectory(folder);
+  }
 }
