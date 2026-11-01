@@ -149,4 +149,33 @@ public class SyncStateComparatorTest {
         SyncStateComparator.bothMatch(
             state, 1024, INITIAL_MODIFIED, 1024, INITIAL_MODIFIED));
   }
+
+  @Test
+  public void remoteChangedWhileLocalMatches_olderServerVersionCounts() {
+    // Restored from a backup: different size, an hour older than at the last sync
+    assertTrue(
+        SyncStateComparator.remoteChangedWhileLocalMatches(
+            state, 1024, INITIAL_MODIFIED, 2048, INITIAL_MODIFIED - 3_600_000L));
+  }
+
+  @Test
+  public void remoteChangedWhileLocalMatches_falseWhenLocalChangedToo() {
+    assertFalse(
+        SyncStateComparator.remoteChangedWhileLocalMatches(
+            state, 4096, INITIAL_MODIFIED + 60_000L, 2048, INITIAL_MODIFIED - 3_600_000L));
+  }
+
+  @Test
+  public void remoteChangedWhileLocalMatches_falseWhenNothingChanged() {
+    assertFalse(
+        SyncStateComparator.remoteChangedWhileLocalMatches(
+            state, 1024, INITIAL_MODIFIED, 1024, INITIAL_MODIFIED));
+  }
+
+  @Test
+  public void remoteChangedWhileLocalMatches_falseWithoutState() {
+    assertFalse(
+        SyncStateComparator.remoteChangedWhileLocalMatches(
+            null, 1024, INITIAL_MODIFIED, 2048, INITIAL_MODIFIED));
+  }
 }

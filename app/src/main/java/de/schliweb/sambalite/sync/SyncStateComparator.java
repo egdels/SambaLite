@@ -58,4 +58,20 @@ final class SyncStateComparator {
         && remoteMatches(state, remoteSize, remoteLastModified)
         && localLastModified - remoteLastModified > SyncComparator.DEFAULT_TIMESTAMP_TOLERANCE_MS;
   }
+
+  /**
+   * The server file changed since the last sync while the local copy is unchanged. For a one-way
+   * Remote -> Local sync this means "download", whatever the timestamps say: a file restored from a
+   * backup or copied with its original time can be older than the local copy, which carries the
+   * time of its download because SAF cannot set it.
+   */
+  static boolean remoteChangedWhileLocalMatches(
+      @Nullable FileSyncState state,
+      long localSize,
+      long localLastModified,
+      long remoteSize,
+      long remoteLastModified) {
+    return localMatches(state, localSize, localLastModified)
+        && !remoteMatches(state, remoteSize, remoteLastModified);
+  }
 }

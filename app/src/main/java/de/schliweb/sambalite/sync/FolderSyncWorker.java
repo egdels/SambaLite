@@ -156,6 +156,12 @@ public class FolderSyncWorker extends Worker {
   private SyncStateStore syncStateStore;
 
   /**
+   * True while a one-way Remote -> Local sync runs: the server is the source, so a server file that
+   * changed since the last sync is downloaded even if it is older than the local copy.
+   */
+  private boolean remoteIsSource;
+
+  /**
    * Local root of the folder pair currently being synced. Disk space checks look at the storage
    * volume behind this URI (an SD card, for example) rather than at the primary external storage.
    */
@@ -433,7 +439,12 @@ public class FolderSyncWorker extends Worker {
               }
               break;
             case REMOTE_TO_LOCAL:
-              syncRemoteToLocal(share, localFolder, remotePath, rootUri, "");
+              remoteIsSource = true;
+              try {
+                syncRemoteToLocal(share, localFolder, remotePath, rootUri, "");
+              } finally {
+                remoteIsSource = false;
+              }
               if (mirror && !isStopped()) {
                 runMirrorSweepRemoteSource(share, localFolder, remotePath, rootUri, useTrash);
               }
@@ -677,6 +688,22 @@ public class FolderSyncWorker extends Worker {
                   storedState, localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (unchanged per stored metadata): " + name);
                 actionLog.log(SyncActionLog.Action.SKIPPED, name, "unchanged (stored metadata)");
+              } else if (remoteIsSource
+                  && SyncStateComparator.remoteChangedWhileLocalMatches(
+                      storedState, localSize, localModified, remoteSize, remoteModified)) {
+                // One-way sync: the server version changed and the local copy did not, so the
+                // server wins even with an older timestamp (restored or copied file)
+                downloadFileOrDiscard(share, remoteFilePath, localFile, rootUri, fileRelPath);
+                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                syncStateStore.saveRemoteState(
+                    rootUri,
+                    fileRelPath,
+                    remoteFilePath,
+                    localFile.length(),
+                    localFile.lastModified(),
+                    remoteSize,
+                    remoteModified,
+                    false);
               } else if (syncComparator.isSame(
                   localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (same): " + name);
@@ -706,6 +733,19 @@ public class FolderSyncWorker extends Worker {
                 LogUtils.d(TAG, "Skipping download (local is newer or within tolerance): " + name);
                 actionLog.log(
                     SyncActionLog.Action.SKIPPED, name, "local newer or within tolerance");
+                if (remoteIsSource && storedState == null) {
+                  // A file that existed on both sides when tracking started: record it now, so
+                  // that a later change on the server is recognised (and Mirror covers it)
+                  syncStateStore.saveRemoteState(
+                      rootUri,
+                      fileRelPath,
+                      remoteFilePath,
+                      localSize,
+                      localModified,
+                      remoteSize,
+                      remoteModified,
+                      false);
+                }
               }
             }
           } catch (InsufficientDiskSpaceException e) {
