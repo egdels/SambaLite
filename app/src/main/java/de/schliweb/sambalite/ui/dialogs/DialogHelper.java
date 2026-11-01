@@ -156,7 +156,7 @@ public class DialogHelper {
 
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.rename_dialog_title)
+            // No dialog title: the layout has its own header with icon and title
             .setView(dialogView)
             .setPositiveButton(R.string.rename, null)
             .setNegativeButton(R.string.cancel, null)
