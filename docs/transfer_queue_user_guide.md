@@ -1,6 +1,6 @@
 # User Guide: Transfer Queue in SambaLite
 
-Last updated: 2026-04-08
+Last updated: 2026-11-01
 
 This guide explains how the transfer queue works for manual file uploads and downloads between your Android device and an SMB network share.
 
@@ -57,10 +57,11 @@ At the top of the screen, a summary card shows the current counts:
 | Counter | Description |
 |---------|-------------|
 | **Pending** | Transfers waiting to be processed. |
-| **Active** | The transfer currently in progress. |
+| **Transferring** | The transfer currently in progress. |
 | **Completed** | Successfully finished transfers (shown for up to 1 hour after completion). |
 | **Failed** | Transfers that encountered an error. |
-| **Cancelled** | Transfers that were cancelled by the user. |
+
+Cancelled transfers are not counted and disappear from the list.
 
 ### Sorting
 
@@ -68,17 +69,22 @@ You can sort the transfer list by tapping the sort button:
 
 - **By Name**: Alphabetical order by file name.
 - **By Date**: Newest first (based on last update time).
-- **By Status**: Active → Pending → Failed → Completed → Cancelled.
+- **By Status** (default): Transferring → Pending (in the order they will run) → Failed → Completed.
+
+The **Hide completed** switch (in the sort dialog and in the ⋮ menu) hides finished transfers. Sort order and the switch are remembered.
 
 ### Actions per Transfer
 
-Tap on any transfer to open an action dialog:
+Tap on any transfer (or its ⋮ button) to open an action dialog. It offers only the actions that fit the transfer's state:
 
-| Action | Description |
-|--------|-------------|
-| **Retry** | Resets a failed transfer back to PENDING (retry count and progress are reset) and restarts the worker. |
-| **Cancel** | Marks the transfer as CANCELLED. It will no longer be processed. |
-| **Remove** | Permanently deletes the transfer entry from the database. |
+| Action | Offered for | Description |
+|--------|-------------|-------------|
+| **Retry** | Failed | Resets the transfer to PENDING (retry count and progress are reset) and restarts the worker. |
+| **Cancel** | Pending, transferring, failed | Stops the transfer; it will no longer be processed. A running download's incomplete local file and a running upload's incomplete server file are deleted. |
+| **Remove** | All | Deletes the entry from the queue (an unfinished download's incomplete local file is deleted as well). |
+| **Error details** | Failed | Shows the full error message. |
+
+Long-press a transfer to select several; Retry, Cancel and Remove then apply to the selected transfers for which the action fits. Cancelling some transfers does not stop the others.
 
 ## Transfer Status Lifecycle
 
@@ -106,23 +112,23 @@ PENDING → ACTIVE → COMPLETED
 - Transfers for the same SMB connection are processed using a **shared SMB session** (Connection-Reuse), reducing connection overhead.
 - Files are streamed **directly between SAF and SMB** — no temporary copies are created on the device.
 - **Timestamp preservation**: After uploading a file, SambaLite sets the remote file's modification time to match the local file. After downloading, it attempts to set the local file's modification time to match the remote file (best-effort via Android's Storage Access Framework).
-- **Disk space check**: Before starting and periodically during downloads (every 10 MB), the worker checks that at least 10 MB of free disk space is available. If space is insufficient, the queue is aborted.
-- **Duplicate detection**: Before enqueueing, the system checks whether a transfer for the same remote path is already pending or active, avoiding duplicate entries.
+- **Disk space check**: Before starting and periodically during downloads (every 10 MB), the worker checks that at least 10 MB of free disk space is available. If space is insufficient, the queue stops and the waiting transfers are marked as failed with "Not enough free storage on this device"; free up space and tap Retry.
+- **Duplicate detection**: Before enqueueing an upload, the app checks whether an upload to the same remote path of the same connection is still open (pending, running, or failed with retries left). Such files are not queued again; a notice lists them.
 
 ## Retry and Error Handling
 
 - Each transfer is retried automatically up to **3 times** if it fails.
 - After 3 failed attempts, the transfer remains in FAILED status and must be retried manually from the queue UI.
 - If any transfers fail, the worker requests a **retry** from WorkManager, which re-schedules it with backoff.
-- You can manually retry individual transfers or all failed transfers from the queue UI.
+- You can manually retry failed transfers from the queue UI, one at a time or several via multi-select.
 
 ## Crash Recovery and Resume
 
-The transfer queue is fully persistent in a **Room database**. Transfers survive app kills and device restarts, with **automatic resume** from the last transferred byte offset.
+The transfer queue is fully persistent in a **Room database**. Transfers survive app kills and device restarts.
 
 - All **ACTIVE** transfers are automatically reset to **PENDING** after an unclean app exit.
 - The worker is re-enqueued on the next app start if there are pending transfers.
-- Upon restart, the worker checks the already transferred bytes and resumes from that point.
+- An interrupted transfer starts again **from the beginning** of the file; there is no byte-level resume.
 
 ## Transfer Behavior After App Exit and Device Restart
 
@@ -137,10 +143,11 @@ The transfer queue is fully persistent in a **Room database**. Transfers survive
 
 While the transfer queue is being processed, a **persistent notification** is displayed showing:
 
-- The name of the file currently being transferred.
-- The transfer direction (upload/download).
+- The name of the file currently being transferred and its progress in percent.
 
-The notification is silent and low-priority to avoid disturbing the user. It is automatically dismissed when all transfers are completed.
+The notification is silent and low-priority to avoid disturbing the user. Tapping it opens the transfer queue. It is automatically dismissed when all transfers are completed. Transfers also run when notifications are not allowed.
+
+In the file browser, a single message reports the result when the queue has run empty ("foto.jpg uploaded" for one file, "4 transfers completed" for several).
 
 > **Note:** A broadcast is sent after each successful transfer, which can trigger a UI refresh in the file browser.
 
@@ -162,4 +169,5 @@ Completed and cancelled transfers are automatically cleaned up after **7 days**.
 | Transfer fails repeatedly | Check the error message in the queue UI. Verify that the remote path exists and your SMB credentials are correct. |
 | Transfers stop after a while | Android may restrict background work for battery optimization. Exclude SambaLite from battery optimization in your device settings. |
 | Queue is empty but files weren't transferred | Completed transfers are hidden after 1 hour in the queue UI. Check the file browser to verify the transfer succeeded. |
-| Duplicate files after interruption | Interrupted transfers automatically resume from the last byte. If the transfer was interrupted before any data was written, it will start from the beginning. |
+| Transfers failed with "Not enough free storage" | Free up space on the device, then select the transfers and tap Retry. |
+| Large file restarts after an interruption | Interrupted transfers start again from the beginning of the file. |
