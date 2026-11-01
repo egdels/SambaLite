@@ -317,6 +317,22 @@ public class SmbRepositoryTest {
   }
 
   @Test
+  public void testRenameFile_caseOnly() throws Exception {
+    assertTrue(smbRepository.fileExists(testConnection, "testfile.txt"));
+
+    smbRepository.renameFile(testConnection, "testfile.txt", "TestFile.txt");
+
+    boolean found = false;
+    for (SmbFileItem item : smbRepository.listFiles(testConnection, "")) {
+      if ("TestFile.txt".equals(item.getName())) {
+        found = true;
+      }
+      assertFalse("Old spelling must be gone", "testfile.txt".equals(item.getName()));
+    }
+    assertTrue("File should have the new spelling", found);
+  }
+
+  @Test
   public void testCreateDirectory() throws Exception {
     String dirName = "test-directory";
     smbRepository.createDirectory(testConnection, "", dirName);

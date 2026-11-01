@@ -937,7 +937,11 @@ public class SmbRepositoryImpl implements SmbRepository {
           String parentPath = (lastSlash > 0) ? oldFilePath.substring(0, lastSlash) : "";
           String newFilePath = smbJoin(parentPath, newName);
 
-          if (share.fileExists(newFilePath) || share.folderExists(newFilePath)) {
+          // A change of case only (Photo.JPG -> photo.jpg) finds the item itself on servers
+          // that ignore case, so the existence check would refuse it; the server reports a real
+          // collision on its own (the rename does not replace existing entries)
+          if (!isCaseOnlyRename(oldFilePath, newFilePath)
+              && (share.fileExists(newFilePath) || share.folderExists(newFilePath))) {
             throw new IOException("Target path already exists: " + newFilePath);
           }
 
@@ -950,6 +954,20 @@ public class SmbRepositoryImpl implements SmbRepository {
           }
           return null;
         });
+  }
+
+  /**
+   * Whether a rename only changes the case of the name, e.g. {@code Case/Photo.JPG} to {@code
+   * Case\photo.jpg}.
+   *
+   * @param oldPath the current share-relative path
+   * @param newPath the new share-relative path
+   * @return true if both paths differ, but only in upper and lower case
+   */
+  static boolean isCaseOnlyRename(@NonNull String oldPath, @NonNull String newPath) {
+    String a = oldPath.replace('/', '\\');
+    String b = newPath.replace('/', '\\');
+    return !a.equals(b) && a.equalsIgnoreCase(b);
   }
 
   private void renameSmbFile(DiskShare share, String oldFilePath, String newFilePath)
