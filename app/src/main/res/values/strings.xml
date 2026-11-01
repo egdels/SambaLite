@@ -250,7 +250,7 @@
         <item quantity="one">Share %1$d item to %2$s</item>
         <item quantity="other">Share %1$d items to %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Upload</string>
     <string name="share_change_folder">Change folder</string>
     <string name="share_change_folder_subtitle">Select a connection to browse</string>
     <string name="share_change_folder_connections">Available connections</string>

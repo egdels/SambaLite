@@ -293,7 +293,7 @@
         <item quantity="many">Udostępnij %1$d elementów do %2$s</item>
         <item quantity="other">Udostępnij %1$d elementów do %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Prześlij</string>
     <string name="share_change_folder">Zmień folder</string>
     <string name="share_change_folder_subtitle">Wybierz połączenie do przeglądania</string>
     <string name="share_change_folder_connections">Dostępne połączenia</string>

@@ -285,7 +285,7 @@
         <item quantity="many">Compartir %1$d elementos a %2$s</item>
         <item quantity="other">Compartir %1$d elementos a %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Subir</string>
     <string name="share_change_folder">Cambiar carpeta</string>
     <string name="share_change_folder_subtitle">Seleccionar una conexión para explorar</string>
     <string name="share_change_folder_connections">Conexiones disponibles</string>

@@ -276,10 +276,10 @@
     <string name="share_needs_target_folder_select">Selecteren</string>
     <string name="share_upload_title">Items delen</string>
     <plurals name="share_upload_full_message">
-        <item quantity="one">Delen %1$d item naar %2$s</item>
-        <item quantity="other">Delen %1$d items naar %2$s</item>
+        <item quantity="one">%1$d item delen naar %2$s</item>
+        <item quantity="other">%1$d items delen naar %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Uploaden</string>
     <string name="share_change_folder">Map wijzigen</string>
     <string name="share_change_folder_subtitle">Selecteer een verbinding om te bladeren</string>
     <string name="share_change_folder_connections">Beschikbare verbindingen</string>

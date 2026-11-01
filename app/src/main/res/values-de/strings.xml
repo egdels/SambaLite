@@ -276,10 +276,10 @@
     <string name="share_needs_target_folder_select">Auswählen</string>
     <string name="share_upload_title">Elemente teilen</string>
     <plurals name="share_upload_full_message">
-        <item quantity="one">Freigabe %1$d Element nach %2$s</item>
-        <item quantity="other">Freigabe %1$d Elemente nach %2$s</item>
+        <item quantity="one">%1$d Element nach %2$s hochladen</item>
+        <item quantity="other">%1$d Elemente nach %2$s hochladen</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Hochladen</string>
     <string name="share_change_folder">Ordner ändern</string>
     <string name="share_change_folder_subtitle">Verbindung zum Durchsuchen auswählen</string>
     <string name="share_change_folder_connections">Verfügbare Verbindungen</string>

@@ -274,7 +274,7 @@
     <plurals name="share_upload_full_message">
         <item quantity="other">分享 %1$d 项目到 %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">上传</string>
     <string name="share_change_folder">更改文件夹</string>
     <string name="share_change_folder_subtitle">选择要浏览的连接</string>
     <string name="share_change_folder_connections">可用连接</string>

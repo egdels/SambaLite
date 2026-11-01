@@ -282,11 +282,11 @@
     <string name="share_needs_target_folder_select">Sélectionner</string>
     <string name="share_upload_title">Partager des éléments</string>
     <plurals name="share_upload_full_message">
-        <item quantity="one">Partage %1$d élément vers %2$s</item>
-        <item quantity="many">Partage %1$d éléments vers %2$s</item>
-        <item quantity="other">Partage %1$d éléments vers %2$s</item>
+        <item quantity="one">Partager %1$d élément vers %2$s</item>
+        <item quantity="many">Partager %1$d éléments vers %2$s</item>
+        <item quantity="other">Partager %1$d éléments vers %2$s</item>
     </plurals>
-    <string name="share_upload_select">@string/share_needs_target_folder_select</string>
+    <string name="share_upload_select">Téléverser</string>
     <string name="share_change_folder">Changer de dossier</string>
     <string name="share_change_folder_subtitle">Sélectionner une connexion à parcourir</string>
     <string name="share_change_folder_connections">Connexions disponibles</string>
