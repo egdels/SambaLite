@@ -108,6 +108,10 @@
     <string name="transfer_added_to_queue">Zur Übertragungswarteschlange hinzugefügt</string>
     <string name="folder_scan_in_progress">Ordner wird durchsucht…</string>
     <string name="upload_conflict_check_in_progress">%1$d Dateien in %2$d Ordnern werden auf dem Server geprüft…</string>
+    <plurals name="upload_conflict_check_one_folder">
+        <item quantity="one">%1$d Datei wird auf dem Server geprüft…</item>
+        <item quantity="other">%1$d Dateien werden auf dem Server geprüft…</item>
+    </plurals>
     <string name="transfer_upload_success">Upload abgeschlossen: %1$s</string>
     <string name="transfer_download_success">Download abgeschlossen: %1$s</string>
     <string name="transfer_status_pending">Ausstehend</string>

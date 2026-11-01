@@ -401,13 +401,20 @@ public class FileOperationsController {
     for (UploadRequest f : files) directories.add(f.remoteDirectory());
     final int fileCount = files.size();
     final int dirCount = directories.size();
-    runOnMain(
-        () ->
-            showInfo(
-                context.getString(
-                    de.schliweb.sambalite.R.string.upload_conflict_check_in_progress,
+    // One folder: no "in 1 folders"; with several folders there are several files as well
+    String checking =
+        dirCount <= 1
+            ? context
+                .getResources()
+                .getQuantityString(
+                    de.schliweb.sambalite.R.plurals.upload_conflict_check_one_folder,
                     fileCount,
-                    dirCount)));
+                    fileCount)
+            : context.getString(
+                de.schliweb.sambalite.R.string.upload_conflict_check_in_progress,
+                fileCount,
+                dirCount);
+    runOnMain(() -> showInfo(checking));
 
     return UploadConflictFinder.find(
         files,

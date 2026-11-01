@@ -110,6 +110,11 @@
     <string name="transfer_added_to_queue">Añadido a la cola de transferencias</string>
     <string name="folder_scan_in_progress">Explorando carpeta…</string>
     <string name="upload_conflict_check_in_progress">Comprobando %1$d archivos en %2$d carpetas en el servidor…</string>
+    <plurals name="upload_conflict_check_one_folder">
+        <item quantity="one">Comprobando %1$d archivo en el servidor…</item>
+        <item quantity="many">Comprobando %1$d archivos en el servidor…</item>
+        <item quantity="other">Comprobando %1$d archivos en el servidor…</item>
+    </plurals>
     <string name="transfer_upload_success">Subida completada: %1$s</string>
     <string name="transfer_download_success">Descarga completada: %1$s</string>
     <string name="transfer_status_pending">Pendiente</string>
