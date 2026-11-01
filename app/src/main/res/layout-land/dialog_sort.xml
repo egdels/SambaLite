@@ -9,7 +9,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingHorizontal="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp">
 
         <!-- Dialog Header -->
         <LinearLayout
@@ -17,11 +19,11 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="12dp">
 
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="?attr/colorPrimaryContainer">
@@ -51,6 +53,7 @@
                     android:textColor="?attr/colorOnSurface" />
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:visibility="gone"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
@@ -74,7 +77,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.35"
                 android:layout_marginEnd="8dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
@@ -84,7 +87,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="8dp">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
@@ -92,29 +96,33 @@
                         android:text="@string/sort_by"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="0dp" />
 
                     <RadioGroup
                         android:id="@+id/sort_type_radio_group"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
 
                         <RadioButton
                             android:id="@+id/radio_name"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
+                            android:layout_marginEnd="8dp"
                             android:layout_height="wrap_content"
                             android:text="@string/sort_by_name"
                             android:checked="true" />
 
                         <RadioButton
                             android:id="@+id/radio_date"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
+                            android:layout_marginEnd="8dp"
                             android:layout_height="wrap_content"
                             android:text="@string/sort_by_date" />
 
                         <RadioButton
                             android:id="@+id/radio_size"
-                            android:layout_width="match_parent"
+                            android:layout_width="wrap_content"
+                            android:layout_marginEnd="8dp"
                             android:layout_height="wrap_content"
                             android:text="@string/sort_by_size" />
                     </RadioGroup>
@@ -125,8 +133,7 @@
                         android:text="@string/sort_order"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginTop="4dp" />
 
                     <RadioGroup
                         android:id="@+id/sort_direction_radio_group"
@@ -169,7 +176,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/directories_first"
                     android:checked="true"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="0dp" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/show_hidden_files_checkbox"
@@ -177,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/show_hidden_files"
                     android:checked="false"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="0dp" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/show_thumbnails_checkbox"

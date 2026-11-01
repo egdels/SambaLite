@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Landscape search dialog: compact so that it fits a phone in landscape without scrolling.
+  Query and "include subfolders" side by side, the search types in one row below
+  (label above the row, so that long translations still fit).
+  Same ids as the portrait layout.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -9,7 +15,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingHorizontal="24dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="0dp">
 
     <!-- Dialog Header -->
     <LinearLayout
@@ -17,11 +25,11 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="8dp">
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
             app:cardBackgroundColor="?attr/colorPrimaryContainer">
@@ -36,53 +44,36 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
+        <com.google.android.material.textview.MaterialTextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:orientation="vertical">
-
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/search"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                android:textColor="?attr/colorOnSurface" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/search_subtitle"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:textColor="?attr/colorOnSurface"
-                android:alpha="0.8" />
-
-        </LinearLayout>
+            android:text="@string/search"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface" />
 
     </LinearLayout>
 
-    <!-- Two-column content -->
+    <!-- Query and subfolder switch side by side -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:baselineAligned="false"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <!-- Left column -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginEnd="8dp">
+            android:layout_marginEnd="16dp">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/search_query_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
                 android:hint="@string/search_query_hint"
                 app:startIconDrawable="@drawable/ic_search"
                 app:startIconTint="?attr/colorOnSurface">
@@ -98,75 +89,77 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="@string/search_wildcard_hint"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textStyle="italic"
-                android:layout_marginBottom="16dp"
                 android:textColor="?attr/colorOnSurfaceVariant" />
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/include_subfolders_checkbox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/include_subfolders"
-                android:checked="true" />
         </LinearLayout>
 
-        <!-- Right column -->
-        <com.google.android.material.card.MaterialCardView
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/include_subfolders_checkbox"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            app:cardBackgroundColor="?attr/colorSurfaceVariant">
+            android:text="@string/include_subfolders"
+            android:checked="true" />
+    </LinearLayout>
 
-            <LinearLayout
+    <!-- Search types in one row -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="6dp">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/search_type"
+                android:textAppearance="?attr/textAppearanceTitleSmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <RadioGroup
+                android:id="@+id/search_type_radio_group"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal">
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="match_parent"
+                <RadioButton
+                    android:id="@+id/radio_all"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/search_type"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/search_type_all"
+                    tools:ignore="UnusedIds"
+                    android:checked="true" />
 
-                <RadioGroup
-                    android:id="@+id/search_type_radio_group"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                <RadioButton
+                    android:id="@+id/radio_files"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/search_type_files" />
 
-                    <RadioButton
-                        android:id="@+id/radio_all"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/search_type_all"
-                        tools:ignore="UnusedIds"
-                        android:checked="true" />
+                <RadioButton
+                    android:id="@+id/radio_folders"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/search_type_folders" />
+            </RadioGroup>
 
-                    <RadioButton
-                        android:id="@+id/radio_files"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/search_type_files" />
+        </LinearLayout>
 
-                    <RadioButton
-                        android:id="@+id/radio_folders"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/search_type_folders" />
-                </RadioGroup>
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
 
