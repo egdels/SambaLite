@@ -559,6 +559,9 @@ public class TransferWorker extends Worker {
       if (dao.markCompletedIfActive(transfer.id, System.currentTimeMillis()) == 0) {
         if (isTransferCancelled(dao, transfer.id)) {
           LogUtils.i(TAG, "Transfer was cancelled by user: " + transfer.displayName);
+          if (isUpload) {
+            discardIncompleteUpload(share, transfer);
+          }
           // The user's choice, not a failure: the rest of the batch goes on as usual
           return true;
         }
@@ -681,6 +684,38 @@ public class TransferWorker extends Worker {
       LogUtils.w(
           TAG,
           "Could not discard incomplete download " + transfer.displayName + ": " + e.getMessage());
+    }
+  }
+
+  /**
+   * Deletes the remote file of an upload that the user cancelled while it ran, unless it is
+   * complete. Otherwise a truncated file with the real name stays on the server and looks like a
+   * finished upload. A file it was meant to overwrite is already replaced at this point.
+   */
+  private void discardIncompleteUpload(DiskShare share, PendingTransfer transfer) {
+    try {
+      long remoteSize = getRemoteFileSize(share, transfer.remotePath);
+      long localSize =
+          getLocalFileSize(
+              getApplicationContext().getContentResolver(), Uri.parse(transfer.localUri));
+      long expected = localSize >= 0 ? localSize : transfer.fileSize;
+      if (remoteSize < 0 || (expected > 0 && remoteSize == expected)) {
+        return;
+      }
+      share.rm(transfer.remotePath);
+      LogUtils.i(
+          TAG,
+          "Removed incomplete remote file of cancelled upload "
+              + transfer.displayName
+              + " ("
+              + remoteSize
+              + " of "
+              + expected
+              + " bytes)");
+    } catch (Exception e) {
+      LogUtils.w(
+          TAG,
+          "Could not remove incomplete upload " + transfer.displayName + ": " + e.getMessage());
     }
   }
 

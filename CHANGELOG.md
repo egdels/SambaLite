@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Cancelled uploads left a truncated file on the server**: Cancelling a running upload in the queue stopped it, but the partly written file stayed on the server under the real name (e.g. 88 MB of a 210 MB file) and looked like a finished upload. The incomplete server file is now deleted when the upload is cancelled.
 - **Cancelled downloads left broken files behind**: Cancelling or removing a running download in the queue left the partly written file in the download folder (e.g. 28 MB of a 210 MB file) under the real name, and a download that had not started yet left an empty file. Such incomplete files are now deleted when the download is cancelled or removed; completed downloads are never touched.
 - **"Checking 4 files in 1 folders"**: The notice shown while an upload is compared with the server used the plural for one folder (and for one file). An upload into a single folder now says "Checking 4 files on the server…" with proper singular and plural forms in all languages.
 - **Queue counters broke words at random places**: In portrait, longer labels of the transfer queue's counters were split anywhere inside the word, e.g. "Abgeschlos / sen" and "Fehlgeschla / gen" in German or "Niepowodze / nie" in Polish. Labels that need two lines are now hyphenated properly ("Abgeschlos- / sen").
