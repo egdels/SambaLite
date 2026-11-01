@@ -458,6 +458,25 @@ public class FileBrowserActivity extends AppCompatActivity
     return done ? "✓ " + text : text + "…";
   }
 
+  /** Shows the search status as toolbar subtitle: results found so far, or the failure. */
+  private void showSearchSubtitle() {
+    if (getSupportActionBar() == null) return;
+    String failure = searchViewModel.getSearchFailure();
+    if (failure != null) {
+      String reason = de.schliweb.sambalite.ui.utils.TransferErrorText.shortReason(this, failure);
+      getSupportActionBar()
+          .setSubtitle(
+              getString(
+                  R.string.search_failed,
+                  reason != null ? reason : getString(R.string.transfer_error_connection)));
+      return;
+    }
+    java.util.List<?> results = searchViewModel.getSearchResults().getValue();
+    boolean searching = Boolean.TRUE.equals(searchViewModel.isSearching().getValue());
+    getSupportActionBar()
+        .setSubtitle(searchSubtitle(results != null ? results.size() : 0, !searching));
+  }
+
   /** Resets the toolbar title and subtitle after leaving search mode. */
   void resetToolbarAfterSearch() {
     if (getSupportActionBar() != null) {
@@ -973,6 +992,9 @@ public class FileBrowserActivity extends AppCompatActivity
                 subtitle = getString(R.string.selection_files_only, fileCount);
               }
               getSupportActionBar().setSubtitle(subtitle);
+            } else if (searchViewModel != null && searchViewModel.isInSearchMode()) {
+              // Back to the result count after a selection among search results
+              showSearchSubtitle();
             } else {
               getSupportActionBar().setSubtitle(null);
               showFolderSubtitle();
