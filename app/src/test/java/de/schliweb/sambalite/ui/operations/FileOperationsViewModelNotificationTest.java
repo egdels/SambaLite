@@ -342,7 +342,7 @@ public class FileOperationsViewModelNotificationTest {
   public void deleteFile_success_triggersNotification() throws Exception {
     SmbFileItem file = createFile("old.txt", "/share/docs/old.txt", 512);
 
-    doNothing().when(smbRepository).deleteFile(eq(connection), eq("/share/docs/old.txt"));
+    doNothing().when(smbRepository).deleteFile(eq(connection), eq("/share/docs/old.txt"), any());
 
     CountDownLatch latch = new CountDownLatch(1);
     viewModel.deleteFile(file, (success, msg) -> latch.countDown());
@@ -361,7 +361,7 @@ public class FileOperationsViewModelNotificationTest {
 
     doThrow(new RuntimeException("Access denied"))
         .when(smbRepository)
-        .deleteFile(eq(connection), eq("/share/docs/old.txt"));
+        .deleteFile(eq(connection), eq("/share/docs/old.txt"), any());
 
     CountDownLatch latch = new CountDownLatch(1);
     viewModel.deleteFile(file, (success, msg) -> latch.countDown());
@@ -382,10 +382,35 @@ public class FileOperationsViewModelNotificationTest {
   }
 
   @Test
+  public void deleteDirectory_reportsDeletedEntriesAsProgress() throws Exception {
+    SmbFileItem dir = createDirectory("bigTree", "/share/docs/bigTree");
+
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              java.util.function.IntConsumer listener = inv.getArgument(2);
+              listener.accept(1);
+              listener.accept(2);
+              return null;
+            })
+        .when(smbRepository)
+        .deleteFile(eq(connection), eq("/share/docs/bigTree"), any());
+
+    CountDownLatch latch = new CountDownLatch(1);
+    viewModel.deleteFile(dir, (success, msg) -> latch.countDown());
+
+    latch.await(5, TimeUnit.SECONDS);
+    ShadowLooper.idleMainLooper();
+
+    // Throttled to once a second, so the first count is reported
+    verify(backgroundSmbManager).updateOperationProgress(contains("bigTree"), eq("1 item deleted"));
+    verify(backgroundSmbManager).finishOperation(contains("bigTree"), eq(true));
+  }
+
+  @Test
   public void deleteDirectory_success_triggersNotification() throws Exception {
     SmbFileItem dir = createDirectory("oldFolder", "/share/docs/oldFolder");
 
-    doNothing().when(smbRepository).deleteFile(eq(connection), eq("/share/docs/oldFolder"));
+    doNothing().when(smbRepository).deleteFile(eq(connection), eq("/share/docs/oldFolder"), any());
 
     CountDownLatch latch = new CountDownLatch(1);
     viewModel.deleteFile(dir, (success, msg) -> latch.countDown());

@@ -518,4 +518,10 @@
         <item quantity="many">%d transferencias completadas</item>
         <item quantity="other">%d transferencias completadas</item>
     </plurals>
+    <!-- Progress while a folder tree is deleted -->
+    <plurals name="delete_progress_entries">
+        <item quantity="one">%d elemento eliminado</item>
+        <item quantity="many">%d elementos eliminados</item>
+        <item quantity="other">%d elementos eliminados</item>
+    </plurals>
 </resources>

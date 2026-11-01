@@ -809,7 +809,27 @@ public class FileOperationsViewModel extends ViewModel {
     safeExecute(
         () -> {
           try {
-            smbRepository.deleteFile(state.getConnection(), file.getPath());
+            // A large folder tree takes a while; report the running count at most once a second,
+            // which also keeps the service watchdog from calling the delete stalled
+            java.util.concurrent.atomic.AtomicLong lastReport =
+                new java.util.concurrent.atomic.AtomicLong(-1000); // first count goes through
+            smbRepository.deleteFile(
+                state.getConnection(),
+                file.getPath(),
+                count -> {
+                  long now = android.os.SystemClock.elapsedRealtime();
+                  long last = lastReport.get();
+                  if (now - last >= 1000 && lastReport.compareAndSet(last, now)) {
+                    backgroundSmbManager.updateOperationProgress(
+                        deleteOpName,
+                        context
+                            .getResources()
+                            .getQuantityString(
+                                de.schliweb.sambalite.R.plurals.delete_progress_entries,
+                                count,
+                                count));
+                  }
+                });
             LogUtils.i("FileOperationsViewModel", "File deleted successfully: " + file.getName());
             state.setLoading(false);
             backgroundSmbManager.finishOperation(deleteOpName, true);

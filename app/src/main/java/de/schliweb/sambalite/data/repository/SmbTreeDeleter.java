@@ -88,6 +88,27 @@ final class SmbTreeDeleter implements AutoCloseable {
             });
   }
 
+  /** Called with the running count after each removed file or folder; may be null. */
+  @Nullable private volatile java.util.function.IntConsumer onEntryDeleted;
+
+  /**
+   * Reports the running number of removed files and folders, e.g. to show progress while a large
+   * tree is deleted. Called from the delete threads.
+   *
+   * @param listener receives the count after each removed entry, or null for none
+   */
+  void setOnEntryDeleted(@Nullable java.util.function.IntConsumer listener) {
+    this.onEntryDeleted = listener;
+  }
+
+  private void entryDeleted() {
+    int count = deletedEntries.incrementAndGet();
+    java.util.function.IntConsumer listener = onEntryDeleted;
+    if (listener != null) {
+      listener.accept(count);
+    }
+  }
+
   /** Number of files and folders removed so far by this instance. */
   int getDeletedEntries() {
     return deletedEntries.get();
@@ -271,11 +292,11 @@ final class SmbTreeDeleter implements AutoCloseable {
       // Something appeared in the folder meanwhile (another client); fall back to SMBJ's walk
       LogUtils.w(TAG, "Folder not empty after deleting its content, walking again: " + path);
       share.rmdir(path, true);
-      deletedEntries.incrementAndGet();
+      entryDeleted();
     } else if (result == Entry.IS_DIRECTORY) {
       // Listed as a file but is a folder (changed meanwhile)
       share.rmdir(path, true);
-      deletedEntries.incrementAndGet();
+      entryDeleted();
     }
     return null;
   }
@@ -312,7 +333,7 @@ final class SmbTreeDeleter implements AutoCloseable {
             SHARE_ALL,
             SMB2CreateDisposition.FILE_OPEN,
             options)) {
-      deletedEntries.incrementAndGet();
+      entryDeleted();
       return Entry.DELETED;
     } catch (SMBApiException e) {
       long status = e.getStatusCode();
@@ -339,7 +360,7 @@ final class SmbTreeDeleter implements AutoCloseable {
       } catch (SMBApiException fallback) {
         throw new IOException("Failed to delete " + path + ": " + fallback.getMessage(), fallback);
       }
-      deletedEntries.incrementAndGet();
+      entryDeleted();
       return Entry.DELETED;
     }
   }

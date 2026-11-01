@@ -189,6 +189,23 @@ public interface SmbRepository {
   void deleteFile(@NonNull SmbConnection connection, @NonNull String path) throws Exception;
 
   /**
+   * Like {@link #deleteFile(SmbConnection, String)}, reporting the running number of removed files
+   * and folders while a folder tree is deleted.
+   *
+   * @param connection The SMB connection to use
+   * @param path The path to the file or directory to delete
+   * @param onEntryDeleted receives the count after each removed entry (on a worker thread), or null
+   * @throws Exception if an error occurs during the deletion
+   */
+  default void deleteFile(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @Nullable java.util.function.IntConsumer onEntryDeleted)
+      throws Exception {
+    deleteFile(connection, path);
+  }
+
+  /**
    * Deletes multiple files on the SMB server using a single connection. This avoids opening a new
    * SMB session for each file, which can cause issues with SMB server-side directory caching and
    * oplocks when deleting many files in quick succession.

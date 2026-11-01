@@ -502,4 +502,9 @@
         <item quantity="one">%d Übertragung abgeschlossen</item>
         <item quantity="other">%d Übertragungen abgeschlossen</item>
     </plurals>
+    <!-- Progress while a folder tree is deleted -->
+    <plurals name="delete_progress_entries">
+        <item quantity="one">%d Element gelöscht</item>
+        <item quantity="other">%d Elemente gelöscht</item>
+    </plurals>
 </resources>

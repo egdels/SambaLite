@@ -513,4 +513,9 @@
         <item quantity="one">%d transfer completed</item>
         <item quantity="other">%d transfers completed</item>
     </plurals>
+    <!-- Progress while a folder tree is deleted -->
+    <plurals name="delete_progress_entries">
+        <item quantity="one">%d item deleted</item>
+        <item quantity="other">%d items deleted</item>
+    </plurals>
 </resources>

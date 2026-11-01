@@ -489,4 +489,8 @@
     <plurals name="transfers_completed_summary">
         <item quantity="other">%d 个传输已完成</item>
     </plurals>
+    <!-- Progress while a folder tree is deleted -->
+    <plurals name="delete_progress_entries">
+        <item quantity="other">已删除 %d 项</item>
+    </plurals>
 </resources>

@@ -881,6 +881,15 @@ public class SmbRepositoryImpl implements SmbRepository {
 
   @Override
   public void deleteFile(@NonNull SmbConnection connection, @NonNull String path) throws Exception {
+    deleteFile(connection, path, null);
+  }
+
+  @Override
+  public void deleteFile(
+      @NonNull SmbConnection connection,
+      @NonNull String path,
+      @Nullable java.util.function.IntConsumer onEntryDeleted)
+      throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Deleting file/directory: " + path);
     withShare(
         connection,
@@ -888,6 +897,7 @@ public class SmbRepositoryImpl implements SmbRepository {
           String filePath = getPathWithoutShare(path);
           long start = System.currentTimeMillis();
           try (SmbTreeDeleter deleter = new SmbTreeDeleter(share)) {
+            deleter.setOnEntryDeleted(onEntryDeleted);
             Exception error = deleter.deleteAll(Collections.singletonList(filePath)).get(0);
             if (error != null) {
               LogUtils.w("SmbRepositoryImpl", "Delete failed: " + filePath + " - " + error);
