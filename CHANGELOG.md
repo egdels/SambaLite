@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Cancel did nothing after rotating while a file was opening**: When the device was rotated while a file was being downloaded for opening, the progress dialog came back as "Transfer in progress …", but its Cancel button did not stop the download, which then opened the file anyway. Cancel now stops it.
 - **Search results replaced by the folder after rotation**: Rotating the device while search results were shown kept "3 results found" in the toolbar but listed the current folder's content instead of the results. The results now stay.
 - **Back during multi-select left the folder**: With items selected in the file browser, the Back button discarded the selection and went to the parent folder (or closed the browser at the share root). Back now first ends the selection.
 - **Connection dialogs showed two titles**: "Add New Connection" appeared above the "Add SMB Connection" header, and the Edit dialog showed "Edit Connection" above "Add SMB Connection". Each dialog now has one title, and the Edit dialog's header says "Edit Connection".

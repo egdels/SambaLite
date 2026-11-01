@@ -843,16 +843,19 @@ public class FileBrowserActivity extends AppCompatActivity
       } else {
         progressController.showTransferProgressDialog();
       }
-
-      progressController.setDetailedProgressDialogCancelAction(
-          () -> {
-            if (Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())) {
-              fileOperationsViewModel.cancelUpload();
-            } else if (Boolean.TRUE.equals(fileOperationsViewModel.isDownloading().getValue())) {
-              fileOperationsViewModel.cancelDownload();
-            }
-          });
     }
+
+    // Also covers the dialog that the new ProgressController reopens from the transfer progress
+    // after a rotation while a file is being opened (no upload/download flag is set for that):
+    // without an action its Cancel button did nothing.
+    progressController.setDetailedProgressDialogCancelAction(
+        () -> {
+          if (Boolean.TRUE.equals(fileOperationsViewModel.isUploading().getValue())) {
+            fileOperationsViewModel.cancelUpload();
+          } else {
+            fileOperationsViewModel.cancelDownload();
+          }
+        });
   }
 
   /** Initializes controllers. */
