@@ -364,7 +364,9 @@ public class ActivityResultController {
       // For files, create a file picker
       Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
       intent.addCategory(Intent.CATEGORY_OPENABLE);
-      intent.setType("*/*"); // Allow any file type
+      // The real type, not */*: the provider uses it to keep the extension when it has to make the
+      // name unique ("notes (1).txt" instead of "notes.txt (1)")
+      intent.setType(mimeTypeForName(file.getName()));
       intent.putExtra(Intent.EXTRA_TITLE, file.getName()); // Suggest the file name
       // Request persistable permission so the Worker can access the URI after app restart
       intent.addFlags(
@@ -558,5 +560,23 @@ public class ActivityResultController {
      * @param uri The URI of the folder to sync
      */
     void onSyncFolderSelected(@NonNull Uri uri);
+  }
+
+  /**
+   * The MIME type for a file name, from its extension; {@code application/octet-stream} when the
+   * extension is missing or unknown.
+   */
+  @NonNull
+  static String mimeTypeForName(@NonNull String name) {
+    int dot = name.lastIndexOf('.');
+    if (dot > 0 && dot < name.length() - 1) {
+      String type =
+          android.webkit.MimeTypeMap.getSingleton()
+              .getMimeTypeFromExtension(name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT));
+      if (type != null) {
+        return type;
+      }
+    }
+    return "application/octet-stream";
   }
 }
