@@ -610,13 +610,15 @@ public class DialogHelper {
    * individually deselect files they do not want to overwrite.
    *
    * @param context The context
-   * @param fileNames List of file names that already exist
+   * @param fileNames List of file names that already exist, each entry unique
+   * @param totalCount How many files the upload holds in total, existing ones included
    * @param onConfirm Callback with the list of selected (to-overwrite) file names
    * @param onCancel Callback when user cancels or skips all
    */
   public static void showMultiFileExistsDialog(
       @NonNull Context context,
       @NonNull java.util.List<String> fileNames,
+      int totalCount,
       @NonNull java.util.function.Consumer<java.util.List<String>> onConfirm,
       @Nullable Runnable onCancel) {
     LogUtils.d(
@@ -625,7 +627,10 @@ public class DialogHelper {
 
     android.widget.TextView summaryView = dialogView.findViewById(R.id.files_exist_summary);
     summaryView.setText(
-        context.getString(R.string.files_exist_summary, fileNames.size(), fileNames.size()));
+        context.getString(
+            R.string.files_exist_summary,
+            fileNames.size(),
+            Math.max(totalCount, fileNames.size())));
 
     android.widget.LinearLayout listContainer = dialogView.findViewById(R.id.files_exist_list);
     android.widget.CheckBox selectAllCheckBox =

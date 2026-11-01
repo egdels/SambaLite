@@ -122,4 +122,22 @@ public class UploadConflictFinderTest {
 
     assertEquals(Arrays.asList("1/2", "2/2"), progress);
   }
+
+  /** SMB servers ignore case, so photo.jpg would overwrite Photo.JPG on the server. */
+  @Test
+  public void find_comparesNamesWithoutRegardToCase() {
+    List<UploadRequest> requests =
+        Arrays.asList(request("Case/photo.jpg"), request("Case/NOTES.TXT"), request("Case/new.txt"));
+
+    UploadConflictFinder.Result result =
+        UploadConflictFinder.find(
+            requests,
+            Collections.emptySet(),
+            dir -> new HashSet<>(Arrays.asList("Photo.JPG", "notes.txt")),
+            null);
+
+    assertEquals(2, result.existing.size());
+    assertEquals("Case/photo.jpg", result.existing.get(0).remotePath);
+    assertEquals("Case/NOTES.TXT", result.existing.get(1).remotePath);
+  }
 }

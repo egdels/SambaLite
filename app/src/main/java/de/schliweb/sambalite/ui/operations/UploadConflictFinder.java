@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -94,9 +95,9 @@ public final class UploadConflictFinder {
     Map<UploadRequest, Boolean> existsByRequest = new HashMap<>();
     int done = 0;
     for (Map.Entry<String, List<UploadRequest>> e : byDirectory.entrySet()) {
-      Set<String> names = lister.listNames(e.getKey());
+      Set<String> names = foldCase(lister.listNames(e.getKey()));
       for (UploadRequest r : e.getValue()) {
-        existsByRequest.put(r, names != null && names.contains(r.remoteFileName()));
+        existsByRequest.put(r, names != null && names.contains(foldCase(r.remoteFileName())));
       }
       done++;
       if (progress != null) {
@@ -115,5 +116,25 @@ public final class UploadConflictFinder {
       }
     }
     return new Result(queued, existing);
+  }
+
+  /**
+   * Names compared without regard to case: SMB servers (Windows, Samba by default) treat {@code
+   * photo.jpg} and {@code Photo.JPG} as the same file, so an upload of one overwrites the other. On
+   * a case-sensitive server this reports a conflict too many, which only costs a question.
+   */
+  @NonNull
+  static String foldCase(@NonNull String name) {
+    return name.toLowerCase(Locale.ROOT);
+  }
+
+  @Nullable
+  private static Set<String> foldCase(@Nullable Set<String> names) {
+    if (names == null) return null;
+    Set<String> folded = new HashSet<>(names.size() * 2);
+    for (String n : names) {
+      folded.add(foldCase(n));
+    }
+    return folded;
   }
 }

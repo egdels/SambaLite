@@ -428,20 +428,27 @@ public class FileOperationsController {
       UploadConflictFinder.Result conflicts,
       @Nullable Uri grantUri,
       String what) {
-    boolean hasQueued = !conflicts.queued.isEmpty();
-    boolean hasExisting = !conflicts.existing.isEmpty();
-
     // Files already in the queue are never queued again, whatever the user picks below
     java.util.Set<String> queuedPaths = new java.util.HashSet<>();
     for (UploadRequest f : conflicts.queued) {
       queuedPaths.add(f.remotePath);
     }
+    // ... so they are not asked about in the overwrite dialog either
+    java.util.List<UploadRequest> existing = new java.util.ArrayList<>();
+    for (UploadRequest f : conflicts.existing) {
+      if (!queuedPaths.contains(f.remotePath)) existing.add(f);
+    }
+    boolean hasQueued = !conflicts.queued.isEmpty();
+    boolean hasExisting = !existing.isEmpty();
+    int toUpload = allFiles.size() - queuedPaths.size();
+
+    // Excluded by remote path, not by name: a folder upload can hold several files of one name
     java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered =
-        (excludedNames) -> {
+        (excludedPaths) -> {
           java.util.List<UploadRequest> selected = new java.util.ArrayList<>();
           for (UploadRequest f : allFiles) {
             if (queuedPaths.contains(f.remotePath)) continue;
-            if (excludedNames != null && excludedNames.contains(f.displayName)) continue;
+            if (excludedPaths != null && excludedPaths.contains(f.remotePath)) continue;
             selected.add(f);
           }
           String batchId = java.util.UUID.randomUUID().toString();
@@ -471,13 +478,13 @@ public class FileOperationsController {
           conflicts.queued.size(),
           () -> {
             if (hasExisting) {
-              showMultiFileExistsDialog(conflicts.existing, doEnqueueFiltered);
+              showMultiFileExistsDialog(existing, toUpload, doEnqueueFiltered);
             } else {
               doEnqueue.run();
             }
           });
     } else if (hasExisting) {
-      showMultiFileExistsDialog(conflicts.existing, doEnqueueFiltered);
+      showMultiFileExistsDialog(existing, toUpload, doEnqueueFiltered);
     } else {
       doEnqueue.run();
     }
@@ -488,53 +495,75 @@ public class FileOperationsController {
   }
 
   /**
-   * Shows the multi-file exists dialog for batch uploads, allowing the user to deselect individual
-   * files. Unselected existing files are excluded from the upload.
+   * Asks which existing files to overwrite. A batch that consists of a single existing file gets
+   * the simple overwrite question; otherwise the list dialog is shown, also for one existing file
+   * among others, because its "Skip all" still uploads the new files (the simple dialog's Cancel
+   * would drop the whole batch).
+   *
+   * @param existingFiles Uploads whose target exists on the server
+   * @param totalCount How many files of the batch are going to be uploaded
+   * @param doEnqueueFiltered Enqueues the batch without the given remote paths
    */
   private void showMultiFileExistsDialog(
       java.util.List<UploadRequest> existingFiles,
+      int totalCount,
       java.util.function.Consumer<java.util.Set<String>> doEnqueueFiltered) {
-    if (existingFiles.size() == 1) {
+    if (existingFiles.size() == 1 && totalCount <= 1) {
       showOverwriteDialog(existingFiles.get(0).displayName, () -> doEnqueueFiltered.accept(null));
-    } else {
-      java.util.List<String> names = new java.util.ArrayList<>();
-      for (UploadRequest f : existingFiles) {
-        names.add(f.displayName);
-      }
-      de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
-          context,
-          names,
-          selectedNames -> {
-            // Build set of existing file names that were NOT selected (to exclude)
-            java.util.Set<String> selectedSet = new java.util.HashSet<>(selectedNames);
-            java.util.Set<String> excludedNames = new java.util.HashSet<>();
-            for (UploadRequest f : existingFiles) {
-              if (!selectedSet.contains(f.displayName)) {
-                excludedNames.add(f.displayName);
-              }
-            }
-            doEnqueueFiltered.accept(excludedNames);
-            LogUtils.i(
-                "FileOperationsController",
-                "Multi upload: user selected "
-                    + selectedNames.size()
-                    + " of "
-                    + existingFiles.size()
-                    + " existing files to overwrite, excluded "
-                    + excludedNames.size());
-          },
-          () -> {
-            // Skip all existing files, but still upload non-existing ones
-            java.util.Set<String> allExistingNames = new java.util.HashSet<>();
-            for (UploadRequest f : existingFiles) {
-              allExistingNames.add(f.displayName);
-            }
-            doEnqueueFiltered.accept(allExistingNames);
-            LogUtils.i(
-                "FileOperationsController",
-                "Multi upload: user skipped all " + existingFiles.size() + " existing files");
-          });
+      return;
     }
+    String basePath = fileListViewModel.getCurrentPathInternal();
+    java.util.List<String> labels = new java.util.ArrayList<>();
+    for (UploadRequest f : existingFiles) {
+      labels.add(conflictLabel(f, basePath));
+    }
+    de.schliweb.sambalite.ui.dialogs.DialogHelper.showMultiFileExistsDialog(
+        context,
+        labels,
+        totalCount,
+        selectedLabels -> {
+          // Exclude the existing files whose entry was NOT selected
+          java.util.Set<String> selectedSet = new java.util.HashSet<>(selectedLabels);
+          java.util.Set<String> excludedPaths = new java.util.HashSet<>();
+          for (int i = 0; i < existingFiles.size(); i++) {
+            if (!selectedSet.contains(labels.get(i))) {
+              excludedPaths.add(existingFiles.get(i).remotePath);
+            }
+          }
+          doEnqueueFiltered.accept(excludedPaths);
+          LogUtils.i(
+              "FileOperationsController",
+              "Multi upload: user selected "
+                  + selectedLabels.size()
+                  + " of "
+                  + existingFiles.size()
+                  + " existing files to overwrite, excluded "
+                  + excludedPaths.size());
+        },
+        () -> {
+          // Skip all existing files, but still upload non-existing ones
+          java.util.Set<String> allExistingPaths = new java.util.HashSet<>();
+          for (UploadRequest f : existingFiles) {
+            allExistingPaths.add(f.remotePath);
+          }
+          doEnqueueFiltered.accept(allExistingPaths);
+          LogUtils.i(
+              "FileOperationsController",
+              "Multi upload: user skipped all " + existingFiles.size() + " existing files");
+        });
+  }
+
+  /**
+   * The entry of a file in the overwrite list: its path below the current folder, so that files of
+   * the same name from different subfolders of a folder upload can be told apart.
+   */
+  static String conflictLabel(UploadRequest file, @Nullable String basePath) {
+    String path = file.remotePath;
+    if (basePath == null || basePath.isEmpty()) {
+      return path;
+    }
+    String prefix = basePath.endsWith("/") ? basePath : basePath + "/";
+    return path.startsWith(prefix) ? path.substring(prefix.length()) : file.displayName;
   }
 
   /** Builds a display string of conflicting file names (max 3 + count). */
