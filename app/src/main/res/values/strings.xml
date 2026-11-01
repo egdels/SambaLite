@@ -144,18 +144,18 @@
 
     <!-- Rename -->
     <string name="rename">Rename</string>
-    <string name="rename_dialog_title">Rename File</string>
+    <string name="rename_dialog_title">Rename</string>
     <string name="new_name">New Name</string>
-    <string name="rename_success">File renamed successfully</string>
-    <string name="rename_error">Error renaming file</string>
+    <string name="rename_success">Renamed successfully</string>
+    <string name="rename_error">Could not rename</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Delete File</string>
     <string name="confirm_delete_file">Are you sure you want to delete “%1$s”?</string>
     <string name="delete_folder_dialog_title">Delete Folder</string>
     <string name="confirm_delete_folder">Are you sure you want to delete the folder “%1$s” and everything in it?</string>
-    <string name="delete_success">File deleted successfully</string>
-    <string name="delete_error">Error deleting file</string>
+    <string name="delete_success">Deleted successfully</string>
+    <string name="delete_error">Could not delete</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -266,7 +266,7 @@
     <string name="require_signing">Require signing</string>
     <string name="use_async_transport">Use async transport (faster)</string>
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">Delete files</string>
+    <string name="delete_multiple_title">Delete items</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">No files selected</string>
@@ -392,12 +392,12 @@
         <item quantity="other">%1$d files failed to upload</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="one">Delete %1$d file?</item>
-        <item quantity="other">Delete %1$d files?</item>
+        <item quantity="one">Delete %1$d item?</item>
+        <item quantity="other">Delete %1$d items?</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="one">Deleted %1$d of %2$d file</item>
-        <item quantity="other">Deleted %1$d of %2$d files</item>
+        <item quantity="one">Deleted %1$d of %2$d item</item>
+        <item quantity="other">Deleted %1$d of %2$d items</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d failed</item>

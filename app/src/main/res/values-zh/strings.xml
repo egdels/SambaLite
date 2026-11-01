@@ -182,18 +182,18 @@
 
     <!-- Rename -->
     <string name="rename">重命名</string>
-    <string name="rename_dialog_title">重命名文件</string>
+    <string name="rename_dialog_title">重命名</string>
     <string name="new_name">新名称</string>
-    <string name="rename_success">文件重命名成功</string>
-    <string name="rename_error">文件重命名出错</string>
+    <string name="rename_success">重命名成功</string>
+    <string name="rename_error">重命名失败</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">删除文件</string>
     <string name="confirm_delete_file">确定要删除 “%1$s”？</string>
     <string name="delete_folder_dialog_title">删除文件夹</string>
     <string name="confirm_delete_folder">确定要删除文件夹 “%1$s” 及其全部内容吗？</string>
-    <string name="delete_success">成功删除了文件</string>
-    <string name="delete_error">删除文件出错</string>
+    <string name="delete_success">删除成功</string>
+    <string name="delete_error">删除失败</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -287,7 +287,7 @@
     <string name="use_async_transport">使用异步传输（更快）</string>
 
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">@string/delete_file_dialog_title</string>
+    <string name="delete_multiple_title">删除项目</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">未选择任何文件</string>
@@ -409,10 +409,10 @@
         <item quantity="other">%1$d 个文件上传失败</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="other">删除 %1$d 个文件？</item>
+        <item quantity="other">删除 %1$d 项？</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="other">已删除 %1$d / %2$d 个文件</item>
+        <item quantity="other">已删除 %1$d / %2$d 项</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="other">%1$d 个失败</item>

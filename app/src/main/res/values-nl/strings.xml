@@ -186,18 +186,18 @@
 
     <!-- Rename -->
     <string name="rename">Hernoemen</string>
-    <string name="rename_dialog_title">Bestand hernoemen</string>
+    <string name="rename_dialog_title">Naam wijzigen</string>
     <string name="new_name">Nieuwe naam</string>
-    <string name="rename_success">Bestand succesvol hernoemd</string>
-    <string name="rename_error">Fout bij hernoemen van bestand</string>
+    <string name="rename_success">Naam gewijzigd</string>
+    <string name="rename_error">Naam wijzigen mislukt</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Bestand verwijderen</string>
     <string name="confirm_delete_file">Weet je zeker dat je ‘%1$s’ wilt verwijderen?</string>
     <string name="delete_folder_dialog_title">Map verwijderen</string>
     <string name="confirm_delete_folder">Weet je zeker dat je de map ‘%1$s’ met alle inhoud wilt verwijderen?</string>
-    <string name="delete_success">Bestand succesvol verwijderd</string>
-    <string name="delete_error">Fout bij verwijderen van bestand</string>
+    <string name="delete_success">Verwijderd</string>
+    <string name="delete_error">Verwijderen mislukt</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -291,7 +291,7 @@
     <string name="use_async_transport">Async transport gebruiken (sneller)</string>
 
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">Bestanden verwijderen</string>
+    <string name="delete_multiple_title">Items verwijderen</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Geen bestanden geselecteerd</string>
@@ -416,12 +416,12 @@
         <item quantity="other">%1$d bestanden konden niet worden geüpload</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="one">%1$d bestand verwijderen?</item>
-        <item quantity="other">%1$d bestanden verwijderen?</item>
+        <item quantity="one">%1$d item verwijderen?</item>
+        <item quantity="other">%1$d items verwijderen?</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="one">%1$d van %2$d bestand verwijderd</item>
-        <item quantity="other">%1$d van %2$d bestanden verwijderd</item>
+        <item quantity="one">%1$d van %2$d item verwijderd</item>
+        <item quantity="other">%1$d van %2$d items verwijderd</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d mislukt</item>

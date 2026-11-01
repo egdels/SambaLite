@@ -186,18 +186,18 @@
 
     <!-- Rename -->
     <string name="rename">Umbenennen</string>
-    <string name="rename_dialog_title">Datei umbenennen</string>
+    <string name="rename_dialog_title">Umbenennen</string>
     <string name="new_name">Neuer Name</string>
-    <string name="rename_success">Datei erfolgreich umbenannt</string>
-    <string name="rename_error">Fehler beim Umbenennen der Datei</string>
+    <string name="rename_success">Erfolgreich umbenannt</string>
+    <string name="rename_error">Umbenennen fehlgeschlagen</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Datei löschen</string>
     <string name="confirm_delete_file">Sind Sie sicher, dass Sie „%1$s“ löschen möchten?</string>
     <string name="delete_folder_dialog_title">Ordner löschen</string>
     <string name="confirm_delete_folder">Sind Sie sicher, dass Sie den Ordner „%1$s“ mit seinem gesamten Inhalt löschen möchten?</string>
-    <string name="delete_success">Datei erfolgreich gelöscht</string>
-    <string name="delete_error">Fehler beim Löschen der Datei</string>
+    <string name="delete_success">Erfolgreich gelöscht</string>
+    <string name="delete_error">Löschen fehlgeschlagen</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -291,7 +291,7 @@
     <string name="use_async_transport">Async-Transport verwenden (schneller)</string>
 
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">Dateien löschen</string>
+    <string name="delete_multiple_title">Elemente löschen</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Keine Dateien ausgewählt</string>
@@ -416,12 +416,12 @@
         <item quantity="other">%1$d Dateien konnten nicht hochgeladen werden</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="one">%1$d Datei löschen?</item>
-        <item quantity="other">%1$d Dateien löschen?</item>
+        <item quantity="one">%1$d Element löschen?</item>
+        <item quantity="other">%1$d Elemente löschen?</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="one">%1$d von %2$d Datei gelöscht</item>
-        <item quantity="other">%1$d von %2$d Dateien gelöscht</item>
+        <item quantity="one">%1$d von %2$d Element gelöscht</item>
+        <item quantity="other">%1$d von %2$d Elementen gelöscht</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d fehlgeschlagen</item>

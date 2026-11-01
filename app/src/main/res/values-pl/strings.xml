@@ -196,18 +196,18 @@
 
     <!-- Rename -->
     <string name="rename">Zmień nazwę</string>
-    <string name="rename_dialog_title">Zmień nazwę pliku</string>
+    <string name="rename_dialog_title">Zmień nazwę</string>
     <string name="new_name">Nowa nazwa</string>
-    <string name="rename_success">Plik przemianowany pomyślnie</string>
-    <string name="rename_error">Błąd zmiany nazwy pliku</string>
+    <string name="rename_success">Zmieniono nazwę</string>
+    <string name="rename_error">Nie udało się zmienić nazwy</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Usuń plik</string>
     <string name="confirm_delete_file">Czy na pewno chcesz usunąć „%1$s”?</string>
     <string name="delete_folder_dialog_title">Usuń folder</string>
     <string name="confirm_delete_folder">Czy na pewno chcesz usunąć folder „%1$s” wraz z całą zawartością?</string>
-    <string name="delete_success">Plik usunięty pomyślnie</string>
-    <string name="delete_error">Błąd usuwania pliku</string>
+    <string name="delete_success">Usunięto</string>
+    <string name="delete_error">Nie udało się usunąć</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -303,7 +303,7 @@
     <string name="use_async_transport">Użyj transportu asynchronicznego (szybszy)</string>
 
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">Usuń pliki</string>
+    <string name="delete_multiple_title">Usuń elementy</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Nie wybrano żadnych plików</string>
@@ -434,16 +434,16 @@
         <item quantity="other">%1$d plików nie zostało przesłanych</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="one">Usunąć %1$d plik?</item>
-        <item quantity="few">Usunąć %1$d plików?</item>
-        <item quantity="many">Usunąć %1$d plików?</item>
-        <item quantity="other">Usunąć %1$d plików?</item>
+        <item quantity="one">Usunąć %1$d element?</item>
+        <item quantity="few">Usunąć %1$d elementy?</item>
+        <item quantity="many">Usunąć %1$d elementów?</item>
+        <item quantity="other">Usunąć %1$d elementu?</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="one">Usunięto %1$d z %2$d plik</item>
-        <item quantity="few">Usunięto %1$d z %2$d plików</item>
-        <item quantity="many">Usunięto %1$d z %2$d plików</item>
-        <item quantity="other">Usunięto %1$d z %2$d plików</item>
+        <item quantity="one">Usunięto %1$d z %2$d elementu</item>
+        <item quantity="few">Usunięto %1$d z %2$d elementów</item>
+        <item quantity="many">Usunięto %1$d z %2$d elementów</item>
+        <item quantity="other">Usunięto %1$d z %2$d elementów</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d nieudany</item>

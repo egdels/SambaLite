@@ -191,18 +191,18 @@
 
     <!-- Rename -->
     <string name="rename">Renommer</string>
-    <string name="rename_dialog_title">Renommer le fichier</string>
+    <string name="rename_dialog_title">Renommer</string>
     <string name="new_name">Nouveau nom</string>
-    <string name="rename_success">Fichier renommé avec succès</string>
-    <string name="rename_error">Erreur lors du renommage du fichier</string>
+    <string name="rename_success">Renommé avec succès</string>
+    <string name="rename_error">Impossible de renommer</string>
 
     <!-- Delete -->
     <string name="delete_file_dialog_title">Supprimer le fichier</string>
     <string name="confirm_delete_file">Êtes-vous sûr de vouloir supprimer « %1$s » ?</string>
     <string name="delete_folder_dialog_title">Supprimer le dossier</string>
     <string name="confirm_delete_folder">Êtes-vous sûr de vouloir supprimer le dossier « %1$s » et tout son contenu ?</string>
-    <string name="delete_success">Fichier supprimé avec succès</string>
-    <string name="delete_error">Erreur lors de la suppression du fichier</string>
+    <string name="delete_success">Supprimé avec succès</string>
+    <string name="delete_error">Impossible de supprimer</string>
 
     <!-- Code Simplification: Complex dialog logic moved to DialogHelper -->
     <!-- Code Simplification: File operations moved to FileOperations utility -->
@@ -297,7 +297,7 @@
     <string name="use_async_transport">Utiliser le transport asynchrone (plus rapide)</string>
 
     <!-- Multi-Select Delete -->
-    <string name="delete_multiple_title">Supprimer des fichiers</string>
+    <string name="delete_multiple_title">Supprimer des éléments</string>
 
     <!-- Multi-Select Common/i18n -->
     <string name="multi_no_files_selected">Aucun fichier sélectionné</string>
@@ -425,14 +425,14 @@
         <item quantity="other">%1$d fichiers n’ont pas pu être téléversés</item>
     </plurals>
     <plurals name="confirm_delete_multiple">
-        <item quantity="one">Supprimer %1$d fichier ?</item>
-        <item quantity="many">Supprimer %1$d fichiers ?</item>
-        <item quantity="other">Supprimer %1$d fichiers ?</item>
+        <item quantity="one">Supprimer %1$d élément ?</item>
+        <item quantity="many">Supprimer %1$d éléments ?</item>
+        <item quantity="other">Supprimer %1$d éléments ?</item>
     </plurals>
     <plurals name="multi_delete_summary_success">
-        <item quantity="one">%1$d fichier sur %2$d supprimé</item>
-        <item quantity="many">%1$d fichiers sur %2$d supprimés</item>
-        <item quantity="other">%1$d fichiers sur %2$d supprimés</item>
+        <item quantity="one">%1$d élément supprimé sur %2$d</item>
+        <item quantity="many">%1$d éléments supprimés sur %2$d</item>
+        <item quantity="other">%1$d éléments supprimés sur %2$d</item>
     </plurals>
     <plurals name="failed_count_suffix">
         <item quantity="one">%1$d échoué</item>

@@ -885,7 +885,8 @@ public class FileOperationsController {
                             .getResources()
                             .getQuantityString(
                                 de.schliweb.sambalite.R.plurals.multi_delete_summary_success,
-                                successCount,
+                                // the noun belongs to the total: "Deleted 1 of 5 items"
+                                total,
                                 successCount,
                                 total);
                     String summary = summarizeBatch(base, cancel.get(), failedCount);
