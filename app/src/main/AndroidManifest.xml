@@ -47,6 +47,7 @@
         <activity
             android:name=".ui.ShareReceiverActivity"
             android:exported="true"
+            android:taskAffinity=""
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:theme="@style/Theme.SambaLite.Dialog"
             android:excludeFromRecents="true"

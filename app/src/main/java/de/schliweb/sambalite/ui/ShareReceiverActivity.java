@@ -373,6 +373,10 @@ public class ShareReceiverActivity extends AppCompatActivity {
     Intent intent =
         FileBrowserActivity.createIntentForShareUpload(this, connectionId, directoryPath, uris);
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    // The share dialog runs in its own, short-lived task (taskAffinity="" in the manifest). The
+    // upload continues in the app's task, so the next share starts a fresh dialog instead of only
+    // bringing back the task of the previous share.
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     // Attach ClipData with all URIs so the permission flag applies to each
     try {
       if (!uris.isEmpty()) {
