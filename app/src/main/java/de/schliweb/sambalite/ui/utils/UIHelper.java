@@ -141,10 +141,29 @@ public class UIHelper {
 
   /** Elegant utility methods for internal use. */
   static Snackbar createSnackbar(Activity activity, String message, @ColorRes int colorRes) {
-    return Snackbar.make(
-            activity.findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT)
-        .setBackgroundTint(ContextCompat.getColor(activity, colorRes))
-        .setTextColor(ContextCompat.getColor(activity, android.R.color.white));
+    Snackbar snackbar =
+        Snackbar.make(activity.findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(ContextCompat.getColor(activity, colorRes))
+            .setTextColor(ContextCompat.getColor(activity, android.R.color.white));
+    android.view.View fab = visibleBottomFab(activity);
+    if (fab != null) {
+      // Show the message above the button instead of covering it (and being covered by it)
+      snackbar.setAnchorView(fab);
+    }
+    return snackbar;
+  }
+
+  /** The screen's visible floating action button at the bottom edge, or {@code null}. */
+  @Nullable
+  static android.view.View visibleBottomFab(Activity activity) {
+    int[] ids = {R.id.fab, R.id.fab_add_connection, R.id.fab_select_folder};
+    for (int id : ids) {
+      android.view.View v = activity.findViewById(id);
+      if (v != null && v.isShown()) {
+        return v;
+      }
+    }
+    return null;
   }
 
   private static String buildErrorMessage(

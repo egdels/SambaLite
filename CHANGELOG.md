@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Messages covered the "New" and "Add Connection" buttons**: Snackbar messages (e.g. "Upload complete", "Connection successful") appeared at the bottom edge on top of the floating button, which hid part of the message. They now appear above the button.
 - **Cancel did nothing after rotating while a file was opening**: When the device was rotated while a file was being downloaded for opening, the progress dialog came back as "Transfer in progress …", but its Cancel button did not stop the download, which then opened the file anyway. Cancel now stops it.
 - **Search results replaced by the folder after rotation**: Rotating the device while search results were shown kept "3 results found" in the toolbar but listed the current folder's content instead of the results. The results now stay.
 - **Back during multi-select left the folder**: With items selected in the file browser, the Back button discarded the selection and went to the parent folder (or closed the browser at the share root). Back now first ends the selection.
