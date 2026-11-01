@@ -424,6 +424,7 @@
     <string name="sync_running">Synchronisation en cours…</string>
     <string name="sync_stop">Arrêter la synchronisation</string>
     <string name="sync_stopped">Synchronisation arrêtée</string>
+    <string name="sync_local_folder_missing">Le dossier local de la synchronisation « %1$s » n’existe plus ou n’est plus accessible. Modifiez la synchronisation pour choisir un autre dossier.</string>
     <string name="sync_completed">Synchronisation terminée avec succès</string>
     <string name="sync_failed">Échec de la synchronisation</string>
     <string name="sync_cancelled">La synchronisation a été interrompue et sera réessayée</string>

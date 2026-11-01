@@ -2,6 +2,7 @@ package de.schliweb.sambalite.sync;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -89,8 +90,12 @@ public class FolderSyncWorkerWifiTest {
     saveConnectionAndConfig(false);
     useCellular();
 
-    // Control for the test above: the same config without wifiOnly is attempted and fails
-    assertEquals(ListenableWorker.Result.retry(), runManualSync());
+    // Control for the test above: the same config without wifiOnly is attempted. Its local folder
+    // does not exist, which retrying cannot fix: the "Sync Now" fails for good and names the
+    // config, instead of being retried forever.
+    ListenableWorker.Result result = runManualSync();
+    assertTrue(result instanceof ListenableWorker.Result.Failure);
+    assertNotNull(result.getOutputData().getString(FolderSyncWorker.KEY_LOCAL_FOLDER_MISSING));
   }
 
   private void saveConnectionAndConfig(boolean wifiOnly) {

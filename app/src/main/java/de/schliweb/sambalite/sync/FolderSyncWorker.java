@@ -135,6 +135,20 @@ public class FolderSyncWorker extends Worker {
    */
   public static final String KEY_SKIPPED_WIFI_ONLY = "skipped_wifi_only";
 
+  /**
+   * Output value: the display name of a config whose local folder no longer exists or is no longer
+   * accessible. Retrying cannot help, so a "Sync Now" fails with this value instead of being
+   * retried forever, and the UI asks the user to choose another folder.
+   */
+  public static final String KEY_LOCAL_FOLDER_MISSING = "local_folder_missing";
+
+  /** The local folder of a config does not exist or cannot be accessed any more. */
+  static final class LocalFolderMissingException extends Exception {
+    LocalFolderMissingException(@NonNull String message) {
+      super(message);
+    }
+  }
+
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
   private static final int SYNC_NOTIFICATION_ID = 2001;
   private SyncActionLog actionLog;
@@ -236,6 +250,7 @@ public class FolderSyncWorker extends Worker {
     }
 
     boolean anyFailure = false;
+    String missingLocalFolder = null;
     boolean skippedWifiOnly = false;
 
     for (SyncConfig config : configs) {
@@ -329,6 +344,14 @@ public class FolderSyncWorker extends Worker {
         LogUtils.e(TAG, "Sync aborted for config " + config.getId() + ": insufficient disk space");
         logLowSpaceAbort(config, "sync stopped: " + e.getMessage());
         anyFailure = true;
+      } catch (LocalFolderMissingException e) {
+        // Permanent: deleted folder or revoked access. Retrying would only repeat the error.
+        LogUtils.e(TAG, "Sync not possible for config " + config.getId() + ": " + e.getMessage());
+        actionLog.log(
+            SyncActionLog.Action.ERROR,
+            configName(config),
+            "local folder missing: " + e.getMessage());
+        if (missingLocalFolder == null) missingLocalFolder = configName(config);
       } catch (Exception e) {
         LogUtils.e(TAG, "Sync failed for config " + config.getId() + ": " + e.getMessage());
         actionLog.log(
@@ -352,6 +375,16 @@ public class FolderSyncWorker extends Worker {
       return Result.retry();
     }
 
+    if (missingLocalFolder != null) {
+      androidx.work.Data out =
+          new androidx.work.Data.Builder()
+              .putString(KEY_LOCAL_FOLDER_MISSING, missingLocalFolder)
+              .putBoolean(KEY_SKIPPED_WIFI_ONLY, skippedWifiOnly)
+              .build();
+      // A "Sync Now" fails for good; the periodic run succeeds so that its schedule continues.
+      return specificConfigId != null ? Result.failure(out) : Result.success(out);
+    }
+
     LogUtils.i(TAG, "All sync operations completed successfully");
     if (skippedWifiOnly) {
       return Result.success(
@@ -367,7 +400,8 @@ public class FolderSyncWorker extends Worker {
     DocumentFile localFolder =
         DocumentFile.fromTreeUri(getApplicationContext(), Uri.parse(config.getLocalFolderUri()));
     if (localFolder == null || !localFolder.exists()) {
-      throw new Exception("Local folder not accessible: " + config.getLocalFolderUri());
+      throw new LocalFolderMissingException(
+          "Local folder not accessible: " + config.getLocalFolderUri());
     }
 
     try (SMBClient client = createSmbClient(connection);

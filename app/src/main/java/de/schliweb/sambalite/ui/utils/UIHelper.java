@@ -144,7 +144,10 @@ public class UIHelper {
     Snackbar snackbar =
         Snackbar.make(activity.findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT)
             .setBackgroundTint(ContextCompat.getColor(activity, colorRes))
-            .setTextColor(ContextCompat.getColor(activity, android.R.color.white));
+            .setTextColor(ContextCompat.getColor(activity, android.R.color.white))
+            // Error messages with a hint ("... Edit the sync to choose another folder.") need
+            // more than the default two lines
+            .setTextMaxLines(4);
     android.view.View fab = visibleBottomFab(activity);
     if (fab != null) {
       // Show the message above the button instead of covering it (and being covered by it)

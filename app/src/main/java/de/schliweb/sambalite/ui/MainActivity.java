@@ -474,16 +474,24 @@ public class MainActivity extends AppCompatActivity
 
   /**
    * Refreshes the sync cards and tells the user how the given, just finished sync runs ended. A
-   * failure wins over a run that skipped a WiFi-only config, which wins over success.
+   * missing local folder wins over other failures, a failure over a run that skipped a WiFi-only
+   * config, which wins over success.
    */
   private void announceFinishedSyncs(@NonNull List<WorkInfo> finished) {
     boolean failed = false;
     boolean skippedWifiOnly = false;
+    String missingLocalFolder = null;
     for (WorkInfo workInfo : finished) {
       LogUtils.i(
           "MainActivity",
           "Sync work " + workInfo.getId() + " finished with state: " + workInfo.getState());
-      if (workInfo.getState() == WorkInfo.State.FAILED) {
+      String missing =
+          workInfo
+              .getOutputData()
+              .getString(de.schliweb.sambalite.sync.FolderSyncWorker.KEY_LOCAL_FOLDER_MISSING);
+      if (missing != null) {
+        missingLocalFolder = missing;
+      } else if (workInfo.getState() == WorkInfo.State.FAILED) {
         failed = true;
       } else if (workInfo
           .getOutputData()
@@ -492,7 +500,10 @@ public class MainActivity extends AppCompatActivity
       }
     }
     viewModel.loadSyncConfigs();
-    if (failed) {
+    if (missingLocalFolder != null) {
+      EnhancedUIUtils.showError(
+          this, getString(R.string.sync_local_folder_missing, missingLocalFolder));
+    } else if (failed) {
       EnhancedUIUtils.showError(this, getString(R.string.sync_failed));
     } else if (skippedWifiOnly) {
       EnhancedUIUtils.showInfo(this, getString(R.string.sync_skipped_wifi_only));

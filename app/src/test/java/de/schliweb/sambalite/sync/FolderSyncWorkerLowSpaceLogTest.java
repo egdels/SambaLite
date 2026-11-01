@@ -88,8 +88,9 @@ public class FolderSyncWorkerLowSpaceLogTest {
     List<String> entries = actionLog.getEntries();
     assertEquals(entries.toString(), 2, entries.size());
     assertTrue(entries.get(0), entries.get(0).contains("⛔ Aborted, low disk space: Musik"));
-    // The second config is attempted; it fails only because the test has no SAF provider
-    assertTrue(entries.get(1), entries.get(1).contains("✗ Error: Hoerspiele - sync failed: "));
+    // The second config is attempted; it fails only because the test has no SAF provider, so its
+    // local folder counts as missing
+    assertTrue(entries.get(1), entries.get(1).contains("✗ Error: Hoerspiele - local folder missing"));
   }
 
   /** Registers app and shared storage with 512 MB free and returns a card with 3 MB free. */
