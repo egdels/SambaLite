@@ -686,6 +686,11 @@ public class FileBrowserActivity extends AppCompatActivity
             this,
             searchResults -> {
               if (searchViewModel.isInSearchMode() && searchResults != null) {
+                // After a rotation the new controller starts outside search mode; without this
+                // the folder listing replaced the restored results
+                if (!fileListController.isSearchMode()) {
+                  fileListController.setSearchMode(true);
+                }
                 fileListController.updateAdapter(searchResults);
                 onFileStatisticsUpdated(searchResults);
                 // Update toolbar to indicate search mode

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Search results replaced by the folder after rotation**: Rotating the device while search results were shown kept "3 results found" in the toolbar but listed the current folder's content instead of the results. The results now stay.
 - **Back during multi-select left the folder**: With items selected in the file browser, the Back button discarded the selection and went to the parent folder (or closed the browser at the share root). Back now first ends the selection.
 - **Connection dialogs showed two titles**: "Add New Connection" appeared above the "Add SMB Connection" header, and the Edit dialog showed "Edit Connection" above "Add SMB Connection". Each dialog now has one title, and the Edit dialog's header says "Edit Connection".
 - **"1 files, 2 folders selected"**: The selection count in the file browser always used the plural ("1 files", "1 folders"; German "1 Dateien"). It now uses the singular and plural forms of each language.
