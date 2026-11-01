@@ -1303,6 +1303,8 @@ public class FileBrowserActivity extends AppCompatActivity
         v -> {
           // The current folder is already saved in preferences by onRemoteFolderChanged
           LogUtils.d("FileBrowserActivity", "Folder selected in picker mode, finishing activity");
+          // Tells the share dialog that this folder was chosen (Back leaves the old target)
+          setResult(RESULT_OK);
           finish();
         });
   }

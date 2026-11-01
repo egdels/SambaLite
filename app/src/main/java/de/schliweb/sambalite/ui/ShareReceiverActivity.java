@@ -57,6 +57,19 @@ public class ShareReceiverActivity extends AppCompatActivity {
 
   private boolean folderChangeInProgress = false;
 
+  /** Set when the folder picker was left with "Select this folder" instead of Back. */
+  private boolean folderPicked = false;
+
+  /** The share target before the folder picker was opened, restored when it is left with Back. */
+  @Nullable private String targetIdBeforePicker;
+
+  @Nullable private String targetFolderBeforePicker;
+
+  private final androidx.activity.result.ActivityResultLauncher<Intent> folderPicker =
+      registerForActivityResult(
+          new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+          result -> folderPicked = result.getResultCode() == RESULT_OK);
+
   /** Text file created in the cache for shared text; deleted unless handed on to the upload. */
   @Nullable private File sharedTextFile;
 
@@ -129,18 +142,51 @@ public class ShareReceiverActivity extends AppCompatActivity {
               + currentFolder
               + "'");
 
-      // A target requires a connection id (the folder may be empty for the share root).
-      if (connectionId == null || connectionId.isEmpty()) {
-        LogUtils.d(TAG, "No saved connection id found in preferences");
-        showNeedsTargetFolderDialog();
-      } else {
-        showShareDialog(buildDisplayFolder(connectionId, currentFolder));
-      }
+      showShareDialogOrAskForTarget();
+    }
+  }
+
+  /**
+   * Shows the confirmation dialog for the stored target, or asks for a target when there is none or
+   * when its connection was deleted meanwhile (the upload would otherwise be dropped silently).
+   */
+  private void showShareDialogOrAskForTarget() {
+    String connectionId = PreferenceUtils.getCurrentSmbConnectionId(this);
+    if (findConnection(connectionId) == null) {
+      LogUtils.d(TAG, "No usable target connection: " + connectionId);
+      showNeedsTargetFolderDialog();
+    } else {
+      showShareDialog(buildDisplayFolder(connectionId, PreferenceUtils.getCurrentSmbFolder(this)));
     }
   }
 
   private void showNeedsTargetFolderDialog() {
-    dialogController.showNeedsTargetFolderDialog();
+    List<SmbConnection> connections =
+        connectionRepository != null ? connectionRepository.getAllConnections() : null;
+    if (connections == null || connections.isEmpty()) {
+      // Nothing to browse yet: offer to open the app to add a connection
+      dialogController.showNeedsTargetFolderDialog();
+      return;
+    }
+    // Let the user pick a folder right away and keep the shared items
+    DialogHelper.showNeedsTargetFolderDialog(
+        this, this::showConnectionSelectionForFolderChange, this::finish);
+  }
+
+  @Nullable
+  private SmbConnection findConnection(@Nullable String connectionId) {
+    if (connectionId == null || connectionId.isEmpty() || connectionRepository == null) {
+      return null;
+    }
+    List<SmbConnection> all = connectionRepository.getAllConnections();
+    if (all != null) {
+      for (SmbConnection c : all) {
+        if (connectionId.equals(c.getId())) {
+          return c;
+        }
+      }
+    }
+    return null;
   }
 
   @Override
@@ -157,11 +203,26 @@ public class ShareReceiverActivity extends AppCompatActivity {
               + ", folder='"
               + newFolder
               + "'");
-      if (connectionId != null && !connectionId.isEmpty() && !shareUris.isEmpty()) {
-        showShareDialog(buildDisplayFolder(connectionId, newFolder));
-      } else {
-        showNeedsTargetFolderDialog();
+      if (!folderPicked) {
+        // Left with Back: the folders passed on the way out are not the chosen target
+        restoreTargetBeforePicker();
       }
+      if (shareUris.isEmpty()) {
+        finish();
+      } else {
+        showShareDialogOrAskForTarget();
+      }
+    }
+  }
+
+  private void restoreTargetBeforePicker() {
+    if (targetIdBeforePicker != null) {
+      PreferenceUtils.setCurrentSmbContext(
+          this,
+          targetIdBeforePicker,
+          targetFolderBeforePicker == null ? "" : targetFolderBeforePicker);
+    } else {
+      PreferenceUtils.clearCurrentSmbContext(this);
     }
   }
 
@@ -171,18 +232,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
    * share name from the connection id.
    */
   private String buildDisplayFolder(String connectionId, String internalPath) {
-    SmbConnection conn = null;
-    if (connectionId != null && !connectionId.isEmpty() && connectionRepository != null) {
-      List<SmbConnection> all = connectionRepository.getAllConnections();
-      if (all != null) {
-        for (SmbConnection c : all) {
-          if (connectionId.equals(c.getId())) {
-            conn = c;
-            break;
-          }
-        }
-      }
-    }
+    SmbConnection conn = findConnection(connectionId);
     String share = (conn != null && conn.getShare() != null) ? conn.getShare() : "";
     String path = internalPath == null ? "" : internalPath;
     if (path.startsWith("/")) path = path.substring(1);
@@ -249,8 +299,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
   private void showConnectionSelectionForFolderChange() {
     List<SmbConnection> connections = connectionRepository.getAllConnections();
     if (connections == null || connections.isEmpty()) {
-      DialogHelper.showErrorDialog(
-          this, getString(R.string.share_needs_target_folder_title), "No connections available");
+      dialogController.showNeedsTargetFolderDialog();
       return;
     }
     if (connections.size() == 1) {
@@ -266,9 +315,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
     androidx.appcompat.app.AlertDialog dialog =
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setView(dialogView)
-            .setNegativeButton(
-                R.string.cancel,
-                (d, which) -> showShareDialog(PreferenceUtils.getCurrentSmbFolder(this)))
+            .setNegativeButton(R.string.cancel, (d, which) -> showShareDialogOrAskForTarget())
             .setCancelable(false)
             .create();
 
@@ -291,8 +338,11 @@ public class ShareReceiverActivity extends AppCompatActivity {
 
   private void openFileBrowserForFolderChange(SmbConnection connection) {
     folderChangeInProgress = true;
+    folderPicked = false;
+    targetIdBeforePicker = PreferenceUtils.getCurrentSmbConnectionId(this);
+    targetFolderBeforePicker = PreferenceUtils.getCurrentSmbFolder(this);
     Intent intent = FileBrowserActivity.createFolderPickerIntent(this, connection.getId());
-    startActivity(intent);
+    folderPicker.launch(intent);
   }
 
   private void startUploadsViaFileBrowser() throws IOException {

@@ -287,4 +287,33 @@ public class ShareReceiverActivityTest {
       // FragmentManager was never attached; the activity's own cleanup ran before super.onDestroy
     }
   }
+
+  // --- target connection that no longer exists ---
+
+  @Test
+  public void findConnection_deletedConnection_isNoTarget() throws Exception {
+    de.schliweb.sambalite.data.model.SmbConnection smoke =
+        new de.schliweb.sambalite.data.model.SmbConnection();
+    smoke.setId("smoke-id");
+    smoke.setShare("Data");
+    activity.connectionRepository =
+        org.mockito.Mockito.mock(de.schliweb.sambalite.data.repository.ConnectionRepository.class);
+    org.mockito.Mockito.when(activity.connectionRepository.getAllConnections())
+        .thenReturn(java.util.List.of(smoke));
+    Method find = ShareReceiverActivity.class.getDeclaredMethod("findConnection", String.class);
+    find.setAccessible(true);
+
+    assertSame(smoke, find.invoke(activity, "smoke-id"));
+    assertNull("A deleted connection is no share target", find.invoke(activity, "deleted-id"));
+    assertNull(find.invoke(activity, (String) null));
+  }
+
+  @Test
+  public void clearCurrentSmbContext_removesTheTarget() {
+    de.schliweb.sambalite.ui.utils.PreferenceUtils.setCurrentSmbContext(activity, "id", "a/b");
+    de.schliweb.sambalite.ui.utils.PreferenceUtils.clearCurrentSmbContext(activity);
+
+    assertNull(de.schliweb.sambalite.ui.utils.PreferenceUtils.getCurrentSmbConnectionId(activity));
+    assertNull(de.schliweb.sambalite.ui.utils.PreferenceUtils.getCurrentSmbFolder(activity));
+  }
 }

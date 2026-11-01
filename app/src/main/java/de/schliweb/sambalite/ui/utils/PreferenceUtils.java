@@ -56,6 +56,16 @@ public class PreferenceUtils {
         .apply();
   }
 
+  /** Forgets the stored connection ID and path, so that no share target is set. */
+  public static void clearCurrentSmbContext(@NonNull Context context) {
+    context
+        .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .remove(Constants.PREF_CURRENT_SMB_CONNECTION_ID)
+        .remove(Constants.PREF_CURRENT_SMB_FOLDER)
+        .apply();
+  }
+
   /**
    * Gets the current SMB folder path from shared preferences.
    *
