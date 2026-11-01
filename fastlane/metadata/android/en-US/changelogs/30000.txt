@@ -1,7 +1,7 @@
 - New: Material 3 design in SambaLite's own colours, with dark mode.
 - New: Tappable path bar; going up returns to where you were.
-- New: Stop a running folder sync (issue #41).
+- New: Stop, pause and resume folder syncs (issue #41).
 - Improved: Transfer queue with progress, readable errors and sorting.
-- Fixed: No duplicate uploads; cancelled transfers leave no partial files.
-- Fixed: Many fixes for search, sync, sharing and rotation.
+- Improved: Errors within 20 s when the server does not answer.
+- Fixed: Many fixes for uploads, sync, sharing and rotation.
 - Note: Protected connections now need a screen lock on the device.
