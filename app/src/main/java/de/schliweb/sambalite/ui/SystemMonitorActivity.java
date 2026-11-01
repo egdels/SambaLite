@@ -499,9 +499,9 @@ public class SystemMonitorActivity extends AppCompatActivity {
     sb.append("=== Timestamp Preservation Status ===\n");
 
     try {
-      SyncStateStore store = new SyncStateStore(this);
-      int total = store.getTotalCount();
-      int preserved = store.getTimestampPreservedCount();
+      int[] counts = readSyncStateCounts(new SyncStateStore(this));
+      int total = counts[0];
+      int preserved = counts[1];
       int notPreserved = total - preserved;
 
       sb.append("Tracked files: ").append(total).append("\n");
@@ -519,6 +519,16 @@ public class SystemMonitorActivity extends AppCompatActivity {
     }
 
     return sb.toString();
+  }
+
+  /**
+   * Returns {total, timestamp preserved} of the tracked sync states. Room refuses queries on the
+   * main thread (the store then reports 0), so the counts are read on a background thread.
+   */
+  static int[] readSyncStateCounts(SyncStateStore store) throws Exception {
+    return java.util.concurrent.CompletableFuture.supplyAsync(
+            () -> new int[] {store.getTotalCount(), store.getTimestampPreservedCount()})
+        .get(5, java.util.concurrent.TimeUnit.SECONDS);
   }
 
   private String getCurrentTimeString() {
