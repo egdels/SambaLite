@@ -26,8 +26,9 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_upload"
-                android:contentDescription="@string/uploading"
+                android:src="@drawable/ic_sync"
+                android:importantForAccessibility="no"
+                android:contentDescription="@null"
                 app:tint="?attr/colorOnPrimaryContainer" />
 
         </com.google.android.material.card.MaterialCardView>

@@ -179,14 +179,16 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             // Inflate custom progress dialog layout
             View dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_progress, null);
 
-            // Set the appropriate icon based on whether this is a download or upload
+            // Icon for the kind of operation; decorative, the title says what happens
             ImageView progressIcon = dialogView.findViewById(R.id.progress_icon);
             if (progressIcon != null) {
-              String downloadingText = activity.getString(R.string.downloading);
-              if (finalTitle.contains(downloadingText) || finalMessage.contains(downloadingText)) {
-                progressIcon.setImageResource(R.drawable.ic_download);
-                progressIcon.setContentDescription(downloadingText);
-              }
+              progressIcon.setImageResource(
+                  progressIconFor(
+                      finalTitle,
+                      finalMessage,
+                      activity.getString(R.string.uploading),
+                      activity.getString(R.string.downloading),
+                      activity.getString(R.string.opening_file)));
             }
 
             TextView titleView = dialogView.findViewById(R.id.progress_title);
@@ -653,6 +655,39 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
             LogUtils.w("ProgressController", "Error closing dialogs: " + e.getMessage());
           }
         });
+  }
+
+  /**
+   * Chooses the icon of the progress dialog: upload for uploads, download for downloads and for
+   * opening a file (which downloads it first), a neutral icon for anything else such as deleting.
+   *
+   * @param title the dialog title
+   * @param message the dialog message
+   * @param uploadingText the localized "Uploading…"
+   * @param downloadingText the localized "Downloading…"
+   * @param openingFormat the localized "Opening %s…"
+   * @return the drawable resource
+   */
+  static int progressIconFor(
+      @Nullable String title,
+      @Nullable String message,
+      @NonNull String uploadingText,
+      @NonNull String downloadingText,
+      @NonNull String openingFormat) {
+    String t = title != null ? title : "";
+    String m = message != null ? message : "";
+    if (t.contains(uploadingText) || m.contains(uploadingText)) {
+      return R.drawable.ic_upload;
+    }
+    int placeholder = openingFormat.indexOf("%s");
+    boolean opening =
+        placeholder >= 0
+            && t.startsWith(openingFormat.substring(0, placeholder))
+            && t.endsWith(openingFormat.substring(placeholder + 2));
+    if (opening || t.contains(downloadingText) || m.contains(downloadingText)) {
+      return R.drawable.ic_download;
+    }
+    return R.drawable.ic_sync;
   }
 
   public boolean isTransferDialogShowing() {
