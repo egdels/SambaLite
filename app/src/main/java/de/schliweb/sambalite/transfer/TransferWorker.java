@@ -507,7 +507,12 @@ public class TransferWorker extends Worker {
    */
   private boolean processTransfer(
       PendingTransferDao dao, DiskShare share, PendingTransfer transfer) {
-    dao.updateStatus(transfer.id, "ACTIVE", System.currentTimeMillis());
+    // The work list was read before the batch started; skip transfers that the user cancelled or
+    // removed since then instead of reviving them
+    if (dao.markActiveIfQueued(transfer.id, System.currentTimeMillis()) == 0) {
+      LogUtils.i(TAG, "Transfer no longer queued, skipped: " + transfer.displayName);
+      return true;
+    }
     updateNotification(
         getApplicationContext().getString(R.string.transfer_title), transfer.displayName);
 
@@ -531,13 +536,18 @@ public class TransferWorker extends Worker {
         processDownload(dao, share, transfer);
       }
 
-      // If the transfer was cancelled by the user during processing, don't mark as completed
-      if (isTransferCancelled(dao, transfer.id)) {
-        LogUtils.i(TAG, "Transfer was cancelled by user: " + transfer.displayName);
+      // A transfer that was cancelled or removed by the user, or paused because the worker was
+      // stopped, returns early with an incomplete file; it must not be marked completed
+      if (dao.markCompletedIfActive(transfer.id, System.currentTimeMillis()) == 0) {
+        if (isTransferCancelled(dao, transfer.id)) {
+          LogUtils.i(TAG, "Transfer was cancelled by user: " + transfer.displayName);
+          // The user's choice, not a failure: the rest of the batch goes on as usual
+          return true;
+        }
+        LogUtils.i(TAG, "Transfer paused, not completed: " + transfer.displayName);
         return false;
       }
 
-      dao.updateStatus(transfer.id, "COMPLETED", System.currentTimeMillis());
       LogUtils.i(TAG, "Transfer completed: " + transfer.displayName);
       transferActionLog.log(
           isUpload

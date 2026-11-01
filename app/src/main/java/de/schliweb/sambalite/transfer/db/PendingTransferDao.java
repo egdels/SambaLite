@@ -213,6 +213,29 @@ public interface PendingTransferDao {
           + " WHERE status = 'FAILED' AND retry_count < max_retries")
   int resetFailedToRetry(long now);
 
+  /**
+   * Marks a queued transfer as running, but only while it is still queued: pending, or failed with
+   * retries left. The worker reads its work list up front; a transfer that the user cancelled,
+   * removed or that finished in the meantime must not be started from that stale list.
+   *
+   * @return 1 if the transfer was claimed, 0 if it is no longer queued
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'ACTIVE', updated_at = :now WHERE id = :id"
+          + " AND (status = 'PENDING' OR (status = 'FAILED' AND retry_count < max_retries))")
+  int markActiveIfQueued(long id, long now);
+
+  /**
+   * Marks a running transfer as completed, but only while it is still running: a transfer that the
+   * user cancelled or removed, or that was paused because the worker was stopped, is not complete.
+   *
+   * @return 1 if the transfer was marked completed, 0 otherwise
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'COMPLETED', updated_at = :now"
+          + " WHERE id = :id AND status = 'ACTIVE'")
+  int markCompletedIfActive(long id, long now);
+
   /** Updates status only if the transfer is currently ACTIVE (avoids overwriting CANCELLED). */
   @Query(
       "UPDATE pending_transfer SET status = :status, updated_at = :now"
