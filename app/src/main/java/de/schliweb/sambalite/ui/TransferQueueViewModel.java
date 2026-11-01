@@ -14,6 +14,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Transformations;
 import androidx.work.WorkManager;
 import de.schliweb.sambalite.transfer.TransferWorker;
 import de.schliweb.sambalite.transfer.UploadSourceGrants;
@@ -42,17 +44,32 @@ public class TransferQueueViewModel extends AndroidViewModel {
   private final LiveData<Integer> failedStatusCount;
   private final LiveData<Integer> totalActiveCount;
 
+  /** Completed transfers stay in the list for this long. */
+  static final long COMPLETED_VISIBLE_MILLIS = TimeUnit.HOURS.toMillis(1);
+
+  private final MutableLiveData<Long> completedCutoff = new MutableLiveData<>();
+
   public TransferQueueViewModel(@NonNull Application application) {
     super(application);
     dao = TransferDatabase.getInstance(application).pendingTransferDao();
-    long cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
-    activeTransfers = dao.observeActiveTransfers(cutoff);
+    refreshCompletedCutoff();
+    activeTransfers = Transformations.switchMap(completedCutoff, dao::observeActiveTransfers);
     pendingCount = dao.observePendingCount();
     pendingStatusCount = dao.observePendingStatusCount();
     activeStatusCount = dao.observeActiveStatusCount();
-    completedStatusCount = dao.observeCompletedStatusCount(cutoff);
+    completedStatusCount =
+        Transformations.switchMap(completedCutoff, dao::observeCompletedStatusCount);
     failedStatusCount = dao.observeFailedStatusCount();
-    totalActiveCount = dao.observeTotalActiveCount(cutoff);
+    totalActiveCount = Transformations.switchMap(completedCutoff, dao::observeTotalActiveCount);
+  }
+
+  /**
+   * Moves the "completed within the last hour" window to now. The queries only re-run when the
+   * database changes, so without this, completed transfers would never age out while the screen
+   * stays open (or survives a rotation in this ViewModel). The screen calls it periodically.
+   */
+  public void refreshCompletedCutoff() {
+    completedCutoff.setValue(System.currentTimeMillis() - COMPLETED_VISIBLE_MILLIS);
   }
 
   /** Observes all non-completed transfers for the queue list. */

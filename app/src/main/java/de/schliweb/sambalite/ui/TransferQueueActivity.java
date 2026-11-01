@@ -170,6 +170,32 @@ public class TransferQueueActivity extends AppCompatActivity
             });
   }
 
+  /** Lets completed transfers age out of the list while the screen stays open. */
+  private final Runnable cutoffRefresher =
+      new Runnable() {
+        @Override
+        public void run() {
+          viewModel.refreshCompletedCutoff();
+          transferList.postDelayed(this, CUTOFF_REFRESH_MILLIS);
+        }
+      };
+
+  private static final long CUTOFF_REFRESH_MILLIS = 60_000;
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    // Also moves the window after a rotation, which keeps the ViewModel and its cutoff
+    transferList.removeCallbacks(cutoffRefresher);
+    cutoffRefresher.run();
+  }
+
+  @Override
+  protected void onPause() {
+    transferList.removeCallbacks(cutoffRefresher);
+    super.onPause();
+  }
+
   /** Shows the number of transfers as toolbar subtitle; the empty state speaks for itself. */
   private void showQueueSubtitle() {
     toolbar.setSubtitle(
