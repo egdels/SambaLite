@@ -55,7 +55,7 @@ public class FileListController
   private final FileBrowserUIState uiState;
 
   // Search mode flag – when true, the getFiles() observer will not overwrite search results
-  @Getter @Setter private boolean searchMode = false;
+  @Getter private boolean searchMode = false;
 
   // Set when the sort order changes, so the re-sorted list is shown from its first entry
   private boolean scrollToTopOnNextUpdate = false;
@@ -317,6 +317,16 @@ public class FileListController
       title.setText(R.string.empty_directory);
       message.setText(R.string.empty_folder);
     }
+  }
+
+  /**
+   * Switches search mode: the list then shows search results, which also show their folder.
+   *
+   * @param searchMode true while search results are shown
+   */
+  public void setSearchMode(boolean searchMode) {
+    this.searchMode = searchMode;
+    adapter.setShowLocation(searchMode);
   }
 
   /**

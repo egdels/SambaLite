@@ -50,6 +50,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
   OnFileLongClickListener longClickListener;
   boolean showParentDirectory = false;
 
+  /** Whether each row shows the folder it lies in; used for search results. */
+  private boolean showLocation = false;
+
   // Selection support (minimal UI highlight via itemView.setActivated)
   boolean selectionMode = false;
   java.util.Set<String> selectedPaths = new java.util.HashSet<>();
@@ -132,6 +135,42 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 }
               });
         });
+  }
+
+  /**
+   * Shows the folder of each entry below its details, for search results whose entries come from
+   * different folders.
+   *
+   * @param showLocation true to show the folder
+   */
+  public void setShowLocation(boolean showLocation) {
+    if (this.showLocation == showLocation) {
+      return;
+    }
+    this.showLocation = showLocation;
+    notifyItemRangeChanged(0, getItemCount());
+  }
+
+  /**
+   * The folder of a share-relative path, as shown below a search result: {@code /} for the share
+   * root, otherwise {@code /folder/subfolder}.
+   *
+   * @param path the entry's path relative to the share, e.g. {@code Photos/2026/IMG_1.jpg}
+   * @return the folder of the entry
+   */
+  static String locationOf(@Nullable String path) {
+    if (path == null) {
+      return "/";
+    }
+    String p = path.replace('\\', '/');
+    while (p.endsWith("/")) {
+      p = p.substring(0, p.length() - 1);
+    }
+    while (p.startsWith("/")) {
+      p = p.substring(1);
+    }
+    int last = p.lastIndexOf('/');
+    return last <= 0 ? "/" : "/" + p.substring(0, last);
   }
 
   /**
@@ -442,6 +481,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final TextView dateView;
     private final TextView sizeView;
     private final View metaSeparator;
+    private final TextView locationView;
     private final ImageButton moreOptionsButton;
     private final MaterialCardView rootCard;
     private final View syncIndicator;
@@ -457,6 +497,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       dateView = itemView.findViewById(R.id.file_date);
       sizeView = itemView.findViewById(R.id.file_size);
       metaSeparator = itemView.findViewById(R.id.file_meta_separator);
+      locationView = itemView.findViewById(R.id.file_location);
       moreOptionsButton = itemView.findViewById(R.id.more_options);
       rootCard = (itemView instanceof MaterialCardView matched) ? matched : null;
       syncIndicator = itemView.findViewById(R.id.sync_indicator);
@@ -585,6 +626,9 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         if (metaSeparator != null) {
           metaSeparator.setVisibility(View.GONE);
         }
+        if (locationView != null) {
+          locationView.setVisibility(View.GONE);
+        }
         if (syncIndicator != null) {
           syncIndicator.setVisibility(View.GONE);
         }
@@ -686,6 +730,15 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
       if (metaSeparator != null) {
         boolean both = dateView.getText().length() > 0 && sizeView.getText().length() > 0;
         metaSeparator.setVisibility(both ? View.VISIBLE : View.GONE);
+      }
+
+      if (locationView != null) {
+        if (showLocation) {
+          locationView.setText(locationOf(file.getPath()));
+          locationView.setVisibility(View.VISIBLE);
+        } else {
+          locationView.setVisibility(View.GONE);
+        }
       }
 
       // Show sync direction indicator
