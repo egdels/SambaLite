@@ -760,9 +760,13 @@ public class FileOperationsViewModel extends ViewModel {
             LogUtils.e("FileOperationsViewModel", "Folder creation failed: " + e.getMessage());
             state.setLoading(false);
             backgroundSmbManager.finishOperation(createOpName, false);
-            if (callback != null)
-              mainHandler.post(
-                  () -> callback.onResult(false, "Folder creation failed: " + e.getMessage()));
+            if (callback != null) {
+              String msg =
+                  context.getString(
+                      de.schliweb.sambalite.R.string.create_folder_failed_with_reason,
+                      de.schliweb.sambalite.ui.utils.TransferErrorText.reasonFor(context, e));
+              mainHandler.post(() -> callback.onResult(false, msg));
+            }
             state.setErrorMessage("Failed to create folder: " + e.getMessage());
           }
         });
@@ -832,7 +836,8 @@ public class FileOperationsViewModel extends ViewModel {
             if (callback != null) {
               String msg =
                   context.getString(
-                      de.schliweb.sambalite.R.string.delete_failed_with_reason, e.getMessage());
+                      de.schliweb.sambalite.R.string.delete_failed_with_reason,
+                      de.schliweb.sambalite.ui.utils.TransferErrorText.reasonFor(context, e));
               mainHandler.post(() -> callback.onResult(false, msg));
             }
             state.setErrorMessage(
@@ -928,9 +933,13 @@ public class FileOperationsViewModel extends ViewModel {
             LogUtils.e("FileOperationsViewModel", "File rename failed: " + e.getMessage());
             state.setLoading(false);
             backgroundSmbManager.finishOperation(renameOpName, false);
-            if (callback != null)
-              mainHandler.post(
-                  () -> callback.onResult(false, "File rename failed: " + e.getMessage()));
+            if (callback != null) {
+              String msg =
+                  context.getString(
+                      de.schliweb.sambalite.R.string.rename_failed_with_reason,
+                      de.schliweb.sambalite.ui.utils.TransferErrorText.reasonFor(context, e));
+              mainHandler.post(() -> callback.onResult(false, msg));
+            }
             state.setErrorMessage("Failed to rename file: " + e.getMessage());
           }
         });

@@ -82,4 +82,32 @@ public class TransferErrorTextTest {
     assertNull(TransferErrorText.shortReason(context, null));
     assertNull(TransferErrorText.shortReason(context, "  "));
   }
+
+  @Test
+  public void reasonFor_usesCauseOfWrappedOperationError() {
+    Context context = ApplicationProvider.getApplicationContext();
+    Exception exists =
+        new java.io.IOException(
+            "Failed to execute share operation after 1 attempts",
+            new java.io.IOException("Target path already exists: Docs/readme.txt"));
+    assertEquals(
+        "A file or folder with this name already exists",
+        TransferErrorText.reasonFor(context, exists));
+
+    Exception denied =
+        new java.io.IOException(
+            "Failed to execute share operation after 1 attempts",
+            new RuntimeException("STATUS_ACCESS_DENIED (0xc0000022): Create failed"));
+    assertEquals("No permission on the server", TransferErrorText.reasonFor(context, denied));
+  }
+
+  @Test
+  public void reasonFor_unmappedError_showsInnermostMessage() {
+    Context context = ApplicationProvider.getApplicationContext();
+    Exception wrapped =
+        new java.io.IOException(
+            "Failed to execute share operation after 1 attempts",
+            new IllegalStateException("Name must not be empty"));
+    assertEquals("Name must not be empty", TransferErrorText.reasonFor(context, wrapped));
+  }
 }

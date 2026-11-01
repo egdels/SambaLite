@@ -329,6 +329,8 @@
     <string name="download_failed_with_reason">Error en la descarga: %1$s</string>
     <string name="failed_to_download_file_with_reason">No se pudo descargar el archivo: %1$s</string>
     <string name="delete_failed_with_reason">Error al eliminar: %1$s</string>
+    <string name="rename_failed_with_reason">No se pudo cambiar el nombre: %1$s</string>
+    <string name="create_folder_failed_with_reason">No se pudo crear la carpeta: %1$s</string>
     <string name="failed_to_delete_file_with_reason">No se pudo eliminar el archivo: %1$s</string>
 
     <!-- Upload/Download staging and interruption i18n -->
@@ -499,6 +501,7 @@
 
     <!-- Transfer queue: readable failure reasons and the summary after a batch -->
     <string name="transfer_error_access_denied">Sin permiso en el servidor</string>
+    <string name="transfer_error_exists">Ya existe un archivo o una carpeta con este nombre</string>
     <string name="transfer_error_not_found">Archivo o carpeta no encontrado en el servidor</string>
     <string name="transfer_error_disk_full">El almacenamiento del servidor está lleno</string>
     <string name="transfer_error_in_use">El archivo está en uso en el servidor</string>

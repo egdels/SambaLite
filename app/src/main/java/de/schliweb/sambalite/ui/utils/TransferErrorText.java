@@ -44,6 +44,33 @@ public final class TransferErrorText {
   }
 
   /**
+   * Returns a readable reason for a failed file operation such as delete, rename or create folder.
+   * The repository wraps the real error (e.g. {@code STATUS_ACCESS_DENIED} or "Target path already
+   * exists") in a generic "Failed to execute share operation" exception, so the whole cause chain
+   * is mapped; if nothing matches, the message of the innermost cause is shown.
+   *
+   * @param context for the string resources
+   * @param error the exception of the failed operation
+   * @return a readable reason, never empty
+   */
+  @NonNull
+  public static String reasonFor(@NonNull Context context, @NonNull Throwable error) {
+    int res = reasonRes(de.schliweb.sambalite.ui.MainViewModel.describeFailure(error));
+    if (res != 0) {
+      return context.getString(res);
+    }
+    String innermost = null;
+    java.util.Set<Throwable> seen =
+        java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    for (Throwable t = error; t != null && seen.add(t); t = t.getCause()) {
+      if (t.getMessage() != null && !t.getMessage().trim().isEmpty()) {
+        innermost = t.getMessage().trim();
+      }
+    }
+    return innermost != null ? innermost : context.getString(R.string.transfer_error_server);
+  }
+
+  /**
    * Maps a technical error to a readable reason.
    *
    * @param error the stored error
@@ -58,6 +85,9 @@ public final class TransferErrorText {
     String e = error.toUpperCase(Locale.ROOT);
     if (e.contains("ACCESS_DENIED")) {
       return R.string.transfer_error_access_denied;
+    }
+    if (containsAny(e, "OBJECT_NAME_COLLISION", "ALREADY EXISTS")) {
+      return R.string.transfer_error_exists;
     }
     if (containsAny(
         e, "LOGON_FAILURE", "WRONG_PASSWORD", "PASSWORD_EXPIRED", "ACCOUNT_DISABLED", "ACCOUNT_")) {
