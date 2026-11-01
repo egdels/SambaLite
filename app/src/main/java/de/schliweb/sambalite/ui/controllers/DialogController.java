@@ -890,8 +890,8 @@ public class DialogController {
     // Store reference to folder display for updating from outside
     uiState.setSyncFolderDisplay(folderDisplay);
 
+    // The layout carries its own header ("Set Up Folder Sync"), so the dialog has no extra title.
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.sync_setup_title)
         .setView(dialogView)
         .setPositiveButton(
             R.string.save,
@@ -1046,8 +1046,10 @@ public class DialogController {
     // Store reference to folder display for updating from outside
     uiState.setSyncFolderDisplay(folderDisplay);
 
+    TextView dialogTitle = dialogView.findViewById(R.id.sync_dialog_title);
+    dialogTitle.setText(R.string.sync_edit_option);
+
     new MaterialAlertDialogBuilder(context)
-        .setTitle(R.string.sync_edit_option)
         .setView(dialogView)
         .setPositiveButton(
             R.string.save,

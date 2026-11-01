@@ -31,7 +31,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_sync_bidirectional"
-                    android:contentDescription="@string/sync_setup_title"
+                    android:importantForAccessibility="no"
                     app:tint="?attr/colorOnPrimaryContainer" />
 
             </com.google.android.material.card.MaterialCardView>
@@ -44,8 +44,10 @@
                 android:orientation="vertical">
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/sync_dialog_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:accessibilityHeading="true"
                     android:text="@string/sync_setup_title"
                     android:textAppearance="?attr/textAppearanceHeadlineSmall"
                     android:textColor="?attr/colorOnSurface" />
@@ -149,6 +151,7 @@
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/sync_wifi_only_switch"
+                android:contentDescription="@string/sync_wifi_only"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
@@ -172,6 +175,7 @@
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/sync_mirror_switch"
+                android:contentDescription="@string/sync_mirror_mode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content" />
 
@@ -207,6 +211,7 @@
 
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/sync_mirror_use_trash_switch"
+                android:contentDescription="@string/sync_mirror_use_trash"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true" />

@@ -960,8 +960,11 @@ public class MainActivity extends AppCompatActivity
     // Folder picker button (disabled for now as it requires more complex handling of SAF results)
     selectFolderButton.setVisibility(View.GONE);
 
+    // The layout's header is the dialog title; it reads "Edit Sync" here.
+    TextView dialogTitle = dialogView.findViewById(R.id.sync_dialog_title);
+    dialogTitle.setText(R.string.sync_edit_option);
+
     new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-        .setTitle(R.string.sync_edit_option)
         .setView(dialogView)
         .setPositiveButton(
             R.string.save,

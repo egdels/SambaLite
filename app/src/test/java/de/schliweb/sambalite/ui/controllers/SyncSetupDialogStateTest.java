@@ -11,12 +11,15 @@ package de.schliweb.sambalite.ui.controllers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Looper;
+import android.view.View;
+import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import de.schliweb.sambalite.R;
@@ -111,5 +114,32 @@ public class SyncSetupDialogStateTest {
 
     assertNull(uiState.getSyncFolderUri());
     assertNull(uiState.getEditingSyncConfigId());
+  }
+
+  @Test
+  public void dialogs_showOneTitleAndLabelledSwitches() {
+    dialogController.showSyncSetupDialog("QA/M2");
+    AlertDialog setup = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertEquals(
+        "Set Up Folder Sync",
+        ((TextView) setup.findViewById(R.id.sync_dialog_title)).getText().toString());
+    // No second title above the layout's own header.
+    View alertTitle = setup.findViewById(androidx.appcompat.R.id.alertTitle);
+    assertTrue(alertTitle == null || !alertTitle.isShown());
+    assertEquals(
+        "WiFi only",
+        setup.findViewById(R.id.sync_wifi_only_switch).getContentDescription().toString());
+    assertEquals(
+        "Mirror mode",
+        setup.findViewById(R.id.sync_mirror_switch).getContentDescription().toString());
+    setup.dismiss();
+
+    SyncConfig config = new SyncConfig();
+    config.setId("edit-id");
+    config.setRemotePath("QA/Down");
+    dialogController.showSyncEditDialog(config);
+    AlertDialog edit = (AlertDialog) ShadowDialog.getLatestDialog();
+    assertEquals(
+        "Edit Sync", ((TextView) edit.findViewById(R.id.sync_dialog_title)).getText().toString());
   }
 }

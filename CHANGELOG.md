@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Sync dialog title shown twice**: "Set Up Folder Sync" appeared twice one above the other, and the "Edit Sync" dialog also showed the "Set Up Folder Sync" header. Each dialog now has one title that matches it. Screen readers announce the WiFi only, Mirror mode and trash switches by name instead of only "switch, off".
 - **Edited syncs moved to the end of the list**: Saving "Edit Sync" moved the sync's card to the bottom of "Your Folder Syncs". An edited sync now keeps its place.
 - **"Edit Sync" in the file browser reset the sync**: Saving the edit dialog deleted the sync and created a new one, so the card showed "Never synced" again and the record of synced files was deleted even when the local folder stayed the same (Mirror mode relies on it). The sync is now changed in place; only choosing another local folder starts it afresh.
 - **Old "Sync completed" messages and "completed" for skipped syncs**: The main screen repeated "Sync completed successfully" for earlier sync runs every time it was opened and whenever another sync started or a sync was removed, sometimes right after a sync that had actually failed. A manual sync of a "WiFi only" folder without WiFi also reported "Sync completed successfully" although nothing was synced. Each sync run is now announced once, and a skipped sync says "Sync skipped: WiFi only is on and the device is not connected to WiFi".
