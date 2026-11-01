@@ -79,6 +79,8 @@ public class FileListController
 
   // Selection state
   @Getter private boolean selectionMode = false;
+  // Folder (display path) the selection was made in
+  @Nullable private String selectionPath;
   private final java.util.LinkedHashSet<String> selectedPaths = new java.util.LinkedHashSet<>();
 
   @Setter private SelectionChangedCallback selectionChangedCallback;
@@ -167,8 +169,8 @@ public class FileListController
               onFolderChanging(path);
 
               // If user navigated to a different folder while in multi-select, clear and exit
-              // selection mode
-              if (selectionMode) {
+              // selection mode (not when the same folder is shown again after a rotation)
+              if (selectionMode && (path == null || !path.equals(selectionPath))) {
                 clearSelection();
                 enableSelectionMode(false);
               }
@@ -207,6 +209,10 @@ public class FileListController
               // Propagate current selection state to adapter
               adapter.setSelectionMode(selectionMode);
               adapter.setSelectedPaths(selectedPaths);
+              if (selectionMode) {
+                // The selected items are known now, e.g. after a selection was restored
+                notifySelectionChanged();
+              }
               updateEmptyView(files);
               swipeRefreshLayout.setRefreshing(false);
               // Update file statistics if callback is set
@@ -672,6 +678,7 @@ public class FileListController
   public void enableSelectionMode(boolean enabled) {
     if (this.selectionMode == enabled) return;
     this.selectionMode = enabled;
+    selectionPath = enabled ? viewModel.getCurrentPath().getValue() : null;
     if (!enabled) {
       selectedPaths.clear();
       adapter.setSelectedPaths(selectedPaths);
@@ -716,6 +723,30 @@ public class FileListController
         selectedPaths.add(f.getPath());
       }
     }
+    adapter.setSelectedPaths(selectedPaths);
+    notifySelectionChanged();
+  }
+
+  /**
+   * Returns the selected paths to keep across a recreation of the activity (e.g. a rotation).
+   *
+   * @return the selected paths, or null if no selection is active
+   */
+  public @Nullable java.util.ArrayList<String> getSelectionForSave() {
+    return selectionMode && !selectedPaths.isEmpty()
+        ? new java.util.ArrayList<>(selectedPaths)
+        : null;
+  }
+
+  /**
+   * Restores a selection saved with {@link #getSelectionForSave()} in the folder still shown.
+   *
+   * @param paths the saved paths, may be null
+   */
+  public void restoreSelection(@Nullable java.util.List<String> paths) {
+    if (paths == null || paths.isEmpty()) return;
+    enableSelectionMode(true);
+    selectedPaths.addAll(paths);
     adapter.setSelectedPaths(selectedPaths);
     notifySelectionChanged();
   }

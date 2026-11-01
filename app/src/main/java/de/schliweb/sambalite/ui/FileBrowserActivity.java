@@ -109,6 +109,9 @@ public class FileBrowserActivity extends AppCompatActivity
   private View emptyView;
   private BreadcrumbView currentPathView;
 
+  /** Instance state key of the multi-selection kept across a rotation. */
+  private static final String STATE_SELECTED_PATHS = "selected_paths";
+
   /** Entries in the current folder, shown as toolbar subtitle; -1 until the first listing. */
   private int folderItemCount = -1;
 
@@ -379,6 +382,11 @@ public class FileBrowserActivity extends AppCompatActivity
     // Set up UI event listeners
     setupUIEventListeners();
 
+    if (savedInstanceState != null) {
+      fileListController.restoreSelection(
+          savedInstanceState.getStringArrayList(STATE_SELECTED_PATHS));
+    }
+
     // Reset navigation to root on fresh start to avoid stale paths surviving a swipe-kill
     // while a foreground service keeps the process alive (singleton FileBrowserState persists).
     // Skip reset on configuration changes (e.g. rotation) where savedInstanceState is non-null.
@@ -425,9 +433,10 @@ public class FileBrowserActivity extends AppCompatActivity
   @Override
   protected void onSaveInstanceState(@NonNull Bundle outState) {
     super.onSaveInstanceState(outState);
-    // Keep the list position across a rotation
+    // Keep the list position and the multi-selection across a rotation
     if (fileListController != null) {
       fileListController.saveScrollState();
+      outState.putStringArrayList(STATE_SELECTED_PATHS, fileListController.getSelectionForSave());
     }
   }
 
