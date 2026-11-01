@@ -458,6 +458,25 @@ public class FileBrowserActivity extends AppCompatActivity
     return done ? "✓ " + text : text + "…";
   }
 
+  /**
+   * The toolbar subtitle in selection mode, e.g. "1 file, 2 folders selected".
+   *
+   * @param fileCount selected files
+   * @param folderCount selected folders
+   */
+  String selectionSubtitle(int fileCount, int folderCount) {
+    android.content.res.Resources res = getResources();
+    if (fileCount > 0 && folderCount > 0) {
+      return getString(
+          R.string.selection_files_and_folders,
+          res.getQuantityString(R.plurals.selection_file_part, fileCount, fileCount),
+          res.getQuantityString(R.plurals.selection_folder_part, folderCount, folderCount));
+    } else if (folderCount > 0) {
+      return res.getQuantityString(R.plurals.selection_folders_only, folderCount, folderCount);
+    }
+    return res.getQuantityString(R.plurals.selection_files_only, fileCount, fileCount);
+  }
+
   /** Shows the search status as toolbar subtitle: results found so far, or the failure. */
   private void showSearchSubtitle() {
     if (getSupportActionBar() == null) return;
@@ -983,15 +1002,7 @@ public class FileBrowserActivity extends AppCompatActivity
                 if (item.isDirectory()) folderCount++;
                 else fileCount++;
               }
-              String subtitle;
-              if (fileCount > 0 && folderCount > 0) {
-                subtitle = getString(R.string.selection_files_and_folders, fileCount, folderCount);
-              } else if (folderCount > 0) {
-                subtitle = getString(R.string.selection_folders_only, folderCount);
-              } else {
-                subtitle = getString(R.string.selection_files_only, fileCount);
-              }
-              getSupportActionBar().setSubtitle(subtitle);
+              getSupportActionBar().setSubtitle(selectionSubtitle(fileCount, folderCount));
             } else if (searchViewModel != null && searchViewModel.isInSearchMode()) {
               // Back to the result count after a selection among search results
               showSearchSubtitle();

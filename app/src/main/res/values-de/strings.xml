@@ -309,9 +309,23 @@
     <string name="multi_no_files_selected">Keine Dateien ausgewählt</string>
     <string name="multi_only_files_delete">Im Mehrfachauswahlmodus können nur Dateien gelöscht werden</string>
     <string name="multi_only_files_download">Im Mehrfachauswahlmodus können nur Dateien heruntergeladen werden</string>
-    <string name="selection_files_and_folders">%1$d Dateien, %2$d Ordner ausgewählt</string>
-    <string name="selection_files_only">%1$d Dateien ausgewählt</string>
-    <string name="selection_folders_only">%1$d Ordner ausgewählt</string>
+    <string name="selection_files_and_folders">%1$s, %2$s ausgewählt</string>
+    <plurals name="selection_file_part">
+        <item quantity="one">%d Datei</item>
+        <item quantity="other">%d Dateien</item>
+    </plurals>
+    <plurals name="selection_folder_part">
+        <item quantity="one">%d Ordner</item>
+        <item quantity="other">%d Ordner</item>
+    </plurals>
+    <plurals name="selection_files_only">
+        <item quantity="one">%d Datei ausgewählt</item>
+        <item quantity="other">%d Dateien ausgewählt</item>
+    </plurals>
+    <plurals name="selection_folders_only">
+        <item quantity="one">%d Ordner ausgewählt</item>
+        <item quantity="other">%d Ordner ausgewählt</item>
+    </plurals>
     <string name="multi_delete_includes_folders_warning">Ausgewählte Ordner und deren gesamter Inhalt werden unwiderruflich gelöscht.</string>
     <string name="multi_download_includes_folders">Ordner werden mit ihrem vollständigen Inhalt heruntergeladen.</string>
     <string name="preparing_ellipsis">Wird vorbereitet…</string>

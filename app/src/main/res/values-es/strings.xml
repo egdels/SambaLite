@@ -315,9 +315,27 @@
     <string name="multi_no_files_selected">No se seleccionaron archivos</string>
     <string name="multi_only_files_delete">En la selección múltiple solo se pueden eliminar archivos</string>
     <string name="multi_only_files_download">En la selección múltiple solo se pueden descargar archivos</string>
-    <string name="selection_files_and_folders">%1$d archivos, %2$d carpetas seleccionados</string>
-    <string name="selection_files_only">%1$d archivos seleccionados</string>
-    <string name="selection_folders_only">%1$d carpetas seleccionadas</string>
+    <string name="selection_files_and_folders">Seleccionados: %1$s, %2$s</string>
+    <plurals name="selection_file_part">
+        <item quantity="one">%d archivo</item>
+        <item quantity="many">%d archivos</item>
+        <item quantity="other">%d archivos</item>
+    </plurals>
+    <plurals name="selection_folder_part">
+        <item quantity="one">%d carpeta</item>
+        <item quantity="many">%d carpetas</item>
+        <item quantity="other">%d carpetas</item>
+    </plurals>
+    <plurals name="selection_files_only">
+        <item quantity="one">%d archivo seleccionado</item>
+        <item quantity="many">%d archivos seleccionados</item>
+        <item quantity="other">%d archivos seleccionados</item>
+    </plurals>
+    <plurals name="selection_folders_only">
+        <item quantity="one">%d carpeta seleccionada</item>
+        <item quantity="many">%d carpetas seleccionadas</item>
+        <item quantity="other">%d carpetas seleccionadas</item>
+    </plurals>
     <string name="multi_delete_includes_folders_warning">Las carpetas seleccionadas y todo su contenido se eliminarán permanentemente.</string>
     <string name="multi_download_includes_folders">Las carpetas se descargarán con todo su contenido.</string>
     <string name="preparing_ellipsis">Preparando…</string>

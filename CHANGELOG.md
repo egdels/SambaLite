@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **"1 files, 2 folders selected"**: The selection count in the file browser always used the plural ("1 files", "1 folders"; German "1 Dateien"). It now uses the singular and plural forms of each language.
 - **Background service notification and progress headline in English only**: The permanent notification ("SMB Service ready", "Processing…", "2 operations active", "Operation cancelled", timeouts), its notification channel and the headline of progress dialogs ("Downloading…") were English in every language. They are now translated.
 - **Share dialog's upload button said "Select"**: The button that starts the upload of shared items was labelled "Select" (German "Auswählen"), and the German message read "Freigabe 1 Element nach …". The button now says "Upload" in every language, and the German, French and Dutch messages were reworded.
 - **Shared files lost when the last target's connection was deleted, and other share target slips**: If the connection of the last browsed folder had been deleted, the share dialog offered a folder without share name and "Select" silently dropped the shared files. It now asks for a target folder and lets you pick one right away, keeping the shared items. Leaving the folder picker with Back no longer changes the target to the folders passed on the way out, and cancelling the connection list shows the target as "share/folder" again.

@@ -323,9 +323,31 @@
     <string name="multi_no_files_selected">Nie wybrano żadnych plików</string>
     <string name="multi_only_files_delete">W trybie wielokrotnego wyboru można usuwać tylko pliki</string>
     <string name="multi_only_files_download">W trybie wielokrotnego wyboru można pobierać tylko pliki</string>
-    <string name="selection_files_and_folders">%1$d plików, %2$d folderów zaznaczonych</string>
-    <string name="selection_files_only">%1$d plików zaznaczonych</string>
-    <string name="selection_folders_only">%1$d folderów zaznaczonych</string>
+    <string name="selection_files_and_folders">Zaznaczono: %1$s, %2$s</string>
+    <plurals name="selection_file_part">
+        <item quantity="one">%d plik</item>
+        <item quantity="few">%d pliki</item>
+        <item quantity="many">%d plików</item>
+        <item quantity="other">%d pliku</item>
+    </plurals>
+    <plurals name="selection_folder_part">
+        <item quantity="one">%d folder</item>
+        <item quantity="few">%d foldery</item>
+        <item quantity="many">%d folderów</item>
+        <item quantity="other">%d folderu</item>
+    </plurals>
+    <plurals name="selection_files_only">
+        <item quantity="one">Zaznaczono: %d plik</item>
+        <item quantity="few">Zaznaczono: %d pliki</item>
+        <item quantity="many">Zaznaczono: %d plików</item>
+        <item quantity="other">Zaznaczono: %d pliku</item>
+    </plurals>
+    <plurals name="selection_folders_only">
+        <item quantity="one">Zaznaczono: %d folder</item>
+        <item quantity="few">Zaznaczono: %d foldery</item>
+        <item quantity="many">Zaznaczono: %d folderów</item>
+        <item quantity="other">Zaznaczono: %d folderu</item>
+    </plurals>
     <string name="multi_delete_includes_folders_warning">Zaznaczone foldery i cała ich zawartość zostaną trwale usunięte.</string>
     <string name="multi_download_includes_folders">Foldery zostaną pobrane z całą ich zawartością.</string>
     <string name="preparing_ellipsis">Przygotowywanie…</string>
