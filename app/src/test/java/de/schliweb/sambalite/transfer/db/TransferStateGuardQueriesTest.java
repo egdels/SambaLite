@@ -144,4 +144,46 @@ public class TransferStateGuardQueriesTest {
     assertEquals("CANCELLED", dao.getStatus(active));
     assertEquals("CANCELLED", dao.getStatus(failed));
   }
+
+  @Test
+  public void markQueuedFailedPermanently_failsQueuedTransfersWithReason() {
+    long pending = insert("PENDING", 0);
+    long retryable = insert("FAILED", 1);
+    long completed = insert("COMPLETED", 0);
+    long cancelled = insert("CANCELLED", 0);
+
+    assertEquals(2, dao.markQueuedFailedPermanently("no space", 2L));
+
+    assertEquals("FAILED", dao.getStatus(pending));
+    assertEquals("FAILED", dao.getStatus(retryable));
+    assertEquals("COMPLETED", dao.getStatus(completed));
+    assertEquals("CANCELLED", dao.getStatus(cancelled));
+    // No automatic retry (the app start revives only failed transfers with retries left) ...
+    assertEquals(0, dao.getPendingCountSync());
+    assertEquals(0, dao.resetFailedToRetry(3L));
+    // ... but a manual retry from the queue works
+    dao.resetToPendingByIds(java.util.Arrays.asList(pending, retryable), 4L);
+    assertEquals(2, dao.getPendingCountSync());
+  }
+
+  @Test
+  public void markQueuedDownloadsFailedPermanently_keepsUploadsAndOtherConnections() {
+    long upload = insert("PENDING", 0);
+    PendingTransfer d = new PendingTransfer();
+    d.transferType = "DOWNLOAD";
+    d.remotePath = "x.bin";
+    d.status = "PENDING";
+    d.maxRetries = 3;
+    d.connectionId = "c1";
+    d.displayName = "x.bin";
+    long download = dao.insert(d);
+    d.connectionId = "c2";
+    long otherConnection = dao.insert(d);
+
+    assertEquals(1, dao.markQueuedDownloadsFailedPermanently("c1", "no space", 2L));
+
+    assertEquals("PENDING", dao.getStatus(upload));
+    assertEquals("FAILED", dao.getStatus(download));
+    assertEquals("PENDING", dao.getStatus(otherConnection));
+  }
 }

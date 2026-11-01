@@ -280,15 +280,16 @@ public class TransferWorker extends Worker {
       LogUtils.w(TAG, "Could not promote to foreground: " + e.getMessage());
     }
 
+    PendingTransferDao dao =
+        TransferDatabase.getInstance(getApplicationContext()).pendingTransferDao();
+
     // Abort early if disk is (nearly) full to avoid filling up the device
     if (!hasEnoughDiskSpace()) {
       LogUtils.e(TAG, "Insufficient disk space \u2013 aborting transfer queue");
       logLowSpaceAbort("transfer queue not started", null);
+      failQueuedForLowSpace(dao);
       return Result.failure();
     }
-
-    PendingTransferDao dao =
-        TransferDatabase.getInstance(getApplicationContext()).pendingTransferDao();
 
     // Crash recovery: reset any ACTIVE transfers back to PENDING
     int reset = dao.resetActiveToRetry(System.currentTimeMillis());
@@ -341,6 +342,7 @@ public class TransferWorker extends Worker {
         if (!hasEnoughDiskSpace()) {
           LogUtils.e(TAG, "Insufficient disk space \u2013 stopping transfer queue");
           logLowSpaceAbort("transfer queue stopped", null);
+          failQueuedForLowSpace(dao);
           cleanup(dao);
           return Result.failure();
         }
@@ -372,6 +374,7 @@ public class TransferWorker extends Worker {
     if (anyFailure) {
       if (!hasEnoughDiskSpace()) {
         LogUtils.e(TAG, "Disk full after failures \u2013 returning failure instead of retry");
+        failQueuedForLowSpace(dao);
         return Result.failure();
       }
       if (dao.getConnectionsWithPendingWork().isEmpty()) {
@@ -451,6 +454,7 @@ public class TransferWorker extends Worker {
                       + connection.getId());
               logLowSpaceAbort(
                   "remaining transfers skipped before " + transfer.displayName, transfer);
+              failQueuedDownloadsForLowSpace(dao, connection.getId());
               break;
             }
 
@@ -473,6 +477,7 @@ public class TransferWorker extends Worker {
                         + connection.getId());
                 logLowSpaceAbort(
                     "remaining transfers skipped after " + transfer.displayName, transfer);
+                failQueuedDownloadsForLowSpace(dao, connection.getId());
                 break;
               }
             }
@@ -1687,6 +1692,40 @@ public class TransferWorker extends Worker {
         TransferActionLog.Action.ABORTED_LOW_SPACE,
         what,
         EnhancedFileUtils.describeFreeSpace(getApplicationContext(), target));
+  }
+
+  /**
+   * Marks all queued transfers failed with a readable reason when the queue stops for lack of
+   * storage. The worker ends with failure and is not started again by itself, so without this the
+   * transfers would stay "pending" with no hint why; "Retry" in the queue starts them again.
+   */
+  private void failQueuedForLowSpace(PendingTransferDao dao) {
+    try {
+      int failed =
+          dao.markQueuedFailedPermanently(
+              getApplicationContext().getString(R.string.transfer_error_low_space),
+              System.currentTimeMillis());
+      LogUtils.w(TAG, "Low storage: marked " + failed + " queued transfers failed");
+    } catch (Exception e) {
+      LogUtils.e(TAG, "Could not mark transfers failed (disk/DB full?): " + e.getMessage());
+    }
+  }
+
+  /**
+   * Marks the queued downloads of a connection failed when the storage they write to is full. This
+   * also ends the batch loop for them, which would otherwise pick them up again and again.
+   */
+  private void failQueuedDownloadsForLowSpace(PendingTransferDao dao, String connectionId) {
+    try {
+      int failed =
+          dao.markQueuedDownloadsFailedPermanently(
+              connectionId,
+              getApplicationContext().getString(R.string.transfer_error_low_space),
+              System.currentTimeMillis());
+      LogUtils.w(TAG, "Low storage: marked " + failed + " queued downloads failed");
+    } catch (Exception e) {
+      LogUtils.e(TAG, "Could not mark downloads failed (disk/DB full?): " + e.getMessage());
+    }
   }
 
   /**

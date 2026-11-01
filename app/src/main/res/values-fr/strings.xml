@@ -493,6 +493,7 @@
     <string name="upload_large_selection_warning">%1$d fichiers sélectionnés. Android conserve un accès permanent pour au plus %2$d fichiers, les téléversements ne sont donc fiables que tant que l’application reste ouverte.</string>
     <string name="transfer_error_source_access_lost">L’accès au fichier local a été perdu. Veuillez sélectionner le fichier à nouveau.</string>
     <string name="transfer_error_target_lost">Le fichier cible local a disparu et n’a pas pu être recréé. Veuillez relancer le téléchargement.</string>
+    <string name="transfer_error_low_space">Pas assez d’espace libre sur cet appareil. Libérez de l’espace, puis appuyez sur « Réessayer ».</string>
     <string name="upload_share_temporary_access_warning">Les fichiers partagés ne restent accessibles que tant que SambaLite est ouvert. Laissez l’application ouverte jusqu’à la fin des téléversements.</string>
 
     <!-- File browser: "New" button and entry count in the toolbar -->

@@ -166,6 +166,33 @@ public interface PendingTransferDao {
           + " retry_count = max_retries, updated_at = :now WHERE id = :id")
   void markFailedPermanently(long id, @NonNull String error, long now);
 
+  /**
+   * Marks every queued transfer (pending, or failed with retries left) as failed without further
+   * automatic retries, e.g. when the device ran out of storage: the worker stops, and without this
+   * the transfers would look pending forever. A manual retry from the queue starts them again.
+   *
+   * @return The number of transfers marked failed
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'FAILED', last_error = :error,"
+          + " retry_count = max_retries, updated_at = :now"
+          + " WHERE status = 'PENDING' OR (status = 'FAILED' AND retry_count < max_retries)")
+  int markQueuedFailedPermanently(@NonNull String error, long now);
+
+  /**
+   * Like {@link #markQueuedFailedPermanently} for the queued downloads of one connection, e.g. when
+   * the storage they write to is full while uploads can still go on.
+   *
+   * @return The number of transfers marked failed
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'FAILED', last_error = :error,"
+          + " retry_count = max_retries, updated_at = :now"
+          + " WHERE connection_id = :connectionId AND transfer_type != 'UPLOAD'"
+          + " AND (status = 'PENDING' OR (status = 'FAILED' AND retry_count < max_retries))")
+  int markQueuedDownloadsFailedPermanently(
+      @NonNull String connectionId, @NonNull String error, long now);
+
   /** Cancels all pending/active transfers. */
   @Query(
       "UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now"
