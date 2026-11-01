@@ -179,7 +179,11 @@ public class TransferQueueViewModel extends AndroidViewModel {
     TransferWorker.enqueueQueueProcessing(getApplication());
   }
 
-  /** Cancels multiple transfers by their IDs. */
+  /**
+   * Cancels multiple transfers by their IDs. The worker keeps running for the other transfers: it
+   * checks the status of the running transfer while it copies and skips queued ones that are no
+   * longer pending, so stopping it would only leave the rest of the queue waiting.
+   */
   public void cancelTransfers(@NonNull Set<Long> ids) {
     Log.d(TAG, "cancelTransfers: ids=" + ids);
     List<Long> idsCopy = new java.util.ArrayList<>(ids);
@@ -188,7 +192,6 @@ public class TransferQueueViewModel extends AndroidViewModel {
           Log.d(TAG, "cancelTransfers: starting execution for ids=" + idsCopy);
           UploadSourceGrants.cancelAndRelease(
               getApplication(), dao, idsCopy, System.currentTimeMillis());
-          WorkManager.getInstance(getApplication()).cancelUniqueWork(TransferWorker.WORK_NAME);
           Log.d(TAG, "cancelTransfers: execution finished");
         });
   }
