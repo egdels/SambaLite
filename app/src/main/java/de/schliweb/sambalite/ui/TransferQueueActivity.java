@@ -441,38 +441,32 @@ public class TransferQueueActivity extends AppCompatActivity
   }
 
   private void showTransferActionDialog(PendingTransfer transfer) {
-    boolean hasError =
-        "FAILED".equals(transfer.status)
-            && transfer.lastError != null
-            && !transfer.lastError.trim().isEmpty();
+    // Offer only what makes sense for the transfer's state: a running or completed transfer cannot
+    // be retried, and a completed one cannot be cancelled any more
+    boolean failed = "FAILED".equals(transfer.status);
+    boolean unfinished =
+        failed || "PENDING".equals(transfer.status) || "ACTIVE".equals(transfer.status);
+    boolean hasError = failed && transfer.lastError != null && !transfer.lastError.trim().isEmpty();
     List<String> items = new ArrayList<>();
-    items.add(getString(R.string.transfer_retry));
-    items.add(getString(R.string.transfer_cancel));
+    List<Runnable> actions = new ArrayList<>();
+    if (failed) {
+      items.add(getString(R.string.transfer_retry));
+      actions.add(() -> viewModel.retryTransfer(transfer.id));
+    }
+    if (unfinished) {
+      items.add(getString(R.string.transfer_cancel));
+      actions.add(() -> viewModel.cancelTransfer(transfer.id));
+    }
     items.add(getString(R.string.transfer_remove));
+    actions.add(() -> viewModel.removeTransfer(transfer.id));
     if (hasError) {
       items.add(getString(R.string.transfer_error_details));
+      actions.add(() -> showErrorDetails(transfer));
     }
 
     new MaterialAlertDialogBuilder(this)
         .setTitle(transfer.displayName)
-        .setItems(
-            items.toArray(new String[0]),
-            (dialog, which) -> {
-              switch (which) {
-                case 0:
-                  viewModel.retryTransfer(transfer.id);
-                  break;
-                case 1:
-                  viewModel.cancelTransfer(transfer.id);
-                  break;
-                case 2:
-                  viewModel.removeTransfer(transfer.id);
-                  break;
-                case 3:
-                  showErrorDetails(transfer);
-                  break;
-              }
-            })
+        .setItems(items.toArray(new String[0]), (dialog, which) -> actions.get(which).run())
         // "Close", not "Cancel": the list already has "Cancel" for cancelling the transfer
         .setNegativeButton(R.string.close, null)
         .show();

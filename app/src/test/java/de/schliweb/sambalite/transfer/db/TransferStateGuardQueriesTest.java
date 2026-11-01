@@ -113,4 +113,35 @@ public class TransferStateGuardQueriesTest {
     assertEquals("PENDING", dao.getStatus(paused));
     assertEquals("CANCELLED", dao.getStatus(cancelled));
   }
+
+  @Test
+  public void resetToPendingByIds_retriesOnlyFailedTransfers() {
+    long failed = insert("FAILED", 3);
+    long active = insert("ACTIVE", 0);
+    long completed = insert("COMPLETED", 0);
+    long pending = insert("PENDING", 1);
+
+    dao.resetToPendingByIds(java.util.Arrays.asList(failed, active, completed, pending), 2L);
+
+    assertEquals("PENDING", dao.getStatus(failed));
+    // A running transfer is not started a second time, a completed one not transferred again
+    assertEquals("ACTIVE", dao.getStatus(active));
+    assertEquals("COMPLETED", dao.getStatus(completed));
+    assertEquals("PENDING", dao.getStatus(pending));
+  }
+
+  @Test
+  public void cancelByIds_leavesCompletedTransfersAlone() {
+    long completed = insert("COMPLETED", 0);
+    long pending = insert("PENDING", 0);
+    long active = insert("ACTIVE", 0);
+    long failed = insert("FAILED", 1);
+
+    dao.cancelByIds(java.util.Arrays.asList(completed, pending, active, failed), 2L);
+
+    assertEquals("COMPLETED", dao.getStatus(completed));
+    assertEquals("CANCELLED", dao.getStatus(pending));
+    assertEquals("CANCELLED", dao.getStatus(active));
+    assertEquals("CANCELLED", dao.getStatus(failed));
+  }
 }

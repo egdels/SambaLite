@@ -251,8 +251,13 @@ public interface PendingTransferDao {
   @Query("DELETE FROM pending_transfer WHERE id IN (:ids)")
   void deleteByIds(@NonNull java.util.List<Long> ids);
 
-  /** Cancels multiple transfers by their IDs. */
-  @Query("UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now WHERE id IN (:ids)")
+  /**
+   * Cancels multiple transfers by their IDs. Only unfinished transfers (pending, running, failed)
+   * are cancelled; a completed transfer stays completed.
+   */
+  @Query(
+      "UPDATE pending_transfer SET status = 'CANCELLED', updated_at = :now WHERE id IN (:ids)"
+          + " AND status IN ('PENDING', 'ACTIVE', 'FAILED')")
   void cancelByIds(@NonNull java.util.List<Long> ids, long now);
 
   /**
@@ -264,10 +269,14 @@ public interface PendingTransferDao {
           + " updated_at = :now WHERE status = 'FAILED'")
   int resetAllFailedToPending(long now);
 
-  /** Resets multiple transfers to PENDING for retry. */
+  /**
+   * Resets multiple failed transfers to PENDING for a manual retry. Transfers in any other state
+   * are left alone: a running one would be started a second time while the worker still writes it,
+   * and a completed one would silently be transferred again.
+   */
   @Query(
       "UPDATE pending_transfer SET status = 'PENDING', retry_count = 0, bytes_transferred = 0, updated_at = :now"
-          + " WHERE id IN (:ids)")
+          + " WHERE id IN (:ids) AND status = 'FAILED'")
   void resetToPendingByIds(@NonNull java.util.List<Long> ids, long now);
 
   /**
