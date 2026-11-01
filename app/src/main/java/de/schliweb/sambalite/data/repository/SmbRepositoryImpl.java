@@ -64,6 +64,15 @@ public class SmbRepositoryImpl implements SmbRepository {
   private static final int COPY_BUFFER_SIZE = 256 * 1024;
 
   @NonNull private final SMBClient smbClient;
+
+  /**
+   * Shared default clients for servers on other ports than 445. SMBJ remembers one server per host
+   * name in its client (ignoring the port) and refuses a second server on the same host ("Different
+   * server found for same hostname"), so two servers on one host, e.g. 10.0.2.2:445 and
+   * 10.0.2.2:4450, need separate clients.
+   */
+  @NonNull private final Map<Integer, SMBClient> portClients = new ConcurrentHashMap<>();
+
   // Thread-local to track the currently connected share name for path normalization
   @NonNull private final ThreadLocal<String> currentShareName = new ThreadLocal<>();
 
@@ -103,7 +112,7 @@ public class SmbRepositoryImpl implements SmbRepository {
     boolean anonymous = isAnonymousConnection(connection);
 
     if (!encrypt && !sign && !async && !anonymous) {
-      return this.smbClient; // shared default client
+      return defaultClientForPort(connection.getPort());
     }
 
     SmbConfig.Builder builder =
@@ -177,6 +186,18 @@ public class SmbRepositoryImpl implements SmbRepository {
     } catch (Throwable ignored) {
       /* keep SMBJ defaults if the running SMBJ version rejects these values */
     }
+  }
+
+  /**
+   * Returns the shared default client for a server port: the main client for the standard port, a
+   * separate one for every other port (see {@link #portClients}).
+   */
+  @NonNull
+  SMBClient defaultClientForPort(int port) {
+    if (port <= 0 || port == SmbConnection.DEFAULT_PORT) {
+      return this.smbClient;
+    }
+    return portClients.computeIfAbsent(port, p -> createDefaultClient());
   }
 
   /** Creates the shared default SMB client with performance-tuned buffer sizes. */
