@@ -574,4 +574,11 @@
         <item quantity="one">SambaLite kon niet controleren of het bestand al op de server staat: %2$s. Uploaden kan een bestand met dezelfde naam vervangen.</item>
         <item quantity="other">SambaLite kon niet controleren of %1$d bestanden al op de server staan: %2$s. Uploaden kan bestanden met dezelfde naam vervangen.</item>
     </plurals>
+    <string name="progress_op_open">Openen</string>
+    <string name="connections_load_failed">De verbindingen konden niet worden geladen: %1$s</string>
+    <string name="connection_save_failed">De verbinding kon niet worden opgeslagen: %1$s</string>
+    <string name="connection_delete_failed">De verbinding kon niet worden verwijderd: %1$s</string>
+    <string name="connection_not_found">Deze verbinding bestaat niet meer.</string>
+    <string name="network_scan_unavailable">Netwerk zoeken is niet beschikbaar. Controleer je netwerkverbinding.</string>
+    <string name="suggested_server_name">Server %1$s</string>
 </resources>

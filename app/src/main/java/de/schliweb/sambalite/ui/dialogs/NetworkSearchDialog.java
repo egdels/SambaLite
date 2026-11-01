@@ -101,8 +101,7 @@ public class NetworkSearchDialog {
     scanSupported = networkScanner.isScanningSupported();
     mdnsSupported = serviceDiscovery.isAvailable();
     if (!scanSupported && !mdnsSupported) {
-      EnhancedUIUtils.showError(
-          activity, "Network scanning is not available. Please check your network connection.");
+      EnhancedUIUtils.showError(activity, activity.getString(R.string.network_scan_unavailable));
       return;
     }
 
@@ -248,20 +247,21 @@ public class NetworkSearchDialog {
 
   private void apply(DiscoveredServers.Entry selected, boolean hostNameResolves) {
     String server = selected.getServerToUse(hostNameResolves);
-    onServerChosen.onServerChosen(server, selected.getPortToUse(), suggestedName(selected));
+    onServerChosen.onServerChosen(
+        server, selected.getPortToUse(), suggestedName(selected, activity));
     EnhancedUIUtils.showInfo(
         activity, activity.getString(R.string.server_info_applied, selected.getDisplayName()));
     dialog.dismiss();
   }
 
-  private static String suggestedName(DiscoveredServers.Entry entry) {
+  private static String suggestedName(DiscoveredServers.Entry entry, android.content.Context ctx) {
     if (entry.getServiceName() != null) {
       return entry.getServiceName();
     }
     if (entry.getScanHostName() != null) {
       return entry.getScanHostName();
     }
-    return "Server " + entry.getAddress();
+    return ctx.getString(R.string.suggested_server_name, entry.getAddress());
   }
 
   /** Port scan events arrive on worker threads. */

@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.SmbRepository;
@@ -38,7 +39,21 @@ public class MainViewModel extends ViewModel {
 
   private final MutableLiveData<List<SmbConnection>> connections = new MutableLiveData<>();
   private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
-  private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+  private final MutableLiveData<ErrorMessage> errorMessage = new MutableLiveData<>();
+
+  /**
+   * An error for the main screen: a translated text (with one {@code %1$s} for the detail) plus the
+   * technical detail. The activity resolves the text, so the message follows the app language.
+   */
+  public static final class ErrorMessage {
+    @androidx.annotation.StringRes public final int textRes;
+    @NonNull public final String detail;
+
+    ErrorMessage(@androidx.annotation.StringRes int textRes, @Nullable String detail) {
+      this.textRes = textRes;
+      this.detail = detail != null ? detail : "";
+    }
+  }
 
   /** Kept in the ViewModel so finished syncs are not announced again after a recreation. */
   private final SyncWorkReporter syncWorkReporter = new SyncWorkReporter();
@@ -80,7 +95,7 @@ public class MainViewModel extends ViewModel {
   }
 
   /** Gets the error message as LiveData. */
-  public @NonNull LiveData<String> getErrorMessage() {
+  public @NonNull LiveData<ErrorMessage> getErrorMessage() {
     return errorMessage;
   }
 
@@ -189,7 +204,8 @@ public class MainViewModel extends ViewModel {
             errorHandler.recordError(
                 e, "MainViewModel.loadConnections", SmartErrorHandler.ErrorSeverity.HIGH);
 
-            errorMessage.postValue("Failed to load connections: " + e.getMessage());
+            errorMessage.postValue(
+                new ErrorMessage(R.string.connections_load_failed, e.getMessage()));
           }
         });
   }
@@ -214,7 +230,8 @@ public class MainViewModel extends ViewModel {
             errorHandler.recordError(
                 e, "MainViewModel.saveConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
 
-            errorMessage.postValue("Failed to save connection: " + e.getMessage());
+            errorMessage.postValue(
+                new ErrorMessage(R.string.connection_save_failed, e.getMessage()));
           }
         });
   }
@@ -241,7 +258,8 @@ public class MainViewModel extends ViewModel {
             errorHandler.recordError(
                 e, "MainViewModel.deleteConnection", SmartErrorHandler.ErrorSeverity.MEDIUM);
 
-            errorMessage.postValue("Failed to delete connection: " + e.getMessage());
+            errorMessage.postValue(
+                new ErrorMessage(R.string.connection_delete_failed, e.getMessage()));
           }
         });
   }

@@ -333,10 +333,11 @@ public class MainActivity extends AppCompatActivity
         .getErrorMessage()
         .observe(
             this,
-            errorMessage -> {
-              if (errorMessage != null && !errorMessage.isEmpty()) {
-                LogUtils.w("MainActivity", "Error message received: " + errorMessage);
-                EnhancedUIUtils.showError(this, errorMessage);
+            error -> {
+              if (error != null) {
+                String message = getString(error.textRes, error.detail);
+                LogUtils.w("MainActivity", "Error message received: " + message);
+                EnhancedUIUtils.showError(this, message);
               }
             });
 

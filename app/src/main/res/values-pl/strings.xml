@@ -623,4 +623,11 @@
         <item quantity="many">SambaLite nie mógł sprawdzić, czy pliki (%1$d) już istnieją na serwerze: %2$s. Przesłanie może zastąpić pliki o tych samych nazwach.</item>
         <item quantity="other">SambaLite nie mógł sprawdzić, czy pliki (%1$d) już istnieją na serwerze: %2$s. Przesłanie może zastąpić pliki o tych samych nazwach.</item>
     </plurals>
+    <string name="progress_op_open">Otwieranie</string>
+    <string name="connections_load_failed">Nie udało się wczytać połączeń: %1$s</string>
+    <string name="connection_save_failed">Nie udało się zapisać połączenia: %1$s</string>
+    <string name="connection_delete_failed">Nie udało się usunąć połączenia: %1$s</string>
+    <string name="connection_not_found">To połączenie już nie istnieje.</string>
+    <string name="network_scan_unavailable">Wyszukiwanie w sieci jest niedostępne. Sprawdź połączenie sieciowe.</string>
+    <string name="suggested_server_name">Serwer %1$s</string>
 </resources>

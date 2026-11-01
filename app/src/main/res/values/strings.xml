@@ -585,4 +585,11 @@
         <item quantity="one">SambaLite could not check whether the file already exists on the server: %2$s. Uploading it may replace a file of the same name.</item>
         <item quantity="other">SambaLite could not check whether %1$d files already exist on the server: %2$s. Uploading them may replace files of the same name.</item>
     </plurals>
+    <string name="progress_op_open">Opening</string>
+    <string name="connections_load_failed">Could not load the connections: %1$s</string>
+    <string name="connection_save_failed">Could not save the connection: %1$s</string>
+    <string name="connection_delete_failed">Could not delete the connection: %1$s</string>
+    <string name="connection_not_found">This connection no longer exists.</string>
+    <string name="network_scan_unavailable">Network scanning is not available. Please check your network connection.</string>
+    <string name="suggested_server_name">Server %1$s</string>
 </resources>

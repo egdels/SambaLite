@@ -598,4 +598,11 @@
         <item quantity="many">SambaLite no pudo comprobar si %1$d archivos ya existen en el servidor: %2$s. Al subirlos se pueden reemplazar archivos con el mismo nombre.</item>
         <item quantity="other">SambaLite no pudo comprobar si %1$d archivos ya existen en el servidor: %2$s. Al subirlos se pueden reemplazar archivos con el mismo nombre.</item>
     </plurals>
+    <string name="progress_op_open">Abriendo</string>
+    <string name="connections_load_failed">No se pudieron cargar las conexiones: %1$s</string>
+    <string name="connection_save_failed">No se pudo guardar la conexión: %1$s</string>
+    <string name="connection_delete_failed">No se pudo eliminar la conexión: %1$s</string>
+    <string name="connection_not_found">Esta conexión ya no existe.</string>
+    <string name="network_scan_unavailable">La búsqueda en la red no está disponible. Comprueba tu conexión de red.</string>
+    <string name="suggested_server_name">Servidor %1$s</string>
 </resources>

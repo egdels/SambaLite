@@ -574,4 +574,11 @@
         <item quantity="one">SambaLite konnte nicht prüfen, ob die Datei auf dem Server schon existiert: %2$s. Beim Hochladen wird eine gleichnamige Datei eventuell ersetzt.</item>
         <item quantity="other">SambaLite konnte nicht prüfen, ob %1$d Dateien auf dem Server schon existieren: %2$s. Beim Hochladen werden gleichnamige Dateien eventuell ersetzt.</item>
     </plurals>
+    <string name="progress_op_open">Öffnen</string>
+    <string name="connections_load_failed">Die Verbindungen konnten nicht geladen werden: %1$s</string>
+    <string name="connection_save_failed">Die Verbindung konnte nicht gespeichert werden: %1$s</string>
+    <string name="connection_delete_failed">Die Verbindung konnte nicht gelöscht werden: %1$s</string>
+    <string name="connection_not_found">Diese Verbindung existiert nicht mehr.</string>
+    <string name="network_scan_unavailable">Die Netzwerksuche ist nicht verfügbar. Bitte prüfe deine Netzwerkverbindung.</string>
+    <string name="suggested_server_name">Server %1$s</string>
 </resources>

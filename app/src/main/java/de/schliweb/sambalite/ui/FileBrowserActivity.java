@@ -1210,7 +1210,10 @@ public class FileBrowserActivity extends AppCompatActivity
     String connectionId = getIntent().getStringExtra(EXTRA_CONNECTION_ID);
     if (connectionId == null) {
       LogUtils.e("FileBrowserActivity", "No connection ID specified in intent");
-      progressController.showError("Error", "No connection specified");
+      // A snackbar would vanish with the finishing activity; a toast stays visible
+      android.widget.Toast.makeText(
+              this, R.string.connection_not_found, android.widget.Toast.LENGTH_LONG)
+          .show();
       finish();
       return;
     }
@@ -1259,7 +1262,9 @@ public class FileBrowserActivity extends AppCompatActivity
 
               // Connection not found
               LogUtils.e("FileBrowserActivity", "Connection not found with ID: " + connectionId);
-              progressController.showError("Error", "Connection not found");
+              android.widget.Toast.makeText(
+                      this, R.string.connection_not_found, android.widget.Toast.LENGTH_LONG)
+                  .show();
               finish();
             });
   }

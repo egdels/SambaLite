@@ -237,4 +237,11 @@ public class ProgressFormatTest {
     assertTrue(detail.endsWith("…"));
     assertTrue(detail.length() <= 15);
   }
+
+  @Test
+  public void openingAFile_isItsOwnOperation() {
+    assertEquals(ProgressFormat.Op.OPEN, ProgressFormat.Op.fromString("Opening: report.pdf"));
+    assertEquals(
+        de.schliweb.sambalite.R.string.progress_op_open, ProgressFormat.Op.OPEN.labelRes());
+  }
 }

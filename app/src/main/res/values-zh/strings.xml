@@ -553,4 +553,11 @@
     <plurals name="upload_check_failed_message">
         <item quantity="other">SambaLite 无法检查 %1$d 个文件是否已存在于服务器上：%2$s。上传可能会替换同名文件。</item>
     </plurals>
+    <string name="progress_op_open">正在打开</string>
+    <string name="connections_load_failed">无法加载连接：%1$s</string>
+    <string name="connection_save_failed">无法保存连接：%1$s</string>
+    <string name="connection_delete_failed">无法删除连接：%1$s</string>
+    <string name="connection_not_found">此连接已不存在。</string>
+    <string name="network_scan_unavailable">网络扫描不可用。请检查网络连接。</string>
+    <string name="suggested_server_name">服务器 %1$s</string>
 </resources>

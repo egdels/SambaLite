@@ -29,6 +29,7 @@ public final class ProgressFormat {
     RENAME("Renaming", R.string.progress_op_rename),
     SEARCH("Searching", R.string.progress_op_search),
     FINALIZING("Finalizing", R.string.progress_op_finalizing),
+    OPEN("Opening", R.string.progress_op_open),
     UNKNOWN("Processing", R.string.progress_op_processing);
 
     private final String label;
@@ -58,6 +59,7 @@ public final class ProgressFormat {
       if (x.startsWith("renam")) return RENAME;
       if (x.startsWith("search")) return SEARCH;
       if (x.startsWith("final")) return FINALIZING;
+      if (x.startsWith("open")) return OPEN;
       return UNKNOWN;
     }
   }
