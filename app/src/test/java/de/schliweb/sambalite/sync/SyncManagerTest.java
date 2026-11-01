@@ -274,4 +274,23 @@ public class SyncManagerTest {
     // Mirror is not available for bidirectional syncs.
     assertFalse(edited.isMirror());
   }
+
+  @Test
+  public void removeSyncConfig_cancelsAPendingSyncNow() throws Exception {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AGone");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-1", uri, "QA/Gone", "Gone", SyncDirection.LOCAL_TO_REMOTE, 0);
+    syncManager.triggerImmediateSync(added.getId());
+
+    syncManager.removeSyncConfig(added.getId());
+
+    List<androidx.work.WorkInfo> infos =
+        WorkManager.getInstance(ApplicationProvider.getApplicationContext())
+            .getWorkInfosForUniqueWork(SyncManager.manualSyncWorkName(added.getId()))
+            .get();
+    assertFalse(infos.isEmpty());
+    for (androidx.work.WorkInfo info : infos) {
+      assertEquals(androidx.work.WorkInfo.State.CANCELLED, info.getState());
+    }
+  }
 }

@@ -201,6 +201,7 @@ public class SyncManager {
     boolean removed = syncRepository.deleteSyncConfig(configId);
 
     if (removed) {
+      cancelManualSync(configId);
       List<SyncConfig> remaining = syncRepository.getAllEnabledConfigs();
       if (remaining.isEmpty()) {
         cancelPeriodicSync();
@@ -313,7 +314,7 @@ public class SyncManager {
             .build();
 
     WorkManager.getInstance(context)
-        .enqueueUniqueWork(UNIQUE_WORK_NAME + "_" + configId, ExistingWorkPolicy.REPLACE, request);
+        .enqueueUniqueWork(manualSyncWorkName(configId), ExistingWorkPolicy.REPLACE, request);
   }
 
   /** Schedules periodic sync based on the minimum interval of all enabled configs. */
@@ -355,6 +356,19 @@ public class SyncManager {
         .enqueueUniquePeriodicWork(UNIQUE_WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request);
   }
 
+  /**
+   * Cancels a queued, running or retrying "Sync Now" of a config, e.g. a retry after a failed run
+   * of a sync that has since been removed.
+   */
+  private void cancelManualSync(@NonNull String configId) {
+    WorkManager.getInstance(context).cancelUniqueWork(manualSyncWorkName(configId));
+  }
+
+  /** Returns the unique work name of the manual sync of a config. */
+  static @NonNull String manualSyncWorkName(@NonNull String configId) {
+    return UNIQUE_WORK_NAME + "_" + configId;
+  }
+
   /** Cancels the periodic sync. */
   public void cancelPeriodicSync() {
     LogUtils.i(TAG, "Cancelling periodic sync");
@@ -369,9 +383,18 @@ public class SyncManager {
    */
   public int removeConfigsForConnection(@NonNull String connectionId) {
     LogUtils.d(TAG, "Removing sync configs for connection: " + connectionId);
+    List<String> configIds = new java.util.ArrayList<>();
+    for (SyncConfig config : syncRepository.getAllSyncConfigs()) {
+      if (connectionId.equals(config.getConnectionId())) {
+        configIds.add(config.getId());
+      }
+    }
     int removed = syncRepository.deleteConfigsForConnection(connectionId);
 
     if (removed > 0) {
+      for (String configId : configIds) {
+        cancelManualSync(configId);
+      }
       List<SyncConfig> remaining = syncRepository.getAllEnabledConfigs();
       if (remaining.isEmpty()) {
         cancelPeriodicSync();
