@@ -348,11 +348,22 @@ public class BackgroundSmbManager {
    * active, the service is auto-stopped.
    */
   public void onActivityStopped() {
+    onActivityStopped(false);
+  }
+
+  /**
+   * Like {@link #onActivityStopped()}, but keeps the service running when the activity is only
+   * being recreated for a configuration change (rotation, dark mode, locale): its new instance
+   * starts again right away and would otherwise restart the service it just stopped.
+   *
+   * @param changingConfigurations {@code Activity.isChangingConfigurations()} of the activity
+   */
+  public void onActivityStopped(boolean changingConfigurations) {
     int count = visibleActivityCount.decrementAndGet();
     if (count <= 0) {
       visibleActivityCount.set(0);
       // If no operations are active, stop the service immediately
-      if (!hasActiveOperations()) {
+      if (!changingConfigurations && !hasActiveOperations()) {
         LogUtils.i(TAG, "All activities stopped and no active operations — auto-stopping service");
         requestStopService();
       }

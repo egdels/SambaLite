@@ -2109,7 +2109,7 @@ public class FileBrowserActivity extends AppCompatActivity
   protected void onStop() {
     super.onStop();
     if (backgroundSmbManager != null) {
-      backgroundSmbManager.onActivityStopped();
+      backgroundSmbManager.onActivityStopped(isChangingConfigurations());
     }
   }
 

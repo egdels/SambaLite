@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Crash after rotating the device**: Rotating the file browser stopped and immediately restarted SambaLite's background service. When the stop arrived after the restart had already been requested (e.g. with the share dialog open), Android closed the app with "Context.startForegroundService() did not then call Service.startForeground()". Rotation no longer stops the service, and a stop request no longer cancels a newer start.
 - **System Monitor always reported "Tracked files: 0"**: The "Timestamp Preservation Status" section said "No sync state data available" even after many synced files, because the database refused to be read on the main thread. The numbers are now read in the background and shown correctly.
 - **Removed syncs kept retrying**: When a "Sync Now" had failed (e.g. server not reachable) and the sync was then removed, its retry stayed queued and later ran and reported "Sync completed successfully" for a sync that no longer existed. Removing a sync, or the connection it belongs to, now also cancels its pending Sync Now.
 - **"Sync Now" in the file browser answered with "Sync Now"**: After choosing Sync Now in a folder's options, the confirmation repeated the menu label in green. It now says "Sync running…", as on the main screen.

@@ -632,7 +632,11 @@ public class SmbBackgroundService extends Service {
         stopWatchdog();
         stopForeground(STOP_FOREGROUND_REMOVE);
         notificationManager.cancel(NOTIFICATION_ID);
-        stopSelf();
+        // Stop only if no newer start arrived meanwhile: a plain stopSelf() would also drop a
+        // startForegroundService() that is still waiting for its startForeground() call (e.g. the
+        // file browser restarts the service right after the auto-stop on rotation), and the
+        // system then crashes the app with ForegroundServiceDidNotStartInTimeException.
+        stopSelf(startId);
         return START_NOT_STICKY;
       }
     }
