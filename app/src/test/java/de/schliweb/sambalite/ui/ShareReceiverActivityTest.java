@@ -236,4 +236,55 @@ public class ShareReceiverActivityTest {
     assertTrue(
         "Filename should match timestamp pattern", fileName.matches("test_\\d{8}_\\d{6}\\.txt"));
   }
+
+  // --- shared text cleanup ---
+
+  @Test
+  public void cancelledShare_deletesTheSharedTextFile() throws Exception {
+    org.robolectric.android.controller.ActivityController<ShareReceiverActivity> controller =
+        Robolectric.buildActivity(
+            ShareReceiverActivity.class, new Intent(Intent.ACTION_SEND).setType("text/plain"));
+    ShareReceiverActivity act = controller.get();
+    Method create =
+        ShareReceiverActivity.class.getDeclaredMethod(
+            "createTempTextFile", String.class, String.class);
+    create.setAccessible(true);
+    File file = new File(((Uri) create.invoke(act, "note", "Cancelled")).getPath());
+    assertTrue(file.exists());
+
+    act.finish();
+    destroyUncreated(act);
+
+    assertFalse("Cancelled share must not leave its text file in the cache", file.exists());
+  }
+
+  @Test
+  public void handedOffShare_keepsTheSharedTextFileForTheUpload() throws Exception {
+    ShareReceiverActivity act =
+        Robolectric.buildActivity(
+                ShareReceiverActivity.class, new Intent(Intent.ACTION_SEND).setType("text/plain"))
+            .get();
+    Method create =
+        ShareReceiverActivity.class.getDeclaredMethod(
+            "createTempTextFile", String.class, String.class);
+    create.setAccessible(true);
+    File file = new File(((Uri) create.invoke(act, "note", "Uploaded")).getPath());
+    java.lang.reflect.Field handedOff = ShareReceiverActivity.class.getDeclaredField("handedOff");
+    handedOff.setAccessible(true);
+    handedOff.setBoolean(act, true);
+
+    act.finish();
+    destroyUncreated(act);
+
+    assertTrue("The upload still needs the text file", file.exists());
+  }
+
+  /** Runs onDestroy of an activity built without onCreate; the framework part then complains. */
+  private static void destroyUncreated(ShareReceiverActivity act) {
+    try {
+      act.onDestroy();
+    } catch (IllegalStateException expected) {
+      // FragmentManager was never attached; the activity's own cleanup ran before super.onDestroy
+    }
+  }
 }

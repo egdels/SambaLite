@@ -57,6 +57,11 @@ public class ShareReceiverActivity extends AppCompatActivity {
 
   private boolean folderChangeInProgress = false;
 
+  /** Text file created in the cache for shared text; deleted unless handed on to the upload. */
+  @Nullable private File sharedTextFile;
+
+  private boolean handedOff = false;
+
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -88,6 +93,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
     if (Intent.ACTION_SEND.equals(intent.getAction())
         || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
       shareUris.clear();
+      deleteSharedTextFile();
 
       if (Intent.ACTION_SEND.equals(intent.getAction())) {
         Uri uri = getParcelableExtraCompat(intent, Intent.EXTRA_STREAM);
@@ -331,7 +337,24 @@ public class ShareReceiverActivity extends AppCompatActivity {
     }
 
     startActivity(intent);
+    handedOff = true;
     finish();
+  }
+
+  @Override
+  protected void onDestroy() {
+    // Cancelled (or recreated, which creates the file again): the text file is not uploaded
+    if (!handedOff && (isFinishing() || isChangingConfigurations())) {
+      deleteSharedTextFile();
+    }
+    super.onDestroy();
+  }
+
+  private void deleteSharedTextFile() {
+    if (sharedTextFile != null && sharedTextFile.exists() && !sharedTextFile.delete()) {
+      LogUtils.w(TAG, "Could not delete unused shared text file: " + sharedTextFile.getName());
+    }
+    sharedTextFile = null;
   }
 
   private Uri createTempTextFile(String text, String subject) {
@@ -356,6 +379,7 @@ public class ShareReceiverActivity extends AppCompatActivity {
       }
 
       LogUtils.d(TAG, "Created temp text file: " + textFile.getAbsolutePath());
+      sharedTextFile = textFile;
       return Uri.fromFile(textFile);
     } catch (IOException e) {
       LogUtils.e(TAG, "Failed to create temp text file: " + e.getMessage());
