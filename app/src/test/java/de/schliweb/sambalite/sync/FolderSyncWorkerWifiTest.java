@@ -77,8 +77,11 @@ public class FolderSyncWorkerWifiTest {
     saveConnectionAndConfig(true);
     useCellular();
 
-    // Skipped configs count as done; an attempted sync would fail (no local folder) and retry
-    assertEquals(ListenableWorker.Result.success(), runManualSync());
+    // Skipped configs count as done; an attempted sync would fail (no local folder) and retry.
+    // The result tells the UI that nothing was synced because of the WiFi restriction.
+    ListenableWorker.Result result = runManualSync();
+    assertTrue(result instanceof ListenableWorker.Result.Success);
+    assertTrue(result.getOutputData().getBoolean(FolderSyncWorker.KEY_SKIPPED_WIFI_ONLY, false));
   }
 
   @Test

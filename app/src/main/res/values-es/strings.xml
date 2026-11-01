@@ -406,6 +406,7 @@
     <string name="sync_completed">Sincronización completada con éxito</string>
     <string name="sync_failed">Error en la sincronización</string>
     <string name="sync_cancelled">La sincronización fue interrumpida y se reintentará</string>
+    <string name="sync_skipped_wifi_only">Sincronización omitida: «Solo por WiFi» está activado y el dispositivo no está conectado a una red WiFi</string>
     <string name="sync_scheduled">Programado: %1$s</string>
     <string name="sync_folder_option">Configurar sincronización</string>
     <string name="sync_folder_already_synced">Esta carpeta ya se está sincronizando</string>

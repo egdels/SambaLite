@@ -40,6 +40,9 @@ public class MainViewModel extends ViewModel {
   private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
   private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
+  /** Kept in the ViewModel so finished syncs are not announced again after a recreation. */
+  private final SyncWorkReporter syncWorkReporter = new SyncWorkReporter();
+
   @Inject
   public MainViewModel(
       @NonNull ConnectionRepository connectionRepository,
@@ -375,5 +378,11 @@ public class MainViewModel extends ViewModel {
     void onSuccess(@NonNull List<String> shares);
 
     void onError(@NonNull String error);
+  }
+
+  /** Returns the tracker of finished sync work already announced on the main screen. */
+  @NonNull
+  SyncWorkReporter getSyncWorkReporter() {
+    return syncWorkReporter;
   }
 }

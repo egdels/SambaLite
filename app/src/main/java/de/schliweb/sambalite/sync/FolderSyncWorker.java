@@ -127,6 +127,14 @@ public class FolderSyncWorker extends Worker {
 
   private static final long DISK_CHECK_INTERVAL = 10L * 1024 * 1024;
   public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
+
+  /**
+   * Output flag: at least one config was not synced because it is restricted to WiFi and the device
+   * is not on WiFi. The worker still succeeds (nothing to retry), so the UI uses this flag to tell
+   * the user instead of reporting a completed sync.
+   */
+  public static final String KEY_SKIPPED_WIFI_ONLY = "skipped_wifi_only";
+
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
   private static final int SYNC_NOTIFICATION_ID = 2001;
   private SyncActionLog actionLog;
@@ -228,6 +236,7 @@ public class FolderSyncWorker extends Worker {
     }
 
     boolean anyFailure = false;
+    boolean skippedWifiOnly = false;
 
     for (SyncConfig config : configs) {
       if (isStopped()) {
@@ -277,6 +286,7 @@ public class FolderSyncWorker extends Worker {
             "Skipping config "
                 + config.getId()
                 + " because WiFi is not connected and wifiOnly is enabled");
+        skippedWifiOnly = true;
         continue;
       }
 
@@ -330,6 +340,10 @@ public class FolderSyncWorker extends Worker {
     }
 
     LogUtils.i(TAG, "All sync operations completed successfully");
+    if (skippedWifiOnly) {
+      return Result.success(
+          new androidx.work.Data.Builder().putBoolean(KEY_SKIPPED_WIFI_ONLY, true).build());
+    }
     return Result.success();
   }
 

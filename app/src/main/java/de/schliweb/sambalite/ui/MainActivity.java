@@ -389,6 +389,10 @@ public class MainActivity extends AppCompatActivity
 
               boolean anySyncRunning = false;
               Set<String> runningConfigIds = new HashSet<>();
+              // Finished work is kept by WorkManager and delivered on every change; announce
+              // each run only once (and none that had finished before this screen started).
+              List<WorkInfo> newlyFinished =
+                  viewModel.getSyncWorkReporter().takeNewlyFinished(workInfos);
 
               if (workInfos != null) {
                 for (WorkInfo workInfo : workInfos) {
@@ -423,24 +427,6 @@ public class MainActivity extends AppCompatActivity
                     }
                   }
 
-                  if (workInfo.getState() == WorkInfo.State.SUCCEEDED
-                      || workInfo.getState() == WorkInfo.State.FAILED) {
-                    LogUtils.i(
-                        "MainActivity",
-                        "Sync work "
-                            + workInfo.getId()
-                            + " finished with state: "
-                            + workInfo.getState()
-                            + ". Refreshing configs.");
-                    viewModel.loadSyncConfigs();
-                    if (workInfo.getState() == WorkInfo.State.SUCCEEDED) {
-                      EnhancedUIUtils.showInfo(
-                          MainActivity.this, getString(R.string.sync_completed));
-                    } else {
-                      EnhancedUIUtils.showError(MainActivity.this, getString(R.string.sync_failed));
-                    }
-                  }
-
                   // Detect RETRY: state goes back to ENQUEUED while config was previously running
                   if (workInfo.getState() == WorkInfo.State.ENQUEUED) {
                     String configId = null;
@@ -463,6 +449,10 @@ public class MainActivity extends AppCompatActivity
                 }
               }
 
+              if (!newlyFinished.isEmpty()) {
+                announceFinishedSyncs(newlyFinished);
+              }
+
               LogUtils.d(
                   "MainActivity", "Running config IDs from WorkManager: " + runningConfigIds);
 
@@ -480,6 +470,35 @@ public class MainActivity extends AppCompatActivity
                 }
               }
             });
+  }
+
+  /**
+   * Refreshes the sync cards and tells the user how the given, just finished sync runs ended. A
+   * failure wins over a run that skipped a WiFi-only config, which wins over success.
+   */
+  private void announceFinishedSyncs(@NonNull List<WorkInfo> finished) {
+    boolean failed = false;
+    boolean skippedWifiOnly = false;
+    for (WorkInfo workInfo : finished) {
+      LogUtils.i(
+          "MainActivity",
+          "Sync work " + workInfo.getId() + " finished with state: " + workInfo.getState());
+      if (workInfo.getState() == WorkInfo.State.FAILED) {
+        failed = true;
+      } else if (workInfo
+          .getOutputData()
+          .getBoolean(de.schliweb.sambalite.sync.FolderSyncWorker.KEY_SKIPPED_WIFI_ONLY, false)) {
+        skippedWifiOnly = true;
+      }
+    }
+    viewModel.loadSyncConfigs();
+    if (failed) {
+      EnhancedUIUtils.showError(this, getString(R.string.sync_failed));
+    } else if (skippedWifiOnly) {
+      EnhancedUIUtils.showInfo(this, getString(R.string.sync_skipped_wifi_only));
+    } else {
+      EnhancedUIUtils.showInfo(this, getString(R.string.sync_completed));
+    }
   }
 
   /**

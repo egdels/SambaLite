@@ -395,6 +395,7 @@
     <string name="sync_completed">同步成功完成</string>
     <string name="sync_failed">同步失败</string>
     <string name="sync_cancelled">同步已中断，将重新尝试</string>
+    <string name="sync_skipped_wifi_only">已跳过同步：已开启“仅限 WiFi”，但设备未连接到 WiFi</string>
     <string name="sync_scheduled">计划同步：%1$s</string>
     <string name="sync_folder_option">设置同步</string>
     <string name="sync_folder_already_synced">此文件夹已在同步中</string>

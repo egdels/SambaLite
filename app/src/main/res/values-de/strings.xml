@@ -400,6 +400,7 @@
     <string name="sync_completed">Sync erfolgreich abgeschlossen</string>
     <string name="sync_failed">Sync fehlgeschlagen</string>
     <string name="sync_cancelled">Sync wurde unterbrochen und wird erneut versucht</string>
+    <string name="sync_skipped_wifi_only">Sync übersprungen: „Nur über WLAN“ ist an und das Gerät ist nicht mit einem WLAN verbunden</string>
     <string name="sync_scheduled">Geplant: %1$s</string>
     <string name="sync_folder_option">Sync einrichten</string>
     <string name="sync_folder_already_synced">Dieser Ordner wird bereits synchronisiert</string>

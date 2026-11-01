@@ -414,6 +414,7 @@
     <string name="sync_completed">Synchronizacja zakończona pomyślnie</string>
     <string name="sync_failed">Synchronizacja nie powiodła się</string>
     <string name="sync_cancelled">Synchronizacja została przerwana i zostanie ponowiona</string>
+    <string name="sync_skipped_wifi_only">Synchronizacja pominięta: opcja „Tylko przez WiFi” jest włączona, a urządzenie nie jest połączone z WiFi</string>
     <string name="sync_scheduled">Zaplanowano: %1$s</string>
     <string name="sync_folder_option">Skonfiguruj synchronizację</string>
     <string name="sync_folder_already_synced">Ten folder jest już synchronizowany</string>
