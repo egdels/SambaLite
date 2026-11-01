@@ -328,6 +328,8 @@ public class MainActivity extends AppCompatActivity
               }
             });
 
+    observeOpenTransfers();
+
     // Observe error messages with enhanced UI feedback
     viewModel
         .getErrorMessage()
@@ -1851,7 +1853,58 @@ public class MainActivity extends AppCompatActivity
     return super.onOptionsItemSelected(item);
   }
 
+  /** Number of queued or running transfers, kept up to date for the quit question. */
+  private int openTransferCount;
+
+  /** Observes the transfer queue so that Quit can mention transfers that keep running. */
+  private void observeOpenTransfers() {
+    de.schliweb.sambalite.transfer.db.TransferDatabase.getInstance(this)
+        .pendingTransferDao()
+        .observePendingCount()
+        .observe(this, count -> openTransferCount = count != null ? count : 0);
+  }
+
   private void handleQuit() {
+    int transfers = openTransferCount;
+    if (transfers > 0) {
+      // Transfers run in WorkManager and continue after Quit: say so, and offer to cancel them
+      new MaterialAlertDialogBuilder(this)
+          .setTitle(R.string.quit_transfers_title)
+          .setMessage(
+              getResources()
+                  .getQuantityString(R.plurals.quit_transfers_message, transfers, transfers))
+          .setPositiveButton(R.string.quit_app_short, (dialog, which) -> handleQuitOperations())
+          .setNeutralButton(
+              R.string.quit_cancel_transfers,
+              (dialog, which) -> {
+                cancelAllTransfers();
+                handleQuitOperations();
+              })
+          .setNegativeButton(R.string.cancel, null)
+          .show();
+    } else {
+      handleQuitOperations();
+    }
+  }
+
+  /** Cancels all queued and running transfers and stops the transfer worker. */
+  private void cancelAllTransfers() {
+    android.content.Context app = getApplicationContext();
+    new Thread(
+            () -> {
+              de.schliweb.sambalite.transfer.UploadSourceGrants.cancelAllAndRelease(
+                  app,
+                  de.schliweb.sambalite.transfer.db.TransferDatabase.getInstance(app)
+                      .pendingTransferDao(),
+                  System.currentTimeMillis());
+              androidx.work.WorkManager.getInstance(app)
+                  .cancelUniqueWork(de.schliweb.sambalite.transfer.TransferWorker.WORK_NAME);
+            },
+            "CancelTransfersOnQuit")
+        .start();
+  }
+
+  private void handleQuitOperations() {
     if (backgroundSmbManager != null && backgroundSmbManager.hasActiveOperations()) {
       int count = backgroundSmbManager.getActiveOperationCount();
       new MaterialAlertDialogBuilder(this)

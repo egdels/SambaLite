@@ -630,4 +630,13 @@
     <string name="connection_not_found">To połączenie już nie istnieje.</string>
     <string name="network_scan_unavailable">Wyszukiwanie w sieci jest niedostępne. Sprawdź połączenie sieciowe.</string>
     <string name="suggested_server_name">Serwer %1$s</string>
+    <string name="quit_transfers_title">Transfery wciąż trwają</string>
+    <string name="quit_app_short">Zakończ</string>
+    <string name="quit_cancel_transfers">Anuluj transfery i zakończ</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
+        <item quantity="few">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
+        <item quantity="many">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
+        <item quantity="other">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
+    </plurals>
 </resources>

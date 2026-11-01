@@ -581,4 +581,11 @@
     <string name="connection_not_found">Deze verbinding bestaat niet meer.</string>
     <string name="network_scan_unavailable">Netwerk zoeken is niet beschikbaar. Controleer je netwerkverbinding.</string>
     <string name="suggested_server_name">Server %1$s</string>
+    <string name="quit_transfers_title">Overdrachten bezig</string>
+    <string name="quit_app_short">Afsluiten</string>
+    <string name="quit_cancel_transfers">Overdrachten annuleren en afsluiten</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">%1$d overdracht staat nog in de wachtrij of is bezig. Deze gaat na het afsluiten op de achtergrond door.</item>
+        <item quantity="other">%1$d overdrachten staan nog in de wachtrij of zijn bezig. Ze gaan na het afsluiten op de achtergrond door.</item>
+    </plurals>
 </resources>

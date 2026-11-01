@@ -560,4 +560,10 @@
     <string name="connection_not_found">此连接已不存在。</string>
     <string name="network_scan_unavailable">网络扫描不可用。请检查网络连接。</string>
     <string name="suggested_server_name">服务器 %1$s</string>
+    <string name="quit_transfers_title">传输仍在进行</string>
+    <string name="quit_app_short">退出</string>
+    <string name="quit_cancel_transfers">取消传输并退出</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="other">还有 %1$d 个传输在排队或进行中。退出后它们将在后台继续。</item>
+    </plurals>
 </resources>

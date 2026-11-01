@@ -605,4 +605,12 @@
     <string name="connection_not_found">Esta conexión ya no existe.</string>
     <string name="network_scan_unavailable">La búsqueda en la red no está disponible. Comprueba tu conexión de red.</string>
     <string name="suggested_server_name">Servidor %1$s</string>
+    <string name="quit_transfers_title">Transferencias en curso</string>
+    <string name="quit_app_short">Salir</string>
+    <string name="quit_cancel_transfers">Cancelar transferencias y salir</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">%1$d transferencia sigue en cola o en curso. Continuará en segundo plano al salir.</item>
+        <item quantity="many">%1$d transferencias siguen en cola o en curso. Continuarán en segundo plano al salir.</item>
+        <item quantity="other">%1$d transferencias siguen en cola o en curso. Continuarán en segundo plano al salir.</item>
+    </plurals>
 </resources>

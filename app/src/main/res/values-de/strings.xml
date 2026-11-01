@@ -581,4 +581,11 @@
     <string name="connection_not_found">Diese Verbindung existiert nicht mehr.</string>
     <string name="network_scan_unavailable">Die Netzwerksuche ist nicht verfügbar. Bitte prüfe deine Netzwerkverbindung.</string>
     <string name="suggested_server_name">Server %1$s</string>
+    <string name="quit_transfers_title">Transfers laufen noch</string>
+    <string name="quit_app_short">Beenden</string>
+    <string name="quit_cancel_transfers">Transfers abbrechen und beenden</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">%1$d Transfer wartet noch oder läuft. Er läuft nach dem Beenden im Hintergrund weiter.</item>
+        <item quantity="other">%1$d Transfers warten noch oder laufen. Sie laufen nach dem Beenden im Hintergrund weiter.</item>
+    </plurals>
 </resources>

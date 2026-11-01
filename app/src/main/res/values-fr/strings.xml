@@ -605,4 +605,12 @@
     <string name="connection_not_found">Cette connexion n’existe plus.</string>
     <string name="network_scan_unavailable">La recherche réseau n’est pas disponible. Vérifiez votre connexion réseau.</string>
     <string name="suggested_server_name">Serveur %1$s</string>
+    <string name="quit_transfers_title">Transferts en cours</string>
+    <string name="quit_app_short">Quitter</string>
+    <string name="quit_cancel_transfers">Annuler les transferts et quitter</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">%1$d transfert est encore en attente ou en cours. Il continue en arrière-plan après la fermeture.</item>
+        <item quantity="many">%1$d transferts sont encore en attente ou en cours. Ils continuent en arrière-plan après la fermeture.</item>
+        <item quantity="other">%1$d transferts sont encore en attente ou en cours. Ils continuent en arrière-plan après la fermeture.</item>
+    </plurals>
 </resources>

@@ -592,4 +592,11 @@
     <string name="connection_not_found">This connection no longer exists.</string>
     <string name="network_scan_unavailable">Network scanning is not available. Please check your network connection.</string>
     <string name="suggested_server_name">Server %1$s</string>
+    <string name="quit_transfers_title">Transfers still running</string>
+    <string name="quit_app_short">Quit</string>
+    <string name="quit_cancel_transfers">Cancel transfers and quit</string>
+    <plurals name="quit_transfers_message">
+        <item quantity="one">%1$d transfer is still queued or running. It continues in the background after you quit.</item>
+        <item quantity="other">%1$d transfers are still queued or running. They continue in the background after you quit.</item>
+    </plurals>
 </resources>
