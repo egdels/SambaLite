@@ -323,14 +323,50 @@ public class SearchWorker extends Worker {
   }
 
   private Notification buildNotification(String title, String content) {
-    return new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-        .setContentTitle(title)
-        .setContentText(content)
-        .setSmallIcon(de.schliweb.sambalite.R.drawable.ic_notification)
-        .setOngoing(true)
-        .setSilent(true)
-        .setPriority(NotificationCompat.PRIORITY_LOW)
-        .build();
+    NotificationCompat.Builder builder =
+        new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(de.schliweb.sambalite.R.drawable.ic_notification)
+            .setOngoing(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW);
+    android.app.PendingIntent open = openSearchIntent();
+    if (open != null) {
+      builder.setContentIntent(open);
+    }
+    return builder.build();
+  }
+
+  /**
+   * Opens the file browser with this search: the running search keeps updating its results there, a
+   * finished one is run again. Before, tapping the notification did nothing.
+   */
+  @androidx.annotation.Nullable
+  private android.app.PendingIntent openSearchIntent() {
+    String connectionId = getInputData().getString(KEY_CONNECTION_ID);
+    String query = getInputData().getString(KEY_QUERY);
+    if (connectionId == null || query == null) {
+      return null;
+    }
+    android.content.Intent intent =
+        de.schliweb.sambalite.ui.FileBrowserActivity.createSearchIntent(
+            getApplicationContext(),
+            connectionId,
+            query,
+            getInputData().getInt(KEY_SEARCH_TYPE, 0),
+            getInputData().getBoolean(KEY_INCLUDE_SUBFOLDERS, true));
+    if (intent == null) {
+      return null;
+    }
+    intent.addFlags(
+        android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    return android.app.PendingIntent.getActivity(
+        getApplicationContext(),
+        NOTIFICATION_ID,
+        intent,
+        android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT);
   }
 
   private void updateNotification(String title, String content) {
