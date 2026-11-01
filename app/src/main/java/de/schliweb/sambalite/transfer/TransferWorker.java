@@ -166,15 +166,18 @@ public class TransferWorker extends Worker {
   @NonNull
   @Override
   public ForegroundInfo getForegroundInfo() {
-    return createForegroundInfo("Transfer-Queue wird verarbeitet…", "");
+    return createForegroundInfo(getApplicationContext().getString(R.string.transfer_title), "");
   }
 
   private ForegroundInfo createForegroundInfo(String title, String content) {
     Context context = getApplicationContext();
 
     NotificationChannel channel =
-        new NotificationChannel(CHANNEL_ID, "Transfer Queue", NotificationManager.IMPORTANCE_LOW);
-    channel.setDescription("Shows the status of file transfer operations");
+        new NotificationChannel(
+            CHANNEL_ID,
+            context.getString(R.string.transfer_queue_title),
+            NotificationManager.IMPORTANCE_LOW);
+    channel.setDescription(context.getString(R.string.transfer_channel_description));
     channel.setShowBadge(false);
     NotificationManager manager = context.getSystemService(NotificationManager.class);
     if (manager != null) {
@@ -198,6 +201,15 @@ public class TransferWorker extends Worker {
         .setOngoing(true)
         .setSilent(true)
         .setPriority(NotificationCompat.PRIORITY_LOW)
+        // A tap shows the queue with the progress, errors and actions of each transfer
+        .setContentIntent(
+            android.app.PendingIntent.getActivity(
+                getApplicationContext(),
+                0,
+                de.schliweb.sambalite.ui.TransferQueueActivity.createIntent(getApplicationContext())
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                android.app.PendingIntent.FLAG_IMMUTABLE
+                    | android.app.PendingIntent.FLAG_UPDATE_CURRENT))
         .build();
   }
 
@@ -275,7 +287,8 @@ public class TransferWorker extends Worker {
             + ")");
 
     try {
-      setForegroundAsync(createForegroundInfo("Transfer-Queue wird verarbeitet…", ""));
+      setForegroundAsync(
+          createForegroundInfo(getApplicationContext().getString(R.string.transfer_title), ""));
     } catch (Exception e) {
       LogUtils.w(TAG, "Could not promote to foreground: " + e.getMessage());
     }

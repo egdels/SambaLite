@@ -282,6 +282,8 @@
     <string name="permission_explain_notifications">SambaLite informiert Sie über den Fortschritt von Dateiübertragungen auch dann, wenn die App im Hintergrund läuft. Aktivieren Sie Benachrichtigungen, um stets über Uploads und Downloads auf dem Laufenden zu bleiben.</string>
 
     <string name="transfer_title">Übertragung läuft …</string>
+
+    <string name="transfer_channel_description">Zeigt den Fortschritt von Uploads und Downloads</string>
     <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->

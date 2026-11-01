@@ -294,6 +294,8 @@
     <string name="permission_explain_notifications">SambaLite informuje o postępie przesyłania plików, nawet gdy aplikacja działa w tle. Włącz powiadomienia, aby być na bieżąco z przesyłaniem i pobieraniem plików.</string>
 
     <string name="transfer_title">Trwa przesyłanie …</string>
+
+    <string name="transfer_channel_description">Pokazuje postęp wysyłania i pobierania</string>
     <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->

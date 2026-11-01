@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Transfer notification in German and without a tap action**: The transfer notification started with the German title "Transfer-Queue wird verarbeitet…" in every language, its channel was always called "Transfer Queue", and tapping the notification did nothing. Title and channel now follow the app language, and a tap opens the transfer queue.
 - **Completed transfers never left the open queue screen**: Completed transfers are shown for one hour, but the hour was counted from when the screen was opened, so they stayed in the list (and in the "Completed" counter) as long as the screen remained open or was rotated. The window now moves every minute and whenever the screen is shown again.
 - **Transfers stayed "Pending" forever when the device ran out of storage**: When free storage fell below 10 MB, the transfer queue stopped, but its transfers kept showing "Pending" without any reason, and nothing started them again after space was freed. They are now marked as failed with "Not enough free storage on this device. Free up space, then tap Retry.", and Retry in the queue starts them again.
 - **A second download of a file lost its extension**: Downloading a file into a folder that already had a file of that name created `readme.txt (1)`, which other apps no longer recognised as a text file. The "Save as" dialog now gets the file's type, so the copy is named `readme (1).txt`.

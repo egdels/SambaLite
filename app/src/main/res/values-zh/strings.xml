@@ -278,6 +278,8 @@
     <string name="permission_explain_notifications">即使在后台运行，SambaLite 仍让你知道传输进度。开启通知了解上传和下载的最新情况。</string>
 
     <string name="transfer_title">正在传输 …</string>
+
+    <string name="transfer_channel_description">显示上传和下载的进度</string>
     <string name="preparing_transfer">@string/please_wait</string>
 
     <!-- Security options -->
