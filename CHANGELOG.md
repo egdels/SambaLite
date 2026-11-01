@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Cancelled downloads left broken files behind**: Cancelling or removing a running download in the queue left the partly written file in the download folder (e.g. 28 MB of a 210 MB file) under the real name, and a download that had not started yet left an empty file. Such incomplete files are now deleted when the download is cancelled or removed; completed downloads are never touched.
 - **"Checking 4 files in 1 folders"**: The notice shown while an upload is compared with the server used the plural for one folder (and for one file). An upload into a single folder now says "Checking 4 files on the server…" with proper singular and plural forms in all languages.
 - **Queue counters broke words at random places**: In portrait, longer labels of the transfer queue's counters were split anywhere inside the word, e.g. "Abgeschlos / sen" and "Fehlgeschla / gen" in German or "Niepowodze / nie" in Polish. Labels that need two lines are now hyphenated properly ("Abgeschlos- / sen").
 - **Transfer notification in German and without a tap action**: The transfer notification started with the German title "Transfer-Queue wird verarbeitet…" in every language, its channel was always called "Transfer Queue", and tapping the notification did nothing. Title and channel now follow the app language, and a tap opens the transfer queue.

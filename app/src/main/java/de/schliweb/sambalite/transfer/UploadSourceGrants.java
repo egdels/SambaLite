@@ -16,6 +16,7 @@ import android.content.UriPermission;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import androidx.annotation.NonNull;
+import de.schliweb.sambalite.transfer.db.PendingTransfer;
 import de.schliweb.sambalite.transfer.db.PendingTransferDao;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -253,7 +254,10 @@ public final class UploadSourceGrants {
       long now) {
     List<String> uploadUris = dao.getUploadLocalUrisByIds(ids);
     List<String> downloadUris = dao.getDownloadLocalUrisByIds(ids);
+    List<PendingTransfer> unfinished = dao.getUnfinishedDownloadsByIds(ids);
     dao.cancelByIds(ids, now);
+    // Before the grants go: without them the incomplete files could no longer be deleted
+    discardIncompleteDownloads(context, unfinished);
     releaseIfUnused(context, dao, uploadUris);
     releaseDownloadTargetsIfUnused(context, dao, downloadUris);
   }
@@ -276,9 +280,65 @@ public final class UploadSourceGrants {
       @NonNull Context context, @NonNull PendingTransferDao dao, @NonNull List<Long> ids) {
     List<String> uploadUris = dao.getUploadLocalUrisByIds(ids);
     List<String> downloadUris = dao.getDownloadLocalUrisByIds(ids);
+    List<PendingTransfer> unfinished = dao.getUnfinishedDownloadsByIds(ids);
     dao.deleteByIds(ids);
+    discardIncompleteDownloads(context, unfinished);
     releaseIfUnused(context, dao, uploadUris);
     releaseDownloadTargetsIfUnused(context, dao, downloadUris);
+  }
+
+  /**
+   * Deletes the local files of downloads that the user cancelled or removed before they finished.
+   * The file picker or the folder download created them up front, so they are empty or truncated
+   * and would otherwise look like real copies of the remote files.
+   */
+  static void discardIncompleteDownloads(
+      @NonNull Context context, @NonNull List<PendingTransfer> downloads) {
+    ContentResolver resolver = context.getApplicationContext().getContentResolver();
+    for (PendingTransfer t : downloads) {
+      if (t.localUri == null) continue;
+      Uri uri = Uri.parse(t.localUri);
+      try {
+        long size = localSize(resolver, uri);
+        if (!isIncomplete(size, t.fileSize)) continue;
+        boolean deleted = DocumentsContract.deleteDocument(resolver, uri);
+        LogUtils.i(
+            TAG,
+            "Discarded incomplete download "
+                + t.displayName
+                + " ("
+                + size
+                + " of "
+                + t.fileSize
+                + " bytes, deleted="
+                + deleted
+                + ")");
+      } catch (Exception e) {
+        LogUtils.w(TAG, "Could not discard download " + t.displayName + ": " + e.getMessage());
+      }
+    }
+  }
+
+  /**
+   * Whether a local download target is incomplete: it exists ({@code localSize >= 0}) and does not
+   * have the expected size. With an unknown expected size only an empty file counts as incomplete.
+   */
+  static boolean isIncomplete(long localSize, long expectedSize) {
+    if (localSize < 0) return false;
+    return expectedSize > 0 ? localSize != expectedSize : localSize == 0;
+  }
+
+  private static long localSize(ContentResolver resolver, Uri uri) {
+    try (android.database.Cursor c =
+        resolver.query(
+            uri, new String[] {android.provider.OpenableColumns.SIZE}, null, null, null)) {
+      if (c != null && c.moveToFirst() && !c.isNull(0)) {
+        return c.getLong(0);
+      }
+    } catch (Exception e) {
+      LogUtils.d(TAG, "No size for " + uri + ": " + e.getMessage());
+    }
+    return -1;
   }
 
   private static void release(ContentResolver resolver, Uri uri, int modeFlags, String what) {

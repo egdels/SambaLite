@@ -377,6 +377,13 @@ public interface PendingTransferDao {
   @NonNull
   List<String> getDownloadLocalUrisByIds(@NonNull java.util.List<Long> ids);
 
+  /** Returns the unfinished (pending, running or failed) downloads among the given IDs. */
+  @Query(
+      "SELECT * FROM pending_transfer WHERE id IN (:ids) AND transfer_type = 'DOWNLOAD'"
+          + " AND status IN ('PENDING', 'ACTIVE', 'FAILED')")
+  @NonNull
+  List<PendingTransfer> getUnfinishedDownloadsByIds(@NonNull java.util.List<Long> ids);
+
   /** Returns the total count of all transfer entries. */
   @Query("SELECT COUNT(*) FROM pending_transfer")
   int countAll();

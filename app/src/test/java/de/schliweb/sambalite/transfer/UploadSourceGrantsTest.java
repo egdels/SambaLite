@@ -490,4 +490,37 @@ public class UploadSourceGrantsTest {
   private static long now() {
     return System.currentTimeMillis();
   }
+
+  /** Cancelled or removed downloads leave no empty or truncated copy behind. */
+  @Test
+  public void isIncomplete_onlyForExistingFilesOfTheWrongSize() {
+    org.junit.Assert.assertTrue(UploadSourceGrants.isIncomplete(29_360_128L, 209_715_200L));
+    org.junit.Assert.assertTrue(UploadSourceGrants.isIncomplete(0L, 10L));
+    org.junit.Assert.assertTrue(UploadSourceGrants.isIncomplete(0L, 0L));
+    org.junit.Assert.assertFalse(UploadSourceGrants.isIncomplete(10L, 10L));
+    org.junit.Assert.assertFalse(UploadSourceGrants.isIncomplete(-1L, 10L));
+    org.junit.Assert.assertFalse(UploadSourceGrants.isIncomplete(5L, 0L));
+  }
+
+  @Test
+  public void getUnfinishedDownloadsByIds_skipsUploadsAndFinishedDownloads() {
+    long upload = insertUpload(FILE_A);
+    PendingTransfer d = new PendingTransfer();
+    d.transferType = "DOWNLOAD";
+    d.localUri = DOWNLOAD_FILE;
+    d.remotePath = "report.pdf";
+    d.displayName = "report.pdf";
+    d.connectionId = "c1";
+    d.status = "ACTIVE";
+    d.maxRetries = 3;
+    long active = dao.insert(d);
+    d.status = "COMPLETED";
+    long completed = dao.insert(d);
+
+    java.util.List<PendingTransfer> found =
+        dao.getUnfinishedDownloadsByIds(java.util.Arrays.asList(upload, active, completed));
+
+    org.junit.Assert.assertEquals(1, found.size());
+    org.junit.Assert.assertEquals(active, found.get(0).id);
+  }
 }
