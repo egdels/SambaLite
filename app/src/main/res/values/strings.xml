@@ -518,4 +518,10 @@
         <item quantity="one">%d item deleted</item>
         <item quantity="other">%d items deleted</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Screen lock required</string>
+    <string name="auth_lock_required_message">Access is protected, but this device no longer has a screen lock (PIN, pattern or biometrics). Set up a screen lock again, or turn the protection off in the security options.</string>
+    <string name="auth_open_lock_settings">Set up screen lock</string>
+    <string name="auth_not_available_active">This device has no screen lock, so the options that are on block access instead of asking for authentication. Set up a PIN, pattern or biometrics in the system settings, or turn the options off here.</string>
 </resources>

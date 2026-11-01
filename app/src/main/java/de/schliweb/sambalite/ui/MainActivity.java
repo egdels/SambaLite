@@ -548,7 +548,12 @@ public class MainActivity extends AppCompatActivity
     LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
 
     if (preferencesManager.isAuthRequiredForAccess()
-        && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+        && !BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      // The protection is on, but the screen lock it relies on was removed: refuse instead of
+      // opening the connection unprotected
+      LogUtils.w("MainActivity", "Access protection on, but no screen lock: access refused");
+      showScreenLockRequiredDialog();
+    } else if (preferencesManager.isAuthRequiredForAccess()) {
       BiometricAuthHelper.authenticate(
           this,
           getString(R.string.auth_title_access),
@@ -1432,10 +1437,13 @@ public class MainActivity extends AppCompatActivity
     com.google.android.material.textfield.TextInputLayout passwordLayoutEdit =
         dialogView.findViewById(R.id.password_layout);
 
-    // Protect password reveal with biometric authentication if enabled
+    // Protect password reveal with biometric authentication if enabled; without a screen lock
+    // the protection cannot ask, so revealing is refused instead of allowed
     if (passwordLayoutEdit != null
         && preferencesManager.isAuthRequiredForPasswordReveal()
-        && BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+        && !BiometricAuthHelper.isDeviceAuthAvailable(this)) {
+      passwordLayoutEdit.setEndIconOnClickListener(v -> showScreenLockRequiredDialog());
+    } else if (passwordLayoutEdit != null && preferencesManager.isAuthRequiredForPasswordReveal()) {
       passwordLayoutEdit.setEndIconMode(
           com.google.android.material.textfield.TextInputLayout.END_ICON_NONE);
       passwordLayoutEdit.setEndIconMode(
@@ -1857,6 +1865,29 @@ public class MainActivity extends AppCompatActivity
     }
   }
 
+  /**
+   * Explains that access is protected but the device has no screen lock anymore, and offers to set
+   * one up or to turn the protection off.
+   */
+  void showScreenLockRequiredDialog() {
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.auth_lock_required_title)
+        .setMessage(R.string.auth_lock_required_message)
+        .setPositiveButton(
+            R.string.auth_open_lock_settings,
+            (dialog, which) -> {
+              try {
+                startActivity(new Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS));
+              } catch (android.content.ActivityNotFoundException e) {
+                startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+              }
+            })
+        .setNeutralButton(
+            R.string.security_options, (dialog, which) -> showSecuritySettingsDialog())
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
   /** Shows a dialog for configuring security settings. */
   private void showSecuritySettingsDialog() {
     LogUtils.d("MainActivity", "Showing security settings dialog");
@@ -1874,10 +1905,24 @@ public class MainActivity extends AppCompatActivity
     authAccessSwitch.setChecked(preferencesManager.isAuthRequiredForAccess());
     authPasswordSwitch.setChecked(preferencesManager.isAuthRequiredForPasswordReveal());
 
-    // Disable switches if device auth is not available
+    // Without a screen lock the options cannot be turned on, but options that are still on must
+    // stay switchable, so that the user can turn them off (they refuse access in the meantime)
     if (!deviceAuthAvailable) {
-      authAccessSwitch.setEnabled(false);
-      authPasswordSwitch.setEnabled(false);
+      boolean anyOn = authAccessSwitch.isChecked() || authPasswordSwitch.isChecked();
+      authAccessSwitch.setEnabled(authAccessSwitch.isChecked());
+      authPasswordSwitch.setEnabled(authPasswordSwitch.isChecked());
+      android.widget.CompoundButton.OnCheckedChangeListener offOnly =
+          (button, checked) -> {
+            if (checked) {
+              button.setChecked(false);
+            } else {
+              button.setEnabled(false);
+            }
+          };
+      authAccessSwitch.setOnCheckedChangeListener(offOnly);
+      authPasswordSwitch.setOnCheckedChangeListener(offOnly);
+      authNotAvailableText.setText(
+          anyOn ? R.string.auth_not_available_active : R.string.auth_not_available);
       authNotAvailableText.setVisibility(View.VISIBLE);
     } else {
       authNotAvailableText.setVisibility(View.GONE);

@@ -493,4 +493,10 @@
     <plurals name="delete_progress_entries">
         <item quantity="other">已删除 %d 项</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">需要屏幕锁定</string>
+    <string name="auth_lock_required_message">访问受到保护，但此设备已不再设置屏幕锁定（PIN 码、图案或生物识别）。请重新设置屏幕锁定，或在安全选项中关闭保护。</string>
+    <string name="auth_open_lock_settings">设置屏幕锁定</string>
+    <string name="auth_not_available_active">此设备未设置屏幕锁定，因此已开启的选项会阻止访问，而不是要求验证。请在系统设置中设置 PIN 码、图案或生物识别，或在此处关闭这些选项。</string>
 </resources>

@@ -507,4 +507,10 @@
         <item quantity="one">%d item verwijderd</item>
         <item quantity="other">%d items verwijderd</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Schermvergrendeling vereist</string>
+    <string name="auth_lock_required_message">De toegang is beveiligd, maar dit apparaat heeft geen schermvergrendeling (pincode, patroon of biometrie) meer. Stel opnieuw een schermvergrendeling in of schakel de beveiliging uit in de beveiligingsopties.</string>
+    <string name="auth_open_lock_settings">Schermvergrendeling instellen</string>
+    <string name="auth_not_available_active">Dit apparaat heeft geen schermvergrendeling, dus ingeschakelde opties blokkeren de toegang in plaats van om verificatie te vragen. Stel in de systeeminstellingen een pincode, patroon of biometrie in, of schakel de opties hier uit.</string>
 </resources>

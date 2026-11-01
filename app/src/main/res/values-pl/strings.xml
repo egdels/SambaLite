@@ -542,4 +542,10 @@
         <item quantity="many">Usunięto %d elementów</item>
         <item quantity="other">Usunięto %d elementu</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Wymagana blokada ekranu</string>
+    <string name="auth_lock_required_message">Dostęp jest chroniony, ale to urządzenie nie ma już blokady ekranu (PIN, wzór lub biometria). Ustaw ponownie blokadę ekranu lub wyłącz ochronę w opcjach zabezpieczeń.</string>
+    <string name="auth_open_lock_settings">Ustaw blokadę ekranu</string>
+    <string name="auth_not_available_active">To urządzenie nie ma blokady ekranu, więc włączone opcje blokują dostęp zamiast prosić o uwierzytelnienie. Ustaw PIN, wzór lub biometrię w ustawieniach systemu albo wyłącz opcje tutaj.</string>
 </resources>

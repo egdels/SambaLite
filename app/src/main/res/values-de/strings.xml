@@ -507,4 +507,10 @@
         <item quantity="one">%d Element gelöscht</item>
         <item quantity="other">%d Elemente gelöscht</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Displaysperre erforderlich</string>
+    <string name="auth_lock_required_message">Der Zugriff ist geschützt, aber auf diesem Gerät ist keine Displaysperre (PIN, Muster oder Biometrie) mehr eingerichtet. Richte wieder eine Displaysperre ein oder schalte den Schutz in den Sicherheitsoptionen aus.</string>
+    <string name="auth_open_lock_settings">Displaysperre einrichten</string>
+    <string name="auth_not_available_active">Auf diesem Gerät ist keine Displaysperre eingerichtet. Eingeschaltete Optionen sperren deshalb den Zugriff, statt eine Authentifizierung abzufragen. Richte in den Systemeinstellungen eine PIN, ein Muster oder Biometrie ein oder schalte die Optionen hier aus.</string>
 </resources>

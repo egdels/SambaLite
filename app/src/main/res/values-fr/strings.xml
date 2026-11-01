@@ -524,4 +524,10 @@
         <item quantity="many">%d éléments supprimés</item>
         <item quantity="other">%d éléments supprimés</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Verrouillage de l’écran requis</string>
+    <string name="auth_lock_required_message">L’accès est protégé, mais cet appareil n’a plus de verrouillage de l’écran (code PIN, schéma ou biométrie). Configurez à nouveau un verrouillage de l’écran ou désactivez la protection dans les options de sécurité.</string>
+    <string name="auth_open_lock_settings">Configurer le verrouillage</string>
+    <string name="auth_not_available_active">Cet appareil n’a pas de verrouillage de l’écran : les options activées bloquent donc l’accès au lieu de demander une authentification. Configurez un code PIN, un schéma ou la biométrie dans les paramètres du système, ou désactivez les options ici.</string>
 </resources>

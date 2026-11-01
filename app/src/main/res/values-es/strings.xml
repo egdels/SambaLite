@@ -524,4 +524,10 @@
         <item quantity="many">%d elementos eliminados</item>
         <item quantity="other">%d elementos eliminados</item>
     </plurals>
+
+    <!-- Access protection without a device screen lock -->
+    <string name="auth_lock_required_title">Se requiere bloqueo de pantalla</string>
+    <string name="auth_lock_required_message">El acceso está protegido, pero este dispositivo ya no tiene bloqueo de pantalla (PIN, patrón o biometría). Vuelve a configurar un bloqueo de pantalla o desactiva la protección en las opciones de seguridad.</string>
+    <string name="auth_open_lock_settings">Configurar bloqueo de pantalla</string>
+    <string name="auth_not_available_active">Este dispositivo no tiene bloqueo de pantalla, por lo que las opciones activadas bloquean el acceso en lugar de pedir autenticación. Configura un PIN, un patrón o biometría en los ajustes del sistema, o desactiva las opciones aquí.</string>
 </resources>
