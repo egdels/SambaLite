@@ -1840,8 +1840,8 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   /**
-   * Handles editing sync for a folder via the context menu. Finds the existing config, removes it,
-   * and opens the setup dialog pre-filled with old values.
+   * Handles editing sync for a folder via the context menu. Remembers the config being edited and
+   * opens the setup dialog pre-filled with its values; Save changes that config in place.
    */
   void handleFolderSyncEdit(SmbFileItem folder) {
     SyncConfig config = findSyncConfigForFolder(folder);
@@ -2005,9 +2005,33 @@ public class FileBrowserActivity extends AppCompatActivity
             ? uiState.getSyncFolderDisplayName()
             : folderUri.getLastPathSegment();
 
-    // If editing an existing config, remove the old one before saving the new one
+    // Editing changes the existing config in place, so it keeps its id, its last sync time and
+    // (with the same local folder) its tracked sync state, which mirror mode relies on.
     if (editingConfigId != null) {
-      syncManager.removeSyncConfig(editingConfigId);
+      SyncConfig existing = null;
+      for (SyncConfig config : syncManager.getAllSyncConfigs()) {
+        if (editingConfigId.equals(config.getId())) {
+          existing = config;
+          break;
+        }
+      }
+      if (existing != null) {
+        syncManager.editSyncConfig(
+            existing,
+            folderUri,
+            displayName,
+            direction,
+            intervalMinutes,
+            wifiOnly,
+            mirror,
+            mirrorUseTrash);
+        progressController.showSuccess(getString(R.string.sync_config_updated));
+        String currentPath = fileListViewModel.getCurrentPathInternal();
+        if (currentPath != null) {
+          updateSyncDirections(currentPath);
+        }
+        return;
+      }
     }
 
     syncManager.addSyncConfig(

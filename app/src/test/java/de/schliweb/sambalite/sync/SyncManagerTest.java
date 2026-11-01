@@ -227,4 +227,51 @@ public class SyncManagerTest {
     syncManager.setConfigEnabled(config.getId(), false);
     assertFalse(syncManager.getAllSyncConfigs().get(0).isEnabled());
   }
+
+  // --- editSyncConfig (Edit Sync in the file browser) ---
+
+  @Test
+  public void editSyncConfig_sameFolder_keepsIdAndLastSync() {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADown");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-1", uri, "QA/Down", "Down", SyncDirection.REMOTE_TO_LOCAL, 0);
+    syncRepository.updateLastSyncTimestamp(added.getId(), 123_456L);
+    SyncConfig stored = syncManager.getAllSyncConfigs().get(0);
+
+    syncManager.editSyncConfig(
+        stored, uri, "Down", SyncDirection.LOCAL_TO_REMOTE, 30, true, true, false);
+
+    List<SyncConfig> all = syncManager.getAllSyncConfigs();
+    assertEquals(1, all.size());
+    SyncConfig edited = all.get(0);
+    assertEquals(added.getId(), edited.getId());
+    assertEquals(123_456L, edited.getLastSyncTimestamp());
+    assertEquals(SyncDirection.LOCAL_TO_REMOTE, edited.getDirection());
+    assertEquals(30, edited.getIntervalMinutes());
+    assertTrue(edited.isWifiOnly());
+    assertTrue(edited.isMirror());
+    assertFalse(edited.isMirrorUseTrash());
+  }
+
+  @Test
+  public void editSyncConfig_otherFolder_keepsIdButResetsLastSync() {
+    Uri oldUri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AOld");
+    Uri newUri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ANew");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-1", oldUri, "QA/Up", "Old", SyncDirection.BIDIRECTIONAL, 60);
+    syncRepository.updateLastSyncTimestamp(added.getId(), 123_456L);
+    SyncConfig stored = syncManager.getAllSyncConfigs().get(0);
+
+    syncManager.editSyncConfig(
+        stored, newUri, "New", SyncDirection.BIDIRECTIONAL, 5, false, true, true);
+
+    SyncConfig edited = syncManager.getAllSyncConfigs().get(0);
+    assertEquals(added.getId(), edited.getId());
+    assertEquals(newUri.toString(), edited.getLocalFolderUri());
+    assertEquals("New", edited.getLocalFolderDisplayName());
+    assertEquals(0L, edited.getLastSyncTimestamp());
+    assertEquals(15, edited.getIntervalMinutes());
+    // Mirror is not available for bidirectional syncs.
+    assertFalse(edited.isMirror());
+  }
 }

@@ -110,17 +110,7 @@ public class SyncManager {
       boolean mirrorUseTrash) {
     LogUtils.d(TAG, "Adding sync config for connection: " + connectionId);
 
-    // Take persistable URI permission
-    try {
-      context
-          .getContentResolver()
-          .takePersistableUriPermission(
-              localFolderUri,
-              Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-      LogUtils.d(TAG, "Persistable URI permission taken for: " + localFolderUri);
-    } catch (SecurityException e) {
-      LogUtils.w(TAG, "Could not take persistable URI permission: " + e.getMessage());
-    }
+    takeFolderPermission(localFolderUri);
 
     SyncConfig config = new SyncConfig();
     config.setConnectionId(connectionId);
@@ -140,6 +130,64 @@ public class SyncManager {
 
     schedulePeriodicSync();
     return saved;
+  }
+
+  /** Takes the persistable read/write permission for a local sync folder picked via SAF. */
+  private void takeFolderPermission(@NonNull Uri localFolderUri) {
+    try {
+      context
+          .getContentResolver()
+          .takePersistableUriPermission(
+              localFolderUri,
+              Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+      LogUtils.d(TAG, "Persistable URI permission taken for: " + localFolderUri);
+    } catch (SecurityException e) {
+      LogUtils.w(TAG, "Could not take persistable URI permission: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Changes an existing sync configuration in place: it keeps its ID, and its last sync time and
+   * the tracked sync state as long as the local folder stays the same. If the local folder changes,
+   * the pair counts as new: the last sync time is reset and the state of the old folder deleted.
+   *
+   * @param config the existing configuration (as stored)
+   * @param localFolderUri the local folder chosen in the dialog
+   * @param localFolderDisplayName display name of that folder
+   * @param direction the sync direction
+   * @param intervalMinutes the sync interval in minutes (0 = manual, otherwise at least 15)
+   * @param wifiOnly whether to sync on WiFi only
+   * @param mirror mirror mode (forced off for {@link SyncDirection#BIDIRECTIONAL})
+   * @param mirrorUseTrash whether mirror mode moves removed entries into the trash folder
+   */
+  public void editSyncConfig(
+      @NonNull SyncConfig config,
+      @NonNull Uri localFolderUri,
+      @NonNull String localFolderDisplayName,
+      @NonNull SyncDirection direction,
+      int intervalMinutes,
+      boolean wifiOnly,
+      boolean mirror,
+      boolean mirrorUseTrash) {
+    LogUtils.d(TAG, "Editing sync config: " + config.getId());
+    String oldFolderUri = config.getLocalFolderUri();
+    boolean folderChanged = !localFolderUri.toString().equals(oldFolderUri);
+    if (folderChanged) {
+      takeFolderPermission(localFolderUri);
+      config.setLocalFolderUri(localFolderUri.toString());
+      config.setLocalFolderDisplayName(localFolderDisplayName);
+      config.setLastSyncTimestamp(0);
+    }
+    config.setDirection(direction);
+    config.setIntervalMinutes(
+        intervalMinutes <= 0 ? 0 : Math.max(intervalMinutes, MIN_INTERVAL_MINUTES));
+    config.setWifiOnly(wifiOnly);
+    config.setMirror(mirror && direction != SyncDirection.BIDIRECTIONAL);
+    config.setMirrorUseTrash(mirrorUseTrash);
+    updateSyncConfig(config);
+    if (folderChanged) {
+      syncRepository.deleteSyncStateForRoot(oldFolderUri);
+    }
   }
 
   /**

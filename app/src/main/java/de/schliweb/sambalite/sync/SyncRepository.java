@@ -12,6 +12,7 @@ package de.schliweb.sambalite.sync;
 import android.content.Context;
 import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
@@ -150,20 +151,30 @@ public class SyncRepository {
       saveConfigsToPrefs(configs);
 
       // Clean up sync state DB entries for this config's local folder (off main thread)
-      if (localFolderUri != null && !localFolderUri.isEmpty()) {
-        final String uri = localFolderUri;
-        new Thread(
-                () -> {
-                  syncStateStore.deleteAllForRoot(uri);
-                  LogUtils.i(TAG, "Cleaned up sync state DB for root: " + uri);
-                })
-            .start();
-      }
+      deleteSyncStateForRoot(localFolderUri);
     } else {
       LogUtils.w(TAG, "Sync config not found for deletion: " + configId);
     }
 
     return removed;
+  }
+
+  /**
+   * Deletes the stored sync state (tracked files) of a local sync root, off the main thread.
+   *
+   * @param localFolderUri the local root URI whose state should be deleted; ignored if empty
+   */
+  public void deleteSyncStateForRoot(@Nullable String localFolderUri) {
+    if (localFolderUri == null || localFolderUri.isEmpty()) {
+      return;
+    }
+    final String uri = localFolderUri;
+    new Thread(
+            () -> {
+              syncStateStore.deleteAllForRoot(uri);
+              LogUtils.i(TAG, "Cleaned up sync state DB for root: " + uri);
+            })
+        .start();
   }
 
   /**
