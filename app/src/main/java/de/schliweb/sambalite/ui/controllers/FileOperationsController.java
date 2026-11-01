@@ -85,19 +85,41 @@ public class FileOperationsController {
   }
 
   void notifyOperationStarted(String operationType, SmbFileItem file) {
-    for (FileOperationListener l : listeners) l.onFileOperationStarted(operationType, file);
+    onMainThread(
+        () -> {
+          for (FileOperationListener l : listeners) l.onFileOperationStarted(operationType, file);
+        });
   }
 
   void notifyOperationCompleted(
       String operationType, SmbFileItem file, boolean success, String message) {
-    for (FileOperationListener l : listeners)
-      l.onFileOperationCompleted(operationType, file, success, message);
+    onMainThread(
+        () -> {
+          for (FileOperationListener l : listeners)
+            l.onFileOperationCompleted(operationType, file, success, message);
+        });
   }
 
   void notifyOperationProgress(
       String operationType, SmbFileItem file, int progress, String message) {
-    for (FileOperationListener l : listeners)
-      l.onFileOperationProgress(operationType, file, progress, message);
+    onMainThread(
+        () -> {
+          for (FileOperationListener l : listeners)
+            l.onFileOperationProgress(operationType, file, progress, message);
+        });
+  }
+
+  /**
+   * Runs a listener notification on the main thread. The listeners update views (selection,
+   * toolbar); the batch delete reports its end from a worker thread, where touching a view throws
+   * and leaves the view tree waiting for a layout that never runs, so the list stopped updating.
+   */
+  private static void onMainThread(@NonNull Runnable r) {
+    if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+      r.run();
+    } else {
+      new android.os.Handler(android.os.Looper.getMainLooper()).post(r);
+    }
   }
 
   // ---- Unified progress helpers ----
