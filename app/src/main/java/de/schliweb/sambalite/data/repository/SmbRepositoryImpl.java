@@ -911,6 +911,16 @@ public class SmbRepositoryImpl implements SmbRepository {
   @NonNull
   public List<String> deleteFiles(@NonNull SmbConnection connection, @NonNull List<String> paths)
       throws Exception {
+    return deleteFiles(connection, paths, null);
+  }
+
+  @Override
+  @NonNull
+  public List<String> deleteFiles(
+      @NonNull SmbConnection connection,
+      @NonNull List<String> paths,
+      @Nullable BatchDeleteProgress progress)
+      throws Exception {
     LogUtils.d("SmbRepositoryImpl", "Batch deleting " + paths.size() + " files");
     return withShare(
         connection,
@@ -920,7 +930,7 @@ public class SmbRepositoryImpl implements SmbRepository {
           long start = System.currentTimeMillis();
           List<String> failed = new ArrayList<>();
           try (SmbTreeDeleter deleter = new SmbTreeDeleter(share)) {
-            List<Exception> results = deleter.deleteAll(normalized);
+            List<Exception> results = deleter.deleteAll(normalized, progress);
             for (int i = 0; i < paths.size(); i++) {
               if (results.get(i) != null) {
                 LogUtils.e(

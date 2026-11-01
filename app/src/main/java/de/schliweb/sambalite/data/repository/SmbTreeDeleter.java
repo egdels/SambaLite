@@ -110,9 +110,26 @@ final class SmbTreeDeleter implements AutoCloseable {
    */
   @NonNull
   List<Exception> deleteAll(@NonNull List<String> paths) throws InterruptedException {
+    return deleteAll(paths, null);
+  }
+
+  /**
+   * Like {@link #deleteAll(List)}, reporting each finished path to {@code progress} and skipping
+   * paths not started yet once it reports a cancellation (their result is {@code null}, and they
+   * are not reported as done).
+   */
+  @NonNull
+  List<Exception> deleteAll(
+      @NonNull List<String> paths, @Nullable SmbRepository.BatchDeleteProgress progress)
+      throws InterruptedException {
     List<Future<TopLevel>> probes = new ArrayList<>(paths.size());
     for (String path : paths) {
-      probes.add(pool.submit(() -> deleteTopLevelFile(path)));
+      probes.add(
+          pool.submit(
+              () ->
+                  progress != null && progress.isCancelled()
+                      ? TopLevel.SKIPPED
+                      : deleteTopLevelFile(path)));
     }
     List<Exception> results = new ArrayList<>(Collections.nCopies(paths.size(), null));
     for (int i = 0; i < paths.size(); i++) {
@@ -121,9 +138,16 @@ final class SmbTreeDeleter implements AutoCloseable {
         outcome = probes.get(i).get();
       } catch (ExecutionException e) {
         results.set(i, asException(e.getCause()));
+        report(progress, paths.get(i), false);
+        continue;
+      }
+      if (outcome == TopLevel.SKIPPED) {
         continue;
       }
       if (outcome == TopLevel.DIRECTORY) {
+        if (progress != null && progress.isCancelled()) {
+          continue;
+        }
         try {
           deleteTree(paths.get(i));
         } catch (IOException | RuntimeException e) {
@@ -132,14 +156,23 @@ final class SmbTreeDeleter implements AutoCloseable {
       } else if (outcome == TopLevel.NOT_FOUND) {
         results.set(i, new FileNotFoundException("File or directory not found: " + paths.get(i)));
       }
+      report(progress, paths.get(i), results.get(i) == null);
     }
     return results;
+  }
+
+  private static void report(
+      @Nullable SmbRepository.BatchDeleteProgress progress, String path, boolean deleted) {
+    if (progress != null) {
+      progress.onItemDone(path, deleted);
+    }
   }
 
   private enum TopLevel {
     DELETED,
     DIRECTORY,
-    NOT_FOUND
+    NOT_FOUND,
+    SKIPPED
   }
 
   /**

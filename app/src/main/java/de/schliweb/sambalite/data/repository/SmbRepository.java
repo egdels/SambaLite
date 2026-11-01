@@ -203,6 +203,40 @@ public interface SmbRepository {
       @NonNull SmbConnection connection, @NonNull java.util.List<String> paths) throws Exception;
 
   /**
+   * Like {@link #deleteFiles(SmbConnection, java.util.List)}, but reports each finished item and
+   * stops starting new ones once {@code progress} reports a cancellation. Items not started because
+   * of the cancellation count as neither deleted nor failed.
+   *
+   * @param connection the SMB connection to use
+   * @param paths the list of file paths to delete
+   * @param progress receives the outcome of each item and is asked for cancellation, may be null
+   * @return a list of paths that failed to delete
+   * @throws Exception if the connection itself fails
+   */
+  @NonNull
+  default java.util.List<String> deleteFiles(
+      @NonNull SmbConnection connection,
+      @NonNull java.util.List<String> paths,
+      @androidx.annotation.Nullable BatchDeleteProgress progress)
+      throws Exception {
+    return deleteFiles(connection, paths);
+  }
+
+  /** Progress and cancellation of a batch delete. */
+  interface BatchDeleteProgress {
+    /** Returns true once the user cancelled; items not started yet are then skipped. */
+    boolean isCancelled();
+
+    /**
+     * Called when an item has been processed.
+     *
+     * @param path the share-relative path of the item
+     * @param deleted whether it was deleted
+     */
+    void onItemDone(@NonNull String path, boolean deleted);
+  }
+
+  /**
    * Renames a file or directory on the SMB server.
    *
    * @param connection The SMB connection to use

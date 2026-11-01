@@ -859,12 +859,25 @@ public class FileOperationsViewModel extends ViewModel {
    */
   @NonNull
   public List<String> deleteFilesBatch(@NonNull List<String> paths) throws Exception {
+    return deleteFilesBatch(paths, null);
+  }
+
+  /**
+   * Deletes the paths in one SMB session, reporting each finished item and stopping when {@code
+   * progress} reports a cancellation.
+   *
+   * @return the paths that could not be deleted
+   */
+  public List<String> deleteFilesBatch(
+      @NonNull List<String> paths,
+      @Nullable de.schliweb.sambalite.data.repository.SmbRepository.BatchDeleteProgress progress)
+      throws Exception {
     if (state.getConnection() == null) {
       LogUtils.w("FileOperationsViewModel", "Cannot batch delete: no connection");
       return new ArrayList<>(paths);
     }
     LogUtils.d("FileOperationsViewModel", "Batch deleting " + paths.size() + " files");
-    List<String> failed = smbRepository.deleteFiles(state.getConnection(), paths);
+    List<String> failed = smbRepository.deleteFiles(state.getConnection(), paths, progress);
     // Invalidate cache once after all deletions
     if (state.getConnection() != null) {
       String cachePattern =

@@ -77,6 +77,68 @@ public class SmbDeleteIntegrationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
+  public void deleteFiles_reportsEachItemAndStopsWhenCancelled() throws Exception {
+    sh("mkdir -p " + ROOT + "/batch && for i in $(seq 1 40); do echo $i > " + ROOT
+        + "/batch/f$i.txt; done && mkdir -p " + ROOT + "/batch/sub && echo x > " + ROOT
+        + "/batch/sub/x.txt");
+    List<String> paths = new java.util.ArrayList<>();
+    for (int i = 1; i <= 40; i++) paths.add("batch/f" + i + ".txt");
+    paths.add("batch/sub");
+    java.util.concurrent.atomic.AtomicInteger reported = new java.util.concurrent.atomic.AtomicInteger();
+    java.util.concurrent.atomic.AtomicInteger deleted = new java.util.concurrent.atomic.AtomicInteger();
+
+    // Cancel as soon as the first item is done
+    List<String> failed =
+        repository.deleteFiles(
+            connection,
+            paths,
+            new SmbRepository.BatchDeleteProgress() {
+              @Override
+              public boolean isCancelled() {
+                return reported.get() > 0;
+              }
+
+              @Override
+              public void onItemDone(String path, boolean ok) {
+                reported.incrementAndGet();
+                if (ok) deleted.incrementAndGet();
+              }
+            });
+
+    assertTrue("skipped items are not failures: " + failed, failed.isEmpty());
+    int remaining = Integer.parseInt(sh("ls -A " + ROOT + "/batch | wc -l").trim());
+    assertTrue("cancel must stop the batch, remaining=" + remaining, remaining > 0);
+    assertEquals(
+        "every reported deletion is gone", 41 - remaining, deleted.get());
+    assertTrue("sub folder was not started", exists("batch/sub/x.txt"));
+  }
+
+  @Test
+  public void deleteFiles_withProgress_reportsAllItems() throws Exception {
+    sh("mkdir -p " + ROOT + "/all && echo 1 > " + ROOT + "/all/a && echo 2 > " + ROOT + "/all/b");
+    java.util.List<String> done = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+    List<String> failed =
+        repository.deleteFiles(
+            connection,
+            Arrays.asList("all/a", "all/b", "all/missing"),
+            new SmbRepository.BatchDeleteProgress() {
+              @Override
+              public boolean isCancelled() {
+                return false;
+              }
+
+              @Override
+              public void onItemDone(String path, boolean ok) {
+                done.add(path + "=" + ok);
+              }
+            });
+
+    assertEquals(Collections.singletonList("all/missing"), failed);
+    assertEquals(Arrays.asList("all/a=true", "all/b=true", "all/missing=false"), done);
+  }
+
+  @Test
   public void deleteFile_singleFile_isRemoved() throws Exception {
     sh("mkdir -p " + ROOT + "/dir && echo x > " + ROOT + "/dir/a.txt && echo y > " + ROOT
         + "/dir/b.txt");

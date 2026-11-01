@@ -819,22 +819,57 @@ public class FileOperationsController {
                           toProcess.get(0).getName());
                     }
 
-                    // Use batch delete: single SMB session for all files
+                    // Use batch delete: single SMB session for all files. Each finished item
+                    // moves the progress (which also keeps the service watchdog from aborting a
+                    // long delete), and Cancel stops items that have not started yet.
+                    java.util.concurrent.atomic.AtomicInteger done =
+                        new java.util.concurrent.atomic.AtomicInteger();
+                    java.util.concurrent.atomic.AtomicInteger deleted =
+                        new java.util.concurrent.atomic.AtomicInteger();
+                    de.schliweb.sambalite.data.repository.SmbRepository.BatchDeleteProgress
+                        progress =
+                            new de.schliweb.sambalite.data.repository.SmbRepository
+                                .BatchDeleteProgress() {
+                              @Override
+                              public boolean isCancelled() {
+                                return cancel.get();
+                              }
+
+                              @Override
+                              public void onItemDone(@NonNull String path, boolean ok) {
+                                int d = done.incrementAndGet();
+                                if (ok) deleted.incrementAndGet();
+                                String name = path.substring(path.lastIndexOf('/') + 1);
+                                cb.updateFileProgress(d, total, name);
+                                if (progressCallback != null) {
+                                  progressCallback.updateDetailedProgress(
+                                      d * 100 / total,
+                                      context.getString(
+                                          de.schliweb.sambalite.R.string.deleting_ellipsis),
+                                      name);
+                                }
+                              }
+                            };
                     java.util.List<String> failedPaths;
+                    boolean batchError = false;
                     try {
-                      failedPaths = operationsViewModel.deleteFilesBatch(paths);
+                      failedPaths = operationsViewModel.deleteFilesBatch(paths, progress);
                     } catch (Exception e) {
                       LogUtils.e(
                           "FileOperationsController", "Batch delete failed: " + e.getMessage());
-                      failedPaths = paths; // all failed
+                      failedPaths = new java.util.ArrayList<>();
+                      batchError = true;
                     }
 
-                    int successCount = total - failedPaths.size();
+                    int successCount = deleted.get();
                     java.util.ArrayList<String> failed = new java.util.ArrayList<>();
                     for (String fp : failedPaths) {
                       String name = pathToName.getOrDefault(fp, fp);
                       failed.add(name);
                     }
+                    // If the session broke off, whatever was not reported as deleted failed
+                    int failedCount =
+                        batchError && !cancel.get() ? total - successCount : failed.size();
 
                     // Update final progress
                     cb.updateFileProgress(total, total, "");
@@ -853,7 +888,7 @@ public class FileOperationsController {
                                 successCount,
                                 successCount,
                                 total);
-                    String summary = summarizeBatch(base, cancel.get(), failed.size());
+                    String summary = summarizeBatch(base, cancel.get(), failedCount);
                     if (progressCallback != null) {
                       progressCallback.showInfo(summary);
                       progressCallback.hideDetailedProgressDialog();
@@ -864,7 +899,7 @@ public class FileOperationsController {
                     // Notify listeners that the batch delete operation has completed (for selection
                     // reset)
                     try {
-                      boolean opSuccess = failed.isEmpty() && !cancel.get();
+                      boolean opSuccess = failedCount == 0 && !cancel.get();
                       notifyOperationCompleted(OPERATION_DELETE, null, opSuccess, summary);
                     } catch (Throwable ignored) {
                     }
