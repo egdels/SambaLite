@@ -578,4 +578,10 @@
     <string name="progress_op_search">Searching</string>
     <string name="progress_op_finalizing">Finalizing</string>
     <string name="progress_op_processing">Processing</string>
+    <string name="upload_check_failed_title">Could not check for existing files</string>
+    <string name="upload_anyway">Upload anyway</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="one">SambaLite could not check whether the file already exists on the server: %2$s. Uploading it may replace a file of the same name.</item>
+        <item quantity="other">SambaLite could not check whether %1$d files already exist on the server: %2$s. Uploading them may replace files of the same name.</item>
+    </plurals>
 </resources>

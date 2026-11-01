@@ -590,4 +590,11 @@
     <string name="progress_op_search">Recherche</string>
     <string name="progress_op_finalizing">Finalisation</string>
     <string name="progress_op_processing">Traitement</string>
+    <string name="upload_check_failed_title">Impossible de vérifier les fichiers existants</string>
+    <string name="upload_anyway">Envoyer quand même</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="one">SambaLite n’a pas pu vérifier si le fichier existe déjà sur le serveur : %2$s. L’envoyer peut remplacer un fichier du même nom.</item>
+        <item quantity="many">SambaLite n’a pas pu vérifier si %1$d fichiers existent déjà sur le serveur : %2$s. Les envoyer peut remplacer des fichiers du même nom.</item>
+        <item quantity="other">SambaLite n’a pas pu vérifier si %1$d fichiers existent déjà sur le serveur : %2$s. Les envoyer peut remplacer des fichiers du même nom.</item>
+    </plurals>
 </resources>

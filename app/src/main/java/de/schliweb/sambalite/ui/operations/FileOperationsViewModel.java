@@ -1201,8 +1201,43 @@ public class FileOperationsViewModel extends ViewModel {
       LogUtils.w(
           "FileOperationsViewModel",
           "Could not list remote directory '" + remoteDirectory + "': " + e.getMessage());
+      if (isNotFound(e)) {
+        // A directory that does not exist yet (folder upload) holds nothing to overwrite
+        return null;
+      }
+      throw new UploadConflictFinder.ListingFailedException(e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Checks whether a file exists on the server.
+   *
+   * @return {@code TRUE} or {@code FALSE}, or {@code null} if the server could not be asked, so it
+   *     is unknown whether an upload would overwrite a file
+   */
+  @Nullable
+  public Boolean fileExistsOrUnknown(@NonNull String remotePath) {
+    if (state.getConnection() == null) return null;
+    try {
+      return smbRepository.fileExists(state.getConnection(), remotePath);
+    } catch (Exception e) {
+      LogUtils.w(
+          "FileOperationsViewModel",
+          "Could not check if '" + remotePath + "' exists: " + e.getMessage());
       return null;
     }
+  }
+
+  /** Whether an SMB error means the file or directory does not exist. */
+  static boolean isNotFound(@NonNull Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      String m = t.getMessage();
+      if (m != null
+          && (m.contains("OBJECT_NAME_NOT_FOUND") || m.contains("OBJECT_PATH_NOT_FOUND"))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

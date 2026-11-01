@@ -547,4 +547,9 @@
     <string name="progress_op_search">正在搜索</string>
     <string name="progress_op_finalizing">正在完成</string>
     <string name="progress_op_processing">正在处理</string>
+    <string name="upload_check_failed_title">无法检查已存在的文件</string>
+    <string name="upload_anyway">仍然上传</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="other">SambaLite 无法检查 %1$d 个文件是否已存在于服务器上：%2$s。上传可能会替换同名文件。</item>
+    </plurals>
 </resources>

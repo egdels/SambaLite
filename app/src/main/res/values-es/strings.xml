@@ -590,4 +590,11 @@
     <string name="progress_op_search">Buscando</string>
     <string name="progress_op_finalizing">Finalizando</string>
     <string name="progress_op_processing">Procesando</string>
+    <string name="upload_check_failed_title">No se pudieron comprobar los archivos existentes</string>
+    <string name="upload_anyway">Subir de todos modos</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="one">SambaLite no pudo comprobar si el archivo ya existe en el servidor: %2$s. Al subirlo se puede reemplazar un archivo con el mismo nombre.</item>
+        <item quantity="many">SambaLite no pudo comprobar si %1$d archivos ya existen en el servidor: %2$s. Al subirlos se pueden reemplazar archivos con el mismo nombre.</item>
+        <item quantity="other">SambaLite no pudo comprobar si %1$d archivos ya existen en el servidor: %2$s. Al subirlos se pueden reemplazar archivos con el mismo nombre.</item>
+    </plurals>
 </resources>

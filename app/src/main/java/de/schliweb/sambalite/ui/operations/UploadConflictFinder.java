@@ -38,10 +38,19 @@ public final class UploadConflictFinder {
      *
      * @param remoteDirectory Share-relative directory, empty for the share root
      * @return The names of the entries in that directory, or {@code null} if the directory does not
-     *     exist or cannot be listed. Both cases mean no upload can collide there.
+     *     exist, which means no upload can collide there
+     * @throws ListingFailedException if the directory could not be listed (connection lost, no
+     *     permission to list), so it is unknown whether uploads collide there
      */
     @Nullable
     Set<String> listNames(@NonNull String remoteDirectory);
+  }
+
+  /** Thrown by a {@link DirectoryLister} when a directory exists but could not be listed. */
+  public static final class ListingFailedException extends RuntimeException {
+    public ListingFailedException(@Nullable String message, @Nullable Throwable cause) {
+      super(message, cause);
+    }
   }
 
   /** The result of a conflict search. */
@@ -52,9 +61,24 @@ public final class UploadConflictFinder {
     /** Uploads whose remote path already exists on the server. */
     @NonNull public final List<UploadRequest> existing;
 
-    Result(@NonNull List<UploadRequest> queued, @NonNull List<UploadRequest> existing) {
+    /**
+     * Uploads in directories that could not be listed: they may or may not overwrite a file on the
+     * server. Empty if every directory could be checked.
+     */
+    @NonNull public final List<UploadRequest> unchecked;
+
+    /** Why the first directory could not be listed, or {@code null}. */
+    @Nullable public final String uncheckedReason;
+
+    Result(
+        @NonNull List<UploadRequest> queued,
+        @NonNull List<UploadRequest> existing,
+        @NonNull List<UploadRequest> unchecked,
+        @Nullable String uncheckedReason) {
       this.queued = queued;
       this.existing = existing;
+      this.unchecked = unchecked;
+      this.uncheckedReason = uncheckedReason;
     }
   }
 
@@ -93,9 +117,20 @@ public final class UploadConflictFinder {
     }
 
     Map<UploadRequest, Boolean> existsByRequest = new HashMap<>();
+    Set<UploadRequest> uncheckedRequests = new HashSet<>();
+    String uncheckedReason = null;
     int done = 0;
     for (Map.Entry<String, List<UploadRequest>> e : byDirectory.entrySet()) {
-      Set<String> names = foldCase(lister.listNames(e.getKey()));
+      Set<String> names;
+      try {
+        names = foldCase(lister.listNames(e.getKey()));
+      } catch (ListingFailedException failed) {
+        // Unknown whether these uploads overwrite something: report them instead of treating
+        // the directory as empty, which would overwrite existing files without asking.
+        names = null;
+        uncheckedRequests.addAll(e.getValue());
+        if (uncheckedReason == null) uncheckedReason = failed.getMessage();
+      }
       for (UploadRequest r : e.getValue()) {
         existsByRequest.put(r, names != null && names.contains(foldCase(r.remoteFileName())));
       }
@@ -107,15 +142,18 @@ public final class UploadConflictFinder {
 
     List<UploadRequest> queued = new ArrayList<>();
     List<UploadRequest> existing = new ArrayList<>();
+    List<UploadRequest> unchecked = new ArrayList<>();
     for (UploadRequest r : requests) {
       if (active.contains(r.remotePath)) {
         queued.add(r);
+      } else if (uncheckedRequests.contains(r)) {
+        unchecked.add(r);
       }
       if (Boolean.TRUE.equals(existsByRequest.get(r))) {
         existing.add(r);
       }
     }
-    return new Result(queued, existing);
+    return new Result(queued, existing, unchecked, uncheckedReason);
   }
 
   /**

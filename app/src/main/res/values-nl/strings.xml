@@ -567,4 +567,10 @@
     <string name="progress_op_search">Zoeken</string>
     <string name="progress_op_finalizing">Afronden</string>
     <string name="progress_op_processing">Verwerken</string>
+    <string name="upload_check_failed_title">Bestaande bestanden niet gecontroleerd</string>
+    <string name="upload_anyway">Toch uploaden</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="one">SambaLite kon niet controleren of het bestand al op de server staat: %2$s. Uploaden kan een bestand met dezelfde naam vervangen.</item>
+        <item quantity="other">SambaLite kon niet controleren of %1$d bestanden al op de server staan: %2$s. Uploaden kan bestanden met dezelfde naam vervangen.</item>
+    </plurals>
 </resources>

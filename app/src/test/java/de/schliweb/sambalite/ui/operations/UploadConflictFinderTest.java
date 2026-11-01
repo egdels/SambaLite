@@ -140,4 +140,41 @@ public class UploadConflictFinderTest {
     assertEquals("Case/photo.jpg", result.existing.get(0).remotePath);
     assertEquals("Case/NOTES.TXT", result.existing.get(1).remotePath);
   }
+
+  @Test
+  public void find_reportsUploadsInUnlistableDirectoriesAsUnchecked() {
+    List<UploadRequest> requests =
+        Arrays.asList(request("Docs/report.pdf"), request("New/a.txt"), request("Ok/b.txt"));
+
+    UploadConflictFinder.Result result =
+        UploadConflictFinder.find(
+            requests,
+            Collections.emptyList(),
+            dir -> {
+              if (dir.equals("Docs")) {
+                throw new UploadConflictFinder.ListingFailedException("STATUS_IO_TIMEOUT", null);
+              }
+              if (dir.equals("New")) return null; // does not exist yet: nothing to overwrite
+              return new HashSet<>(Collections.singletonList("other.txt"));
+            },
+            null);
+
+    assertEquals(1, result.unchecked.size());
+    assertEquals("Docs/report.pdf", result.unchecked.get(0).remotePath);
+    assertEquals("STATUS_IO_TIMEOUT", result.uncheckedReason);
+    assertTrue(result.existing.isEmpty());
+  }
+
+  @Test
+  public void find_allDirectoriesListed_nothingUnchecked() {
+    UploadConflictFinder.Result result =
+        UploadConflictFinder.find(
+            Collections.singletonList(request("Docs/report.pdf")),
+            Collections.emptyList(),
+            dir -> new HashSet<>(Collections.singletonList("report.pdf")),
+            null);
+
+    assertTrue(result.unchecked.isEmpty());
+    assertEquals(1, result.existing.size());
+  }
 }

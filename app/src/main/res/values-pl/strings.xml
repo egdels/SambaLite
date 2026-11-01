@@ -614,4 +614,12 @@
     <string name="progress_op_search">Wyszukiwanie</string>
     <string name="progress_op_finalizing">Kończenie</string>
     <string name="progress_op_processing">Przetwarzanie</string>
+    <string name="upload_check_failed_title">Nie sprawdzono istniejących plików</string>
+    <string name="upload_anyway">Prześlij mimo to</string>
+    <plurals name="upload_check_failed_message">
+        <item quantity="one">SambaLite nie mógł sprawdzić, czy plik już istnieje na serwerze: %2$s. Przesłanie może zastąpić plik o tej samej nazwie.</item>
+        <item quantity="few">SambaLite nie mógł sprawdzić, czy pliki (%1$d) już istnieją na serwerze: %2$s. Przesłanie może zastąpić pliki o tych samych nazwach.</item>
+        <item quantity="many">SambaLite nie mógł sprawdzić, czy pliki (%1$d) już istnieją na serwerze: %2$s. Przesłanie może zastąpić pliki o tych samych nazwach.</item>
+        <item quantity="other">SambaLite nie mógł sprawdzić, czy pliki (%1$d) już istnieją na serwerze: %2$s. Przesłanie może zastąpić pliki o tych samych nazwach.</item>
+    </plurals>
 </resources>

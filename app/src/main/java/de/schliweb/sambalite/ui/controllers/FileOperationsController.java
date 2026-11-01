@@ -272,7 +272,10 @@ public class FileOperationsController {
             () -> {
               boolean alreadyQueued =
                   operationsViewModel.getOpenUploadRemotePaths().contains(remotePath);
-              boolean existsOnServer = operationsViewModel.checkFileExists(remotePath);
+              Boolean existsOnServer =
+                  alreadyQueued
+                      ? Boolean.FALSE
+                      : operationsViewModel.fileExistsOrUnknown(remotePath);
 
               new android.os.Handler(android.os.Looper.getMainLooper())
                   .post(
@@ -281,6 +284,14 @@ public class FileOperationsController {
                           // The open transfer uploads this file already; queuing it a second
                           // time would write the same remote file twice
                           showDuplicateQueueDialog(fileName, 1, null);
+                        } else if (existsOnServer == null) {
+                          // Unknown whether the upload would overwrite a file: ask
+                          showCheckFailedDialog(
+                              1,
+                              null,
+                              () ->
+                                  enqueueAndNotify(
+                                      uri, remotePath, fileName, fileSize, batchId, "unchecked"));
                         } else if (existsOnServer) {
                           showOverwriteDialog(
                               fileName,
@@ -431,6 +442,59 @@ public class FileOperationsController {
    *     when every file carries its own grant
    */
   private void resolveConflictsAndEnqueue(
+      java.util.List<UploadRequest> allFiles,
+      UploadConflictFinder.Result conflicts,
+      @Nullable Uri grantUri,
+      String what) {
+    if (!conflicts.unchecked.isEmpty()) {
+      // Some target folders could not be listed: those uploads may overwrite files without the
+      // overwrite question, so the user decides first
+      showCheckFailedDialog(
+          conflicts.unchecked.size(),
+          conflicts.uncheckedReason,
+          () -> resolveCheckedConflictsAndEnqueue(allFiles, conflicts, grantUri, what));
+      return;
+    }
+    resolveCheckedConflictsAndEnqueue(allFiles, conflicts, grantUri, what);
+  }
+
+  /**
+   * Tells the user that the server could not be checked for existing files and offers to upload
+   * anyway. Cancel uploads nothing. Must be called on the main thread.
+   *
+   * @param count How many uploads could not be checked
+   * @param reason The error, or {@code null}
+   * @param uploadAnyway Continues the upload
+   */
+  private void showCheckFailedDialog(int count, @Nullable String reason, Runnable uploadAnyway) {
+    String why =
+        reason != null
+            ? de.schliweb.sambalite.ui.utils.TransferErrorText.shortReason(context, reason)
+            : context.getString(de.schliweb.sambalite.R.string.transfer_error_connection);
+    new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+        .setTitle(de.schliweb.sambalite.R.string.upload_check_failed_title)
+        .setMessage(
+            context
+                .getResources()
+                .getQuantityString(
+                    de.schliweb.sambalite.R.plurals.upload_check_failed_message, count, count, why))
+        .setPositiveButton(
+            de.schliweb.sambalite.R.string.upload_anyway,
+            (dialog, which) -> {
+              LogUtils.i(
+                  "FileOperationsController",
+                  "Upload without conflict check confirmed for " + count + " file(s)");
+              uploadAnyway.run();
+            })
+        .setNegativeButton(
+            android.R.string.cancel,
+            (dialog, which) ->
+                LogUtils.i("FileOperationsController", "Upload cancelled: conflict check failed"))
+        .show();
+  }
+
+  /** Shows the queued and existing conflict dialogs and enqueues the remaining uploads. */
+  private void resolveCheckedConflictsAndEnqueue(
       java.util.List<UploadRequest> allFiles,
       UploadConflictFinder.Result conflicts,
       @Nullable Uri grantUri,
