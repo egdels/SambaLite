@@ -1930,6 +1930,22 @@ public class FileBrowserActivity extends AppCompatActivity
       boolean wifiOnly,
       boolean mirror,
       boolean mirrorUseTrash) {
+    try {
+      saveSyncSetup(direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
+    } finally {
+      // The dialog is closed either way. Without this, a rejected edit (e.g. local folder already
+      // synced) left its config id behind and the next "Set Up Sync" replaced that config.
+      uiState.clearSyncSetup();
+    }
+  }
+
+  private void saveSyncSetup(
+      SyncDirection direction,
+      int intervalMinutes,
+      String remotePath,
+      boolean wifiOnly,
+      boolean mirror,
+      boolean mirrorUseTrash) {
     Uri folderUri = uiState.getSyncFolderUri();
     if (folderUri == null) {
       progressController.showError(getString(R.string.sync_select_folder_first), null);
@@ -1977,7 +1993,6 @@ public class FileBrowserActivity extends AppCompatActivity
     // If editing an existing config, remove the old one before saving the new one
     if (editingConfigId != null) {
       syncManager.removeSyncConfig(editingConfigId);
-      uiState.setEditingSyncConfigId(null);
     }
 
     syncManager.addSyncConfig(
@@ -1992,10 +2007,6 @@ public class FileBrowserActivity extends AppCompatActivity
         mirrorUseTrash);
 
     progressController.showSuccess(getString(R.string.sync_config_saved));
-
-    // Clear sync state
-    uiState.setSyncFolderUri(null);
-    uiState.setSyncFolderDisplayName(null);
 
     // Refresh sync direction markers
     String currentPath = fileListViewModel.getCurrentPathInternal();

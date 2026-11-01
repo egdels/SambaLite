@@ -90,6 +90,18 @@ public class FileBrowserUIState {
     progressDetails.postValue("");
   }
 
+  /**
+   * Clears the state of a sync setup or edit dialog (picked local folder, config being edited).
+   * Called when such a dialog is opened, cancelled or saved, so a later dialog never picks up a
+   * folder or an edit that belongs to an earlier one.
+   */
+  public void clearSyncSetup() {
+    syncFolderDisplay = null;
+    syncFolderUri = null;
+    syncFolderDisplayName = null;
+    editingSyncConfigId = null;
+  }
+
   /** Resets all state. */
   public void reset() {
     selectedFile = null;

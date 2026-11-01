@@ -819,6 +819,10 @@ public class DialogController {
 
     LogUtils.d("DialogController", "Showing sync setup dialog");
 
+    // A new setup starts without a local folder and is never an edit; a folder picked in an
+    // earlier, cancelled dialog must not be saved with this one.
+    uiState.clearSyncSetup();
+
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_sync_setup, null);
 
     RadioGroup directionGroup = dialogView.findViewById(R.id.sync_direction_group);
@@ -919,7 +923,8 @@ public class DialogController {
                     direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
               }
             })
-        .setNegativeButton(R.string.cancel, null)
+        .setNegativeButton(R.string.cancel, (dialog, which) -> uiState.clearSyncSetup())
+        .setOnCancelListener(dialog -> uiState.clearSyncSetup())
         .show();
   }
 
@@ -1074,23 +1079,9 @@ public class DialogController {
                     direction, intervalMinutes, remotePath, wifiOnly, mirror, mirrorUseTrash);
               }
             })
-        .setNegativeButton(
-            R.string.cancel,
-            (dialog, which) -> {
-              // Clear editing state so the config is not removed on cancel
-              uiState.setEditingSyncConfigId(null);
-              uiState.setSyncFolderUri(null);
-              uiState.setSyncFolderDisplayName(null);
-              uiState.setSyncFolderDisplay(null);
-            })
-        .setOnCancelListener(
-            dialog -> {
-              // Also handle back button / outside tap dismissal
-              uiState.setEditingSyncConfigId(null);
-              uiState.setSyncFolderUri(null);
-              uiState.setSyncFolderDisplayName(null);
-              uiState.setSyncFolderDisplay(null);
-            })
+        // Clear editing state so the config is not changed on cancel, back or outside tap
+        .setNegativeButton(R.string.cancel, (dialog, which) -> uiState.clearSyncSetup())
+        .setOnCancelListener(dialog -> uiState.clearSyncSetup())
         .show();
   }
 
