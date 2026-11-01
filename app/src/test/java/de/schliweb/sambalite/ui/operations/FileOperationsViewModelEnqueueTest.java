@@ -345,4 +345,47 @@ public class FileOperationsViewModelEnqueueTest {
       fail("startTransferWorker should not throw: " + e.getMessage());
     }
   }
+
+  /**
+   * The "already queued" check before enqueueing only counts uploads of the open connection: an
+   * upload of the same path to another server, or a download of it, does not block a new upload.
+   */
+  @Test
+  public void getOpenUploadRemotePaths_onlyUploadsOfTheCurrentConnection() throws Exception {
+    PendingTransferDao appDao = TransferDatabase.getInstance(context).pendingTransferDao();
+    java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
+    try {
+      io.submit(
+              () -> {
+                appDao.insert(openTransfer("UPLOAD", "r5/own.jpg", "test-conn-1"));
+                appDao.insert(openTransfer("UPLOAD", "r5/other-server.jpg", "other-conn"));
+                appDao.insert(openTransfer("DOWNLOAD", "r5/download.jpg", "test-conn-1"));
+                return null;
+              })
+          .get(10, TimeUnit.SECONDS);
+
+      java.util.Set<String> open =
+          io.submit(viewModel::getOpenUploadRemotePaths).get(10, TimeUnit.SECONDS);
+
+      assertTrue(open.contains("r5/own.jpg"));
+      assertFalse(open.contains("r5/other-server.jpg"));
+      assertFalse(open.contains("r5/download.jpg"));
+    } finally {
+      io.shutdownNow();
+    }
+  }
+
+  private static PendingTransfer openTransfer(String type, String path, String connectionId) {
+    PendingTransfer t = new PendingTransfer();
+    t.transferType = type;
+    t.remotePath = path;
+    t.localUri = "content://test/" + path;
+    t.displayName = path;
+    t.connectionId = connectionId;
+    t.status = "PENDING";
+    t.maxRetries = 3;
+    t.createdAt = System.currentTimeMillis();
+    t.updatedAt = t.createdAt;
+    return t;
+  }
 }

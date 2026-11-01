@@ -1025,6 +1025,23 @@ public class FileOperationsViewModel extends ViewModel {
   // ── Phase 2: Queue-based upload integration ──────────────────────────────────
 
   /**
+   * Remote paths of the open uploads (pending, running, or failed with retries left) of the current
+   * connection. Used to tell the user before enqueueing that a file is already queued; uploads to
+   * other connections and downloads of the same path do not collide with a new upload. Blocks on
+   * the database, so call it from a background thread.
+   *
+   * @return The remote paths, empty when no connection is open
+   */
+  @NonNull
+  public Set<String> getOpenUploadRemotePaths() {
+    if (state.getConnection() == null) return new HashSet<>();
+    return new HashSet<>(
+        TransferDatabase.getInstance(context)
+            .pendingTransferDao()
+            .getOpenUploadRemotePaths(state.getConnection().getId()));
+  }
+
+  /**
    * Enqueues a single file upload into the persistent transfer queue and starts the TransferWorker.
    * Returns immediately — no blocking dialog.
    *

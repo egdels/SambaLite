@@ -17,8 +17,6 @@ import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.transfer.PersistedGrantBudget;
-import de.schliweb.sambalite.transfer.db.PendingTransferDao;
-import de.schliweb.sambalite.transfer.db.TransferDatabase;
 import de.schliweb.sambalite.ui.FileListViewModel;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
 import de.schliweb.sambalite.ui.operations.SelectionFolderGrant;
@@ -272,8 +270,8 @@ public class FileOperationsController {
     // Check for duplicate in queue and file existence on server before enqueuing
     new Thread(
             () -> {
-              PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
-              boolean alreadyQueued = dao.countActiveForPath(remotePath) > 0;
+              boolean alreadyQueued =
+                  operationsViewModel.getOpenUploadRemotePaths().contains(remotePath);
               boolean existsOnServer = operationsViewModel.checkFileExists(remotePath);
 
               new android.os.Handler(android.os.Looper.getMainLooper())
@@ -411,9 +409,11 @@ public class FileOperationsController {
                     fileCount,
                     dirCount)));
 
-    PendingTransferDao dao = TransferDatabase.getInstance(context).pendingTransferDao();
     return UploadConflictFinder.find(
-        files, dao.getActiveRemotePaths(), operationsViewModel::listRemoteFileNames, null);
+        files,
+        operationsViewModel.getOpenUploadRemotePaths(),
+        operationsViewModel::listRemoteFileNames,
+        null);
   }
 
   /**
