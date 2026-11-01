@@ -1231,7 +1231,8 @@ public class TransferWorker extends Worker {
                 + e.getMessage());
       }
 
-      OutputStream rawOut = resolver.openOutputStream(targetUri, "w");
+      OutputStream rawOut =
+          de.schliweb.sambalite.util.SafStreams.openForOverwrite(resolver, targetUri);
       if (rawOut == null) {
         throw new IOException("Cannot open SAF output stream for: " + transfer.displayName);
       }

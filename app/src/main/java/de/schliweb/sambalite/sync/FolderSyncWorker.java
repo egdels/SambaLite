@@ -966,7 +966,8 @@ public class FolderSyncWorker extends Worker {
       long fileSize = remoteFile.getFileInformation().getStandardInformation().getEndOfFile();
 
       OutputStream rawOut =
-          getApplicationContext().getContentResolver().openOutputStream(localFile.getUri());
+          de.schliweb.sambalite.util.SafStreams.openForOverwrite(
+              getApplicationContext().getContentResolver(), localFile.getUri());
       if (rawOut == null) {
         throw new Exception("Could not open output stream for: " + localFile.getUri());
       }

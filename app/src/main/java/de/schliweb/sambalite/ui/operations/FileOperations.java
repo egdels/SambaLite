@@ -163,7 +163,9 @@ public class FileOperations {
     boolean completedThisFile = false;
     try (BufferedInputStream bis =
             new BufferedInputStream(new FileInputStream(sourceFile), BUFFER_SIZE);
-        OutputStream os = context.getContentResolver().openOutputStream(target.getUri());
+        OutputStream os =
+            de.schliweb.sambalite.util.SafStreams.openForOverwrite(
+                context.getContentResolver(), target.getUri());
         BufferedOutputStream bos =
             new BufferedOutputStream(
                 require(os, "output stream for file: " + sourceFile.getName()), BUFFER_SIZE)) {
@@ -257,7 +259,9 @@ public class FileOperations {
       throws IOException {
     LogUtils.d(
         "FileOperations", "Copying file to URI: " + uri + ", size: " + file.length() + " bytes");
-    try (OutputStream os = context.getContentResolver().openOutputStream(uri);
+    try (OutputStream os =
+            de.schliweb.sambalite.util.SafStreams.openForOverwrite(
+                context.getContentResolver(), uri);
         BufferedOutputStream bos =
             new BufferedOutputStream(require(os, "output stream for URI: " + uri), BUFFER_SIZE);
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file), BUFFER_SIZE)) {
@@ -297,7 +301,9 @@ public class FileOperations {
     COPY_EXECUTOR.submit(
         () -> {
           boolean completedThisFile = false;
-          try (OutputStream os = context.getContentResolver().openOutputStream(destUri);
+          try (OutputStream os =
+                  de.schliweb.sambalite.util.SafStreams.openForOverwrite(
+                      context.getContentResolver(), destUri);
               BufferedOutputStream bos =
                   new BufferedOutputStream(
                       require(os, "output stream for URI: " + destUri), BUFFER_SIZE);
