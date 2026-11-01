@@ -414,6 +414,11 @@ public class FileBrowserActivity extends AppCompatActivity
               @Override
               public void handleOnBackPressed() {
                 LogUtils.d("FileBrowserActivity", "System back pressed (dispatcher)");
+                // Back first ends the multi-selection, as in other Android apps
+                if (fileListController != null && fileListController.isSelectionMode()) {
+                  fileListController.clearSelection();
+                  return;
+                }
                 if (searchViewModel != null && searchViewModel.isInSearchMode()) {
                   searchViewModel.cancelSearch();
                   fileListController.setSearchMode(false);

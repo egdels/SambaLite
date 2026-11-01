@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Back during multi-select left the folder**: With items selected in the file browser, the Back button discarded the selection and went to the parent folder (or closed the browser at the share root). Back now first ends the selection.
 - **Connection dialogs showed two titles**: "Add New Connection" appeared above the "Add SMB Connection" header, and the Edit dialog showed "Edit Connection" above "Add SMB Connection". Each dialog now has one title, and the Edit dialog's header says "Edit Connection".
 - **"1 files, 2 folders selected"**: The selection count in the file browser always used the plural ("1 files", "1 folders"; German "1 Dateien"). It now uses the singular and plural forms of each language.
 - **Background service notification and progress headline in English only**: The permanent notification ("SMB Service ready", "Processing…", "2 operations active", "Operation cancelled", timeouts), its notification channel and the headline of progress dialogs ("Downloading…") were English in every language. They are now translated.
