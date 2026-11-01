@@ -301,7 +301,9 @@ public class MainViewModel extends ViewModel {
     executor.execute(
         () -> {
           try {
-            boolean success = smbRepository.testConnection(connection);
+            boolean success =
+                de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+                    () -> smbRepository.testConnection(connection));
             String detail = null;
             if (success) {
               try {
@@ -379,7 +381,9 @@ public class MainViewModel extends ViewModel {
         () -> {
           boolean exists;
           try {
-            exists = smbRepository.folderExists(connection, path);
+            exists =
+                de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+                    () -> smbRepository.folderExists(connection, path));
           } catch (Exception e) {
             LogUtils.w("MainViewModel", "Default folder check failed: " + e.getMessage());
             // Cannot verify (e.g. server offline): do not block saving

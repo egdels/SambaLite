@@ -21,6 +21,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
+import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.model.SmbFileItem;
 import de.schliweb.sambalite.data.repository.SmbRepository;
 import de.schliweb.sambalite.transfer.TransferWorker;
@@ -1193,7 +1194,11 @@ public class FileOperationsViewModel extends ViewModel {
     if (state.getConnection() == null) return null;
     try {
       Set<String> names = new HashSet<>();
-      for (SmbFileItem item : smbRepository.listFiles(state.getConnection(), remoteDirectory)) {
+      SmbConnection connection = state.getConnection();
+      List<SmbFileItem> items =
+          de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+              () -> smbRepository.listFiles(connection, remoteDirectory));
+      for (SmbFileItem item : items) {
         names.add(item.getName());
       }
       return names;
@@ -1217,9 +1222,11 @@ public class FileOperationsViewModel extends ViewModel {
    */
   @Nullable
   public Boolean fileExistsOrUnknown(@NonNull String remotePath) {
-    if (state.getConnection() == null) return null;
+    SmbConnection connection = state.getConnection();
+    if (connection == null) return null;
     try {
-      return smbRepository.fileExists(state.getConnection(), remotePath);
+      return de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+          () -> smbRepository.fileExists(connection, remotePath));
     } catch (Exception e) {
       LogUtils.w(
           "FileOperationsViewModel",

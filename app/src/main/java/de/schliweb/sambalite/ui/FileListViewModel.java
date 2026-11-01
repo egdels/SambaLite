@@ -409,8 +409,7 @@ public class FileListViewModel extends ViewModel {
         () -> {
           try {
             // Skip cache and load directly from server
-            List<SmbFileItem> fileList =
-                smbRepository.listFiles(state.getConnection(), state.getCurrentPathString());
+            List<SmbFileItem> fileList = listCurrentFolder();
             LogUtils.d(
                 "FileListViewModel", "Loaded " + fileList.size() + " files from server: " + path);
 
@@ -509,8 +508,7 @@ public class FileListViewModel extends ViewModel {
               return;
             }
 
-            List<SmbFileItem> fileList =
-                smbRepository.listFiles(state.getConnection(), state.getCurrentPathString());
+            List<SmbFileItem> fileList = listCurrentFolder();
             LogUtils.d("FileListViewModel", "Loaded " + fileList.size() + " files from: " + path);
 
             // Sort and filter files according to the current options
@@ -835,5 +833,16 @@ public class FileListViewModel extends ViewModel {
 
     // Load files for the final destination
     loadFiles();
+  }
+
+  /**
+   * Lists the current folder for the user, who is waiting for it: fails after {@link
+   * de.schliweb.sambalite.util.InteractiveCalls#TIMEOUT_MS} instead of SMBJ's minutes.
+   */
+  private List<SmbFileItem> listCurrentFolder() throws Exception {
+    SmbConnection connection = state.getConnection();
+    String path = state.getCurrentPathString();
+    return de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+        () -> smbRepository.listFiles(connection, path));
   }
 }

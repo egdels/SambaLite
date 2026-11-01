@@ -1318,7 +1318,9 @@ public class FileBrowserActivity extends AppCompatActivity
             () -> {
               boolean exists;
               try {
-                exists = smbRepository.folderExists(connection, defaultFolder);
+                exists =
+                    de.schliweb.sambalite.util.InteractiveCalls.withTimeout(
+                        () -> smbRepository.folderExists(connection, defaultFolder));
               } catch (Exception e) {
                 LogUtils.w(
                     "FileBrowserActivity",
