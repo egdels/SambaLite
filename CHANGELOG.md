@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Queue counters broke words at random places**: In portrait, longer labels of the transfer queue's counters were split anywhere inside the word, e.g. "Abgeschlos / sen" and "Fehlgeschla / gen" in German or "Niepowodze / nie" in Polish. Labels that need two lines are now hyphenated properly ("Abgeschlos- / sen").
 - **Transfer notification in German and without a tap action**: The transfer notification started with the German title "Transfer-Queue wird verarbeitet…" in every language, its channel was always called "Transfer Queue", and tapping the notification did nothing. Title and channel now follow the app language, and a tap opens the transfer queue.
 - **Completed transfers never left the open queue screen**: Completed transfers are shown for one hour, but the hour was counted from when the screen was opened, so they stayed in the list (and in the "Completed" counter) as long as the screen remained open or was rotated. The window now moves every minute and whenever the screen is shown again.
 - **Transfers stayed "Pending" forever when the device ran out of storage**: When free storage fell below 10 MB, the transfer queue stopped, but its transfers kept showing "Pending" without any reason, and nothing started them again after space was freed. They are now marked as failed with "Not enough free storage on this device. Free up space, then tap Retry.", and Retry in the queue starts them again.
