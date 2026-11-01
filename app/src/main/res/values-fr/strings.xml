@@ -199,6 +199,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">Supprimer le fichier</string>
     <string name="confirm_delete_file">Êtes-vous sûr de vouloir supprimer « %1$s » ?</string>
+    <string name="delete_folder_dialog_title">Supprimer le dossier</string>
+    <string name="confirm_delete_folder">Êtes-vous sûr de vouloir supprimer le dossier « %1$s » et tout son contenu ?</string>
     <string name="delete_success">Fichier supprimé avec succès</string>
     <string name="delete_error">Erreur lors de la suppression du fichier</string>
 

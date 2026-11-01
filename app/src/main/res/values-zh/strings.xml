@@ -190,6 +190,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">删除文件</string>
     <string name="confirm_delete_file">确定要删除 “%1$s”？</string>
+    <string name="delete_folder_dialog_title">删除文件夹</string>
+    <string name="confirm_delete_folder">确定要删除文件夹 “%1$s” 及其全部内容吗？</string>
     <string name="delete_success">成功删除了文件</string>
     <string name="delete_error">删除文件出错</string>
 

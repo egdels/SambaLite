@@ -307,10 +307,14 @@ public class DialogController {
 
     LogUtils.d(
         "DialogController", "Showing delete file confirmation dialog for: " + file.getName());
+    // A folder is deleted with all its contents: say so
+    boolean folder = file.isDirectory();
     DialogHelper.showConfirmationDialog(
         context,
-        context.getString(R.string.delete_file_dialog_title),
-        context.getString(R.string.confirm_delete_file, file.getName()),
+        context.getString(
+            folder ? R.string.delete_folder_dialog_title : R.string.delete_file_dialog_title),
+        context.getString(
+            folder ? R.string.confirm_delete_folder : R.string.confirm_delete_file, file.getName()),
         (dialog, which) -> deleteFileWithFeedback(file));
   }
 

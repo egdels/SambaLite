@@ -204,6 +204,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">Usuń plik</string>
     <string name="confirm_delete_file">Czy na pewno chcesz usunąć „%1$s”?</string>
+    <string name="delete_folder_dialog_title">Usuń folder</string>
+    <string name="confirm_delete_folder">Czy na pewno chcesz usunąć folder „%1$s” wraz z całą zawartością?</string>
     <string name="delete_success">Plik usunięty pomyślnie</string>
     <string name="delete_error">Błąd usuwania pliku</string>
 

@@ -194,6 +194,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">Bestand verwijderen</string>
     <string name="confirm_delete_file">Weet je zeker dat je ‘%1$s’ wilt verwijderen?</string>
+    <string name="delete_folder_dialog_title">Map verwijderen</string>
+    <string name="confirm_delete_folder">Weet je zeker dat je de map ‘%1$s’ met alle inhoud wilt verwijderen?</string>
     <string name="delete_success">Bestand succesvol verwijderd</string>
     <string name="delete_error">Fout bij verwijderen van bestand</string>
 

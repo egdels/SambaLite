@@ -198,6 +198,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">Eliminar archivo</string>
     <string name="confirm_delete_file">¿Estás seguro de que quieres eliminar «%1$s»?</string>
+    <string name="delete_folder_dialog_title">Eliminar carpeta</string>
+    <string name="confirm_delete_folder">¿Estás seguro de que quieres eliminar la carpeta «%1$s» y todo su contenido?</string>
     <string name="delete_success">Archivo eliminado exitosamente</string>
     <string name="delete_error">Error al eliminar archivo</string>
 

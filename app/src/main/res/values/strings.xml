@@ -152,6 +152,8 @@
     <!-- Delete -->
     <string name="delete_file_dialog_title">Delete File</string>
     <string name="confirm_delete_file">Are you sure you want to delete “%1$s”?</string>
+    <string name="delete_folder_dialog_title">Delete Folder</string>
+    <string name="confirm_delete_folder">Are you sure you want to delete the folder “%1$s” and everything in it?</string>
     <string name="delete_success">File deleted successfully</string>
     <string name="delete_error">Error deleting file</string>
 
