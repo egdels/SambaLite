@@ -29,6 +29,11 @@ public class LayoutInflationTest {
     // This should not throw an exception
     View view = inflater.inflate(R.layout.dialog_add_connection, null);
     assertNotNull("dialog_add_connection layout should inflate successfully", view);
+    // The header is the dialog's only title (Edit replaces its text) and is announced as heading
+    android.widget.TextView title = view.findViewById(R.id.connection_dialog_title);
+    assertNotNull(title);
+    org.junit.Assert.assertEquals("Add SMB Connection", title.getText().toString());
+    org.junit.Assert.assertTrue(title.isAccessibilityHeading());
   }
 
   @Test

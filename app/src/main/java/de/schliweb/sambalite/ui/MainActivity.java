@@ -1160,7 +1160,7 @@ public class MainActivity extends AppCompatActivity
     // Create the dialog without default buttons (using custom buttons instead)
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.add_new_connection)
+            // The layout's header names the dialog; a builder title would repeat it
             .setView(dialogView)
             .create();
 
@@ -1419,6 +1419,8 @@ public class MainActivity extends AppCompatActivity
     LogUtils.d("MainActivity", "Showing edit connection dialog for: " + connection.getName());
     // Inflate the dialog layout
     View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_connection, null);
+    ((TextView) dialogView.findViewById(R.id.connection_dialog_title))
+        .setText(R.string.edit_connection);
 
     // Get references to the input fields
     com.google.android.material.textfield.TextInputLayout nameLayout =
@@ -1610,7 +1612,7 @@ public class MainActivity extends AppCompatActivity
     // Create the dialog without default buttons (using custom buttons instead)
     AlertDialog dialog =
         new MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.edit_connection)
+            // The layout's header names the dialog; a builder title would repeat it
             .setView(dialogView)
             .create();
 
