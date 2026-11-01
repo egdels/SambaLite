@@ -258,6 +258,7 @@
 
     <!-- Additional UI Strings -->
     <string name="upload_files">Subir archivos</string>
+    <string name="share_no_read_access">SambaLite no tiene permiso para leer los archivos compartidos. Compártelos de nuevo desde la otra aplicación o súbelos con «Subir archivos» en SambaLite.</string>
     <string name="loading_system_information">Cargando información del sistema…</string>
     <string name="authentication">Autenticación</string>
     <string name="smb_connection">Conexión SMB</string>

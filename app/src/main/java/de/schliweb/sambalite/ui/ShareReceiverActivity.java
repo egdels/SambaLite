@@ -193,10 +193,21 @@ public class ShareReceiverActivity extends AppCompatActivity {
         () -> {
           try {
             startUploadsViaFileBrowser();
-          } catch (IOException e) {
+          } catch (IOException | SecurityException e) {
+            // SecurityException: the sharing app did not grant read access to its files, so they
+            // cannot be handed on to the upload either
             LogUtils.e(TAG, "Error starting uploads: " + e.getMessage());
-            DialogHelper.showErrorDialog(this, getString(R.string.upload_failed), e.getMessage());
-            finish();
+            String message =
+                e instanceof SecurityException
+                    ? getString(R.string.share_no_read_access)
+                    : String.valueOf(e.getMessage());
+            // Finish only after the message was read: finishing right away closed it unseen
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.upload_failed)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .setOnDismissListener(d -> finish())
+                .show();
           }
         },
         () -> {

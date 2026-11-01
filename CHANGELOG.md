@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Crash when a shared file came without read permission**: If the sharing app did not grant SambaLite access to the shared file, tapping "Select" in the share dialog crashed the app. It now shows "Upload failed" with a hint to share the files again or to upload them with "Upload files". Errors at this step were also closed before they could be read; the message now stays until OK is tapped.
 - **Screen readers in the transfer queue**: Each transfer's icon was announced as "File type icon" and its status badge as "Connection Status". The icon now says whether it is an upload or a download, and the badge is no longer announced, since the status is part of the spoken text. Folder downloads showed an upload arrow while they were being prepared; they now show the download arrow.
 - **Completed transfers in random order**: Sorted by status, the queue listed completed transfers in the order of their batch and position, so the transfer that had just finished could appear anywhere, and with more than 500 entries the list dropped arbitrary recent ones. Completed transfers are now listed newest first, and only the oldest fall beyond the 500-entry limit.
 - **Blank transfer queue with "Hide completed"**: When every transfer in the queue was completed and "Hide completed" was on, the screen showed only the counters above an empty area. It now says that all transfers are completed and hidden, and how to show them.
