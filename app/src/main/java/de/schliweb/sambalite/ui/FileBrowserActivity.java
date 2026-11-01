@@ -1738,14 +1738,29 @@ public class FileBrowserActivity extends AppCompatActivity
     return super.onOptionsItemSelected(item);
   }
 
-  /** Builds the full remote path for a folder item in the current directory. */
+  /** Builds the full remote path (share-relative) of a folder item. */
   private String buildFullRemotePath(SmbFileItem folder) {
-    String currentPath = fileListViewModel.getCurrentPathInternal();
+    return fullRemotePath(
+        folder.getPath(), fileListViewModel.getCurrentPathInternal(), folder.getName());
+  }
+
+  /**
+   * Returns the share-relative path of a folder item. The item's own path is used when it has one:
+   * search results come from any sub-folder of the current folder, so "current folder + name" would
+   * point at a different (usually non-existent) folder.
+   */
+  static String fullRemotePath(String itemPath, String currentPath, String name) {
+    if (itemPath != null && !itemPath.trim().isEmpty()) {
+      String normalized = normalizeInternalPath(itemPath.trim().replace('\\', '/'));
+      if (!normalized.isEmpty()) {
+        return normalized;
+      }
+    }
     if (currentPath == null || currentPath.isEmpty()) {
-      return folder.getName();
+      return name;
     }
     String normalized = currentPath.endsWith("/") ? currentPath : currentPath + "/";
-    return normalized + folder.getName();
+    return normalized + name;
   }
 
   /** Finds the SyncConfig that exactly matches the given folder, or null. */

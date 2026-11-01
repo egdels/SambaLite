@@ -206,4 +206,24 @@ public class FileBrowserActivityTest {
     assertTrue(FileBrowserActivity.isUploadInDirectory("a/b/file.txt", null, "a/b"));
     assertFalse(FileBrowserActivity.isUploadInDirectory("a/b/file.txt", null, "b"));
   }
+
+  // --- fullRemotePath (folder sync from the browser and from search results) ---
+
+  @Test
+  public void fullRemotePath_searchResultUsesItsOwnPath() {
+    // Searching in "QA4" finds "sub" in "QA4/Down"; the sync must target QA4/Down/sub.
+    assertEquals("QA4/Down/sub", FileBrowserActivity.fullRemotePath("QA4/Down/sub", "QA4", "sub"));
+  }
+
+  @Test
+  public void fullRemotePath_normalizesSlashesOfItemPath() {
+    assertEquals("QA4/Down/sub", FileBrowserActivity.fullRemotePath("/QA4\\Down\\sub/", "", "sub"));
+  }
+
+  @Test
+  public void fullRemotePath_fallsBackToCurrentFolderWithoutItemPath() {
+    assertEquals("QA4/Up", FileBrowserActivity.fullRemotePath(null, "QA4", "Up"));
+    assertEquals("QA4/Up", FileBrowserActivity.fullRemotePath("", "QA4/", "Up"));
+    assertEquals("Up", FileBrowserActivity.fullRemotePath(null, "", "Up"));
+  }
 }
