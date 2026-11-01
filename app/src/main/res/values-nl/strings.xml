@@ -413,6 +413,11 @@
     <string name="sync_running">Synchronisatie bezig…</string>
     <string name="sync_stop">Synchronisatie stoppen</string>
     <string name="sync_stopped">Synchronisatie gestopt</string>
+    <string name="sync_pause">Synchronisatie pauzeren</string>
+    <string name="sync_resume">Synchronisatie hervatten</string>
+    <string name="sync_paused">Gepauzeerd – synchroniseert pas na hervatten</string>
+    <string name="sync_paused_info">Synchronisatie gepauzeerd</string>
+    <string name="sync_resumed">Synchronisatie hervat</string>
     <string name="sync_local_folder_missing">De lokale map van de synchronisatie ‘%1$s’ bestaat niet meer of is niet toegankelijk. Bewerk de synchronisatie om een andere map te kiezen.</string>
     <string name="sync_completed">Synchronisatie succesvol voltooid</string>
     <string name="sync_failed">Synchronisatie mislukt</string>

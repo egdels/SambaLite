@@ -423,6 +423,11 @@
     <string name="sync_running">Sincronización en curso…</string>
     <string name="sync_stop">Detener sincronización</string>
     <string name="sync_stopped">Sincronización detenida</string>
+    <string name="sync_pause">Pausar sincronización</string>
+    <string name="sync_resume">Reanudar sincronización</string>
+    <string name="sync_paused">En pausa – no se sincroniza hasta reanudarla</string>
+    <string name="sync_paused_info">Sincronización en pausa</string>
+    <string name="sync_resumed">Sincronización reanudada</string>
     <string name="sync_local_folder_missing">La carpeta local de la sincronización «%1$s» ya no existe o no es accesible. Edita la sincronización para elegir otra carpeta.</string>
     <string name="sync_completed">Sincronización completada con éxito</string>
     <string name="sync_failed">Error en la sincronización</string>

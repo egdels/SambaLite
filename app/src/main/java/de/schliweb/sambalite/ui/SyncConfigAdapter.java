@@ -170,11 +170,12 @@ public class SyncConfigAdapter
       syncIcon = itemView.findViewById(R.id.sync_icon);
       syncProgressBar = itemView.findViewById(R.id.sync_progress);
 
+      // Tapping the card opens its menu, like the ⋮ button (before, the tap did nothing)
       itemView.setOnClickListener(
           v -> {
             int position = getBindingAdapterPosition();
             if (position != RecyclerView.NO_POSITION && listener != null) {
-              listener.onSyncClick(syncConfigs.get(position));
+              listener.onOptionsClick(moreOptionsButton, syncConfigs.get(position));
             }
           });
 
@@ -233,8 +234,14 @@ public class SyncConfigAdapter
         mirrorIndicator.setVisibility(View.GONE);
       }
 
+      // A paused sync is dimmed and says so instead of its last sync time
+      itemView.setAlpha(config.isEnabled() ? 1f : 0.6f);
+      if (!config.isEnabled()) {
+        statusTextView.setText(R.string.sync_paused);
+      }
+
       // Update running status
-      if (config.isRunning()) {
+      if (config.isRunning() && config.isEnabled()) {
         syncIcon.setVisibility(View.GONE);
         syncProgressBar.setVisibility(View.VISIBLE);
         statusTextView.setText(R.string.sync_running);

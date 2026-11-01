@@ -1104,6 +1104,21 @@ public class FileBrowserActivity extends AppCompatActivity
           }
 
           @Override
+          public boolean isSyncPaused(SmbFileItem folder) {
+            SyncConfig config = findSyncConfigForFolder(folder);
+            return config != null && !config.isEnabled();
+          }
+
+          @Override
+          public void onResumeSyncRequested(SmbFileItem folder) {
+            SyncConfig config = findSyncConfigForFolder(folder);
+            if (config == null) return;
+            new Thread(() -> syncManager.setConfigEnabled(config.getId(), true), "ResumeSync")
+                .start();
+            progressController.showInfo(getString(R.string.sync_resumed));
+          }
+
+          @Override
           public boolean isSyncRunning(SmbFileItem folder) {
             SyncConfig config = findSyncConfigForFolder(folder);
             return config != null && syncRunState.isRunning(config);
@@ -1854,7 +1869,8 @@ public class FileBrowserActivity extends AppCompatActivity
 
     String shareName = conn.getShare();
     for (SyncConfig config : syncManager.getAllSyncConfigs()) {
-      if (!conn.getId().equals(config.getConnectionId()) || !config.isEnabled()) continue;
+      // Paused syncs count too: they can be resumed and would then overlap
+      if (!conn.getId().equals(config.getConnectionId())) continue;
       String remotePath = config.getRemotePath();
       if (remotePath == null) continue;
       // Normalize: replace backslashes, strip share name prefix (legacy configs)
@@ -1960,7 +1976,7 @@ public class FileBrowserActivity extends AppCompatActivity
   static LocalFolderCollisionType checkLocalFolderCollision(
       String folderUriStr, java.util.List<SyncConfig> existingConfigs, String editingConfigId) {
     for (SyncConfig config : existingConfigs) {
-      if (!config.isEnabled()) continue;
+      // Paused syncs count too: they can be resumed and would then overlap
       if (editingConfigId != null && editingConfigId.equals(config.getId())) continue;
       String existingUri = config.getLocalFolderUri();
       if (existingUri == null) continue;

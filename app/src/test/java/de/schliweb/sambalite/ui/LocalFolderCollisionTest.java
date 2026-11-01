@@ -71,11 +71,14 @@ public class LocalFolderCollisionTest {
   }
 
   @Test
-  public void disabledConfig_ignored() {
+  public void pausedConfig_stillCollides() {
+    // A paused sync can be resumed; a second sync of the same folder would then overlap
     List<SyncConfig> configs = new ArrayList<>();
     configs.add(createConfig("1", BASE_URI + "Photos", false));
 
-    assertNull(FileBrowserActivity.checkLocalFolderCollision(BASE_URI + "Photos", configs, null));
+    assertEquals(
+        FileBrowserActivity.LocalFolderCollisionType.EXACT_MATCH,
+        FileBrowserActivity.checkLocalFolderCollision(BASE_URI + "Photos", configs, null));
   }
 
   @Test

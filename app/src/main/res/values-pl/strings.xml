@@ -435,6 +435,11 @@
     <string name="sync_running">Synchronizacja w toku…</string>
     <string name="sync_stop">Zatrzymaj synchronizację</string>
     <string name="sync_stopped">Synchronizacja zatrzymana</string>
+    <string name="sync_pause">Wstrzymaj synchronizację</string>
+    <string name="sync_resume">Wznów synchronizację</string>
+    <string name="sync_paused">Wstrzymana – nie synchronizuje do wznowienia</string>
+    <string name="sync_paused_info">Synchronizacja wstrzymana</string>
+    <string name="sync_resumed">Synchronizacja wznowiona</string>
     <string name="sync_local_folder_missing">Folder lokalny synchronizacji „%1$s” już nie istnieje lub jest niedostępny. Edytuj synchronizację, aby wybrać inny folder.</string>
     <string name="sync_completed">Synchronizacja zakończona pomyślnie</string>
     <string name="sync_failed">Synchronizacja nie powiodła się</string>

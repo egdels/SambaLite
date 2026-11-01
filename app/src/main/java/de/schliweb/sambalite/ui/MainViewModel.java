@@ -138,6 +138,27 @@ public class MainViewModel extends ViewModel {
   }
 
   /**
+   * Pauses or resumes a sync configuration. A paused sync keeps its settings and its sync state but
+   * does not run until it is resumed.
+   *
+   * @param configId The ID of the sync configuration
+   * @param enabled false to pause, true to resume
+   */
+  public void setSyncEnabled(@NonNull String configId, boolean enabled) {
+    executor.execute(
+        () -> {
+          try {
+            syncManager.setConfigEnabled(configId, enabled);
+          } catch (Exception e) {
+            LogUtils.e("MainViewModel", "Failed to change sync state: " + e.getMessage());
+            errorHandler.recordError(
+                e, "MainViewModel.setSyncEnabled", SmartErrorHandler.ErrorSeverity.MEDIUM);
+          }
+          loadSyncConfigs();
+        });
+  }
+
+  /**
    * Stops a running synchronization of a specific configuration.
    *
    * @param configId The ID of the sync configuration to stop

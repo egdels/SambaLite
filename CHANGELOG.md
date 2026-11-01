@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Pause and resume a folder sync**: A sync can be paused from its menu on the main screen and resumed there or from the folder menu in the file browser. A paused sync keeps its settings and sync state, is shown dimmed with "Paused", and does not run until it is resumed. Tapping a sync card now opens its menu; before, the tap did nothing.
 - **Stop a running folder sync** (#41): While a folder sync is running, its menu on the main screen and the menu of the synced folder in the file browser offer "Stop Sync" instead of "Sync Now". The sync stops after the file it is transferring; its "Last sync" time stays unchanged, and a scheduled sync keeps its schedule and runs again after the next interval.
 
 ### Fixed

@@ -246,7 +246,6 @@ public class MainActivity extends AppCompatActivity
           @Override
           public void onSyncClick(@NonNull SyncConfig config) {
             LogUtils.d("MainActivity", "Sync config clicked: " + config.getId());
-            // For now, we only trigger sync. In future, we could open edit dialog.
           }
 
           @Override
@@ -832,7 +831,12 @@ public class MainActivity extends AppCompatActivity
     // While the config syncs, "Sync Now" makes no sense; offer to stop the sync instead (#41).
     popup.getMenu().add(0, 1, 0, running ? R.string.sync_stop : R.string.sync_now);
     popup.getMenu().add(0, 2, 1, R.string.sync_edit_option);
-    popup.getMenu().add(0, 3, 2, R.string.sync_remove_option);
+    popup.getMenu().add(0, 4, 2, config.isEnabled() ? R.string.sync_pause : R.string.sync_resume);
+    popup.getMenu().add(0, 3, 3, R.string.sync_remove_option);
+    if (!config.isEnabled()) {
+      // A paused sync does not run; "Resume" starts it again
+      popup.getMenu().findItem(1).setVisible(false);
+    }
 
     popup.setOnMenuItemClickListener(
         item -> {
@@ -852,6 +856,15 @@ public class MainActivity extends AppCompatActivity
             return true;
           } else if (itemId == 3) {
             confirmDeleteSync(config);
+            return true;
+          } else if (itemId == 4) {
+            boolean pause = config.isEnabled();
+            if (pause && running) {
+              viewModel.stopSync(config.getId(), !currentRunningConfigIds.contains(config.getId()));
+            }
+            viewModel.setSyncEnabled(config.getId(), !pause);
+            EnhancedUIUtils.showInfo(
+                this, getString(pause ? R.string.sync_paused_info : R.string.sync_resumed));
             return true;
           }
           return false;

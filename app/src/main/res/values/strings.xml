@@ -373,6 +373,11 @@
     <string name="sync_running">Sync running…</string>
     <string name="sync_stop">Stop Sync</string>
     <string name="sync_stopped">Sync stopped</string>
+    <string name="sync_pause">Pause Sync</string>
+    <string name="sync_resume">Resume Sync</string>
+    <string name="sync_paused">Paused – does not sync until resumed</string>
+    <string name="sync_paused_info">Sync paused</string>
+    <string name="sync_resumed">Sync resumed</string>
     <string name="sync_local_folder_missing">The local folder of the sync “%1$s” no longer exists or cannot be accessed. Edit the sync to choose another folder.</string>
     <string name="sync_completed">Sync completed successfully</string>
     <string name="sync_failed">Sync failed</string>

@@ -404,6 +404,11 @@
     <string name="sync_running">正在同步…</string>
     <string name="sync_stop">停止同步</string>
     <string name="sync_stopped">同步已停止</string>
+    <string name="sync_pause">暂停同步</string>
+    <string name="sync_resume">恢复同步</string>
+    <string name="sync_paused">已暂停 – 恢复前不会同步</string>
+    <string name="sync_paused_info">同步已暂停</string>
+    <string name="sync_resumed">同步已恢复</string>
     <string name="sync_local_folder_missing">同步“%1$s”的本地文件夹已不存在或无法访问。请编辑该同步以选择其他文件夹。</string>
     <string name="sync_completed">同步成功完成</string>
     <string name="sync_failed">同步失败</string>
