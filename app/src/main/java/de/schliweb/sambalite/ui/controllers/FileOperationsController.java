@@ -1256,7 +1256,7 @@ public class FileOperationsController {
 
     void showSuccess(@NonNull String message);
 
-    void showError(@NonNull String title, @NonNull String message);
+    void showError(@NonNull String title, @Nullable String message);
 
     void showInfo(@NonNull String message);
   }

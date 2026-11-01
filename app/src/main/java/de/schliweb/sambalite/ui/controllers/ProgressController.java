@@ -551,15 +551,25 @@ public class ProgressController implements ProgressCallback, UserFeedbackProvide
    * @param message The error message
    */
   @Override
-  public void showError(@NonNull String title, @NonNull String message) {
+  public void showError(@NonNull String title, @Nullable String message) {
     LogUtils.d("ProgressController", "Showing error: " + title + " - " + message);
     // Ensure this runs on the UI thread
-    final String finalTitle = title;
-    final String finalMessage = message;
+    final String text = errorText(title, message);
     activity.runOnUiThread(
         () -> {
-          UIHelper.with(activity).message(finalTitle + ": " + finalMessage).error().show();
+          UIHelper.with(activity).message(text).error().show();
         });
+  }
+
+  /**
+   * Builds the error snackbar text: "title: message", or just the title when there is no message
+   * (callers such as the sync checks pass a complete sentence as title and no message).
+   */
+  static @NonNull String errorText(@NonNull String title, @Nullable String message) {
+    if (message == null || message.trim().isEmpty()) {
+      return title;
+    }
+    return title + ": " + message;
   }
 
   /**

@@ -10,6 +10,7 @@
 package de.schliweb.sambalite.ui.controllers;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Interface for providing user feedback across the application. This interface standardizes how
@@ -57,9 +58,10 @@ public interface UserFeedbackProvider {
    * Snackbar with a red background, the error title, and the error message.
    *
    * @param title The title of the error, which should be concise and descriptive
-   * @param message The detailed error message, which can include technical details
+   * @param message The detailed error message, which can include technical details, or null when
+   *     the title alone describes the error
    */
-  void showError(@NonNull String title, @NonNull String message);
+  void showError(@NonNull String title, @Nullable String message);
 
   /**
    * Shows an informational message to the user.
