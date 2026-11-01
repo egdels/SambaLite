@@ -506,7 +506,7 @@ public class FileBrowserActivity extends AppCompatActivity
     }
     getSupportActionBar()
         .setSubtitle(
-            folderItemCount < 0
+            folderItemCount < 0 || (fileListController != null && fileListController.hasLoadError())
                 ? null
                 : getResources()
                     .getQuantityString(
@@ -2162,6 +2162,13 @@ public class FileBrowserActivity extends AppCompatActivity
   }
 
   // FileListController.FileStatisticsCallback implementation
+  @Override
+  public void onListingPending() {
+    // The previous folder's count would be wrong for the folder that is still loading
+    folderItemCount = -1;
+    showFolderSubtitle();
+  }
+
   @Override
   public void onFileStatisticsUpdated(@NonNull java.util.List<SmbFileItem> files) {
     if (searchViewModel != null && searchViewModel.isInSearchMode()) {

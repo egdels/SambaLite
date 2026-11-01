@@ -602,6 +602,44 @@ public class FileListController
     previousPath = shownPath;
     pendingPath = path;
     shownPath = path;
+    // A slow or unreachable server can take up to a minute to answer. Until then the list would
+    // still show the previous folder's entries under the new breadcrumbs, and tapping one would act
+    // on a file of another folder. Fast answers (cache, LAN) arrive well within the delay, so they
+    // do not flicker.
+    loadingHandler.removeCallbacks(clearWhileLoading);
+    clearWhileLoadingPath = path;
+    loadingHandler.postDelayed(clearWhileLoading, CLEAR_WHILE_LOADING_DELAY_MS);
+  }
+
+  private static final long CLEAR_WHILE_LOADING_DELAY_MS = 400;
+
+  private final android.os.Handler loadingHandler =
+      new android.os.Handler(android.os.Looper.getMainLooper());
+
+  /** Folder whose listing {@link #clearWhileLoading} waits for. */
+  @Nullable private String clearWhileLoadingPath;
+
+  /** Empties the list while a folder's listing is still on its way. */
+  private final Runnable clearWhileLoading = this::clearIfStillLoading;
+
+  private void clearIfStillLoading() {
+    if (pendingPath != null && pendingPath.equals(clearWhileLoadingPath) && !searchMode) {
+      LogUtils.d("FileListController", "Listing still loading, clearing previous entries");
+      adapter.setFiles(java.util.Collections.emptyList());
+      if (fileStatisticsCallback != null) {
+        fileStatisticsCallback.onListingPending();
+      }
+    }
+  }
+
+  /**
+   * Whether the shown folder could not be loaded; the list is empty then, and the toolbar should
+   * not call it a folder with 0 items.
+   *
+   * @return true if the last listing failed
+   */
+  public boolean hasLoadError() {
+    return loadError != null && !searchMode;
   }
 
   /**
@@ -831,6 +869,9 @@ public class FileListController
      * @param files The list of files
      */
     void onFileStatisticsUpdated(@NonNull List<SmbFileItem> files);
+
+    /** Called when the previous folder's entries were cleared while the next listing loads. */
+    default void onListingPending() {}
   }
 
   /**

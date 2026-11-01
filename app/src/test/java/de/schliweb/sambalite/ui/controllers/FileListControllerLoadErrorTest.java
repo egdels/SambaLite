@@ -10,6 +10,8 @@
 package de.schliweb.sambalite.ui.controllers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import android.view.LayoutInflater;
@@ -47,6 +49,8 @@ public class FileListControllerLoadErrorTest {
   private final MutableLiveData<List<SmbFileItem>> files =
       new MutableLiveData<>(Collections.emptyList());
   private final MutableLiveData<String> loadError = new MutableLiveData<>(null);
+  private final MutableLiveData<String> currentPath = new MutableLiveData<>("Data");
+  private int listingPendingCalls = 0;
   private View emptyView;
   private FileListController controller;
 
@@ -55,7 +59,7 @@ public class FileListControllerLoadErrorTest {
     MockitoAnnotations.openMocks(this);
     when(viewModel.getFiles()).thenReturn(files);
     when(viewModel.getLoadError()).thenReturn(loadError);
-    when(viewModel.getCurrentPath()).thenReturn(new MutableLiveData<>("Data"));
+    when(viewModel.getCurrentPath()).thenReturn(currentPath);
     when(viewModel.isLoading()).thenReturn(new MutableLiveData<>(false));
     when(viewModel.getSortOption()).thenReturn(new MutableLiveData<>(FileSortOption.NAME));
     when(viewModel.getDirectoriesFirst()).thenReturn(new MutableLiveData<>(true));
@@ -75,6 +79,61 @@ public class FileListControllerLoadErrorTest {
         root.findViewById(R.id.current_path),
         viewModel,
         new FileBrowserUIState());
+    controller.setFileStatisticsCallback(
+        new FileListController.FileStatisticsCallback() {
+          @Override
+          public void onFileStatisticsUpdated(List<SmbFileItem> list) {}
+
+          @Override
+          public void onListingPending() {
+            listingPendingCalls++;
+          }
+        });
+  }
+
+  private static List<SmbFileItem> someFiles() {
+    return List.of(new SmbFileItem("a.txt", "a.txt", SmbFileItem.Type.FILE, 1, new Date()));
+  }
+
+  @Test
+  public void hasLoadError_onlyWhileTheListingFailed() {
+    loadError.setValue("Connection refused");
+    files.setValue(new ArrayList<>());
+    assertTrue(controller.hasLoadError());
+
+    controller.setSearchMode(true);
+    assertFalse("search results are not a failed folder listing", controller.hasLoadError());
+    controller.setSearchMode(false);
+
+    loadError.setValue(null);
+    files.setValue(someFiles());
+    assertFalse(controller.hasLoadError());
+  }
+
+  @Test
+  public void slowListing_clearsThePreviousFolderAfterADelay() {
+    files.setValue(someFiles());
+
+    currentPath.setValue("Data/Photos");
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(
+        200, java.util.concurrent.TimeUnit.MILLISECONDS);
+    assertEquals("not yet: fast listings must not flicker", 0, listingPendingCalls);
+
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(
+        400, java.util.concurrent.TimeUnit.MILLISECONDS);
+    assertEquals(1, listingPendingCalls);
+  }
+
+  @Test
+  public void fastListing_keepsTheListWithoutClearing() {
+    files.setValue(someFiles());
+
+    currentPath.setValue("Data/Docs");
+    files.setValue(someFiles());
+    org.robolectric.shadows.ShadowLooper.idleMainLooper(
+        1, java.util.concurrent.TimeUnit.SECONDS);
+
+    assertEquals(0, listingPendingCalls);
   }
 
   private String title() {
