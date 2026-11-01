@@ -61,6 +61,23 @@ public class SyncRepositoryTest {
   }
 
   @Test
+  public void saveSyncConfig_existingConfig_keepsItsPosition() {
+    SyncConfig first = repository.saveSyncConfig(createConfig(null, "conn1", "/path1"));
+    repository.saveSyncConfig(createConfig(null, "conn1", "/path2"));
+    repository.saveSyncConfig(createConfig(null, "conn1", "/path3"));
+
+    first.setIntervalMinutes(15);
+    repository.saveSyncConfig(first);
+
+    List<SyncConfig> all = repository.getAllSyncConfigs();
+    assertEquals(3, all.size());
+    assertEquals(first.getId(), all.get(0).getId());
+    assertEquals(15, all.get(0).getIntervalMinutes());
+    assertEquals("/path2", all.get(1).getRemotePath());
+    assertEquals("/path3", all.get(2).getRemotePath());
+  }
+
+  @Test
   public void saveSyncConfig_multipleConfigs_allPersisted() {
     repository.saveSyncConfig(createConfig(null, "conn1", "/path1"));
     repository.saveSyncConfig(createConfig(null, "conn1", "/path2"));

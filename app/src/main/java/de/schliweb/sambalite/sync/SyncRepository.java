@@ -55,12 +55,24 @@ public class SyncRepository {
     if (config.getId() == null || config.getId().isEmpty()) {
       config.setId(UUID.randomUUID().toString());
       LogUtils.d(TAG, "Generated new ID for sync config: " + config.getId());
+      configs.add(config);
     } else {
       LogUtils.d(TAG, "Updating existing sync config with ID: " + config.getId());
-      configs.removeIf(c -> c.getId().equals(config.getId()));
+      // Replace in place so an edited sync keeps its position in the list.
+      int index = -1;
+      for (int i = 0; i < configs.size(); i++) {
+        if (configs.get(i).getId().equals(config.getId())) {
+          index = i;
+          break;
+        }
+      }
+      if (index >= 0) {
+        configs.set(index, config);
+      } else {
+        configs.add(config);
+      }
     }
 
-    configs.add(config);
     saveConfigsToPrefs(configs);
     LogUtils.i(TAG, "Sync config saved successfully: " + config.getId());
     return config;
