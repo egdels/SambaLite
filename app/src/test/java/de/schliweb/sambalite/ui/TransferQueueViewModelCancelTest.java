@@ -56,8 +56,16 @@ public class TransferQueueViewModelCancelTest {
     dao = TransferDatabase.getInstance(app).pendingTransferDao();
   }
 
+  private final java.util.List<Long> inserted = new java.util.ArrayList<>();
+
   @After
-  public void tearDown() {
+  public void tearDown() throws Exception {
+    // The app database is a process-wide singleton: leave nothing behind for other test classes
+    bg(
+        () -> {
+          dao.deleteByIds(inserted);
+          return null;
+        });
     WorkManagerTestInitHelper.closeWorkDatabase();
   }
 
@@ -82,7 +90,9 @@ public class TransferQueueViewModelCancelTest {
     t.connectionId = "c1";
     t.createdAt = System.currentTimeMillis();
     t.updatedAt = t.createdAt;
-    return bg(() -> dao.insert(t));
+    long id = bg(() -> dao.insert(t));
+    inserted.add(id);
+    return id;
   }
 
   private static void drain(TransferQueueViewModel vm) throws Exception {

@@ -371,6 +371,19 @@ public class FileOperationsViewModelEnqueueTest {
       assertFalse(open.contains("r5/other-server.jpg"));
       assertFalse(open.contains("r5/download.jpg"));
     } finally {
+      // The app database is a process-wide singleton: leave nothing behind for other tests
+      io.submit(
+              () -> {
+                for (String c : new String[] {"test-conn-1", "other-conn"}) {
+                  for (PendingTransfer t : appDao.getPendingForConnection(c)) {
+                    if (t.remotePath.startsWith("r5/")) {
+                      appDao.deleteByIds(java.util.Collections.singletonList(t.id));
+                    }
+                  }
+                }
+                return null;
+              })
+          .get(10, TimeUnit.SECONDS);
       io.shutdownNow();
     }
   }

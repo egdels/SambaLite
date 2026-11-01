@@ -83,6 +83,15 @@ public class TransferQueueViewModelCutoffTest {
       assertFalse(containsId(latest.get(), id));
     } finally {
       vm.getActiveTransfers().removeObserver(observer);
+      // The app database is a process-wide singleton: leave nothing behind for other tests
+      ExecutorService cleanup = Executors.newSingleThreadExecutor();
+      try {
+        cleanup
+            .submit(() -> dao.deleteByIds(java.util.Collections.singletonList(id)))
+            .get(10, TimeUnit.SECONDS);
+      } finally {
+        cleanup.shutdown();
+      }
     }
   }
 }
