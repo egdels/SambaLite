@@ -134,12 +134,14 @@ public class DialogController {
       // Check if this folder already has a sync config
       boolean hasSyncConfig = folderSyncCallback != null && folderSyncCallback.hasSyncConfig(file);
       if (hasSyncConfig) {
+        // While the folder syncs, offer to stop the sync instead of "Sync Now" (#41)
+        boolean running = folderSyncCallback.isSyncRunning(file);
         options =
             new String[] {
               context.getString(R.string.download),
               context.getString(R.string.rename),
               context.getString(R.string.delete),
-              context.getString(R.string.sync_now),
+              context.getString(running ? R.string.sync_stop : R.string.sync_now),
               context.getString(R.string.sync_edit_option),
               context.getString(R.string.sync_remove_option)
             };
@@ -200,7 +202,9 @@ public class DialogController {
                 case 3: // Sync now or setup (only for directories)
                   if (folderSyncCallback != null) {
                     boolean hasSync = folderSyncCallback.hasSyncConfig(file);
-                    if (hasSync) {
+                    if (hasSync && folderSyncCallback.isSyncRunning(file)) {
+                      folderSyncCallback.onStopSyncRequested(file);
+                    } else if (hasSync) {
                       folderSyncCallback.onSyncNowRequested(file);
                     } else {
                       folderSyncCallback.onSetupSyncRequested(file);
@@ -786,6 +790,14 @@ public class DialogController {
 
     /** Checks if the given folder already has a sync configuration. */
     boolean hasSyncConfig(@NonNull SmbFileItem folder);
+
+    /** Checks if the sync of the given folder is running right now. */
+    default boolean isSyncRunning(@NonNull SmbFileItem folder) {
+      return false;
+    }
+
+    /** Called when the user wants to stop the running sync of a folder. */
+    default void onStopSyncRequested(@NonNull SmbFileItem folder) {}
   }
 
   public interface SyncSetupCallback {

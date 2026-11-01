@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Stop a running folder sync** (#41): While a folder sync is running, its menu on the main screen offers "Stop Sync" instead of "Sync Now". The sync stops after the file it is transferring; its "Last sync" time stays unchanged, and a scheduled sync keeps its schedule and runs again after the next interval.
+- **Stop a running folder sync** (#41): While a folder sync is running, its menu on the main screen and the menu of the synced folder in the file browser offer "Stop Sync" instead of "Sync Now". The sync stops after the file it is transferring; its "Last sync" time stays unchanged, and a scheduled sync keeps its schedule and runs again after the next interval.
 
 ### Fixed
 - **Messages covered the "New" and "Add Connection" buttons**: Snackbar messages (e.g. "Upload complete", "Connection successful") appeared at the bottom edge on top of the floating button, which hid part of the message. They now appear above the button.

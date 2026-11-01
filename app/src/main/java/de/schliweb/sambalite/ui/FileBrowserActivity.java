@@ -36,6 +36,7 @@ import de.schliweb.sambalite.di.AppComponent;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
+import de.schliweb.sambalite.sync.SyncRunState;
 import de.schliweb.sambalite.transfer.TransferWorker;
 import de.schliweb.sambalite.ui.controllers.*;
 import de.schliweb.sambalite.ui.operations.FileOperationsViewModel;
@@ -77,6 +78,9 @@ public class FileBrowserActivity extends AppCompatActivity
   @Inject BackgroundSmbManager backgroundSmbManager;
 
   @Inject SyncManager syncManager;
+
+  /** Which folder syncs run right now, kept up to date from WorkManager. */
+  private SyncRunState syncRunState = SyncRunState.from(null);
 
   @Inject SmbRepository smbRepository;
 
@@ -378,6 +382,11 @@ public class FileBrowserActivity extends AppCompatActivity
 
     // Set up controller callbacks
     setupControllerCallbacks();
+
+    // Track running folder syncs, so that the folder menu can offer "Stop Sync" (#41)
+    androidx.work.WorkManager.getInstance(this)
+        .getWorkInfosByTagLiveData(SyncManager.UNIQUE_WORK_NAME)
+        .observe(this, infos -> syncRunState = SyncRunState.from(infos));
 
     // Set up UI event listeners
     setupUIEventListeners();
@@ -1092,6 +1101,17 @@ public class FileBrowserActivity extends AppCompatActivity
           @Override
           public boolean hasSyncConfig(SmbFileItem folder) {
             return findSyncConfigForFolder(folder) != null;
+          }
+
+          @Override
+          public boolean isSyncRunning(SmbFileItem folder) {
+            SyncConfig config = findSyncConfigForFolder(folder);
+            return config != null && syncRunState.isRunning(config);
+          }
+
+          @Override
+          public void onStopSyncRequested(SmbFileItem folder) {
+            handleStopSync(folder);
           }
         });
 
@@ -1891,6 +1911,17 @@ public class FileBrowserActivity extends AppCompatActivity
       LogUtils.w("FileBrowserActivity", "No sync config found for folder: " + folder.getName());
       progressController.showError(getString(R.string.sync_config_removed), null);
     }
+  }
+
+  /** Handles stopping a running sync of a folder via the context menu (#41). */
+  void handleStopSync(SmbFileItem folder) {
+    SyncConfig config = findSyncConfigForFolder(folder);
+    if (config == null) {
+      return;
+    }
+    boolean periodicRun = syncRunState.isRunningInPeriodicRun(config);
+    new Thread(() -> syncManager.stopSync(config.getId(), periodicRun), "StopSync").start();
+    progressController.showInfo(getString(R.string.sync_stopped));
   }
 
   /** Handles removing sync from a folder via the context menu. */
