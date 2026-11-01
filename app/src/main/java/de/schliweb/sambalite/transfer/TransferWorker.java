@@ -471,6 +471,17 @@ public class TransferWorker extends Worker {
               break;
             }
 
+            // A download that does not fit fails on its own; smaller ones may still fit
+            if (!hasRoomFor(transfer)) {
+              LogUtils.e(TAG, "Not enough space for download: " + transfer.displayName);
+              logLowSpaceAbort(transfer.displayName + " does not fit", transfer);
+              dao.markFailedPermanently(
+                  transfer.id,
+                  getApplicationContext().getString(R.string.transfer_error_low_space),
+                  System.currentTimeMillis());
+              continue;
+            }
+
             boolean success = processTransfer(dao, share, transfer);
             if (!success) {
               allSuccess = false;
@@ -1786,6 +1797,19 @@ public class TransferWorker extends Worker {
     }
     return EnhancedFileUtils.hasEnoughDiskSpaceForTarget(
         getApplicationContext(), Uri.parse(transfer.localUri));
+  }
+
+  /**
+   * Checks that a download fits on its target volume with the minimum left free. Before, only the
+   * minimum of 10 MB was required, so a download could fill the storage or fail half way.
+   */
+  private boolean hasRoomFor(PendingTransfer transfer) {
+    if (!"DOWNLOAD".equals(transfer.transferType) || transfer.localUri == null) {
+      return true;
+    }
+    long remaining = transfer.fileSize - Math.max(0, transfer.bytesTransferred);
+    return EnhancedFileUtils.hasRoomForDownload(
+        getApplicationContext(), Uri.parse(transfer.localUri), remaining);
   }
 
   /** Lists a local folder once and indexes its children by name (NFC-normalized). */

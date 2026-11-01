@@ -74,6 +74,39 @@ public class EnhancedFileUtils {
     return hasEnoughDiskSpaceForVolume(context, target != null ? resolveVolumeRoot(target) : null);
   }
 
+  /**
+   * Checks whether a download of the given size fits on the volume it writes to and still leaves
+   * {@link #MIN_DISK_SPACE_BYTES} free. A size of 0 or less (unknown) only checks the minimum.
+   *
+   * @param context context for resolving the URI
+   * @param target the SAF URI the download writes to, or {@code null}
+   * @param bytesToWrite how many bytes the download still has to write
+   */
+  public static boolean hasRoomForDownload(
+      @NonNull Context context, @Nullable Uri target, long bytesToWrite) {
+    if (bytesToWrite <= 0) {
+      return hasEnoughDiskSpaceForTarget(context, target);
+    }
+    File volume = target != null ? resolveVolumeRoot(target) : null;
+    return fits(volume != null ? volume : Environment.getExternalStorageDirectory(), bytesToWrite);
+  }
+
+  /** Whether {@code bytes} fit on the volume of {@code dir} with the minimum left free. */
+  static boolean fits(@NonNull File dir, long bytes) {
+    try {
+      long available = new StatFs(dir.getPath()).getAvailableBytes();
+      if (available - bytes < MIN_DISK_SPACE_BYTES) {
+        LogUtils.w(
+            "EnhancedFileUtils",
+            "Not enough space for " + bytes + " bytes: " + available + " bytes available");
+        return false;
+      }
+    } catch (Exception e) {
+      LogUtils.w("EnhancedFileUtils", "Could not check disk space: " + e.getMessage());
+    }
+    return true;
+  }
+
   /** Checks internal storage plus the given volume, or the primary external one if unknown. */
   static boolean hasEnoughDiskSpaceForVolume(@NonNull Context context, @Nullable File volume) {
     boolean internalOk = hasEnoughDiskSpace(context.getFilesDir());

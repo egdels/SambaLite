@@ -136,4 +136,18 @@ public class EnhancedFileUtilsStorageTest {
     assertFalse(EnhancedFileUtils.hasEnoughDiskSpaceForVolume(ctx, sd));
     assertTrue(EnhancedFileUtils.hasEnoughDiskSpaceForVolume(ctx, null));
   }
+
+  @Test
+  public void fits_takesTheFileSizeIntoAccount() {
+    File volume = new File("/data/fits_volume");
+    long thirtyMB = 30L * 1024 * 1024;
+    int blocks = (int) (thirtyMB / 4096);
+    ShadowStatFs.registerStats(volume.getPath(), blocks + 10, blocks, blocks);
+
+    // 30 MB free: 15 MB leave 15 MB, more than the 10 MB minimum
+    assertTrue(EnhancedFileUtils.fits(volume, 15L * 1024 * 1024));
+    // 25 MB would leave only 5 MB, although the 10 MB minimum alone is met
+    assertFalse(EnhancedFileUtils.fits(volume, 25L * 1024 * 1024));
+    assertTrue(EnhancedFileUtils.hasEnoughDiskSpace(volume));
+  }
 }
