@@ -282,26 +282,100 @@ public class DialogController {
         .show();
   }
 
+  private static final String INPUT_RENAME = "rename";
+  private static final String INPUT_CREATE_FOLDER = "create_folder";
+  private static final String KEY_KIND = "kind";
+  private static final String KEY_TEXT = "text";
+  private static final String KEY_NAME = "name";
+  private static final String KEY_PATH = "path";
+  private static final String KEY_IS_DIRECTORY = "is_directory";
+
+  /** The open rename or create-folder dialog, to keep its input across a rotation. */
+  @Nullable private DialogHelper.InputDialog openInputDialog;
+
+  @Nullable private String openInputDialogKind;
+  @Nullable private SmbFileItem openInputDialogFile;
+
+  /**
+   * Saves an open rename or create-folder dialog with the text typed so far, and closes it. The
+   * activity is recreated on rotation, which would otherwise close the dialog and lose the input.
+   *
+   * @return the saved dialog, or {@code null} if none is open
+   */
+  @Nullable
+  public android.os.Bundle saveOpenInputDialog() {
+    DialogHelper.InputDialog open = openInputDialog;
+    if (open == null || !open.isShowing() || openInputDialogKind == null) {
+      return null;
+    }
+    android.os.Bundle state = new android.os.Bundle();
+    state.putString(KEY_KIND, openInputDialogKind);
+    state.putString(KEY_TEXT, open.text());
+    if (openInputDialogFile != null) {
+      state.putString(KEY_NAME, openInputDialogFile.getName());
+      state.putString(KEY_PATH, openInputDialogFile.getPath());
+      state.putBoolean(KEY_IS_DIRECTORY, openInputDialogFile.isDirectory());
+    }
+    open.dialog.dismiss();
+    openInputDialog = null;
+    return state;
+  }
+
+  /** Opens a dialog saved by {@link #saveOpenInputDialog()} again, with its text. */
+  public void restoreOpenInputDialog(@Nullable android.os.Bundle state) {
+    if (state == null) return;
+    String text = state.getString(KEY_TEXT, "");
+    if (INPUT_CREATE_FOLDER.equals(state.getString(KEY_KIND))) {
+      showCreateFolderDialog(text);
+    } else if (INPUT_RENAME.equals(state.getString(KEY_KIND))) {
+      String name = state.getString(KEY_NAME);
+      String path = state.getString(KEY_PATH);
+      if (name == null || path == null) return;
+      SmbFileItem file =
+          new SmbFileItem(
+              name,
+              path,
+              state.getBoolean(KEY_IS_DIRECTORY)
+                  ? SmbFileItem.Type.DIRECTORY
+                  : SmbFileItem.Type.FILE,
+              0,
+              new java.util.Date());
+      if (fileOperationRequester != null) {
+        fileOperationRequester.requestFileRename(file);
+      }
+      showRenameFileDialog(file, text);
+    }
+  }
+
   /**
    * Shows a dialog to rename a file.
    *
    * @param file The file to rename
    */
   public void showRenameFileDialog(@NonNull SmbFileItem file) {
+    showRenameFileDialog(file, file.getName());
+  }
+
+  /** Shows the rename dialog with the given text in its field. */
+  private void showRenameFileDialog(@NonNull SmbFileItem file, @NonNull String text) {
     Context context = getContext();
     if (context == null) return;
 
     LogUtils.d("DialogController", "Showing rename file dialog for: " + file.getName());
-    DialogHelper.showRenameDialog(
-        context,
-        file.getName(),
-        newName -> {
-          if (newName != null && !newName.isEmpty()) {
-            // The requestFileRename method has already been called before showing this dialog
-            // Now we just need to perform the actual rename operation
-            fileOperationsViewModel.renameFile(file, newName, createRenameCallback());
-          }
-        });
+    openInputDialogFile = file;
+    openInputDialogKind = INPUT_RENAME;
+    openInputDialog =
+        DialogHelper.showRenameDialog(
+            context,
+            file.getName(),
+            text,
+            newName -> {
+              if (newName != null && !newName.isEmpty()) {
+                // The requestFileRename method has already been called before showing this dialog
+                // Now we just need to perform the actual rename operation
+                fileOperationsViewModel.renameFile(file, newName, createRenameCallback());
+              }
+            });
   }
 
   /**
@@ -362,20 +436,29 @@ public class DialogController {
 
   /** Shows a dialog to create a new folder. */
   public void showCreateFolderDialog() {
+    showCreateFolderDialog("");
+  }
+
+  /** Shows the create folder dialog with the given text in its field. */
+  private void showCreateFolderDialog(@NonNull String text) {
     Context context = getContext();
     if (context == null) return;
 
     LogUtils.d("DialogController", "Showing create folder dialog");
-    DialogHelper.showInputDialog(
-        context,
-        context.getString(R.string.create_folder),
-        context.getString(R.string.create_folder_dialog_title),
-        context.getString(R.string.folder_name),
-        folderName -> {
-          if (folderName != null && !folderName.isEmpty()) {
-            fileOperationsViewModel.createFolder(folderName, createFolderCallback());
-          }
-        });
+    openInputDialogFile = null;
+    openInputDialogKind = INPUT_CREATE_FOLDER;
+    openInputDialog =
+        DialogHelper.showInputDialog(
+            context,
+            context.getString(R.string.create_folder),
+            context.getString(R.string.create_folder_dialog_title),
+            context.getString(R.string.folder_name),
+            text,
+            folderName -> {
+              if (folderName != null && !folderName.isEmpty()) {
+                fileOperationsViewModel.createFolder(folderName, createFolderCallback());
+              }
+            });
   }
 
   /** Shows a dialog for sorting files. */

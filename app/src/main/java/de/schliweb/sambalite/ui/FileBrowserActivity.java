@@ -60,6 +60,7 @@ public class FileBrowserActivity extends AppCompatActivity
         DialogController.MultiSelectCallback {
 
   private static final String EXTRA_CONNECTION_ID = "extra_connection_id";
+  private static final String STATE_INPUT_DIALOG = "state_input_dialog";
   private static final String EXTRA_SEARCH_QUERY = "extra_search_query";
   private static final String EXTRA_SEARCH_TYPE = "extra_search_type";
   private static final String EXTRA_SEARCH_INCLUDE_SUBFOLDERS = "extra_search_include_subfolders";
@@ -394,6 +395,7 @@ public class FileBrowserActivity extends AppCompatActivity
     if (savedInstanceState != null) {
       fileListController.restoreSelection(
           savedInstanceState.getStringArrayList(STATE_SELECTED_PATHS));
+      dialogController.restoreOpenInputDialog(savedInstanceState.getBundle(STATE_INPUT_DIALOG));
     }
 
     // Reset navigation to root on fresh start to avoid stale paths surviving a swipe-kill
@@ -451,6 +453,13 @@ public class FileBrowserActivity extends AppCompatActivity
     if (fileListController != null) {
       fileListController.saveScrollState();
       outState.putStringArrayList(STATE_SELECTED_PATHS, fileListController.getSelectionForSave());
+    }
+    // Keep an open rename or create-folder dialog with its input
+    if (dialogController != null) {
+      android.os.Bundle inputDialog = dialogController.saveOpenInputDialog();
+      if (inputDialog != null) {
+        outState.putBundle(STATE_INPUT_DIALOG, inputDialog);
+      }
     }
   }
 

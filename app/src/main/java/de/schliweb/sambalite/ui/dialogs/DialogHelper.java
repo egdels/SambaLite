@@ -145,13 +145,25 @@ public class DialogHelper {
    * @param fileName The current file name
    * @param callback The callback for the new name
    */
-  public static void showRenameDialog(
+  public static @NonNull InputDialog showRenameDialog(
       @NonNull Context context, @NonNull String fileName, @Nullable RenameCallback callback) {
+    return showRenameDialog(context, fileName, fileName, callback);
+  }
+
+  /**
+   * Shows a dialog for renaming a file, with the given text in the field (e.g. what the user had
+   * typed before the device was rotated).
+   */
+  public static @NonNull InputDialog showRenameDialog(
+      @NonNull Context context,
+      @NonNull String fileName,
+      @NonNull String initialText,
+      @Nullable RenameCallback callback) {
     View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_rename_file, null);
     TextInputEditText fileNameEditText = dialogView.findViewById(R.id.file_name_edit_text);
     com.google.android.material.textfield.TextInputLayout fileNameLayout =
         dialogView.findViewById(R.id.file_name_input_layout);
-    fileNameEditText.setText(fileName);
+    fileNameEditText.setText(initialText);
     clearErrorOnEdit(fileNameEditText, fileNameLayout);
 
     AlertDialog dialog =
@@ -207,6 +219,28 @@ public class DialogHelper {
     if (context instanceof Activity) {
       setupDialogFocus((Activity) context, fileNameEditText);
     }
+    return new InputDialog(dialog, fileNameEditText);
+  }
+
+  /** An open dialog with a text field, so that its input can be kept across a rotation. */
+  public static final class InputDialog {
+    @NonNull public final AlertDialog dialog;
+    @NonNull public final android.widget.EditText input;
+
+    InputDialog(@NonNull AlertDialog dialog, @NonNull android.widget.EditText input) {
+      this.dialog = dialog;
+      this.input = input;
+    }
+
+    /** Whether the dialog is still open. */
+    public boolean isShowing() {
+      return dialog.isShowing();
+    }
+
+    /** The text currently in the field. */
+    public @NonNull String text() {
+      return input.getText() != null ? input.getText().toString() : "";
+    }
   }
 
   /**
@@ -218,11 +252,22 @@ public class DialogHelper {
    * @param hint The input hint
    * @param callback The callback for the entered text
    */
-  public static void showInputDialog(
+  public static @NonNull InputDialog showInputDialog(
       @NonNull Context context,
       @NonNull String title,
       @NonNull String message,
       @NonNull String hint,
+      @Nullable InputCallback callback) {
+    return showInputDialog(context, title, message, hint, "", callback);
+  }
+
+  /** Shows a dialog for entering text, with the given text already in the field. */
+  public static @NonNull InputDialog showInputDialog(
+      @NonNull Context context,
+      @NonNull String title,
+      @NonNull String message,
+      @NonNull String hint,
+      @NonNull String initialText,
       @Nullable InputCallback callback) {
     LogUtils.d("DialogHelper", "Showing input dialog");
 
@@ -235,6 +280,8 @@ public class DialogHelper {
     input.setMaxLines(1);
     inputLayout.addView(input);
     inputLayout.setHint(hint);
+    input.setText(initialText);
+    input.setSelection(initialText.length());
     int padding = (int) (24 * context.getResources().getDisplayMetrics().density);
     android.widget.FrameLayout container = new android.widget.FrameLayout(context);
     container.setPadding(padding, padding / 3, padding, 0);
@@ -299,6 +346,7 @@ public class DialogHelper {
     if (context instanceof Activity) {
       KeyboardUtils.showKeyboard(context, input);
     }
+    return new InputDialog(dialog, input);
   }
 
   /**
