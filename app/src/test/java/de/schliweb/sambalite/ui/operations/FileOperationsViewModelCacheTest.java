@@ -217,6 +217,53 @@ public class FileOperationsViewModelCacheTest {
         .downloadFileWithProgress(eq(other), eq("/share/report.pdf"), any(File.class), any());
   }
 
+  /**
+   * The download keeps the remote time on the file (here one day old); the cache copy must still
+   * survive the age-based cleanup that runs when the app returns to the foreground, and be a cache
+   * hit when opened again.
+   */
+  @Test
+  public void downloadToCache_oldRemoteFile_survivesCleanupAndHitsNextTime() throws Exception {
+    long remoteSize = 300L;
+    Date remoteDate = new Date(System.currentTimeMillis() - 24L * 60 * 60 * 1000);
+    SmbFileItem file =
+        new SmbFileItem(
+            "old.txt", "/share/Docs/old.txt", SmbFileItem.Type.FILE, remoteSize, remoteDate);
+    doAnswer(
+            invocation -> {
+              File target = invocation.getArgument(2);
+              writeBytes(target, remoteSize);
+              target.setLastModified(remoteDate.getTime()); // like SmbRepositoryImpl
+              return null;
+            })
+        .when(smbRepository)
+        .downloadFileWithProgress(
+            eq(connection), eq("/share/Docs/old.txt"), any(File.class), any());
+
+    CountDownLatch latch = new CountDownLatch(1);
+    AtomicReference<File> result = new AtomicReference<>();
+    viewModel.downloadToCache(
+        file,
+        f -> {
+          result.set(f);
+          latch.countDown();
+        },
+        e -> latch.countDown());
+    latch.await(5, TimeUnit.SECONDS);
+    ShadowLooper.idleMainLooper();
+    assertNotNull(result.get());
+
+    OpenFileCacheManager.cleanupOnAppStart(context);
+    assertTrue("Fresh cache copy must survive the cleanup", result.get().exists());
+
+    AtomicReference<File> second = new AtomicReference<>();
+    viewModel.downloadToCache(file, second::set, e -> {});
+    ShadowLooper.idleMainLooper();
+    assertNotNull(second.get());
+    verify(smbRepository, times(1))
+        .downloadFileWithProgress(eq(connection), eq("/share/Docs/old.txt"), any(), any());
+  }
+
   private File cacheFileFor(String remotePath, String name) {
     return OpenFileCacheManager.getCacheFile(
         context, FileOperationsViewModel.connectionCacheKey(connection), remotePath, name);

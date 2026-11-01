@@ -225,6 +225,8 @@ public class FileOperationsViewModel extends ViewModel {
                 + file.getSize()
                 + " bytes)");
         transferActionLog.log(TransferActionLog.Action.CACHE_HIT, file.getName());
+        // Used again: keep it for another hour
+        targetFile.setLastModified(System.currentTimeMillis());
         mainHandler.post(() -> onSuccess.accept(targetFile));
         return;
       }
@@ -333,6 +335,15 @@ public class FileOperationsViewModel extends ViewModel {
                       + file.getSize()
                       + " bytes, got "
                       + targetFile.length());
+            }
+
+            // The download copies the remote modification time onto the file, but the cache
+            // cleanup removes entries by age: mark the copy with the time it was taken, so it is
+            // not deleted as "older than an hour" as soon as the app returns to the foreground.
+            // A later change on the server (newer remote time) still makes it stale.
+            if (!targetFile.setLastModified(System.currentTimeMillis())) {
+              LogUtils.w(
+                  "FileOperationsViewModel", "Could not set cache time of " + file.getName());
             }
 
             // Enforce cache size limit after download to prevent unbounded growth
