@@ -51,6 +51,7 @@ import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
 import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.ui.adapters.SharesAdapter;
+import de.schliweb.sambalite.ui.controllers.ConnectionFileController;
 import de.schliweb.sambalite.ui.dialogs.NetworkSearchDialog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.ui.utils.TransferErrorText;
@@ -100,6 +101,9 @@ public class MainActivity extends AppCompatActivity
    */
   private final java.util.concurrent.atomic.AtomicInteger shareDiscoveryGeneration =
       new java.util.concurrent.atomic.AtomicInteger();
+
+  /** Import and export of connection files (#48); created in onCreate. */
+  private ConnectionFileController connectionFileController;
 
   // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
   private static final String PREFS = "perm_prefs";
@@ -336,6 +340,8 @@ public class MainActivity extends AppCompatActivity
             });
 
     observeOpenTransfers();
+
+    connectionFileController = new ConnectionFileController(this, viewModel, this::runProtected);
 
     // Observe error messages with enhanced UI feedback
     viewModel
@@ -586,7 +592,14 @@ public class MainActivity extends AppCompatActivity
   @Override
   public void onConnectionClick(@NonNull SmbConnection connection) {
     LogUtils.d("MainActivity", "Connection clicked: " + connection.getName());
+    runProtected(() -> proceedWithConnection(connection));
+  }
 
+  /**
+   * Runs an action behind the access protection: asks for biometrics or the device PIN first if the
+   * protection is on, and refuses if it is on but the device has no screen lock anymore.
+   */
+  private void runProtected(@NonNull Runnable action) {
     if (preferencesManager.isAuthRequiredForAccess()
         && !BiometricAuthHelper.isDeviceAuthAvailable(this)) {
       // The protection is on, but the screen lock it relies on was removed: refuse instead of
@@ -601,7 +614,7 @@ public class MainActivity extends AppCompatActivity
           new BiometricAuthHelper.AuthCallback() {
             @Override
             public void onAuthSuccess() {
-              proceedWithConnection(connection);
+              action.run();
             }
 
             @Override
@@ -616,11 +629,16 @@ public class MainActivity extends AppCompatActivity
             }
           });
     } else {
-      proceedWithConnection(connection);
+      action.run();
     }
   }
 
   void proceedWithConnection(@NonNull SmbConnection connection) {
+
+    if (connection.isIncomplete()) {
+      showIncompleteConnectionDialog(connection);
+      return;
+    }
 
     if (!isValidShareName(connection.getShare())) {
       showInvalidExistingShareDialog(connection);
@@ -801,6 +819,21 @@ public class MainActivity extends AppCompatActivity
     viewModel.saveConnection(connection);
     KeyboardUtils.hideKeyboard(dialog);
     dialog.dismiss();
+  }
+
+  /** Explains that an imported connection lacks credentials or a share, and offers to edit it. */
+  private void showIncompleteConnectionDialog(@NonNull SmbConnection connection) {
+    int message =
+        connection.isCredentialsRequired()
+            ? R.string.incomplete_credentials_message
+            : R.string.incomplete_share_message;
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.incomplete_connection_title)
+        .setMessage(getString(message, connection.getName()))
+        .setPositiveButton(
+            R.string.edit_connection, (dialog, which) -> showEditConnectionDialog(connection))
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   private void showInvalidExistingShareDialog(@NonNull SmbConnection connection) {
@@ -1866,6 +1899,14 @@ public class MainActivity extends AppCompatActivity
       startActivity(intent);
       return true;
     }
+    if (item.getItemId() == R.id.action_import_connections) {
+      connectionFileController.startImport();
+      return true;
+    }
+    if (item.getItemId() == R.id.action_export_connections) {
+      connectionFileController.startExport();
+      return true;
+    }
     if (item.getItemId() == R.id.action_quit) {
       LogUtils.d("MainActivity", "Quit menu item selected");
       handleQuit();
@@ -2202,6 +2243,9 @@ public class MainActivity extends AppCompatActivity
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    if (connectionFileController != null) {
+      connectionFileController.onDestroy();
+    }
     // Clean up network scanner
     if (networkScanner != null) {
       networkScanner.shutdown();

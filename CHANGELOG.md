@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Planned for 3.1.0, after the 3.0.0 release.
 
+### Added
+- **Import and export connections** (#48): The menu of the start screen has "Import connections" and "Export connections". An export writes the selected connections to a JSON file, without passwords and, unless chosen, without usernames, so the same file can set up SambaLite on several phones and each user enters their own credentials. The import shows the connections of a file to select from, marks those already saved, lists entries it skips with the reason, and warns if the file contains passwords. Imported connections without username or password are marked "Credentials needed"; tapping one opens it for editing instead of logging in anonymously. The format is documented in `docs/connection_file.md`, so files can also be written by hand.
+
 ### Fixed
 - **"Discover shares" missed shares with custom names** (#47): Share discovery in the connection dialog tried about 200 common share names, so a share with any other name was never found. It now asks the server for its share list, as Windows Explorer and `smbclient -L` do, and finds every share the server publishes to the user. Shares the server keeps out of its list (`browseable = no`, access-based share enumeration, names ending in `$`) are not shown and can still be typed in. Servers that do not answer the request are probed for the common names as before.
 

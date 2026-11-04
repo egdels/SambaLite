@@ -51,6 +51,7 @@ apksigner verify --print-certs SambaLite-vX.Y.Z.apk
 | Folder Sync            | ✅     | Automatic background sync between device and share ([User Guide](docs/sync_user_guide.md)) |
 | Transfer Queue         | ✅     | Background queuing for uploads and downloads ([User Guide](docs/transfer_queue_user_guide.md)) |
 | Server Search          | ✅     | Finds SMB servers in the local network by port scan and mDNS/Avahi ([details](#finding-servers-in-the-local-network)) |
+| Connection Files       | ✅     | Export connections without passwords and import them on other devices, each user adds their own credentials ([format](docs/connection_file.md)) |
 
 ## Finding Servers in the Local Network
 

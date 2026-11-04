@@ -187,6 +187,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     jsonObject.put("encryptData", connection.isEncryptData());
     jsonObject.put("signingRequired", connection.isSigningRequired());
     jsonObject.put("asyncTransport", connection.isAsyncTransport());
+    jsonObject.put("credentialsRequired", connection.isCredentialsRequired());
     return jsonObject;
   }
 
@@ -206,6 +207,7 @@ public class ConnectionRepositoryImpl implements ConnectionRepository {
     connection.setEncryptData(jsonObject.optBoolean("encryptData", false));
     connection.setSigningRequired(jsonObject.optBoolean("signingRequired", false));
     connection.setAsyncTransport(jsonObject.optBoolean("asyncTransport", false));
+    connection.setCredentialsRequired(jsonObject.optBoolean("credentialsRequired", false));
     return connection;
   }
 }

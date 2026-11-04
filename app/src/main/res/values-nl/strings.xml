@@ -594,4 +594,40 @@
         <item quantity="other">%1$d overdrachten staan nog in de wachtrij of zijn bezig. Ze gaan na het afsluiten op de achtergrond door.</item>
     </plurals>
     <string name="stale_listing_notice">De server is niet bereikbaar. Deze lijst is eerder opgeslagen en is mogelijk niet actueel.</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">Verbindingen importeren</string>
+    <string name="action_export_connections">Verbindingen exporteren</string>
+    <string name="import_button">Importeren</string>
+    <string name="export_button">Exporteren</string>
+    <string name="connection_credentials_needed">Inloggegevens nodig</string>
+    <string name="import_already_saved">al opgeslagen</string>
+    <string name="import_select_connections">Selecteer de verbindingen die je wilt importeren. Verbindingen die al zijn opgeslagen, zijn niet geselecteerd.</string>
+    <string name="import_passwords_warning">Dit bestand bevat wachtwoorden in leesbare tekst. Ze worden opgeslagen als zelf ingevoerde wachtwoorden; verwijder het bestand na het importeren.</string>
+    <string name="import_skipped_header">Overgeslagen:</string>
+    <string name="import_skipped_entry">Item %1$d (%2$s): %3$s</string>
+    <string name="import_skipped_entry_unnamed">Item %1$d: %2$s</string>
+    <string name="import_error_missing_server">geen server</string>
+    <string name="import_error_invalid_server">ongeldig serveradres</string>
+    <string name="import_error_invalid_port">poort moet tussen 1 en 65535 liggen</string>
+    <string name="import_no_connections">Het bestand bevat geen verbindingen.</string>
+    <string name="import_error_not_a_file">Dit bestand is geen SambaLite-verbindingsbestand.</string>
+    <string name="import_error_newer_version">Dit verbindingsbestand is gemaakt met een nieuwere versie van SambaLite. Werk SambaLite bij om het te importeren.</string>
+    <string name="import_error_too_large">Dit bestand is te groot voor een verbindingsbestand.</string>
+    <string name="import_error_read">Het bestand kon niet worden gelezen: %1$s</string>
+    <string name="import_credentials_hint">Tik op een verbinding met „Inloggegevens nodig” om je gebruikersnaam en wachtwoord in te voeren.</string>
+    <plurals name="connections_imported">
+        <item quantity="one">%d verbinding geïmporteerd.</item>
+        <item quantity="other">%d verbindingen geïmporteerd.</item>
+    </plurals>
+    <string name="export_select_connections">Selecteer de verbindingen die je wilt exporteren. Wachtwoorden worden nooit geëxporteerd.</string>
+    <string name="export_include_usernames">Gebruikersnamen meenemen</string>
+    <string name="export_no_connections">Er zijn geen verbindingen om te exporteren.</string>
+    <string name="export_failed">De verbindingen konden niet worden geëxporteerd: %1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="one">%d verbinding geëxporteerd.</item>
+        <item quantity="other">%d verbindingen geëxporteerd.</item>
+    </plurals>
+    <string name="incomplete_connection_title">Verbinding aanvullen</string>
+    <string name="incomplete_credentials_message">„%1$s” is zonder inloggegevens geïmporteerd. Voer je gebruikersnaam en wachtwoord in om haar te gebruiken.</string>
+    <string name="incomplete_share_message">„%1$s” heeft nog geen share. Bewerk de verbinding en kies een share.</string>
 </resources>

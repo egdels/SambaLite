@@ -9,12 +9,15 @@
  */
 package de.schliweb.sambalite.ui;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import de.schliweb.sambalite.R;
+import de.schliweb.sambalite.data.connectionfile.ConnectionFile;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.data.repository.ConnectionRepository;
 import de.schliweb.sambalite.data.repository.SmbRepository;
@@ -22,7 +25,17 @@ import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SmartErrorHandler;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import javax.inject.Inject;
@@ -440,6 +453,229 @@ public class MainViewModel extends ViewModel {
     void onSuccess(@NonNull List<String> shares);
 
     void onError(@NonNull String error);
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Connection files (issue #48)
+
+  /**
+   * A connection file read for import, waiting for the user to pick the connections. Kept here so
+   * the preview survives a rotation; the activity clears it when the dialog is closed.
+   */
+  public static final class ImportPreview {
+    @NonNull public final ConnectionFile.ParseResult result;
+
+    /** Per entry of {@link ConnectionFile.ParseResult#entries}: already saved on this device. */
+    @NonNull public final boolean[] alreadySaved;
+
+    /** Per entry: selected for import. The dialog updates it, so a rotation keeps the choice. */
+    @NonNull public final boolean[] selected;
+
+    ImportPreview(@NonNull ConnectionFile.ParseResult result, @NonNull boolean[] alreadySaved) {
+      this.result = result;
+      this.alreadySaved = alreadySaved;
+      this.selected = new boolean[alreadySaved.length];
+      for (int i = 0; i < selected.length; i++) selected[i] = !alreadySaved[i];
+    }
+  }
+
+  /**
+   * A message about an import or export for the main screen: a string or plurals resource with an
+   * optional count and technical detail. The activity resolves it and then clears it.
+   */
+  public static final class ConnectionFileMessage {
+    @androidx.annotation.StringRes public final int textRes;
+    @androidx.annotation.PluralsRes public final int pluralsRes;
+    public final int count;
+    public final int credentialsNeeded;
+    @NonNull public final String detail;
+
+    ConnectionFileMessage(
+        int textRes, int pluralsRes, int count, int credentialsNeeded, @Nullable String detail) {
+      this.textRes = textRes;
+      this.pluralsRes = pluralsRes;
+      this.count = count;
+      this.credentialsNeeded = credentialsNeeded;
+      this.detail = detail != null ? detail : "";
+    }
+
+    static ConnectionFileMessage text(int textRes, @Nullable String detail) {
+      return new ConnectionFileMessage(textRes, 0, 0, 0, detail);
+    }
+  }
+
+  private final MutableLiveData<ImportPreview> importPreview = new MutableLiveData<>();
+  private final MutableLiveData<ConnectionFileMessage> connectionFileMessage =
+      new MutableLiveData<>();
+
+  /** Connections chosen for an export while the system file picker is open. */
+  @Nullable private List<String> pendingExportIds;
+
+  private boolean pendingExportUsernames;
+
+  public @NonNull LiveData<ImportPreview> getImportPreview() {
+    return importPreview;
+  }
+
+  public @NonNull LiveData<ConnectionFileMessage> getConnectionFileMessage() {
+    return connectionFileMessage;
+  }
+
+  public void clearImportPreview() {
+    importPreview.setValue(null);
+  }
+
+  public void clearConnectionFileMessage() {
+    connectionFileMessage.setValue(null);
+  }
+
+  /** Reads a connection file in the background and offers its connections for import. */
+  public void readConnectionFile(@NonNull ContentResolver resolver, @NonNull Uri uri) {
+    executor.execute(
+        () -> {
+          try {
+            String text = readText(resolver, uri);
+            if (text == null) {
+              connectionFileMessage.postValue(
+                  ConnectionFileMessage.text(R.string.import_error_too_large, null));
+              return;
+            }
+            ConnectionFile.ParseResult result = ConnectionFile.parse(text);
+            if (result.entries.isEmpty() && result.skipped.isEmpty()) {
+              connectionFileMessage.postValue(
+                  ConnectionFileMessage.text(R.string.import_no_connections, null));
+              return;
+            }
+            importPreview.postValue(new ImportPreview(result, markAlreadySaved(result)));
+          } catch (ConnectionFile.ConnectionFileException e) {
+            LogUtils.w("MainViewModel", "Not a usable connection file: " + e.getMessage());
+            connectionFileMessage.postValue(
+                ConnectionFileMessage.text(textFor(e.getError()), e.getMessage()));
+          } catch (IOException | RuntimeException e) {
+            LogUtils.e("MainViewModel", "Could not read connection file: " + e.getMessage());
+            connectionFileMessage.postValue(
+                ConnectionFileMessage.text(R.string.import_error_read, e.getMessage()));
+          }
+        });
+  }
+
+  /** Saves the connections selected in the import preview as new connections. */
+  public void importConnections(@NonNull List<SmbConnection> selected) {
+    executor.execute(
+        () -> {
+          int imported = 0;
+          int credentialsNeeded = 0;
+          try {
+            for (SmbConnection connection : selected) {
+              connection.setId(null); // saved as a new connection
+              if (connectionRepository.saveConnection(connection) != null) {
+                imported++;
+                if (connection.isCredentialsRequired()) credentialsNeeded++;
+              }
+            }
+            connectionFileMessage.postValue(
+                new ConnectionFileMessage(
+                    0, R.plurals.connections_imported, imported, credentialsNeeded, null));
+          } catch (RuntimeException e) {
+            LogUtils.e("MainViewModel", "Import failed: " + e.getMessage());
+            connectionFileMessage.postValue(
+                ConnectionFileMessage.text(R.string.connection_save_failed, e.getMessage()));
+          } finally {
+            loadConnections();
+          }
+        });
+  }
+
+  /** Remembers what to export while the system picker for the target file is open. */
+  public void setPendingExport(@NonNull List<String> connectionIds, boolean includeUsernames) {
+    pendingExportIds = new ArrayList<>(connectionIds);
+    pendingExportUsernames = includeUsernames;
+  }
+
+  /**
+   * Writes the pending export to the chosen file, or drops it if no file was chosen ({@code uri}
+   * null).
+   */
+  public void writePendingExport(@NonNull ContentResolver resolver, @Nullable Uri uri) {
+    List<String> ids = pendingExportIds;
+    boolean includeUsernames = pendingExportUsernames;
+    pendingExportIds = null;
+    if (uri == null || ids == null) return;
+    executor.execute(
+        () -> {
+          try {
+            List<SmbConnection> chosen = new ArrayList<>();
+            for (SmbConnection connection : connectionRepository.getAllConnections()) {
+              if (ids.contains(connection.getId())) chosen.add(connection);
+            }
+            byte[] bytes =
+                ConnectionFile.write(chosen, includeUsernames).getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = resolver.openOutputStream(uri, "wt")) {
+              if (out == null) throw new IOException("No output stream for " + uri);
+              out.write(bytes);
+            }
+            connectionFileMessage.postValue(
+                new ConnectionFileMessage(
+                    0, R.plurals.connections_exported, chosen.size(), 0, null));
+          } catch (IOException | RuntimeException e) {
+            LogUtils.e("MainViewModel", "Export failed: " + e.getMessage());
+            connectionFileMessage.postValue(
+                ConnectionFileMessage.text(R.string.export_failed, e.getMessage()));
+          }
+        });
+  }
+
+  /** Reads the file as UTF-8, or returns null if it is larger than a connection file can be. */
+  @Nullable
+  private static String readText(ContentResolver resolver, Uri uri) throws IOException {
+    try (InputStream in = resolver.openInputStream(uri)) {
+      if (in == null) throw new IOException("No input stream for " + uri);
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      byte[] buffer = new byte[8192];
+      int read;
+      while ((read = in.read(buffer)) != -1) {
+        out.write(buffer, 0, read);
+        if (out.size() > ConnectionFile.MAX_BYTES) return null;
+      }
+      return new String(out.toByteArray(), StandardCharsets.UTF_8);
+    }
+  }
+
+  private boolean[] markAlreadySaved(ConnectionFile.ParseResult result) {
+    Set<String> saved = new HashSet<>();
+    List<SmbConnection> existing = connectionRepository.getAllConnections();
+    for (SmbConnection connection :
+        existing != null ? existing : Collections.<SmbConnection>emptyList()) {
+      saved.add(identity(connection));
+    }
+    boolean[] alreadySaved = new boolean[result.entries.size()];
+    for (int i = 0; i < alreadySaved.length; i++) {
+      alreadySaved[i] = saved.contains(identity(result.entries.get(i).connection));
+    }
+    return alreadySaved;
+  }
+
+  /** Server, port and share: two connections with the same identity reach the same place. */
+  static String identity(@NonNull SmbConnection connection) {
+    String server = connection.getServer() != null ? connection.getServer() : "";
+    String share = connection.getShare() != null ? connection.getShare() : "";
+    return server.trim().toLowerCase(Locale.ROOT)
+        + ":"
+        + connection.getPort()
+        + "/"
+        + share.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private static int textFor(ConnectionFile.FileError error) {
+    switch (error) {
+      case NEWER_VERSION:
+        return R.string.import_error_newer_version;
+      case TOO_LARGE:
+        return R.string.import_error_too_large;
+      case NOT_A_CONNECTION_FILE:
+      default:
+        return R.string.import_error_not_a_file;
+    }
   }
 
   /** Returns the tracker of finished sync work already announced on the main screen. */

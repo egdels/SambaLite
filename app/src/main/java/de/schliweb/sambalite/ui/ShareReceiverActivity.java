@@ -297,8 +297,15 @@ public class ShareReceiverActivity extends AppCompatActivity {
   }
 
   private void showConnectionSelectionForFolderChange() {
-    List<SmbConnection> connections = connectionRepository.getAllConnections();
-    if (connections == null || connections.isEmpty()) {
+    List<SmbConnection> connections = new java.util.ArrayList<>();
+    List<SmbConnection> all = connectionRepository.getAllConnections();
+    if (all != null) {
+      for (SmbConnection connection : all) {
+        // An imported connection without credentials or share cannot be browsed yet (#48)
+        if (!connection.isIncomplete()) connections.add(connection);
+      }
+    }
+    if (connections.isEmpty()) {
       dialogController.showNeedsTargetFolderDialog();
       return;
     }

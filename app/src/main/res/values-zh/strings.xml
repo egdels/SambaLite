@@ -572,4 +572,38 @@
         <item quantity="other">还有 %1$d 个传输在排队或进行中。退出后它们将在后台继续。</item>
     </plurals>
     <string name="stale_listing_notice">无法连接服务器。此列表为之前保存的内容，可能已过时。</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">导入连接</string>
+    <string name="action_export_connections">导出连接</string>
+    <string name="import_button">导入</string>
+    <string name="export_button">导出</string>
+    <string name="connection_credentials_needed">需要登录凭据</string>
+    <string name="import_already_saved">已保存</string>
+    <string name="import_select_connections">选择要导入的连接。已保存的连接默认不选中。</string>
+    <string name="import_passwords_warning">此文件包含明文密码。这些密码会像您手动输入的密码一样被保存；导入后请删除该文件。</string>
+    <string name="import_skipped_header">已跳过：</string>
+    <string name="import_skipped_entry">第 %1$d 项（%2$s）：%3$s</string>
+    <string name="import_skipped_entry_unnamed">第 %1$d 项：%2$s</string>
+    <string name="import_error_missing_server">缺少服务器</string>
+    <string name="import_error_invalid_server">服务器地址无效</string>
+    <string name="import_error_invalid_port">端口必须在 1 到 65535 之间</string>
+    <string name="import_no_connections">该文件不包含任何连接。</string>
+    <string name="import_error_not_a_file">此文件不是 SambaLite 连接文件。</string>
+    <string name="import_error_newer_version">此连接文件由更新版本的 SambaLite 创建。请更新 SambaLite 后再导入。</string>
+    <string name="import_error_too_large">此文件过大，不像是连接文件。</string>
+    <string name="import_error_read">无法读取文件：%1$s</string>
+    <string name="import_credentials_hint">点按标有“需要登录凭据”的连接，输入您的用户名和密码。</string>
+    <plurals name="connections_imported">
+        <item quantity="other">已导入 %d 个连接。</item>
+    </plurals>
+    <string name="export_select_connections">选择要导出的连接。密码永远不会被导出。</string>
+    <string name="export_include_usernames">包含用户名</string>
+    <string name="export_no_connections">没有可导出的连接。</string>
+    <string name="export_failed">无法导出连接：%1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="other">已导出 %d 个连接。</item>
+    </plurals>
+    <string name="incomplete_connection_title">完善连接</string>
+    <string name="incomplete_credentials_message">“%1$s”导入时没有登录凭据。请输入您的用户名和密码后使用。</string>
+    <string name="incomplete_share_message">“%1$s”尚未设置分享。请编辑该连接并选择一个分享。</string>
 </resources>

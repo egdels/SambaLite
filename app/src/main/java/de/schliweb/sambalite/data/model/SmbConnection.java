@@ -42,8 +42,22 @@ public class SmbConnection implements Serializable {
   // If true, use async transport for improved transfer performance
   private boolean asyncTransport = false;
 
+  /**
+   * Set for a connection imported from a connection file without (complete) credentials, so it is
+   * not used for an anonymous login by mistake. Saving the connection dialog clears it (#48).
+   */
+  private boolean credentialsRequired = false;
+
   /** Default constructor for SmbConnection. */
   public SmbConnection() {}
+
+  /**
+   * Whether the connection cannot be used yet and has to be completed in the connection dialog:
+   * imported without credentials, or without a share.
+   */
+  public boolean isIncomplete() {
+    return credentialsRequired || share == null || share.trim().isEmpty();
+  }
 
   @Override
   public String toString() {
@@ -78,6 +92,8 @@ public class SmbConnection implements Serializable {
         + signingRequired
         + ", asyncTransport="
         + asyncTransport
+        + ", credentialsRequired="
+        + credentialsRequired
         + '}';
   }
 }

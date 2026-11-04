@@ -605,4 +605,40 @@
         <item quantity="other">%1$d transfers are still queued or running. They continue in the background after you quit.</item>
     </plurals>
     <string name="stale_listing_notice">Could not reach the server. This list was saved earlier and may be out of date.</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">Import connections</string>
+    <string name="action_export_connections">Export connections</string>
+    <string name="import_button">Import</string>
+    <string name="export_button">Export</string>
+    <string name="connection_credentials_needed">Credentials needed</string>
+    <string name="import_already_saved">already saved</string>
+    <string name="import_select_connections">Select the connections to import. Connections that are already saved are not selected.</string>
+    <string name="import_passwords_warning">This file contains passwords in plain text. They are saved like passwords you enter; delete the file after the import.</string>
+    <string name="import_skipped_header">Skipped:</string>
+    <string name="import_skipped_entry">Entry %1$d (%2$s): %3$s</string>
+    <string name="import_skipped_entry_unnamed">Entry %1$d: %2$s</string>
+    <string name="import_error_missing_server">no server</string>
+    <string name="import_error_invalid_server">invalid server address</string>
+    <string name="import_error_invalid_port">port must be between 1 and 65535</string>
+    <string name="import_no_connections">The file contains no connections.</string>
+    <string name="import_error_not_a_file">This file is not a SambaLite connection file.</string>
+    <string name="import_error_newer_version">This connection file was made by a newer version of SambaLite. Update SambaLite to import it.</string>
+    <string name="import_error_too_large">This file is too large for a connection file.</string>
+    <string name="import_error_read">The file could not be read: %1$s</string>
+    <string name="import_credentials_hint">Tap a connection marked “Credentials needed” to enter your username and password.</string>
+    <plurals name="connections_imported">
+        <item quantity="one">%d connection imported.</item>
+        <item quantity="other">%d connections imported.</item>
+    </plurals>
+    <string name="export_select_connections">Select the connections to export. Passwords are never exported.</string>
+    <string name="export_include_usernames">Include usernames</string>
+    <string name="export_no_connections">There are no connections to export.</string>
+    <string name="export_failed">The connections could not be exported: %1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="one">%d connection exported.</item>
+        <item quantity="other">%d connections exported.</item>
+    </plurals>
+    <string name="incomplete_connection_title">Complete the connection</string>
+    <string name="incomplete_credentials_message">“%1$s” was imported without credentials. Enter your username and password to use it.</string>
+    <string name="incomplete_share_message">“%1$s” has no share yet. Edit it and choose a share.</string>
 </resources>

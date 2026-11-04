@@ -594,4 +594,40 @@
         <item quantity="other">%1$d Transfers warten noch oder laufen. Sie laufen nach dem Beenden im Hintergrund weiter.</item>
     </plurals>
     <string name="stale_listing_notice">Der Server ist nicht erreichbar. Diese Liste wurde früher gespeichert und ist eventuell nicht aktuell.</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">Verbindungen importieren</string>
+    <string name="action_export_connections">Verbindungen exportieren</string>
+    <string name="import_button">Importieren</string>
+    <string name="export_button">Exportieren</string>
+    <string name="connection_credentials_needed">Zugangsdaten fehlen</string>
+    <string name="import_already_saved">bereits gespeichert</string>
+    <string name="import_select_connections">Wähle die Verbindungen, die importiert werden sollen. Bereits gespeicherte Verbindungen sind nicht ausgewählt.</string>
+    <string name="import_passwords_warning">Diese Datei enthält Passwörter im Klartext. Sie werden wie selbst eingegebene Passwörter gespeichert; lösche die Datei nach dem Import.</string>
+    <string name="import_skipped_header">Übersprungen:</string>
+    <string name="import_skipped_entry">Eintrag %1$d (%2$s): %3$s</string>
+    <string name="import_skipped_entry_unnamed">Eintrag %1$d: %2$s</string>
+    <string name="import_error_missing_server">kein Server</string>
+    <string name="import_error_invalid_server">ungültige Serveradresse</string>
+    <string name="import_error_invalid_port">Port muss zwischen 1 und 65535 liegen</string>
+    <string name="import_no_connections">Die Datei enthält keine Verbindungen.</string>
+    <string name="import_error_not_a_file">Diese Datei ist keine SambaLite-Verbindungsdatei.</string>
+    <string name="import_error_newer_version">Diese Verbindungsdatei stammt von einer neueren SambaLite-Version. Aktualisiere SambaLite, um sie zu importieren.</string>
+    <string name="import_error_too_large">Diese Datei ist zu groß für eine Verbindungsdatei.</string>
+    <string name="import_error_read">Die Datei konnte nicht gelesen werden: %1$s</string>
+    <string name="import_credentials_hint">Tippe auf eine Verbindung mit „Zugangsdaten fehlen“, um Benutzername und Passwort einzugeben.</string>
+    <plurals name="connections_imported">
+        <item quantity="one">%d Verbindung importiert.</item>
+        <item quantity="other">%d Verbindungen importiert.</item>
+    </plurals>
+    <string name="export_select_connections">Wähle die Verbindungen, die exportiert werden sollen. Passwörter werden nie exportiert.</string>
+    <string name="export_include_usernames">Benutzernamen einschließen</string>
+    <string name="export_no_connections">Es gibt keine Verbindungen zum Exportieren.</string>
+    <string name="export_failed">Die Verbindungen konnten nicht exportiert werden: %1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="one">%d Verbindung exportiert.</item>
+        <item quantity="other">%d Verbindungen exportiert.</item>
+    </plurals>
+    <string name="incomplete_connection_title">Verbindung vervollständigen</string>
+    <string name="incomplete_credentials_message">„%1$s“ wurde ohne Zugangsdaten importiert. Gib Benutzername und Passwort ein, um sie zu nutzen.</string>
+    <string name="incomplete_share_message">„%1$s“ hat noch keine Freigabe. Bearbeite die Verbindung und wähle eine Freigabe.</string>
 </resources>

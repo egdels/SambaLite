@@ -619,4 +619,42 @@
         <item quantity="other">%1$d transferts sont encore en attente ou en cours. Ils continuent en arrière-plan après la fermeture.</item>
     </plurals>
     <string name="stale_listing_notice">Impossible de joindre le serveur. Cette liste a été enregistrée auparavant et n’est peut-être plus à jour.</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">Importer des connexions</string>
+    <string name="action_export_connections">Exporter des connexions</string>
+    <string name="import_button">Importer</string>
+    <string name="export_button">Exporter</string>
+    <string name="connection_credentials_needed">Identifiants requis</string>
+    <string name="import_already_saved">déjà enregistrée</string>
+    <string name="import_select_connections">Sélectionnez les connexions à importer. Les connexions déjà enregistrées ne sont pas sélectionnées.</string>
+    <string name="import_passwords_warning">Ce fichier contient des mots de passe en clair. Ils sont enregistrés comme ceux que vous saisissez ; supprimez le fichier après l’importation.</string>
+    <string name="import_skipped_header">Ignorées :</string>
+    <string name="import_skipped_entry">Entrée %1$d (%2$s) : %3$s</string>
+    <string name="import_skipped_entry_unnamed">Entrée %1$d : %2$s</string>
+    <string name="import_error_missing_server">aucun serveur</string>
+    <string name="import_error_invalid_server">adresse de serveur invalide</string>
+    <string name="import_error_invalid_port">le port doit être compris entre 1 et 65535</string>
+    <string name="import_no_connections">Le fichier ne contient aucune connexion.</string>
+    <string name="import_error_not_a_file">Ce fichier n’est pas un fichier de connexions SambaLite.</string>
+    <string name="import_error_newer_version">Ce fichier de connexions provient d’une version plus récente de SambaLite. Mettez SambaLite à jour pour l’importer.</string>
+    <string name="import_error_too_large">Ce fichier est trop volumineux pour un fichier de connexions.</string>
+    <string name="import_error_read">Le fichier n’a pas pu être lu : %1$s</string>
+    <string name="import_credentials_hint">Touchez une connexion marquée « Identifiants requis » pour saisir votre nom d’utilisateur et votre mot de passe.</string>
+    <plurals name="connections_imported">
+        <item quantity="one">%d connexion importée.</item>
+        <item quantity="many">%d connexions importées.</item>
+        <item quantity="other">%d connexions importées.</item>
+    </plurals>
+    <string name="export_select_connections">Sélectionnez les connexions à exporter. Les mots de passe ne sont jamais exportés.</string>
+    <string name="export_include_usernames">Inclure les noms d’utilisateur</string>
+    <string name="export_no_connections">Aucune connexion à exporter.</string>
+    <string name="export_failed">Les connexions n’ont pas pu être exportées : %1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="one">%d connexion exportée.</item>
+        <item quantity="many">%d connexions exportées.</item>
+        <item quantity="other">%d connexions exportées.</item>
+    </plurals>
+    <string name="incomplete_connection_title">Compléter la connexion</string>
+    <string name="incomplete_credentials_message">« %1$s » a été importée sans identifiants. Saisissez votre nom d’utilisateur et votre mot de passe pour l’utiliser.</string>
+    <string name="incomplete_share_message">« %1$s » n’a pas encore de partage. Modifiez-la et choisissez un partage.</string>
 </resources>

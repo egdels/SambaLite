@@ -645,4 +645,44 @@
         <item quantity="other">Transfery w kolejce lub w toku: %1$d. Będą kontynuowane w tle po zamknięciu aplikacji.</item>
     </plurals>
     <string name="stale_listing_notice">Nie można połączyć się z serwerem. Ta lista została zapisana wcześniej i może być nieaktualna.</string>
+    <!-- Connection files: import and export (issue #48) -->
+    <string name="action_import_connections">Importuj połączenia</string>
+    <string name="action_export_connections">Eksportuj połączenia</string>
+    <string name="import_button">Importuj</string>
+    <string name="export_button">Eksportuj</string>
+    <string name="connection_credentials_needed">Wymagane dane logowania</string>
+    <string name="import_already_saved">już zapisane</string>
+    <string name="import_select_connections">Wybierz połączenia do zaimportowania. Połączenia, które są już zapisane, nie są zaznaczone.</string>
+    <string name="import_passwords_warning">Ten plik zawiera hasła w postaci jawnej. Zostaną zapisane tak jak hasła wpisane ręcznie; po imporcie usuń plik.</string>
+    <string name="import_skipped_header">Pominięte:</string>
+    <string name="import_skipped_entry">Wpis %1$d (%2$s): %3$s</string>
+    <string name="import_skipped_entry_unnamed">Wpis %1$d: %2$s</string>
+    <string name="import_error_missing_server">brak serwera</string>
+    <string name="import_error_invalid_server">nieprawidłowy adres serwera</string>
+    <string name="import_error_invalid_port">port musi mieścić się w zakresie od 1 do 65535</string>
+    <string name="import_no_connections">Plik nie zawiera żadnych połączeń.</string>
+    <string name="import_error_not_a_file">Ten plik nie jest plikiem połączeń SambaLite.</string>
+    <string name="import_error_newer_version">Ten plik połączeń pochodzi z nowszej wersji SambaLite. Zaktualizuj SambaLite, aby go zaimportować.</string>
+    <string name="import_error_too_large">Ten plik jest za duży jak na plik połączeń.</string>
+    <string name="import_error_read">Nie udało się odczytać pliku: %1$s</string>
+    <string name="import_credentials_hint">Dotknij połączenia oznaczonego „Wymagane dane logowania”, aby wpisać nazwę użytkownika i hasło.</string>
+    <plurals name="connections_imported">
+        <item quantity="one">Zaimportowano %d połączenie.</item>
+        <item quantity="few">Zaimportowano %d połączenia.</item>
+        <item quantity="many">Zaimportowano %d połączeń.</item>
+        <item quantity="other">Zaimportowano %d połączenia.</item>
+    </plurals>
+    <string name="export_select_connections">Wybierz połączenia do wyeksportowania. Hasła nigdy nie są eksportowane.</string>
+    <string name="export_include_usernames">Dołącz nazwy użytkowników</string>
+    <string name="export_no_connections">Brak połączeń do wyeksportowania.</string>
+    <string name="export_failed">Nie udało się wyeksportować połączeń: %1$s</string>
+    <plurals name="connections_exported">
+        <item quantity="one">Wyeksportowano %d połączenie.</item>
+        <item quantity="few">Wyeksportowano %d połączenia.</item>
+        <item quantity="many">Wyeksportowano %d połączeń.</item>
+        <item quantity="other">Wyeksportowano %d połączenia.</item>
+    </plurals>
+    <string name="incomplete_connection_title">Uzupełnij połączenie</string>
+    <string name="incomplete_credentials_message">Połączenie „%1$s” zostało zaimportowane bez danych logowania. Wpisz nazwę użytkownika i hasło, aby z niego korzystać.</string>
+    <string name="incomplete_share_message">Połączenie „%1$s” nie ma jeszcze udziału. Edytuj je i wybierz udział.</string>
 </resources>

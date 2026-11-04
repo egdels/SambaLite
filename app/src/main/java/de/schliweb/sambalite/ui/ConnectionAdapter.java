@@ -154,12 +154,18 @@ public class ConnectionAdapter
       if (connection.getPort() != SmbConnection.DEFAULT_PORT) {
         details += ":" + connection.getPort();
       }
-      details += "/" + connection.getShare();
+      if (connection.getShare() != null && !connection.getShare().isEmpty()) {
+        details += "/" + connection.getShare();
+      }
       detailsTextView.setText(details);
 
       // Show user info if available
       String userInfo = connection.getUsername();
-      if (userInfo != null && !userInfo.trim().isEmpty()) {
+      if (connection.isCredentialsRequired()) {
+        // Imported without credentials (#48): tapping it opens the connection dialog
+        userTextView.setText(context.getString(R.string.connection_credentials_needed));
+        userTextView.setVisibility(View.VISIBLE);
+      } else if (userInfo != null && !userInfo.trim().isEmpty()) {
         String domain = connection.getDomain();
         if (domain != null && !domain.trim().isEmpty()) {
           userInfo = userInfo + "@" + domain;

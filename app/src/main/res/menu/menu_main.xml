@@ -22,6 +22,18 @@
         android:orderInCategory="10" />
 
     <item
+        android:id="@+id/action_import_connections"
+        android:title="@string/action_import_connections"
+        app:showAsAction="never"
+        android:orderInCategory="50" />
+
+    <item
+        android:id="@+id/action_export_connections"
+        android:title="@string/action_export_connections"
+        app:showAsAction="never"
+        android:orderInCategory="51" />
+
+    <item
         android:id="@+id/action_quit"
         android:title="@string/quit_app"
         android:icon="@drawable/ic_power_off"
