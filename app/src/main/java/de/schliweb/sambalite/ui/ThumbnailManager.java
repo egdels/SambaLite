@@ -692,11 +692,11 @@ public class ThumbnailManager {
     }
   }
 
-  @NonNull
   /**
    * The cache key of a thumbnail: connection, path, size and modification time, so that the same
    * path on another connection, or a file changed on the server, gets its own thumbnail.
    */
+  @NonNull
   private String getCacheKey(@NonNull String remotePath, long fileSize, long lastModified) {
     SmbConnection conn = this.connection;
     return cacheKeyOf(conn != null ? conn.getId() : null, remotePath, fileSize, lastModified);
