@@ -1,0 +1,3 @@
+- Improved: Share discovery asks the server for its share list, so shares with any name are found, also on TrueNAS (issue #47).
+- Improved: The connection dialog asks for username and password before the share, so the share list appears right below them.
+- Note: Shares hidden on the server (browseable = no, names ending in $) can still be typed in by hand.

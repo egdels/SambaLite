@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Planned for 3.1.0, after the 3.0.0 release.
+
+### Fixed
+- **"Discover shares" missed shares with custom names** (#47): Share discovery in the connection dialog tried about 200 common share names, so a share with any other name was never found. It now asks the server for its share list, as Windows Explorer and `smbclient -L` do, and finds every share the server publishes to the user. Shares the server keeps out of its list (`browseable = no`, access-based share enumeration, names ending in `$`) are not shown and can still be typed in. Servers that do not answer the request are probed for the common names as before.
+
+### Changed
+- **Credentials before the share in the connection dialog**: The connection dialog asks for username, password and domain right after the server and port, and only then for the share. Share discovery starts as soon as the server is entered and runs again with the credentials, so the list of shares now appears below the fields just filled in, already with the user's permissions. Before, the share field came first, and servers that do not list their shares anonymously showed "Could not connect to server. Check credentials." there before the credentials could be entered. A discovery that finishes late, such as the anonymous one, no longer replaces the result of a newer one.
+
 ## [3.0.0] - 2026-11-04
 
 ### Added
