@@ -93,6 +93,14 @@ public class MainActivity extends AppCompatActivity
   boolean discoverRequireSigning = false;
   int discoverPort = SmbConnection.DEFAULT_PORT;
 
+  /**
+   * Counts share discoveries; only the newest may update the dialog. Typing the server starts an
+   * anonymous discovery and the credentials start another one; a slow anonymous attempt that fails
+   * must not replace the list found with the credentials.
+   */
+  private final java.util.concurrent.atomic.AtomicInteger shareDiscoveryGeneration =
+      new java.util.concurrent.atomic.AtomicInteger();
+
   // Felder (optional, um Erstversuch zu tracken – vermeidet aggressives "ab in die Settings")
   private static final String PREFS = "perm_prefs";
   private static final String KEY_ASKED_NOTIF_ONCE = "asked_notif_once";
@@ -2118,6 +2126,7 @@ public class MainActivity extends AppCompatActivity
       SharesAdapter sharesAdapter,
       TextView sharesStatusText) {
     LogUtils.d("MainActivity", "Discovering shares on server: " + server);
+    final int generation = shareDiscoveryGeneration.incrementAndGet();
 
     // Show shares section and progress
     sharesSection.setVisibility(View.VISIBLE);
@@ -2145,6 +2154,7 @@ public class MainActivity extends AppCompatActivity
           public void onSuccess(java.util.List<String> shares) {
             runOnUiThread(
                 () -> {
+                  if (generation != shareDiscoveryGeneration.get()) return; // superseded
                   LogUtils.d(
                       "MainActivity", "Found " + shares.size() + " shares on server: " + server);
                   sharesProgress.setVisibility(View.GONE);
@@ -2162,6 +2172,7 @@ public class MainActivity extends AppCompatActivity
           public void onError(String error) {
             runOnUiThread(
                 () -> {
+                  if (generation != shareDiscoveryGeneration.get()) return; // superseded
                   LogUtils.w("MainActivity", "Failed to discover shares: " + error);
                   sharesProgress.setVisibility(View.GONE);
                   sharesStatusText.setText(R.string.could_not_connect_check_credentials);
