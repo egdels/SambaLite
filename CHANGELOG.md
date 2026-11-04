@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Planned for 3.1.0, after the 3.0.0 release.
-
 ### Added
 - **Import and export connections** (#48): The menu of the start screen has "Import connections" and "Export connections". An export writes the selected connections to a JSON file, without passwords and, unless chosen, without usernames, so the same file can set up SambaLite on several phones and each user enters their own credentials. The import shows the connections of a file to select from, marks those already saved, lists entries it skips with the reason, and warns if the file contains passwords. Imported connections without username or password are marked "Credentials needed"; tapping one opens it for editing instead of logging in anonymously. The format is documented in `docs/connection_file.md`, so files can also be written by hand.
 
