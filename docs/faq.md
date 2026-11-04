@@ -50,7 +50,7 @@
 
 - Make sure **browseable = yes** is set in the share.
 - Check if the firewall is blocking access (port 445/TCP must be open).
-- Not all clients list all shares automatically – with SambaLite, you may need to enter the share name manually.
+- SambaLite lists the shares the server publishes to the user you enter. Shares with **browseable = no**, names ending in **$**, and shares hidden by **access based share enum** are not listed – type their name into the share field instead. If the server does not answer the request for its share list, SambaLite tries common share names, which can miss custom ones.
 
 ---
 

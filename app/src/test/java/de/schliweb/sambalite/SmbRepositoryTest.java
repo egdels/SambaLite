@@ -133,9 +133,8 @@ public class SmbRepositoryTest {
   @Test
   public void testListSharesUsesConfiguredPort() throws Exception {
     assertNotEquals(SmbConnection.DEFAULT_PORT, testConnection.getPort());
-    // listShares probes common share names only, so "testshare" is not expected in the result;
-    // what matters is that it reaches the server on the configured port and fails on a closed one
-    assertNotNull(smbRepository.listShares(testConnection));
+    // The server lists its shares (issue #47), so the custom name "testshare" is found as well
+    assertTrue(smbRepository.listShares(testConnection).contains("testshare"));
 
     SmbConnection closed = copyOf(testConnection);
     closed.setPort(closedPort());

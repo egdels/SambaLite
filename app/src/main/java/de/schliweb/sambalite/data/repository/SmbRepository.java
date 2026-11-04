@@ -309,6 +309,10 @@ public interface SmbRepository {
   /**
    * Lists available shares on the SMB server.
    *
+   * <p>Asks the server for the disk shares it publishes to this user (srvsvc {@code
+   * NetrShareEnum}). Servers that do not answer that call are probed for common share names
+   * instead, which can miss custom names.
+   *
    * @param connection The SMB connection to use (only server, username, password, domain are
    *     needed)
    * @return A list of share names available on the server

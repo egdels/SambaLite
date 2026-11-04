@@ -1829,7 +1829,21 @@ public class SmbRepositoryImpl implements SmbRepository {
         // Enforce per-connection security requirements (encryption/signing)
         enforceSecurityRequirements(connection, session);
 
-        // Fallback: Try common share names
+        // Ask the server for its share list (issue #47), as Explorer and smbclient -L do
+        try {
+          List<String> shares =
+              SrvsvcShareEnumerator.listDiskShares(session, connection.getServer());
+          LogUtils.i(
+              "SmbRepositoryImpl",
+              "Server " + connection.getServer() + " lists " + shares.size() + " shares");
+          return shares;
+        } catch (IOException e) {
+          LogUtils.w(
+              "SmbRepositoryImpl",
+              "Server did not list its shares, probing common share names: " + e.getMessage());
+        }
+
+        // Fallback for servers without the srvsvc pipe: try common share names
         String[] commonShares = {
           // General
           "Share",
