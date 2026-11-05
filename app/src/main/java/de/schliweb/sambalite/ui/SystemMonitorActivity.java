@@ -11,18 +11,31 @@ package de.schliweb.sambalite.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.SambaLiteApp;
 import de.schliweb.sambalite.cache.IntelligentCacheManager;
@@ -30,258 +43,319 @@ import de.schliweb.sambalite.cache.statistics.CacheStatistics;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
 import de.schliweb.sambalite.sync.SyncActionLog;
 import de.schliweb.sambalite.sync.SyncConfig;
+import de.schliweb.sambalite.sync.SyncManager;
 import de.schliweb.sambalite.sync.SyncRepository;
 import de.schliweb.sambalite.sync.db.SyncStateStore;
+import de.schliweb.sambalite.ui.monitor.DiagnosticsReport;
+import de.schliweb.sambalite.ui.monitor.SyncLogActivity;
+import de.schliweb.sambalite.ui.monitor.SyncMonitorState;
+import de.schliweb.sambalite.ui.monitor.SyncMonitorUi;
+import de.schliweb.sambalite.ui.monitor.SyncStatusDetailActivity;
 import de.schliweb.sambalite.ui.operations.TransferActionLog;
-import de.schliweb.sambalite.ui.utils.LoadingIndicator;
+import de.schliweb.sambalite.util.BatteryOptimizationUtils;
 import de.schliweb.sambalite.util.EnhancedFileUtils;
 import de.schliweb.sambalite.util.LogUtils;
 import de.schliweb.sambalite.util.SimplePerformanceMonitor;
 import de.schliweb.sambalite.util.SmartErrorHandler;
 import de.schliweb.sambalite.util.StorageStatusReport;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javax.inject.Inject;
 
 /**
- * Advanced system monitoring and administration activity for SambaLite. Provides comprehensive
- * insights into app performance, cache, network, and errors.
+ * The System Monitor (#50). It answers "do my syncs work, and if not, what do I do?": an overall
+ * state at the top, a card per folder sync with its last run, history and live progress, a search
+ * for why a file was not synced, and the technical details of the app collapsed at the bottom.
  */
 public class SystemMonitorActivity extends AppCompatActivity {
 
   private static final String TAG = "SystemMonitorActivity";
 
-  private TextView statusOverview;
-  private LoadingIndicator loadingIndicator;
-  private SmartErrorHandler errorHandler;
+  /** How often relative times ("6 minutes ago") are refreshed while the screen is shown. */
+  private static final long TICK_MS = 30_000;
 
   @Inject BackgroundSmbManager backgroundSmbManager;
 
-  public static @Nullable Intent createIntent(@NonNull Context context) {
+  private final ExecutorService executor = Executors.newSingleThreadExecutor();
+  private final Handler handler = new Handler(Looper.getMainLooper());
+  private final Runnable tick = this::tick;
+
+  private TextView statusOverview;
+  private View techCard;
+  private ImageView techChevron;
+  private LinearLayout syncCards;
+  private MaterialCardView bannerCard;
+  private ImageView bannerIcon;
+  private TextView bannerTitle;
+  private TextView bannerDetail;
+  private View batteryCard;
+
+  @Nullable private List<WorkInfo> workInfos;
+  private boolean techLoaded;
+
+  public static @NonNull Intent createIntent(@NonNull Context context) {
     return new Intent(context, SystemMonitorActivity.class);
   }
 
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
-    // Inject dependencies
     ((SambaLiteApp) getApplication()).getAppComponent().inject(this);
-
     super.onCreate(savedInstanceState);
-
-    // Initialize loading indicator
-    loadingIndicator = new LoadingIndicator(this);
-    LogUtils.d(TAG, "Loading indicator initialized");
-
-    // Configure edge-to-edge display using backward-compatible helper (Android 15+ safe)
     EdgeToEdge.enable(this);
-
-    LogUtils.d(TAG, "SystemMonitorActivity created");
-
-    // Initialize SmartErrorHandler
-    errorHandler = ((SambaLiteApp) getApplication()).getErrorHandler();
-
-    // Use XML layout instead of programmatic creation
     setContentView(R.layout.activity_system_monitor);
 
-    // Set up the toolbar
     androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
-    if (toolbar != null) {
-      de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
-    }
-    if (toolbar != null) {
-      setSupportActionBar(toolbar);
-      if (getSupportActionBar() != null) {
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(getString(R.string.system_monitor));
-      }
-    }
-
-    // Apply window insets for navigation bar
-    androidx.core.widget.NestedScrollView scrollView = findViewById(R.id.scroll_view);
-    if (scrollView != null) {
-      ViewCompat.setOnApplyWindowInsetsListener(
-          scrollView,
-          (v, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(
-                v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom + 16);
-            return windowInsets;
-          });
-    }
-
-    // Get the TextView from layout
-    statusOverview = findViewById(R.id.status_overview);
-
-    if (statusOverview == null) {
-      LogUtils.e(TAG, "status_overview TextView not found in layout, using fallback");
-
-      // Record UI error
-      if (errorHandler != null) {
-        errorHandler.recordError(
-            new RuntimeException("status_overview TextView not found"),
-            "SystemMonitorActivity.onCreate",
-            SmartErrorHandler.ErrorSeverity.HIGH);
-      }
-      createSystemMonitorLayoutFallback();
-    } else {
-      LogUtils.d(TAG, "status_overview TextView found successfully");
-    }
-
-    refreshSystemStatus();
-  }
-
-  private void createSystemMonitorLayoutFallback() {
-    // Fallback method for programmatic layout creation if XML layout fails
-    LogUtils.w(TAG, "Using fallback programmatic layout creation");
-
-    androidx.core.widget.NestedScrollView scrollView =
-        new androidx.core.widget.NestedScrollView(this);
-    scrollView.setFillViewport(true);
-    scrollView.setPadding(16, 16, 16, 16);
-    scrollView.setBackgroundColor(getResources().getColor(android.R.color.background_light, null));
-
-    statusOverview = new TextView(this);
-    statusOverview.setPadding(20, 20, 20, 20);
-    statusOverview.setTextSize(14);
-    statusOverview.setTypeface(android.graphics.Typeface.MONOSPACE);
-    // Use theme-aware colors instead of hardcoded ones
-    int textColor = android.graphics.Color.BLACK;
-    int backgroundColor = android.graphics.Color.WHITE;
-
-    try {
-      // Try to get theme-aware colors
-      android.util.TypedValue typedValue = new android.util.TypedValue();
-      getTheme().resolveAttribute(android.R.attr.textColorPrimary, typedValue, true);
-      if (typedValue.data != 0) {
-        textColor = typedValue.data;
-      }
-
-      getTheme().resolveAttribute(android.R.attr.colorBackground, typedValue, true);
-      if (typedValue.data != 0) {
-        backgroundColor = typedValue.data;
-      }
-    } catch (Exception e) {
-      LogUtils.w(TAG, "Could not resolve theme colors, using defaults: " + e.getMessage());
-
-      // Record theme error (low severity)
-      if (errorHandler != null) {
-        errorHandler.recordError(
-            e, "SystemMonitorActivity.setupFallbackTextView", SmartErrorHandler.ErrorSeverity.LOW);
-      }
-    }
-
-    statusOverview.setTextColor(textColor);
-    statusOverview.setBackgroundColor(backgroundColor);
-
-    scrollView.addView(statusOverview);
-    setContentView(scrollView);
-
+    de.schliweb.sambalite.ui.utils.UIHelper.applyHorizontalSystemInsets(toolbar);
+    setSupportActionBar(toolbar);
     if (getSupportActionBar() != null) {
       getSupportActionBar().setDisplayHomeAsUpEnabled(true);
       getSupportActionBar().setTitle(getString(R.string.system_monitor));
     }
 
-    LogUtils.d(TAG, "Fallback layout created");
+    androidx.core.widget.NestedScrollView scrollView = findViewById(R.id.scroll_view);
+    ViewCompat.setOnApplyWindowInsetsListener(
+        scrollView,
+        (v, windowInsets) -> {
+          Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+          v.setPadding(
+              v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), insets.bottom + 16);
+          return windowInsets;
+        });
+
+    statusOverview = findViewById(R.id.status_overview);
+    techCard = findViewById(R.id.tech_card);
+    techChevron = findViewById(R.id.tech_chevron);
+    syncCards = findViewById(R.id.sync_cards);
+    bannerCard = findViewById(R.id.banner_card);
+    bannerIcon = findViewById(R.id.banner_icon);
+    bannerTitle = findViewById(R.id.banner_title);
+    bannerDetail = findViewById(R.id.banner_detail);
+    batteryCard = findViewById(R.id.battery_card);
+
+    findViewById(R.id.battery_button)
+        .setOnClickListener(v -> BatteryOptimizationUtils.openBatteryOptimizationSettings(this));
+    findViewById(R.id.row_search)
+        .setOnClickListener(v -> startActivity(SyncLogActivity.createIntent(this, null)));
+    findViewById(R.id.row_tech).setOnClickListener(v -> toggleTechnicalDetails());
+
+    WorkManager.getInstance(this)
+        .getWorkInfosByTagLiveData(SyncManager.UNIQUE_WORK_NAME)
+        .observe(
+            this,
+            infos -> {
+              workInfos = infos;
+              render();
+            });
+    render();
   }
 
-  private void refreshSystemStatus() {
-    LogUtils.d(TAG, "Refreshing system status");
+  @Override
+  protected void onResume() {
+    super.onResume();
+    render();
+    if (techLoaded) loadTechnicalDetails();
+    handler.postDelayed(tick, TICK_MS);
+  }
 
-    if (statusOverview == null) {
-      LogUtils.e(TAG, "statusOverview TextView is null, cannot refresh status");
+  @Override
+  protected void onPause() {
+    super.onPause();
+    handler.removeCallbacks(tick);
+  }
 
-      // Record critical UI error
-      if (errorHandler != null) {
-        errorHandler.recordError(
-            new RuntimeException("statusOverview TextView is null"),
-            "SystemMonitorActivity.refreshSystemStatus",
-            SmartErrorHandler.ErrorSeverity.CRITICAL);
-      }
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    executor.shutdownNow();
+  }
+
+  private void tick() {
+    render();
+    handler.postDelayed(tick, TICK_MS);
+  }
+
+  /** Shows the current state of all syncs. */
+  private void render() {
+    SyncMonitorState state;
+    try {
+      state = SyncMonitorState.load(this, workInfos);
+    } catch (RuntimeException e) {
+      LogUtils.e(TAG, "Could not load the sync state: " + e.getMessage());
       return;
     }
+    renderBanner(state);
+    renderBatteryHint(state);
+    renderCards(state);
+  }
 
-    // Show loading indicator while gathering system information
-    loadingIndicator.show("Gathering system information...");
+  private void renderBanner(@NonNull SyncMonitorState state) {
+    SyncMonitorUi.Banner banner = SyncMonitorUi.banner(this, state);
+    bannerTitle.setText(banner.title);
+    bannerDetail.setText(banner.detail);
+    bannerDetail.setVisibility(banner.detail.isEmpty() ? View.GONE : View.VISIBLE);
+    bannerCard.setCardBackgroundColor(ContextCompat.getColor(this, banner.background));
+    int foreground = ContextCompat.getColor(this, banner.foreground);
+    bannerTitle.setTextColor(foreground);
+    bannerDetail.setTextColor(foreground);
+    bannerIcon.setImageResource(banner.icon);
+    bannerIcon.setImageTintList(ColorStateList.valueOf(foreground));
+  }
 
+  private void renderBatteryHint(@NonNull SyncMonitorState state) {
+    boolean periodic = false;
+    for (SyncMonitorState.Entry e : state.entries) {
+      if (e.config.isEnabled() && e.config.getIntervalMinutes() > 0) {
+        periodic = true;
+        break;
+      }
+    }
+    boolean show = periodic && !BatteryOptimizationUtils.isIgnoringBatteryOptimizations(this);
+    batteryCard.setVisibility(show ? View.VISIBLE : View.GONE);
+  }
+
+  private void renderCards(@NonNull SyncMonitorState state) {
+    LayoutInflater inflater = LayoutInflater.from(this);
+    // Reuse the cards so that a refresh every few seconds does not rebuild the views.
+    while (syncCards.getChildCount() > state.entries.size()) {
+      syncCards.removeViewAt(syncCards.getChildCount() - 1);
+    }
+    for (int i = 0; i < state.entries.size(); i++) {
+      SyncMonitorState.Entry entry = state.entries.get(i);
+      View card;
+      if (i < syncCards.getChildCount()) {
+        card = syncCards.getChildAt(i);
+      } else {
+        card = inflater.inflate(R.layout.item_sync_status_card, syncCards, false);
+        syncCards.addView(card);
+      }
+      SyncMonitorUi.bindCard(card, entry, state.now);
+      String configId = entry.config.getId();
+      card.setOnClickListener(
+          v -> startActivity(SyncStatusDetailActivity.createIntent(this, configId)));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Technical details (the former System Monitor text)
+  // ---------------------------------------------------------------------------
+
+  private void toggleTechnicalDetails() {
+    boolean show = techCard.getVisibility() != View.VISIBLE;
+    techCard.setVisibility(show ? View.VISIBLE : View.GONE);
+    techChevron.setRotation(show ? 90 : 0);
+    findViewById(R.id.row_tech)
+        .setContentDescription(
+            getString(R.string.monitor_tech_title)
+                + ", "
+                + getString(show ? R.string.monitor_expanded : R.string.monitor_collapsed));
+    if (show) {
+      techLoaded = true;
+      loadTechnicalDetails();
+    }
+  }
+
+  private void loadTechnicalDetails() {
+    statusOverview.setText(R.string.loading_system_information);
+    executor.execute(
+        () -> {
+          String text = buildTechnicalDetails();
+          runOnUiThread(() -> statusOverview.setText(text));
+        });
+  }
+
+  /** The technical details as text; runs off the main thread. */
+  @NonNull
+  private String buildTechnicalDetails() {
     try {
       SambaLiteApp app = (SambaLiteApp) getApplication();
-
-      String fullStatus =
-          "=== SambaLite System Monitor ===\n"
-              + "Generated: "
-              + getCurrentTimeString()
-              + "\n\n"
-              +
-
-              // Update system overview
-              getSystemOverview(app)
-              + "\n\n"
-              +
-
-              // Update performance metrics
-              getPerformanceMetrics()
-              + "\n\n"
-              +
-
-              // Update cache statistics
-              getCacheStatistics(app)
-              + "\n\n"
-              +
-
-              // Update network status
-              getNetworkStatus()
-              + "\n\n"
-              +
-
-              // Update error summary
-              getErrorSummary(app)
-              + "\n\n"
-              +
-
-              // Update sync activity log
-              getSyncActivityLog()
-              + "\n\n"
-              +
-
-              // Update transfer activity log
-              getTransferActivityLog()
-              + "\n\n"
-              +
-
-              // Update timestamp preservation status
-              getTimestampStatus();
-
-      statusOverview.setText(fullStatus);
-
-      // Hide loading indicator after successful update
-      loadingIndicator.hide();
-
-      LogUtils.i(TAG, "System status updated successfully");
-
+      return "=== SambaLite System Monitor ===\n"
+          + "Generated: "
+          + getCurrentTimeString()
+          + "\n\n"
+          + getSystemOverview(app)
+          + "\n\n"
+          + getPerformanceMetrics()
+          + "\n\n"
+          + getCacheStatistics(app)
+          + "\n\n"
+          + getNetworkStatus()
+          + "\n\n"
+          + getErrorSummary(app)
+          + "\n\n"
+          + getSyncActivityLog()
+          + "\n\n"
+          + getTransferActivityLog()
+          + "\n\n"
+          + getTimestampStatus();
     } catch (Exception e) {
-      LogUtils.e(TAG, "Failed to refresh system status: " + e.getMessage());
-
-      // Record system monitoring error
+      LogUtils.e(TAG, "Failed to build the technical details: " + e.getMessage());
+      SmartErrorHandler errorHandler = ((SambaLiteApp) getApplication()).getErrorHandler();
       if (errorHandler != null) {
         errorHandler.recordError(
-            e, "SystemMonitorActivity.refreshSystemStatus", SmartErrorHandler.ErrorSeverity.HIGH);
+            e, "SystemMonitorActivity.buildTechnicalDetails", SmartErrorHandler.ErrorSeverity.HIGH);
       }
-
-      String errorStatus =
-          "=== System Monitor Error ===\n\n"
-              + "Failed to load system information:\n"
-              + e.getMessage()
-              + "\n\n"
-              + "Time: "
-              + getCurrentTimeString()
-              + "\n\n"
-              + "Please try refreshing the page or restart the app.";
-      statusOverview.setText(errorStatus);
-
-      // Hide loading indicator after error
-      loadingIndicator.hide();
+      return "=== System Monitor Error ===\n\n" + e.getMessage();
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Diagnostics
+  // ---------------------------------------------------------------------------
+
+  private void confirmShareDiagnostics() {
+    new MaterialAlertDialogBuilder(this)
+        .setTitle(R.string.monitor_share_diagnostics)
+        .setMessage(R.string.monitor_share_diagnostics_message)
+        .setPositiveButton(R.string.monitor_share_action, (d, w) -> shareDiagnostics())
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  private void shareDiagnostics() {
+    List<WorkInfo> infos = workInfos;
+    executor.execute(
+        () -> {
+          try {
+            SyncMonitorState state = SyncMonitorState.load(this, infos);
+            String report = DiagnosticsReport.build(this, state, buildTechnicalDetails());
+            File dir = new File(getCacheDir(), "open_files");
+            if (!dir.exists() && !dir.mkdirs()) {
+              throw new java.io.IOException("Could not create " + dir);
+            }
+            String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
+            File file = new File(dir, "sambalite-diagnostics-" + stamp + ".txt");
+            try (OutputStreamWriter w =
+                new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+              w.write(report);
+            }
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
+            Intent send =
+                new Intent(Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(Intent.EXTRA_STREAM, uri)
+                    .putExtra(Intent.EXTRA_SUBJECT, "SambaLite diagnostics")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            runOnUiThread(
+                () ->
+                    startActivity(
+                        Intent.createChooser(send, getString(R.string.monitor_share_diagnostics))));
+          } catch (Exception e) {
+            LogUtils.e(TAG, "Could not share diagnostics: " + e.getMessage());
+            runOnUiThread(
+                () ->
+                    de.schliweb.sambalite.util.EnhancedUIUtils.showError(
+                        this, getString(R.string.monitor_share_diagnostics_failed)));
+          }
+        });
   }
 
   private String getSystemOverview(SambaLiteApp app) {
@@ -543,33 +617,25 @@ public class SystemMonitorActivity extends AppCompatActivity {
   }
 
   @Override
-  protected void onResume() {
-    super.onResume();
-    refreshSystemStatus();
-  }
-
-  @Override
   public boolean onCreateOptionsMenu(Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.menu_system_monitor, menu);
     return true;
   }
 
   @Override
   public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-    // Handle action bar item clicks here.
     int id = item.getItemId();
-
     if (id == R.id.action_refresh) {
-      // Refresh action
-      LogUtils.d(TAG, "Refresh menu item clicked");
-      refreshSystemStatus();
+      render();
+      if (techLoaded) loadTechnicalDetails();
+      return true;
+    } else if (id == R.id.action_share_diagnostics) {
+      confirmShareDiagnostics();
       return true;
     } else if (id == R.id.action_quit) {
       handleQuit();
       return true;
     }
-
     return super.onOptionsItemSelected(item);
   }
 

@@ -88,7 +88,7 @@ public class FolderSyncBehaviorTest {
     
     // Verify it's included in the formatted log (System Monitor)
     String formatted = actionLog.getFormattedLog(10);
-    assertTrue("Formatted log should contain delete count", formatted.contains("1 deleted"));
+    assertTrue("Formatted log should contain the entry", formatted.contains("🗑 Deleted: " + fileName));
   }
 
   /**

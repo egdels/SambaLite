@@ -204,13 +204,27 @@ For file extensions **not recognized** by Android (e.g. `.tqd` or other propriet
 
 > **Tip:** If you sync folders containing files with uncommon extensions, verify that the downloaded files retain their correct names and extensions.
 
-## Sync Activity Log
+## Sync Status in the System Monitor
 
-SambaLite records all sync actions with timestamps. You can view the log in the **System Monitor** (accessible from the toolbar menu → System Monitor). The log shows:
+The **System Monitor** (toolbar menu → System Monitor) answers "do my syncs work, and if not, what do I do?":
+
+- **Overall state**: The line at the top names the most urgent problem ("Documents does not sync", "Photos has 23 files with errors") or says that all syncs are up to date.
+- **One card per sync**: its state (Up to date, With errors, Failed, Overdue, Waiting for WiFi, Storage full, Running, Paused), the result of its last run (uploaded, downloaded, skipped and errors; all four are always shown, so "0 errors" is a statement) and a row of dots for the last 20 runs: green completed, yellow with errors, red failed, grey stopped or skipped. While a sync runs, the card shows the files checked so far and the current file.
+- **Overdue**: A sync with an interval that has not synced successfully for more than twice its interval plus an hour is shown as overdue, with the likely reason: waiting for WiFi ("WiFi only" is on and the device was not on WiFi when the sync was due), or battery optimization.
+- **Details**: Tapping a card shows the errors of the last run grouped by cause (access denied, invalid file name, path too long, server not reachable, login rejected, local folder missing, folder skipped, …) with what to do and the files concerned. A file that failed in several runs in a row is marked "for N runs". Where there is a fix, a button offers it: "Edit Sync" for a missing local folder, "Sync once over mobile data" for a sync waiting for WiFi. Long-press a file to see the error message.
+- **Why was a file not synced?**: Search by name or path in the log of the last run of each sync, including skipped files and the reason they were skipped ("unchanged since the last sync", "the server copy is newer or equally new"). Files the last run did not reach are found in the stored sync state.
+- **Notifications**: A sync notifies when it starts to fail or to have errors, when it works again, and once when it is overdue while waiting for WiFi. A sync that keeps failing the same way does not notify again. Turn notifications off per sync in its details, or with "Mute for this sync" in the notification.
+- **Share diagnostics** (share icon) writes a text report for bug reports: app and Android version, per sync its settings, stored runs, errors and the end of its last run log, and the technical details. It contains server and share names and file paths, but no usernames or passwords.
+
+Each sync keeps the results of its last 20 runs and the detailed log of its last run (`files/sync_logs/<id>.log` in the app's storage). A run that fails before it reaches any file keeps the log of the run before it.
+
+### Technical details and shared action log
+
+At the bottom of the System Monitor, **Technical details** shows memory, cache, error and transfer statistics and the last 25 of the last 100 actions logged by all syncs together (skipped files are only in the per-sync log). The action symbols are:
 
 - **↑ Uploaded**: Files sent from your device to the SMB share.
 - **↓ Downloaded**: Files received from the SMB share to your device.
-- **⊘ Skipped**: Files that were unchanged (same size and modification time) and not transferred.
+- **⊘ Skipped**: Files that were unchanged (same size and modification time) and not transferred. Only in the log of each sync, not in the shared action log.
 - **📁 Created dir**: New directories created during sync.
 - **🗑 Deleted**: Internal database entries for files or directories that no longer exist on the remote share — with the default add/update sync, SambaLite does **not** delete your actual files.
 - **🪞 Mirror trashed**: A previously synced entry was moved into the `.sambalite-trash/<timestamp>/` folder by Mirror Mode. This applies to both directions when the trash option is enabled (the default): on the SMB share for `Local → Remote + Mirror`, and inside the local SAF folder for `Remote → Local + Mirror`. The original path is shown in the detail column.
@@ -220,9 +234,7 @@ SambaLite records all sync actions with timestamps. You can view the log in the 
 - **⚠ Timestamp failed**: File modification timestamps could not be set (e.g. due to filesystem limitations).
 - **✗ Error**: Files that failed to sync, with an error description.
 
-The log displays the 25 most recent entries (newest first) along with a summary of total actions. Up to 100 entries are stored persistently across app restarts.
-
-> **Tip:** Use the Sync Activity Log to verify that your sync is working as expected, especially when setting up a new sync configuration. Start with a small folder to confirm correct behavior before syncing larger datasets.
+> **Tip:** When you set up a new sync, start with a small folder and check its card in the System Monitor after the first run before syncing larger folders.
 
 ## Limitations
 

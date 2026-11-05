@@ -132,63 +132,17 @@ public class SyncActionLog {
 
     StringBuilder sb = new StringBuilder();
     sb.append("=== Sync Activity Log ===\n");
-    sb.append("Showing ")
+    // Not a run total: the buffer holds the last logged actions of all syncs (#50). Skipped files
+    // are not logged here; they are in the run log of each sync.
+    sb.append("Last ")
         .append(recent.size())
-        .append(" of ")
+        .append(" of the last ")
         .append(total)
-        .append(" entries (newest first)\n\n");
+        .append(" logged actions (all syncs, newest first)\n\n");
 
     for (String entry : recent) {
       sb.append(entry).append("\n");
     }
-
-    // Summary counts
-    int uploaded = 0, downloaded = 0, skipped = 0, errors = 0, dirs = 0, deleted = 0;
-    int mirrorDeleted = 0, mirrorTrashed = 0, mirrorAborted = 0;
-    int timestampsSet = 0, timestampsFailed = 0, lowSpaceAborts = 0, discarded = 0;
-    for (String entry : getEntries()) {
-      if (entry.contains(Action.UPLOADED.getSymbol())) uploaded++;
-      else if (entry.contains(Action.DOWNLOADED.getSymbol())) downloaded++;
-      else if (entry.contains(Action.SKIPPED.getSymbol())) skipped++;
-      else if (entry.contains(Action.ERROR.getSymbol())) errors++;
-      else if (entry.contains(Action.CREATED_DIR.getSymbol())) dirs++;
-      else if (entry.contains(Action.MIRROR_DELETED.getSymbol())) mirrorDeleted++;
-      else if (entry.contains(Action.MIRROR_TRASHED.getSymbol())) mirrorTrashed++;
-      else if (entry.contains(Action.MIRROR_ABORTED.getSymbol())) mirrorAborted++;
-      else if (entry.contains(Action.DELETED.getSymbol())) deleted++;
-      else if (entry.contains(Action.TIMESTAMP_SET.getSymbol())) timestampsSet++;
-      else if (entry.contains(Action.TIMESTAMP_FAILED.getSymbol())) timestampsFailed++;
-      else if (entry.contains(Action.ABORTED_LOW_SPACE.getSymbol())) lowSpaceAborts++;
-      else if (entry.contains(Action.DISCARDED.getSymbol())) discarded++;
-    }
-
-    sb.append("\nTotal: ")
-        .append(uploaded)
-        .append(" uploaded, ")
-        .append(downloaded)
-        .append(" downloaded, ")
-        .append(skipped)
-        .append(" skipped, ")
-        .append(dirs)
-        .append(" dirs created, ")
-        .append(deleted)
-        .append(" deleted, ")
-        .append(mirrorDeleted)
-        .append(" mirror deleted, ")
-        .append(mirrorTrashed)
-        .append(" mirror trashed, ")
-        .append(mirrorAborted)
-        .append(" mirror aborted, ")
-        .append(errors)
-        .append(" errors, ")
-        .append(timestampsSet)
-        .append(" timestamps set, ")
-        .append(timestampsFailed)
-        .append(" timestamps failed, ")
-        .append(discarded)
-        .append(" incomplete downloads discarded, ")
-        .append(lowSpaceAborts)
-        .append(" aborted for low disk space\n");
 
     return sb.toString();
   }

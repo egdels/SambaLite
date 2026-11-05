@@ -36,6 +36,15 @@ public interface FileSyncStateDao {
   @NonNull
   List<FileSyncState> findByRootUri(@NonNull String rootUri);
 
+  /**
+   * Returns the sync states of a root whose relative path matches a LIKE pattern ({@code \\}
+   * escapes {@code %} and {@code _}), at most {@code limit}.
+   */
+  @Query(
+      "SELECT * FROM file_sync_state WHERE root_uri = :rootUri AND relative_path LIKE :pattern ESCAPE '\\' ORDER BY synced_at DESC LIMIT :limit")
+  @NonNull
+  List<FileSyncState> searchByPath(@NonNull String rootUri, @NonNull String pattern, int limit);
+
   /** Deletes a sync state by root URI and relative path. */
   @Query("DELETE FROM file_sync_state WHERE root_uri = :rootUri AND relative_path = :relativePath")
   int deleteByPath(@NonNull String rootUri, @NonNull String relativePath);

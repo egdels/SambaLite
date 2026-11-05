@@ -202,6 +202,31 @@ public class MainViewModel extends ViewModel {
   }
 
   /**
+   * Edits a sync configuration including its local folder; see {@link SyncManager#editSyncConfig}.
+   * A new folder starts the sync afresh.
+   */
+  public void editSyncConfig(
+      @NonNull SyncConfig config,
+      @NonNull android.net.Uri localFolderUri,
+      @NonNull String localFolderDisplayName,
+      @NonNull de.schliweb.sambalite.sync.SyncDirection direction,
+      int intervalMinutes,
+      boolean wifiOnly,
+      boolean mirror,
+      boolean mirrorUseTrash) {
+    syncManager.editSyncConfig(
+        config,
+        localFolderUri,
+        localFolderDisplayName,
+        direction,
+        intervalMinutes,
+        wifiOnly,
+        mirror,
+        mirrorUseTrash);
+    loadSyncConfigs();
+  }
+
+  /**
    * Deletes a sync configuration.
    *
    * @param configId The ID of the sync configuration to delete

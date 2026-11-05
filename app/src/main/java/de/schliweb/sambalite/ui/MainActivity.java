@@ -109,6 +109,36 @@ public class MainActivity extends AppCompatActivity
   private static final String PREFS = "perm_prefs";
   private static final String KEY_ASKED_NOTIF_ONCE = "asked_notif_once";
 
+  /** Local folder chosen in the open "Edit Sync" dialog, and the view that shows it. */
+  @Nullable private android.net.Uri editSyncFolderUri;
+
+  @Nullable private String editSyncFolderName;
+  @Nullable private TextView editSyncFolderDisplay;
+
+  private final ActivityResultLauncher<android.net.Uri> pickEditSyncFolder =
+      registerForActivityResult(
+          new ActivityResultContracts.OpenDocumentTree(),
+          uri -> {
+            if (uri == null || editSyncFolderDisplay == null) return;
+            // Keep the access beyond this process at once: picking the same folder again (after
+            // its permission was lost) leaves the URI unchanged, so the edit would not take it.
+            try {
+              getContentResolver()
+                  .takePersistableUriPermission(
+                      uri,
+                      Intent.FLAG_GRANT_READ_URI_PERMISSION
+                          | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            } catch (SecurityException e) {
+              LogUtils.w("MainActivity", "Could not keep folder permission: " + e.getMessage());
+            }
+            androidx.documentfile.provider.DocumentFile folder =
+                androidx.documentfile.provider.DocumentFile.fromTreeUri(this, uri);
+            String name = folder != null ? folder.getName() : null;
+            editSyncFolderUri = uri;
+            editSyncFolderName = name != null ? name : uri.getLastPathSegment();
+            editSyncFolderDisplay.setText(editSyncFolderName);
+          });
+
   private final ActivityResultLauncher<String> requestNotifPermission =
       registerForActivityResult(
           new ActivityResultContracts.RequestPermission(),
@@ -486,6 +516,9 @@ public class MainActivity extends AppCompatActivity
                 }
               }
             });
+
+    // Opened from the System Monitor to fix a sync (#50)
+    handleEditSyncIntent(getIntent());
   }
 
   /**
@@ -860,6 +893,38 @@ public class MainActivity extends AppCompatActivity
     showConnectionOptionsDialog(connection);
   }
 
+  /** Extra: the ID of a sync whose edit dialog opens, e.g. from the System Monitor (#50). */
+  public static final String EXTRA_EDIT_SYNC_CONFIG_ID = "edit_sync_config_id";
+
+  /** Returns an intent that opens the main screen with the edit dialog of a sync. */
+  public static @NonNull Intent createEditSyncIntent(
+      @NonNull android.content.Context context, @NonNull String configId) {
+    return new Intent(context, MainActivity.class)
+        .putExtra(EXTRA_EDIT_SYNC_CONFIG_ID, configId)
+        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+  }
+
+  @Override
+  protected void onNewIntent(@NonNull Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleEditSyncIntent(intent);
+  }
+
+  private void handleEditSyncIntent(@Nullable Intent intent) {
+    if (intent == null) return;
+    String configId = intent.getStringExtra(EXTRA_EDIT_SYNC_CONFIG_ID);
+    if (configId == null) return;
+    intent.removeExtra(EXTRA_EDIT_SYNC_CONFIG_ID);
+    for (SyncConfig config :
+        new de.schliweb.sambalite.sync.SyncRepository(this).getAllSyncConfigs()) {
+      if (config.getId().equals(configId)) {
+        getWindow().getDecorView().post(() -> showEditSyncDialog(config));
+        return;
+      }
+    }
+  }
+
   /**
    * Shows a popup menu with options for a sync configuration.
    *
@@ -1033,8 +1098,20 @@ public class MainActivity extends AppCompatActivity
       folderDisplay.setText(config.getLocalFolderDisplayName());
     }
 
-    // Folder picker button (disabled for now as it requires more complex handling of SAF results)
-    selectFolderButton.setVisibility(View.GONE);
+    // Choosing another local folder, e.g. when the old one is gone (#50: "Edit Sync" from the
+    // System Monitor). A new folder starts the sync afresh, as in the file browser.
+    editSyncFolderUri = null;
+    editSyncFolderName = null;
+    editSyncFolderDisplay = folderDisplay;
+    selectFolderButton.setVisibility(View.VISIBLE);
+    selectFolderButton.setOnClickListener(
+        v -> {
+          try {
+            pickEditSyncFolder.launch(null);
+          } catch (android.content.ActivityNotFoundException e) {
+            EnhancedUIUtils.showError(this, getString(R.string.sync_select_folder_first));
+          }
+        });
 
     // The layout's header is the dialog title; it reads "Edit Sync" here.
     TextView dialogTitle = dialogView.findViewById(R.id.sync_dialog_title);
@@ -1064,6 +1141,44 @@ public class MainActivity extends AppCompatActivity
               boolean mirror = mirrorSwitch.isChecked() && direction != SyncDirection.BIDIRECTIONAL;
               boolean mirrorUseTrash = mirrorTrashSwitch.isChecked();
 
+              android.net.Uri newFolder = editSyncFolderUri;
+              String newFolderName = editSyncFolderName;
+              editSyncFolderDisplay = null;
+              if (newFolder != null && !newFolder.toString().equals(config.getLocalFolderUri())) {
+                FileBrowserActivity.LocalFolderCollisionType collision =
+                    FileBrowserActivity.checkLocalFolderCollision(
+                        newFolder.toString(),
+                        new de.schliweb.sambalite.sync.SyncRepository(this).getAllSyncConfigs(),
+                        config.getId());
+                if (collision != null) {
+                  int message;
+                  switch (collision) {
+                    case PARENT_SYNCED:
+                      message = R.string.sync_local_parent_folder_synced;
+                      break;
+                    case CHILD_SYNCED:
+                      message = R.string.sync_local_child_folder_synced;
+                      break;
+                    default:
+                      message = R.string.sync_local_folder_already_synced;
+                      break;
+                  }
+                  EnhancedUIUtils.showError(this, getString(message));
+                  return;
+                }
+                viewModel.editSyncConfig(
+                    config,
+                    newFolder,
+                    newFolderName != null ? newFolderName : "",
+                    direction,
+                    intervalMinutes,
+                    wifiOnly,
+                    mirror,
+                    mirrorUseTrash);
+                EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));
+                return;
+              }
+
               // Update config
               config.setDirection(direction);
               config.setIntervalMinutes(intervalMinutes);
@@ -1075,6 +1190,7 @@ public class MainActivity extends AppCompatActivity
               EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));
             })
         .setNegativeButton(R.string.cancel, null)
+        .setOnDismissListener(d -> editSyncFolderDisplay = null)
         .show();
   }
 

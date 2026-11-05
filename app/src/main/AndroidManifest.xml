@@ -70,6 +70,22 @@
             android:exported="false"
             android:theme="@style/Theme.SambaLite"
             android:parentActivityName=".ui.MainActivity" />
+        <activity
+            android:name=".ui.monitor.SyncStatusDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SambaLite"
+            android:parentActivityName=".ui.SystemMonitorActivity" />
+        <activity
+            android:name=".ui.monitor.SyncLogActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SambaLite"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".ui.SystemMonitorActivity" />
+
+        <!-- "Mute" action of the sync problem notifications (#50) -->
+        <receiver
+            android:name=".sync.SyncNotificationActionReceiver"
+            android:exported="false" />
 
         <!-- FileProvider for sharing cached files with external apps -->
         <provider

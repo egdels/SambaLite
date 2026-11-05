@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monitor_banner_all_ok">Wszystkie synchronizacje są aktualne</string>
+    <string name="monitor_banner_last_run">Ostatnie uruchomienie %1$s.</string>
+    <string name="monitor_banner_running">Trwa teraz: %1$s.</string>
+    <string name="monitor_banner_no_syncs">Brak skonfigurowanych synchronizacji folderów</string>
+    <string name="monitor_banner_all_paused">Wszystkie synchronizacje folderów są wstrzymane</string>
+    <string name="monitor_banner_no_syncs_detail">Synchronizacje folderów konfiguruje się i wznawia na ekranie głównym.</string>
+    <string name="monitor_banner_also">Ponadto: %1$s.</string>
+    <string name="monitor_banner_tap_for_details">Dotknij synchronizacji poniżej, aby zobaczyć szczegóły.</string>
+    <string name="monitor_phrase_failed">%1$s nie synchronizuje się</string>
+    <string name="monitor_phrase_low_space">%1$s zatrzymana: pamięć prawie pełna</string>
+    <string name="monitor_phrase_overdue">%1$s jest zaległa</string>
+    <string name="monitor_phrase_waiting_wifi">%1$s czeka na Wi-Fi</string>
+    <plurals name="monitor_phrase_errors">
+        <item quantity="one">%1$s: %2$d plik z błędem</item>
+        <item quantity="few">%1$s: %2$d pliki z błędami</item>
+        <item quantity="many">%1$s: %2$d plików z błędami</item>
+        <item quantity="other">%1$s: %2$d pliku z błędami</item>
+    </plurals>
+
+    <string name="monitor_battery_title">Optymalizacja baterii jest włączona</string>
+    <string name="monitor_battery_text">Android może przez to opóźniać synchronizacje w tle o wiele godzin.</string>
+    <string name="monitor_battery_action">Wyklucz</string>
+
+    <string name="monitor_search_title">Dlaczego plik nie został zsynchronizowany?</string>
+    <string name="monitor_search_subtitle">Szukaj po nazwie lub ścieżce</string>
+    <string name="monitor_tech_title">Szczegóły techniczne</string>
+    <string name="monitor_tech_subtitle">Pamięć, pamięć podręczna, błędy, transfery</string>
+    <string name="monitor_just_now">przed chwilą</string>
+    <string name="monitor_expanded">rozwinięte</string>
+    <string name="monitor_collapsed">zwinięte</string>
+
+    <string name="monitor_share_diagnostics">Udostępnij diagnostykę</string>
+    <string name="monitor_share_diagnostics_message">Raport zawiera nazwy serwerów i udziałów oraz ścieżki plików Twoich synchronizacji, ale nie zawiera nazw użytkowników ani haseł.</string>
+    <string name="monitor_share_action">Udostępnij</string>
+    <string name="monitor_share_diagnostics_failed">Nie udało się utworzyć diagnostyki</string>
+
+    <string name="sync_status_paused">Wstrzymana</string>
+    <string name="sync_status_running">W toku</string>
+    <string name="sync_status_never">Jeszcze nie uruchomiona</string>
+    <string name="sync_status_completed">Aktualna</string>
+    <string name="sync_status_stopped">Zatrzymana</string>
+    <string name="sync_status_with_errors">Z błędami</string>
+    <string name="sync_status_overdue">Zaległa</string>
+    <string name="sync_status_waiting_wifi">Czeka na Wi-Fi</string>
+    <string name="sync_status_low_space">Pamięć pełna</string>
+    <string name="sync_status_failed">Nieudana</string>
+
+    <string name="sync_when_run">%1$s · %2$s – %3$s</string>
+    <string name="sync_when_overdue">Od %1$s brak udanej synchronizacji · %2$s</string>
+    <string name="sync_when_failed_since">Ostatnia próba %1$s · ostatnia udana synchronizacja %2$s</string>
+    <string name="sync_interval_every">Co %1$s</string>
+    <plurals name="sync_duration_minutes">
+        <item quantity="one">%d minuta</item>
+        <item quantity="few">%d minuty</item>
+        <item quantity="many">%d minut</item>
+        <item quantity="other">%d minuty</item>
+    </plurals>
+    <plurals name="sync_duration_hours">
+        <item quantity="one">%d godzina</item>
+        <item quantity="few">%d godziny</item>
+        <item quantity="many">%d godzin</item>
+        <item quantity="other">%d godziny</item>
+    </plurals>
+    <plurals name="sync_duration_days">
+        <item quantity="one">%d dzień</item>
+        <item quantity="few">%d dni</item>
+        <item quantity="many">%d dni</item>
+        <item quantity="other">%d dnia</item>
+    </plurals>
+
+    <string name="sync_count_uploaded">wysłane</string>
+    <string name="sync_count_downloaded">pobrane</string>
+    <string name="sync_count_skipped">pominięte</string>
+    <string name="sync_count_errors">błędy</string>
+
+    <string name="sync_live_progress">%1$s z ~%2$s plików</string>
+    <string name="sync_live_progress_unknown">Sprawdzono plików: %1$s</string>
+    <plurals name="sync_history_label">
+        <item quantity="one">ostatnie uruchomienie</item>
+        <item quantity="few">ostatnie %d uruchomienia</item>
+        <item quantity="many">ostatnie %d uruchomień</item>
+        <item quantity="other">ostatnie %d uruchomienia</item>
+    </plurals>
+    <string name="sync_history_description">Ostatnie uruchomienia (%1$d): ukończone %2$d, z błędami %3$d, nieudane %4$d, zatrzymane lub pominięte %5$d</string>
+
+    <string name="sync_result_counts">wysłane %1$s, pobrane %2$s, pominięte %3$s, błędy %4$s</string>
+    <string name="sync_result_stopped">Zatrzymana · %1$s</string>
+    <string name="sync_result_failed">Nieudana – %1$s</string>
+    <string name="sync_result_failed_after">Nieudana – %1$s · %2$s</string>
+    <string name="sync_result_low_space">Przerwana – pamięć prawie pełna</string>
+    <string name="sync_result_low_space_after">Przerwana, pamięć prawie pełna · %1$s</string>
+    <string name="sync_result_skipped_wifi">Pominięta – brak Wi-Fi</string>
+    <string name="sync_result_skipped_wifi_times">Pominięta %1$d× – brak Wi-Fi</string>
+    <string name="sync_extras">Ponadto: %1$s</string>
+    <string name="sync_extra_mirror_skipped">lustro pominięte dla bezpieczeństwa</string>
+    <plurals name="sync_extra_dirs">
+        <item quantity="one">utworzono folderów: %d</item>
+        <item quantity="few">utworzono folderów: %d</item>
+        <item quantity="many">utworzono folderów: %d</item>
+        <item quantity="other">utworzono folderów: %d</item>
+    </plurals>
+    <plurals name="sync_extra_deleted">
+        <item quantity="one">usunięto: %d</item>
+        <item quantity="few">usunięto: %d</item>
+        <item quantity="many">usunięto: %d</item>
+        <item quantity="other">usunięto: %d</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_deleted">
+        <item quantity="one">usunięto przez lustro: %d</item>
+        <item quantity="few">usunięto przez lustro: %d</item>
+        <item quantity="many">usunięto przez lustro: %d</item>
+        <item quantity="other">usunięto przez lustro: %d</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_trashed">
+        <item quantity="one">przeniesiono do kosza przez lustro: %d</item>
+        <item quantity="few">przeniesiono do kosza przez lustro: %d</item>
+        <item quantity="many">przeniesiono do kosza przez lustro: %d</item>
+        <item quantity="other">przeniesiono do kosza przez lustro: %d</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_set">
+        <item quantity="one">ustawiono znaczników czasu: %d</item>
+        <item quantity="few">ustawiono znaczników czasu: %d</item>
+        <item quantity="many">ustawiono znaczników czasu: %d</item>
+        <item quantity="other">ustawiono znaczników czasu: %d</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_failed">
+        <item quantity="one">nie ustawiono znaczników czasu: %d</item>
+        <item quantity="few">nie ustawiono znaczników czasu: %d</item>
+        <item quantity="many">nie ustawiono znaczników czasu: %d</item>
+        <item quantity="other">nie ustawiono znaczników czasu: %d</item>
+    </plurals>
+    <plurals name="sync_extra_discarded">
+        <item quantity="one">odrzucono niepełnych pobrań: %d</item>
+        <item quantity="few">odrzucono niepełnych pobrań: %d</item>
+        <item quantity="many">odrzucono niepełnych pobrań: %d</item>
+        <item quantity="other">odrzucono niepełnych pobrań: %d</item>
+    </plurals>
+
+    <string name="sync_detail_last_run">Ostatnie uruchomienie</string>
+    <string name="sync_detail_errors_by_cause">Błędy według przyczyny</string>
+    <string name="sync_detail_errors_shown">Wyświetlono pierwsze %1$s z %2$s błędów.</string>
+    <string name="sync_detail_history">Historia</string>
+    <string name="sync_detail_notifications">Powiadamiaj o problemach</string>
+    <string name="sync_detail_show_log">Pokaż dziennik</string>
+    <string name="sync_error_count_times">%1$d× %2$s</string>
+    <plurals name="sync_error_streak">
+        <item quantity="one">od %d uruchomienia</item>
+        <item quantity="few">od %d uruchomień</item>
+        <item quantity="many">od %d uruchomień</item>
+        <item quantity="other">od %d uruchomienia</item>
+    </plurals>
+    <plurals name="sync_error_more">
+        <item quantity="one">+ %d więcej</item>
+        <item quantity="few">+ %d więcej</item>
+        <item quantity="many">+ %d więcej</item>
+        <item quantity="other">+ %d więcej</item>
+    </plurals>
+
+    <string name="sync_fix_wifi_title">Czeka na Wi-Fi</string>
+    <string name="sync_fix_wifi_text">Ta synchronizacja działa tylko przez Wi-Fi i nie uruchomiła się od %1$s, bo urządzenie nie było w sieci Wi-Fi, gdy przypadał jej termin. Uruchomi się sama, gdy tylko Wi-Fi będzie dostępne.</string>
+    <string name="sync_fix_wifi_action">Synchronizuj raz przez dane komórkowe</string>
+    <string name="sync_fix_overdue_title">Zaległa</string>
+    <string name="sync_fix_overdue_text">Android nie uruchomił tej synchronizacji od %1$s (interwał: %2$s). Oszczędzanie danych lub oszczędzanie energii producenta mogą wstrzymywać pracę w tle.</string>
+    <string name="sync_fix_overdue_text_battery">Android nie uruchomił tej synchronizacji od %1$s (interwał: %2$s). Dla SambaLite włączona jest optymalizacja baterii, która może wstrzymywać pracę w tle.</string>
+
+    <string name="sync_error_access_denied">Odmowa dostępu</string>
+    <string name="sync_error_access_denied_hint">Użytkownik serwera tego połączenia nie może tu czytać ani zapisywać. Sprawdź uprawnienia udziału i folderu na serwerze.</string>
+    <string name="sync_error_invalid_name">Nieprawidłowa nazwa pliku na serwerze</string>
+    <string name="sync_error_invalid_name_hint">SMB nie dopuszcza w nazwach znaków \\ / : * ? \" &lt; &gt; | ani kropki lub spacji na końcu. Zmień nazwę pliku.</string>
+    <string name="sync_error_name_too_long">Za długa ścieżka</string>
+    <string name="sync_error_name_too_long_hint">Serwer nie akceptuje tak długich ścieżek. Skróć nazwy folderów lub plików.</string>
+    <string name="sync_error_server_full">Pamięć serwera pełna</string>
+    <string name="sync_error_server_full_hint">Wolumin udziału jest pełny. Zwolnij miejsce na serwerze.</string>
+    <string name="sync_error_file_in_use">Plik w użyciu</string>
+    <string name="sync_error_file_in_use_hint">Inny program ma ten plik otwarty na serwerze. Następne uruchomienie spróbuje ponownie.</string>
+    <string name="sync_error_not_found">Plik zniknął</string>
+    <string name="sync_error_not_found_hint">Plik został przeniesiony lub usunięty podczas synchronizacji. Następne uruchomienie to nadrobi.</string>
+    <string name="sync_error_network">Serwer nieosiągalny</string>
+    <string name="sync_error_network_hint">Połączenie z serwerem nie powiodło się lub zostało przerwane. Sprawdź, czy serwer jest włączony i w tej samej sieci.</string>
+    <string name="sync_error_auth">Logowanie odrzucone</string>
+    <string name="sync_error_auth_hint">Serwer nie zaakceptował nazwy użytkownika lub hasła. Edytuj połączenie na ekranie głównym.</string>
+    <string name="sync_error_share_not_found">Nie znaleziono udziału</string>
+    <string name="sync_error_share_not_found_hint">Udział nie istnieje już na serwerze lub zmieniono jego nazwę. Edytuj połączenie na ekranie głównym.</string>
+    <string name="sync_error_local_access">Brak dostępu na urządzeniu</string>
+    <string name="sync_error_local_access_hint">Nie udało się odczytać ani zapisać pliku na urządzeniu. Sprawdź, czy folder nadal zezwala na dostęp.</string>
+    <string name="sync_error_local_folder_missing">Folder lokalny niedostępny</string>
+    <string name="sync_error_local_folder_missing_hint">Folder na urządzeniu został usunięty lub cofnięto uprawnienie dostępu. Ponowna próba da ten sam błąd; wybierz folder ponownie.</string>
+    <string name="sync_error_local_space">Pamięć prawie pełna</string>
+    <string name="sync_error_local_space_hint">Synchronizacja została zatrzymana, aby zachować wolne miejsce na urządzeniu. Zwolnij pamięć i zsynchronizuj ponownie.</string>
+    <string name="sync_error_folder_skipped">Pominięty folder</string>
+    <string name="sync_error_folder_skipped_hint">Nie udało się wyświetlić zawartości folderu na serwerze, więc w tym uruchomieniu niczego z niego nie zsynchronizowano.</string>
+    <string name="sync_error_other">Inny błąd</string>
+    <string name="sync_error_other_hint">Przytrzymaj plik, aby zobaczyć komunikat błędu.</string>
+
+    <string name="sync_log_title_search">Znajdź plik</string>
+    <string name="sync_log_title_config">Dziennik: %1$s</string>
+    <string name="sync_log_search_hint">Nazwa lub ścieżka, np. IMG_0412</string>
+    <string name="sync_log_show_skipped">Pokaż pominięte pliki</string>
+    <string name="sync_log_empty">Brak wpisów. Dziennik jest zapisywany od następnego uruchomienia.</string>
+    <string name="sync_log_no_match">Brak pliku pasującego do „%1$s” w ostatnich uruchomieniach.</string>
+    <plurals name="sync_log_results">
+        <item quantity="one">%d wpis</item>
+        <item quantity="few">%d wpisy</item>
+        <item quantity="many">%d wpisów</item>
+        <item quantity="other">%d wpisu</item>
+    </plurals>
+    <string name="sync_log_tracked">Nie w ostatnim uruchomieniu</string>
+    <string name="sync_log_tracked_detail">%1$s · ostatnio zsynchronizowano %2$s</string>
+    <string name="sync_action_uploaded">Wysłano</string>
+    <string name="sync_action_downloaded">Pobrano</string>
+    <string name="sync_action_skipped">Pominięto</string>
+    <string name="sync_action_created_dir">Utworzono folder</string>
+    <string name="sync_action_error">Błąd</string>
+    <string name="sync_action_deleted">Usunięto</string>
+    <string name="sync_action_mirror_deleted">Usunięto przez lustro</string>
+    <string name="sync_action_mirror_trashed">Przeniesiono do kosza przez lustro</string>
+    <string name="sync_action_mirror_aborted">Pominięto lustro</string>
+    <string name="sync_action_timestamp_set">Ustawiono znacznik czasu</string>
+    <string name="sync_action_timestamp_failed">Nie ustawiono znacznika czasu</string>
+    <string name="sync_action_low_space">Przerwano, pamięć prawie pełna</string>
+    <string name="sync_action_discarded">Odrzucono niepełne pobieranie</string>
+    <string name="sync_skip_unchanged">bez zmian od ostatniej synchronizacji</string>
+    <string name="sync_skip_same">ten sam rozmiar i czas po obu stronach</string>
+    <string name="sync_skip_remote_newer">kopia na serwerze jest nowsza lub tak samo nowa</string>
+    <string name="sync_skip_local_newer">kopia lokalna jest nowsza lub tak samo nowa</string>
+
+    <string name="sync_notify_channel_name">Problemy z synchronizacją</string>
+    <string name="sync_notify_channel_description">Informuje, gdy synchronizacja folderu przestaje działać i gdy znów działa</string>
+    <string name="sync_notify_failed_title">%1$s nie mogła się zsynchronizować</string>
+    <string name="sync_notify_low_space_title">%1$s zatrzymana: pamięć prawie pełna</string>
+    <plurals name="sync_notify_errors_title">
+        <item quantity="one">%1$s: %2$d plik niezsynchronizowany</item>
+        <item quantity="few">%1$s: %2$d pliki niezsynchronizowane</item>
+        <item quantity="many">%1$s: %2$d plików niezsynchronizowanych</item>
+        <item quantity="other">%1$s: %2$d pliku niezsynchronizowanego</item>
+    </plurals>
+    <string name="sync_notify_recovered_title">%1$s znów się synchronizuje</string>
+    <string name="sync_notify_overdue_title">%1$s jest zaległa</string>
+    <string name="sync_notify_overdue_text">Ta synchronizacja działa tylko przez Wi-Fi i od pewnego czasu się nie uruchomiła. Dotknij, aby zsynchronizować raz przez dane komórkowe.</string>
+    <string name="sync_notify_mute">Wycisz dla tej synchronizacji</string>
+</resources>

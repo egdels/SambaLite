@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monitor_banner_all_ok">Alle syncs zijn bijgewerkt</string>
+    <string name="monitor_banner_last_run">Laatste run %1$s.</string>
+    <string name="monitor_banner_running">Nu bezig: %1$s.</string>
+    <string name="monitor_banner_no_syncs">Geen mapsyncs ingesteld</string>
+    <string name="monitor_banner_all_paused">Alle mapsyncs zijn gepauzeerd</string>
+    <string name="monitor_banner_no_syncs_detail">Mapsyncs stel je in en hervat je op het startscherm.</string>
+    <string name="monitor_banner_also">Verder: %1$s.</string>
+    <string name="monitor_banner_tap_for_details">Tik hieronder op de sync voor details.</string>
+    <string name="monitor_phrase_failed">%1$s synchroniseert niet</string>
+    <string name="monitor_phrase_low_space">%1$s gestopt: opslag bijna vol</string>
+    <string name="monitor_phrase_overdue">%1$s is te laat</string>
+    <string name="monitor_phrase_waiting_wifi">%1$s wacht op wifi</string>
+    <plurals name="monitor_phrase_errors">
+        <item quantity="one">%1$s heeft %2$d bestand met fouten</item>
+        <item quantity="other">%1$s heeft %2$d bestanden met fouten</item>
+    </plurals>
+
+    <string name="monitor_battery_title">Batterijoptimalisatie staat aan</string>
+    <string name="monitor_battery_text">Android kan syncs op de achtergrond daardoor uren vertragen.</string>
+    <string name="monitor_battery_action">Uitzonderen</string>
+
+    <string name="monitor_search_title">Waarom is een bestand niet gesynchroniseerd?</string>
+    <string name="monitor_search_subtitle">Zoeken op naam of pad</string>
+    <string name="monitor_tech_title">Technische details</string>
+    <string name="monitor_tech_subtitle">Geheugen, cache, fouten, overdrachten</string>
+    <string name="monitor_just_now">zojuist</string>
+    <string name="monitor_expanded">uitgevouwen</string>
+    <string name="monitor_collapsed">ingevouwen</string>
+
+    <string name="monitor_share_diagnostics">Diagnose delen</string>
+    <string name="monitor_share_diagnostics_message">Het rapport bevat de server- en sharenamen en de bestandspaden van je syncs, maar geen gebruikersnamen of wachtwoorden.</string>
+    <string name="monitor_share_action">Delen</string>
+    <string name="monitor_share_diagnostics_failed">De diagnose kon niet worden gemaakt</string>
+
+    <string name="sync_status_paused">Gepauzeerd</string>
+    <string name="sync_status_running">Bezig</string>
+    <string name="sync_status_never">Nog niet uitgevoerd</string>
+    <string name="sync_status_completed">Bijgewerkt</string>
+    <string name="sync_status_stopped">Gestopt</string>
+    <string name="sync_status_with_errors">Met fouten</string>
+    <string name="sync_status_overdue">Te laat</string>
+    <string name="sync_status_waiting_wifi">Wacht op wifi</string>
+    <string name="sync_status_low_space">Opslag vol</string>
+    <string name="sync_status_failed">Mislukt</string>
+
+    <string name="sync_when_run">%1$s · %2$s – %3$s</string>
+    <string name="sync_when_overdue">Al %1$s geen geslaagde sync · %2$s</string>
+    <string name="sync_when_failed_since">Laatste poging %1$s · laatste geslaagde sync %2$s</string>
+    <string name="sync_interval_every">Elke %1$s</string>
+    <plurals name="sync_duration_minutes">
+        <item quantity="one">%d minuut</item>
+        <item quantity="other">%d minuten</item>
+    </plurals>
+    <plurals name="sync_duration_hours">
+        <item quantity="one">%d uur</item>
+        <item quantity="other">%d uur</item>
+    </plurals>
+    <plurals name="sync_duration_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagen</item>
+    </plurals>
+
+    <string name="sync_count_uploaded">geüpload</string>
+    <string name="sync_count_downloaded">gedownload</string>
+    <string name="sync_count_skipped">overgeslagen</string>
+    <string name="sync_count_errors">fouten</string>
+
+    <string name="sync_live_progress">%1$s van ~%2$s bestanden</string>
+    <string name="sync_live_progress_unknown">%1$s bestanden gecontroleerd</string>
+    <plurals name="sync_history_label">
+        <item quantity="one">laatste run</item>
+        <item quantity="other">laatste %d runs</item>
+    </plurals>
+    <string name="sync_history_description">Laatste %1$d runs: %2$d voltooid, %3$d met fouten, %4$d mislukt, %5$d gestopt of overgeslagen</string>
+
+    <string name="sync_result_counts">%1$s geüpload, %2$s gedownload, %3$s overgeslagen, %4$s fouten</string>
+    <string name="sync_result_stopped">Gestopt · %1$s</string>
+    <string name="sync_result_failed">Mislukt – %1$s</string>
+    <string name="sync_result_failed_after">Mislukt – %1$s · %2$s</string>
+    <string name="sync_result_low_space">Afgebroken – opslag bijna vol</string>
+    <string name="sync_result_low_space_after">Afgebroken, opslag bijna vol · %1$s</string>
+    <string name="sync_result_skipped_wifi">Overgeslagen – geen wifi</string>
+    <string name="sync_result_skipped_wifi_times">%1$d× overgeslagen – geen wifi</string>
+    <string name="sync_extras">Verder: %1$s</string>
+    <string name="sync_extra_mirror_skipped">spiegelen voor de veiligheid overgeslagen</string>
+    <plurals name="sync_extra_dirs">
+        <item quantity="one">%d map aangemaakt</item>
+        <item quantity="other">%d mappen aangemaakt</item>
+    </plurals>
+    <plurals name="sync_extra_deleted">
+        <item quantity="one">%d verwijderd</item>
+        <item quantity="other">%d verwijderd</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_deleted">
+        <item quantity="one">%d verwijderd door spiegelen</item>
+        <item quantity="other">%d verwijderd door spiegelen</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_trashed">
+        <item quantity="one">%d naar de prullenbak verplaatst door spiegelen</item>
+        <item quantity="other">%d naar de prullenbak verplaatst door spiegelen</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_set">
+        <item quantity="one">%d tijdstempel ingesteld</item>
+        <item quantity="other">%d tijdstempels ingesteld</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_failed">
+        <item quantity="one">%d tijdstempel niet ingesteld</item>
+        <item quantity="other">%d tijdstempels niet ingesteld</item>
+    </plurals>
+    <plurals name="sync_extra_discarded">
+        <item quantity="one">%d onvolledige download verwijderd</item>
+        <item quantity="other">%d onvolledige downloads verwijderd</item>
+    </plurals>
+
+    <string name="sync_detail_last_run">Laatste run</string>
+    <string name="sync_detail_errors_by_cause">Fouten per oorzaak</string>
+    <string name="sync_detail_errors_shown">De eerste %1$s van %2$s fouten worden getoond.</string>
+    <string name="sync_detail_history">Geschiedenis</string>
+    <string name="sync_detail_notifications">Meld problemen</string>
+    <string name="sync_detail_show_log">Log tonen</string>
+    <string name="sync_error_count_times">%1$d× %2$s</string>
+    <plurals name="sync_error_streak">
+        <item quantity="one">al %d run</item>
+        <item quantity="other">al %d runs</item>
+    </plurals>
+    <plurals name="sync_error_more">
+        <item quantity="one">+ %d meer</item>
+        <item quantity="other">+ %d meer</item>
+    </plurals>
+
+    <string name="sync_fix_wifi_title">Wacht op wifi</string>
+    <string name="sync_fix_wifi_text">Deze sync werkt alleen via wifi en is al %1$s niet uitgevoerd, omdat het apparaat niet op wifi was toen hij aan de beurt was. Hij start vanzelf zodra er wifi is.</string>
+    <string name="sync_fix_wifi_action">Eén keer via mobiele data synchroniseren</string>
+    <string name="sync_fix_overdue_title">Te laat</string>
+    <string name="sync_fix_overdue_text">Android heeft deze sync al %1$s niet uitgevoerd (interval: %2$s). Databesparing of energiebesparing van de fabrikant kan achtergrondwerk tegenhouden.</string>
+    <string name="sync_fix_overdue_text_battery">Android heeft deze sync al %1$s niet uitgevoerd (interval: %2$s). Batterijoptimalisatie staat aan voor SambaLite en kan achtergrondwerk tegenhouden.</string>
+
+    <string name="sync_error_access_denied">Toegang geweigerd</string>
+    <string name="sync_error_access_denied_hint">De servergebruiker van deze verbinding mag hier niet lezen of schrijven. Controleer de rechten van share en map op de server.</string>
+    <string name="sync_error_invalid_name">Ongeldige bestandsnaam op de server</string>
+    <string name="sync_error_invalid_name_hint">SMB staat de tekens \\ / : * ? \" &lt; &gt; | in namen niet toe, en ook geen punt of spatie aan het eind. Hernoem het bestand.</string>
+    <string name="sync_error_name_too_long">Pad te lang</string>
+    <string name="sync_error_name_too_long_hint">De server accepteert zo\'n lang pad niet. Maak map- of bestandsnamen korter.</string>
+    <string name="sync_error_server_full">Serveropslag vol</string>
+    <string name="sync_error_server_full_hint">Het volume van de share is vol. Maak ruimte vrij op de server.</string>
+    <string name="sync_error_file_in_use">Bestand in gebruik</string>
+    <string name="sync_error_file_in_use_hint">Een ander programma heeft het bestand op de server geopend. De volgende run probeert het opnieuw.</string>
+    <string name="sync_error_not_found">Bestand verdwenen</string>
+    <string name="sync_error_not_found_hint">Het bestand is tijdens de sync verplaatst of verwijderd. De volgende run haalt dat in.</string>
+    <string name="sync_error_network">Server niet bereikbaar</string>
+    <string name="sync_error_network_hint">De verbinding met de server is mislukt of verbroken. Controleer of de server aan staat en in hetzelfde netwerk zit.</string>
+    <string name="sync_error_auth">Aanmelding geweigerd</string>
+    <string name="sync_error_auth_hint">De server accepteerde de gebruikersnaam of het wachtwoord niet. Bewerk de verbinding op het startscherm.</string>
+    <string name="sync_error_share_not_found">Share niet gevonden</string>
+    <string name="sync_error_share_not_found_hint">De share bestaat niet meer op de server of is hernoemd. Bewerk de verbinding op het startscherm.</string>
+    <string name="sync_error_local_access">Geen toegang op het apparaat</string>
+    <string name="sync_error_local_access_hint">Het bestand op het apparaat kon niet worden gelezen of geschreven. Controleer of de map nog toegang toestaat.</string>
+    <string name="sync_error_local_folder_missing">Lokale map niet meer bereikbaar</string>
+    <string name="sync_error_local_folder_missing_hint">De map op het apparaat is verwijderd of de toegangsrechten zijn ingetrokken. Opnieuw proberen geeft dezelfde fout; kies de map opnieuw.</string>
+    <string name="sync_error_local_space">Opslag bijna vol</string>
+    <string name="sync_error_local_space_hint">De sync is gestopt om ruimte vrij te houden op het apparaat. Maak opslag vrij en synchroniseer opnieuw.</string>
+    <string name="sync_error_folder_skipped">Map overgeslagen</string>
+    <string name="sync_error_folder_skipped_hint">De map kon op de server niet worden opgesomd, dus de inhoud is in deze run niet gesynchroniseerd.</string>
+    <string name="sync_error_other">Andere fout</string>
+    <string name="sync_error_other_hint">Houd een bestand ingedrukt om de foutmelding te zien.</string>
+
+    <string name="sync_log_title_search">Bestand zoeken</string>
+    <string name="sync_log_title_config">Log: %1$s</string>
+    <string name="sync_log_search_hint">Naam of pad, bijv. IMG_0412</string>
+    <string name="sync_log_show_skipped">Overgeslagen bestanden tonen</string>
+    <string name="sync_log_empty">Geen items. Het log wordt vanaf de volgende run geschreven.</string>
+    <string name="sync_log_no_match">Geen bestand dat past bij ‘%1$s’ in de laatste runs.</string>
+    <plurals name="sync_log_results">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="sync_log_tracked">Niet in de laatste run</string>
+    <string name="sync_log_tracked_detail">%1$s · laatst gesynchroniseerd %2$s</string>
+    <string name="sync_action_uploaded">Geüpload</string>
+    <string name="sync_action_downloaded">Gedownload</string>
+    <string name="sync_action_skipped">Overgeslagen</string>
+    <string name="sync_action_created_dir">Map aangemaakt</string>
+    <string name="sync_action_error">Fout</string>
+    <string name="sync_action_deleted">Verwijderd</string>
+    <string name="sync_action_mirror_deleted">Verwijderd door spiegelen</string>
+    <string name="sync_action_mirror_trashed">Naar de prullenbak verplaatst door spiegelen</string>
+    <string name="sync_action_mirror_aborted">Spiegelen overgeslagen</string>
+    <string name="sync_action_timestamp_set">Tijdstempel ingesteld</string>
+    <string name="sync_action_timestamp_failed">Tijdstempel niet ingesteld</string>
+    <string name="sync_action_low_space">Afgebroken, opslag bijna vol</string>
+    <string name="sync_action_discarded">Onvolledige download verwijderd</string>
+    <string name="sync_skip_unchanged">ongewijzigd sinds de laatste sync</string>
+    <string name="sync_skip_same">zelfde grootte en tijd aan beide kanten</string>
+    <string name="sync_skip_remote_newer">de kopie op de server is nieuwer of even nieuw</string>
+    <string name="sync_skip_local_newer">de lokale kopie is nieuwer of even nieuw</string>
+
+    <string name="sync_notify_channel_name">Syncproblemen</string>
+    <string name="sync_notify_channel_description">Meldt wanneer een mapsync niet meer werkt en wanneer hij weer werkt</string>
+    <string name="sync_notify_failed_title">%1$s kon niet synchroniseren</string>
+    <string name="sync_notify_low_space_title">%1$s gestopt: opslag bijna vol</string>
+    <plurals name="sync_notify_errors_title">
+        <item quantity="one">%1$s: %2$d bestand niet gesynchroniseerd</item>
+        <item quantity="other">%1$s: %2$d bestanden niet gesynchroniseerd</item>
+    </plurals>
+    <string name="sync_notify_recovered_title">%1$s synchroniseert weer</string>
+    <string name="sync_notify_overdue_title">%1$s is te laat</string>
+    <string name="sync_notify_overdue_text">Deze sync werkt alleen via wifi en is al een tijd niet uitgevoerd. Tik om één keer via mobiele data te synchroniseren.</string>
+    <string name="sync_notify_mute">Dempen voor deze sync</string>
+</resources>

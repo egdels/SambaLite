@@ -493,5 +493,10 @@ public class MirrorIntegrationTest {
     public int countAll() {
       return rows.size();
     }
+
+    @Override
+    public List<FileSyncState> searchByPath(String rootUri, String pattern, int limit) {
+      return new ArrayList<>();
+    }
   }
 }

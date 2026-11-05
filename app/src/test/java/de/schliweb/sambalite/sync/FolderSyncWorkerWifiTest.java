@@ -42,6 +42,7 @@ public class FolderSyncWorkerWifiTest {
     context.getSharedPreferences("sambalite_sync_configs", Context.MODE_PRIVATE).edit().clear().commit();
     context.getSharedPreferences("sambalite_connections", Context.MODE_PRIVATE).edit().clear().commit();
     context.getSharedPreferences("sambalite_sync_state", Context.MODE_PRIVATE).edit().clear().commit();
+    context.getSharedPreferences("sync_run_history", Context.MODE_PRIVATE).edit().clear().commit();
 
     worker =
         TestWorkerBuilder.from(context, FolderSyncWorker.class, Executors.newSingleThreadExecutor())
@@ -83,6 +84,35 @@ public class FolderSyncWorkerWifiTest {
     ListenableWorker.Result result = runManualSync();
     assertTrue(result instanceof ListenableWorker.Result.Success);
     assertTrue(result.getOutputData().getBoolean(FolderSyncWorker.KEY_SKIPPED_WIFI_ONLY, false));
+
+    // #50: the skip is stored, so the System Monitor can tell why the sync did not run
+    SyncRunResult latest =
+        new SyncRunHistoryStore(ApplicationProvider.getApplicationContext()).getLatest("config1");
+    assertNotNull(latest);
+    assertEquals(SyncRunResult.Status.SKIPPED_NO_WIFI, latest.getStatus());
+  }
+
+  @Test
+  public void doWork_wifiOnly_noWifi_ignoreWifiOnly_attemptsSync() {
+    saveConnectionAndConfig(true);
+    useCellular();
+
+    // "Sync once over mobile data" from the System Monitor (#50)
+    androidx.work.Data inputData =
+        new androidx.work.Data.Builder()
+            .putString(FolderSyncWorker.KEY_SYNC_CONFIG_ID, "config1")
+            .putBoolean(FolderSyncWorker.KEY_IGNORE_WIFI_ONLY, true)
+            .build();
+    FolderSyncWorker w =
+        TestWorkerBuilder.from(
+                ApplicationProvider.getApplicationContext(),
+                FolderSyncWorker.class,
+                Executors.newSingleThreadExecutor())
+            .setInputData(inputData)
+            .build();
+    ListenableWorker.Result result = w.doWork();
+    assertTrue(result instanceof ListenableWorker.Result.Failure);
+    assertNotNull(result.getOutputData().getString(FolderSyncWorker.KEY_LOCAL_FOLDER_MISSING));
   }
 
   @Test
@@ -96,6 +126,13 @@ public class FolderSyncWorkerWifiTest {
     ListenableWorker.Result result = runManualSync();
     assertTrue(result instanceof ListenableWorker.Result.Failure);
     assertNotNull(result.getOutputData().getString(FolderSyncWorker.KEY_LOCAL_FOLDER_MISSING));
+
+    // #50: the failed run is stored with its cause, although the last-sync time does not move
+    SyncRunResult latest =
+        new SyncRunHistoryStore(ApplicationProvider.getApplicationContext()).getLatest("config1");
+    assertNotNull(latest);
+    assertEquals(SyncRunResult.Status.FAILED, latest.getStatus());
+    assertEquals(SyncErrorCategory.LOCAL_FOLDER_MISSING, latest.getFailureCategory());
   }
 
   private void saveConnectionAndConfig(boolean wifiOnly) {

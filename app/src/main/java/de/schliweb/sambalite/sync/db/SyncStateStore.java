@@ -131,6 +131,22 @@ public class SyncStateStore {
   }
 
   /**
+   * Returns the tracked files of a root whose relative path contains {@code text}, ignoring case,
+   * newest first; at most {@code limit}. Must not be called on the main thread.
+   */
+  @NonNull
+  public List<FileSyncState> searchByPath(
+      @NonNull String rootUri, @NonNull String text, int limit) {
+    String escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    try {
+      return dao.searchByPath(rootUri, "%" + escaped + "%", limit);
+    } catch (Exception e) {
+      LogUtils.w(TAG, "Could not search the sync state: " + e.getMessage());
+      return new java.util.ArrayList<>();
+    }
+  }
+
+  /**
    * Deletes the sync state for a specific file.
    *
    * @param rootUri the root URI of the sync target

@@ -34,10 +34,13 @@ public class SyncRepository {
 
   private final SharedPreferences prefs;
   private final SyncStateStore syncStateStore;
+  private final Context appContext;
 
   @Inject
   public SyncRepository(@NonNull Context context) {
     LogUtils.d(TAG, "Initializing SyncRepository");
+    this.appContext =
+        context.getApplicationContext() != null ? context.getApplicationContext() : context;
     this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     this.syncStateStore = new SyncStateStore(context);
   }
@@ -164,6 +167,7 @@ public class SyncRepository {
 
       // Clean up sync state DB entries for this config's local folder (off main thread)
       deleteSyncStateForRoot(localFolderUri);
+      deleteRunHistory(configId);
     } else {
       LogUtils.w(TAG, "Sync config not found for deletion: " + configId);
     }
@@ -209,6 +213,13 @@ public class SyncRepository {
       }
     }
 
+    List<String> removedIds = new ArrayList<>();
+    for (SyncConfig c : configs) {
+      if (connectionId.equals(c.getConnectionId())) {
+        removedIds.add(c.getId());
+      }
+    }
+
     int originalSize = configs.size();
     configs.removeIf(c -> connectionId.equals(c.getConnectionId()));
     int removed = originalSize - configs.size();
@@ -216,6 +227,9 @@ public class SyncRepository {
     if (removed > 0) {
       saveConfigsToPrefs(configs);
       LogUtils.i(TAG, "Deleted " + removed + " sync configs for connection: " + connectionId);
+      for (String id : removedIds) {
+        deleteRunHistory(id);
+      }
 
       // Clean up sync state DB entries for all removed configs (off main thread)
       new Thread(
@@ -251,6 +265,12 @@ public class SyncRepository {
     }
 
     LogUtils.w(TAG, "Sync config not found for timestamp update: " + configId);
+  }
+
+  /** Deletes the stored run results and the run log of a config (#50). */
+  private void deleteRunHistory(@NonNull String configId) {
+    new SyncRunHistoryStore(appContext).delete(configId);
+    SyncRunLog.delete(appContext, configId);
   }
 
   /** Saves the list of configurations to SharedPreferences. */

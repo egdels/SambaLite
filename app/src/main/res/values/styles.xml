@@ -2,4 +2,24 @@
 <resources>
     <!-- Numbers in the transfer queue statistics card; smaller in landscape (values-land) -->
     <style name="TextAppearance.SambaLite.QueueStatNumber" parent="TextAppearance.Material3.HeadlineSmall" />
+
+    <!-- Outlined, tappable card of the System Monitor (#50) -->
+    <style name="Widget.SambaLite.MonitorRow" parent="Widget.Material3.CardView.Outlined">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Section heading of the System Monitor detail screen (#50) -->
+    <style name="TextAppearance.SambaLite.MonitorSection" parent="">
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:layout_marginTop">24dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:accessibilityHeading">true</item>
+    </style>
 </resources>

@@ -128,6 +128,16 @@ public class FolderSyncWorker extends Worker {
   private static final long DISK_CHECK_INTERVAL = 10L * 1024 * 1024;
   public static final String KEY_SYNC_CONFIG_ID = "sync_config_id";
 
+  /** Input flag: run a "Sync Now" once even if the config is restricted to WiFi. */
+  public static final String KEY_IGNORE_WIFI_ONLY = "ignore_wifi_only";
+
+  /** Progress keys: the config being synced, files done, files of the previous run, path. */
+  public static final String KEY_PROGRESS_CONFIG_ID = "progress_config_id";
+
+  public static final String KEY_PROGRESS_PROCESSED = "progress_processed";
+  public static final String KEY_PROGRESS_EXPECTED = "progress_expected";
+  public static final String KEY_PROGRESS_PATH = "progress_path";
+
   /**
    * Output flag: at least one config was not synced because it is restricted to WiFi and the device
    * is not on WiFi. The worker still succeeds (nothing to retry), so the UI uses this flag to tell
@@ -151,7 +161,12 @@ public class FolderSyncWorker extends Worker {
 
   private static final String SYNC_CHANNEL_ID = "FOLDER_SYNC_OPERATIONS";
   private static final int SYNC_NOTIFICATION_ID = 2001;
-  private SyncActionLog actionLog;
+  private SyncActionLog sharedLog;
+  private SyncRunHistoryStore historyStore;
+
+  /** Records the run of the config being synced; replaced for every config. */
+  private SyncRunRecorder recorder;
+
   private final SyncComparator syncComparator = new SyncComparator();
   private SyncStateStore syncStateStore;
 
@@ -169,7 +184,9 @@ public class FolderSyncWorker extends Worker {
 
   public FolderSyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
     super(context, params);
-    this.actionLog = new SyncActionLog(context);
+    this.sharedLog = new SyncActionLog(context);
+    this.historyStore = new SyncRunHistoryStore(context);
+    this.recorder = new SyncRunRecorder(sharedLog, null, "", "", null, System.currentTimeMillis());
     this.syncStateStore = new SyncStateStore(context);
   }
 
@@ -218,6 +235,7 @@ public class FolderSyncWorker extends Worker {
     // Check if a specific config ID was requested
     String specificConfigId = getInputData().getString(KEY_SYNC_CONFIG_ID);
     boolean isManualSync = specificConfigId != null;
+    boolean ignoreWifiOnly = isManualSync && getInputData().getBoolean(KEY_IGNORE_WIFI_ONLY, false);
     LogUtils.i(
         TAG,
         "Sync type: " + (isManualSync ? "manual (config=" + specificConfigId + ")" : "periodic"));
@@ -297,26 +315,58 @@ public class FolderSyncWorker extends Worker {
       SmbConnection connection = connectionMap.get(config.getConnectionId());
       if (connection == null) {
         LogUtils.w(TAG, "Connection not found for config: " + config.getId());
+        recordRun(
+            config,
+            SyncRunResult.notStarted(
+                config.getId(),
+                SyncRunResult.Status.FAILED,
+                "connection not found",
+                SyncErrorCategory.OTHER,
+                System.currentTimeMillis()));
         continue;
       }
 
       // Check if sync is restricted to WiFi only
-      if (config.isWifiOnly() && !isConnectedToWifi()) {
+      if (config.isWifiOnly() && !ignoreWifiOnly && !isConnectedToWifi()) {
         LogUtils.i(
             TAG,
             "Skipping config "
                 + config.getId()
                 + " because WiFi is not connected and wifiOnly is enabled");
         skippedWifiOnly = true;
+        recordRun(
+            config,
+            SyncRunResult.notStarted(
+                config.getId(),
+                SyncRunResult.Status.SKIPPED_NO_WIFI,
+                null,
+                null,
+                System.currentTimeMillis()));
         continue;
       }
+
+      SyncRunResult previousRun = historyStore.getLatestRun(config.getId());
+      int expectedFiles = previousRun != null ? previousRun.getProcessedFiles() : 0;
+      SyncRunLog runLog = new SyncRunLog(getApplicationContext(), config.getId());
+      recorder =
+          new SyncRunRecorder(
+              sharedLog,
+              runLog,
+              config.getId(),
+              configName(config),
+              (processed, path) -> publishProgress(config.getId(), processed, expectedFiles, path),
+              System.currentTimeMillis());
 
       // Check the disk space of this config's volume. A full SD card must not hold back syncs
       // onto other volumes, so only this config is skipped.
       if (!hasEnoughDiskSpace(config)) {
         LogUtils.e(
             TAG, "Insufficient disk space \u2013 skipping sync for config: " + config.getId());
-        logLowSpaceAbort(config, "sync not started");
+        String detail = logLowSpaceAbort(config, "sync not started");
+        recordRun(
+            config,
+            recorder.finish(
+                SyncRunResult.Status.ABORTED_LOW_SPACE, detail, SyncErrorCategory.LOCAL_SPACE));
         anyFailure = true;
         continue;
       }
@@ -333,11 +383,18 @@ public class FolderSyncWorker extends Worker {
           // Manual sync: request a retry so the user's request is not silently dropped
           anyFailure = true;
         }
+        // The run that holds the lock records its own result.
         continue;
       }
+      SyncRunResult.Status status = SyncRunResult.Status.FAILED;
+      String reason = null;
+      SyncErrorCategory failureCategory = null;
       try {
+        runLog.begin();
+        publishProgress(config.getId(), 0, expectedFiles, "");
         diskCheckTarget = parseLocalFolderUri(config);
         syncFolder(config, connection);
+        status = recorder.completedStatus(isStopped());
         if (isStopped()) {
           // Stopped by the user or the system: the folder was not fully synced, so the last-sync
           // time must not move forward.
@@ -348,23 +405,34 @@ public class FolderSyncWorker extends Worker {
         }
       } catch (InsufficientDiskSpaceException e) {
         LogUtils.e(TAG, "Sync aborted for config " + config.getId() + ": insufficient disk space");
-        logLowSpaceAbort(config, "sync stopped: " + e.getMessage());
+        status = SyncRunResult.Status.ABORTED_LOW_SPACE;
+        reason = logLowSpaceAbort(config, "sync stopped: " + e.getMessage());
+        failureCategory = SyncErrorCategory.LOCAL_SPACE;
         anyFailure = true;
       } catch (LocalFolderMissingException e) {
         // Permanent: deleted folder or revoked access. Retrying would only repeat the error.
         LogUtils.e(TAG, "Sync not possible for config " + config.getId() + ": " + e.getMessage());
-        actionLog.log(
-            SyncActionLog.Action.ERROR,
-            configName(config),
-            "local folder missing: " + e.getMessage());
+        recorder.logRun(SyncActionLog.Action.ERROR, "local folder missing: " + e.getMessage());
+        status = SyncRunResult.Status.FAILED;
+        reason = e.getMessage();
+        failureCategory = SyncErrorCategory.LOCAL_FOLDER_MISSING;
         if (missingLocalFolder == null) missingLocalFolder = configName(config);
       } catch (Exception e) {
         LogUtils.e(TAG, "Sync failed for config " + config.getId() + ": " + e.getMessage());
-        actionLog.log(
-            SyncActionLog.Action.ERROR, configName(config), "sync failed: " + e.getMessage());
+        recorder.logRun(SyncActionLog.Action.ERROR, "sync failed: " + e.getMessage());
+        // A stop can surface as an exception from the interrupted SMB call.
+        status = isStopped() ? SyncRunResult.Status.STOPPED : SyncRunResult.Status.FAILED;
+        reason = SyncErrorCategory.describe(e);
+        failureCategory = SyncErrorCategory.classify(e);
         anyFailure = true;
       } finally {
         diskCheckTarget = null;
+        runLog.close();
+        try {
+          recordRun(config, recorder.finish(status, reason, failureCategory));
+        } catch (RuntimeException e) {
+          LogUtils.w(TAG, "Could not record the sync result: " + e.getMessage());
+        }
         lock.unlock();
       }
     }
@@ -502,7 +570,7 @@ public class FolderSyncWorker extends Worker {
 
           if (!remoteExists) {
             long remoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
-            actionLog.log(SyncActionLog.Action.UPLOADED, name);
+            recorder.log(SyncActionLog.Action.UPLOADED, fileRelPath);
             // After upload the remote lastWriteTime is set to the local file's lastModified
             // (see uploadFile), so no extra round-trips are needed to read it back.
             syncStateStore.saveRemoteState(
@@ -524,11 +592,11 @@ public class FolderSyncWorker extends Worker {
             if (SyncStateComparator.bothMatch(
                 storedState, localSize, localModified, remoteSize, remoteModified)) {
               LogUtils.d(TAG, "Skipping upload (both sides match sync state): " + name);
-              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (DB state)");
+              recorder.log(SyncActionLog.Action.SKIPPED, fileRelPath, "same (DB state)");
             } else if (SyncStateComparator.localChangedWhileRemoteMatches(
                 storedState, localSize, localModified, remoteSize, remoteModified)) {
               long newRemoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
-              actionLog.log(SyncActionLog.Action.UPLOADED, name);
+              recorder.log(SyncActionLog.Action.UPLOADED, fileRelPath);
               syncStateStore.saveRemoteState(
                   rootUri,
                   fileRelPath,
@@ -541,7 +609,7 @@ public class FolderSyncWorker extends Worker {
             } else if (syncComparator.isSame(
                 localSize, localModified, remoteSize, remoteModified)) {
               LogUtils.d(TAG, "Skipping upload (same): " + name);
-              actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+              recorder.log(SyncActionLog.Action.SKIPPED, fileRelPath, "same (size+timestamp)");
               syncStateStore.saveRemoteState(
                   rootUri,
                   fileRelPath,
@@ -553,7 +621,7 @@ public class FolderSyncWorker extends Worker {
                   false);
             } else if (syncComparator.isLocalNewer(localModified, remoteModified)) {
               long newRemoteSize = uploadFile(share, localFile, remoteFilePath, localModified);
-              actionLog.log(SyncActionLog.Action.UPLOADED, name);
+              recorder.log(SyncActionLog.Action.UPLOADED, fileRelPath);
               syncStateStore.saveRemoteState(
                   rootUri,
                   fileRelPath,
@@ -565,12 +633,13 @@ public class FolderSyncWorker extends Worker {
                   false);
             } else {
               LogUtils.d(TAG, "Skipping upload (remote is newer or within tolerance): " + name);
-              actionLog.log(SyncActionLog.Action.SKIPPED, name, "remote newer or within tolerance");
+              recorder.log(
+                  SyncActionLog.Action.SKIPPED, fileRelPath, "remote newer or within tolerance");
             }
           }
         } catch (Exception e) {
           LogUtils.e(TAG, "Error syncing local file " + name + ": " + e.getMessage());
-          actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
+          recorder.error(relPath.isEmpty() ? name : relPath + "/" + name, name, e);
         }
       }
     }
@@ -601,11 +670,8 @@ public class FolderSyncWorker extends Worker {
    * Syncs remote files to local. Downloads files that are newer remotely or don't exist locally.
    */
   private void syncRemoteToLocal(
-      DiskShare share,
-      DocumentFile localFolder,
-      String remotePath,
-      String rootUri,
-      String relPath) {
+      DiskShare share, DocumentFile localFolder, String remotePath, String rootUri, String relPath)
+      throws InsufficientDiskSpaceException {
     if (isStopped()) return;
 
     try {
@@ -644,7 +710,8 @@ public class FolderSyncWorker extends Worker {
           DocumentFile localSubDir = lookupLocal(localFilesMap, localFilesMapLower, name);
           if (localSubDir == null) {
             localSubDir = createDirectorySafe(localFolder, name);
-            actionLog.log(SyncActionLog.Action.CREATED_DIR, name);
+            recorder.log(
+                SyncActionLog.Action.CREATED_DIR, relPath.isEmpty() ? name : relPath + "/" + name);
           }
           if (localSubDir != null) {
             String childRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
@@ -667,7 +734,7 @@ public class FolderSyncWorker extends Worker {
               DocumentFile newFile = localFolder.createFile(mimeType, name);
               if (newFile != null) {
                 downloadFileOrDiscard(share, remoteFilePath, newFile, rootUri, fileRelPath);
-                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                recorder.log(SyncActionLog.Action.DOWNLOADED, fileRelPath);
                 syncStateStore.saveRemoteState(
                     rootUri,
                     fileRelPath,
@@ -687,14 +754,15 @@ public class FolderSyncWorker extends Worker {
               if (SyncStateComparator.bothMatch(
                   storedState, localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (unchanged per stored metadata): " + name);
-                actionLog.log(SyncActionLog.Action.SKIPPED, name, "unchanged (stored metadata)");
+                recorder.log(
+                    SyncActionLog.Action.SKIPPED, fileRelPath, "unchanged (stored metadata)");
               } else if (remoteIsSource
                   && SyncStateComparator.remoteChangedWhileLocalMatches(
                       storedState, localSize, localModified, remoteSize, remoteModified)) {
                 // One-way sync: the server version changed and the local copy did not, so the
                 // server wins even with an older timestamp (restored or copied file)
                 downloadFileOrDiscard(share, remoteFilePath, localFile, rootUri, fileRelPath);
-                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                recorder.log(SyncActionLog.Action.DOWNLOADED, fileRelPath);
                 syncStateStore.saveRemoteState(
                     rootUri,
                     fileRelPath,
@@ -707,7 +775,7 @@ public class FolderSyncWorker extends Worker {
               } else if (syncComparator.isSame(
                   localSize, localModified, remoteSize, remoteModified)) {
                 LogUtils.d(TAG, "Skipping download (same): " + name);
-                actionLog.log(SyncActionLog.Action.SKIPPED, name, "same (size+timestamp)");
+                recorder.log(SyncActionLog.Action.SKIPPED, fileRelPath, "same (size+timestamp)");
                 syncStateStore.saveRemoteState(
                     rootUri,
                     fileRelPath,
@@ -719,7 +787,7 @@ public class FolderSyncWorker extends Worker {
                     false);
               } else if (syncComparator.isRemoteNewer(localModified, remoteModified)) {
                 downloadFileOrDiscard(share, remoteFilePath, localFile, rootUri, fileRelPath);
-                actionLog.log(SyncActionLog.Action.DOWNLOADED, name);
+                recorder.log(SyncActionLog.Action.DOWNLOADED, fileRelPath);
                 syncStateStore.saveRemoteState(
                     rootUri,
                     fileRelPath,
@@ -731,8 +799,8 @@ public class FolderSyncWorker extends Worker {
                     false);
               } else {
                 LogUtils.d(TAG, "Skipping download (local is newer or within tolerance): " + name);
-                actionLog.log(
-                    SyncActionLog.Action.SKIPPED, name, "local newer or within tolerance");
+                recorder.log(
+                    SyncActionLog.Action.SKIPPED, fileRelPath, "local newer or within tolerance");
                 if (remoteIsSource && storedState == null) {
                   // A file that existed on both sides when tracking started: record it now, so
                   // that a later change on the server is recognised (and Mirror covers it)
@@ -752,7 +820,7 @@ public class FolderSyncWorker extends Worker {
             throw e;
           } catch (Exception e) {
             LogUtils.e(TAG, "Error syncing remote file " + name + ": " + e.getMessage());
-            actionLog.log(SyncActionLog.Action.ERROR, name, e.getMessage());
+            recorder.error(relPath.isEmpty() ? name : relPath + "/" + name, name, e);
             // Check if the failure was caused by low disk space
             if (!hasEnoughDiskSpace()) {
               throw new InsufficientDiskSpaceException(
@@ -767,8 +835,12 @@ public class FolderSyncWorker extends Worker {
       // file to the trash (or deleting it) and removing the DB entry afterwards. Performing the
       // DB cleanup here would race with the sweeper and prevent it from finding any candidates,
       // so the local file would never be moved to the trash.
+    } catch (InsufficientDiskSpaceException e) {
+      throw e;
     } catch (Exception e) {
       LogUtils.e(TAG, "Error listing remote directory " + remotePath + ": " + e.getMessage());
+      // The whole folder was not synced in this run; count it, so the run is not "completed".
+      recorder.folderSkipped(relPath, e);
     }
   }
 
@@ -952,7 +1024,7 @@ public class FolderSyncWorker extends Worker {
     try {
       boolean deleted = localFile.delete();
       syncStateStore.deleteState(rootUri, fileRelPath);
-      actionLog.log(
+      recorder.log(
           SyncActionLog.Action.DISCARDED,
           fileRelPath,
           (deleted ? "" : "could not delete: ") + cause.getMessage());
@@ -1068,7 +1140,7 @@ public class FolderSyncWorker extends Worker {
           TimestampUtils.trySetLastModified(
               getApplicationContext(), localFile.getUri(), remoteTimestamp);
       if (timestampSet) {
-        actionLog.log(
+        recorder.log(
             SyncActionLog.Action.TIMESTAMP_SET,
             localFile.getName(),
             "SAF best-effort succeeded (capability="
@@ -1077,7 +1149,7 @@ public class FolderSyncWorker extends Worker {
                 + TimestampUtils.formatTimestamp(remoteTimestamp)
                 + ")");
       } else {
-        actionLog.log(
+        recorder.log(
             SyncActionLog.Action.TIMESTAMP_FAILED,
             localFile.getName(),
             "SAF best-effort failed (capability="
@@ -1091,7 +1163,7 @@ public class FolderSyncWorker extends Worker {
           TAG,
           "[TIMESTAMP] SAF download completed without valid remote timestamp: "
               + localFile.getName());
-      actionLog.log(
+      recorder.log(
           SyncActionLog.Action.TIMESTAMP_FAILED,
           localFile.getName(),
           "No valid remote timestamp available");
@@ -1401,14 +1473,36 @@ public class FolderSyncWorker extends Worker {
   }
 
   /** Records a low disk space abort in the sync activity log, with the free space checked. */
-  private void logLowSpaceAbort(SyncConfig config, String what) {
-    actionLog.log(
-        SyncActionLog.Action.ABORTED_LOW_SPACE,
-        configName(config),
+  private String logLowSpaceAbort(SyncConfig config, String what) {
+    String detail =
         what
             + " \u2013 "
             + EnhancedFileUtils.describeFreeSpace(
-                getApplicationContext(), parseLocalFolderUri(config)));
+                getApplicationContext(), parseLocalFolderUri(config));
+    recorder.logRun(SyncActionLog.Action.ABORTED_LOW_SPACE, detail);
+    return detail;
+  }
+
+  /** Stores the result of a run (or skip) and tells the user if the state of the sync changed. */
+  private void recordRun(SyncConfig config, SyncRunResult result) {
+    SyncRunHistoryStore.Recorded recorded = historyStore.record(result);
+    SyncProblemNotifier.onResult(
+        getApplicationContext(), historyStore, config, result, recorded.getPreviousRun());
+  }
+
+  /** Publishes the progress of the running config, for the live view in the System Monitor. */
+  private void publishProgress(String configId, int processed, int expected, String path) {
+    try {
+      setProgressAsync(
+          new androidx.work.Data.Builder()
+              .putString(KEY_PROGRESS_CONFIG_ID, configId)
+              .putInt(KEY_PROGRESS_PROCESSED, processed)
+              .putInt(KEY_PROGRESS_EXPECTED, expected)
+              .putString(KEY_PROGRESS_PATH, path)
+              .build());
+    } catch (RuntimeException e) {
+      LogUtils.d(TAG, "Could not publish progress: " + e.getMessage());
+    }
   }
 
   /** Name of a sync config for activity log entries: the local folder, else the remote path. */
@@ -1495,7 +1589,7 @@ public class FolderSyncWorker extends Worker {
                 String trashBase = trashBaseHolder[0];
                 boolean trashed = trashRemoteEntry(share, src, trashBase, relativePath);
                 if (trashed) {
-                  actionLog.log(SyncActionLog.Action.MIRROR_TRASHED, relativePath);
+                  recorder.log(SyncActionLog.Action.MIRROR_TRASHED, relativePath);
                   return true;
                 }
                 // Fall through to delete if rename to trash failed
@@ -1503,7 +1597,7 @@ public class FolderSyncWorker extends Worker {
                     TAG, "[MIRROR] Trash move failed, falling back to delete for: " + relativePath);
               }
               boolean ok = deleteRemoteEntry(share, src);
-              if (ok) actionLog.log(SyncActionLog.Action.MIRROR_DELETED, relativePath);
+              if (ok) recorder.log(SyncActionLog.Action.MIRROR_DELETED, relativePath);
               return ok;
             });
     logMirrorResult("LOCAL→REMOTE", result);
@@ -1595,7 +1689,7 @@ public class FolderSyncWorker extends Worker {
       if (useTrash && trashBase != null && !trashTargetExists) {
         if (trashRemoteEntry(share, childAbs, trashBase, rel)) {
           removed = true;
-          actionLog.log(SyncActionLog.Action.MIRROR_TRASHED, rel);
+          recorder.log(SyncActionLog.Action.MIRROR_TRASHED, rel);
           LogUtils.d(TAG, "[MIRROR] Trashed empty remote dir: " + rel);
         }
       }
@@ -1603,7 +1697,7 @@ public class FolderSyncWorker extends Worker {
         try {
           share.rmdir(childAbs, false);
           if (!share.folderExists(childAbs)) {
-            actionLog.log(SyncActionLog.Action.MIRROR_DELETED, rel);
+            recorder.log(SyncActionLog.Action.MIRROR_DELETED, rel);
             LogUtils.d(TAG, "[MIRROR] Pruned empty remote dir: " + rel);
           }
         } catch (Exception e) {
@@ -1675,7 +1769,7 @@ public class FolderSyncWorker extends Worker {
                 if (trashBase != null) {
                   boolean trashed = trashLocalEntry(localFolder, trashBase, relativePath);
                   if (trashed) {
-                    actionLog.log(SyncActionLog.Action.MIRROR_TRASHED, relativePath);
+                    recorder.log(SyncActionLog.Action.MIRROR_TRASHED, relativePath);
                     return true;
                   }
                   LogUtils.w(
@@ -1685,7 +1779,7 @@ public class FolderSyncWorker extends Worker {
                 }
               }
               boolean ok = deleteLocalEntry(localFolder, relativePath);
-              if (ok) actionLog.log(SyncActionLog.Action.MIRROR_DELETED, relativePath);
+              if (ok) recorder.log(SyncActionLog.Action.MIRROR_DELETED, relativePath);
               return ok;
             });
     logMirrorResult("REMOTE→LOCAL", result);
@@ -1747,14 +1841,14 @@ public class FolderSyncWorker extends Worker {
       if (useTrash && trashBase != null && !trashTargetExists) {
         if (trashLocalEntry(root, trashBase, rel)) {
           removed = true;
-          actionLog.log(SyncActionLog.Action.MIRROR_TRASHED, rel);
+          recorder.log(SyncActionLog.Action.MIRROR_TRASHED, rel);
           LogUtils.d(TAG, "[MIRROR] Trashed empty local dir: " + rel);
         }
       }
       if (!removed) {
         try {
           if (child.delete()) {
-            actionLog.log(SyncActionLog.Action.MIRROR_DELETED, rel);
+            recorder.log(SyncActionLog.Action.MIRROR_DELETED, rel);
             LogUtils.d(TAG, "[MIRROR] Pruned empty local dir: " + rel);
           }
         } catch (Exception e) {
@@ -1869,7 +1963,10 @@ public class FolderSyncWorker extends Worker {
   private void logMirrorResult(String label, MirrorSweeper.Result result) {
     if (result.skipped) {
       LogUtils.i(TAG, "[MIRROR] " + label + " sweep skipped: " + result.reason);
-      actionLog.log(SyncActionLog.Action.SKIPPED, "(mirror " + label + ")", result.reason);
+      recorder.log(
+          SyncActionLog.Action.MIRROR_ABORTED,
+          "(mirror " + label + ")",
+          "skipped: " + result.reason);
     } else if (result.aborted) {
       LogUtils.e(
           TAG,
@@ -1880,7 +1977,7 @@ public class FolderSyncWorker extends Worker {
               + " of "
               + result.tracked
               + " tracked entries would be deleted (threshold)");
-      actionLog.log(
+      recorder.log(
           SyncActionLog.Action.MIRROR_ABORTED,
           "(mirror " + label + ")",
           "would delete "

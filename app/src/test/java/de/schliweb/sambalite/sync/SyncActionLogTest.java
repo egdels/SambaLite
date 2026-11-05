@@ -1,6 +1,7 @@
 package de.schliweb.sambalite.sync;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -134,11 +135,11 @@ public class SyncActionLogTest {
 
     String formatted = actionLog.getFormattedLog(10);
     assertTrue(formatted.contains("=== Sync Activity Log ==="));
-    assertTrue(formatted.contains("1 uploaded"));
-    assertTrue(formatted.contains("1 downloaded"));
-    assertTrue(formatted.contains("1 skipped"));
-    assertTrue(formatted.contains("1 errors"));
-    assertTrue(formatted.contains("1 dirs created"));
+    assertTrue(formatted, formatted.contains("Last 5 of the last 5 logged actions (all syncs"));
+    assertTrue(formatted.contains("a.mp3"));
+    assertTrue(formatted.contains("d.tqd - fail"));
+    // No "Total" line: the buffer is not a run total (#50)
+    assertFalse(formatted, formatted.contains("Total:"));
   }
 
   @Test
@@ -178,8 +179,8 @@ public class SyncActionLogTest {
         entries.get(1).contains("✂ Discarded incomplete download: Autor/Kapitel 1.mp3"));
 
     String formatted = actionLog.getFormattedLog(10);
-    assertTrue(formatted, formatted.contains(" 1 deleted, "));
-    assertTrue(formatted, formatted.contains("1 incomplete downloads discarded, "));
-    assertTrue(formatted, formatted.contains("1 aborted for low disk space\n"));
+    assertTrue(formatted, formatted.contains("🗑 Deleted: old.txt"));
+    assertTrue(formatted, formatted.contains("✂ Discarded incomplete download"));
+    assertTrue(formatted, formatted.contains("⛔ Aborted, low disk space: Music"));
   }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status colors of the System Monitor (#50). Dots differ in lightness, not only in hue. -->
+<resources>
+    <color name="sync_status_ok_container">#D5F0DF</color>
+    <color name="sync_status_ok_on_container">#0D5132</color>
+    <color name="sync_status_ok_dot">#2E9D62</color>
+    <color name="sync_status_warning_container">#FFE7BD</color>
+    <color name="sync_status_warning_on_container">#6A4100</color>
+    <color name="sync_status_warning_dot">#E8A317</color>
+    <color name="sync_status_error_container">#FFDAD6</color>
+    <color name="sync_status_error_on_container">#93000A</color>
+    <color name="sync_status_error_dot">#A8221B</color>
+    <color name="sync_status_running_container">#C9E8F4</color>
+    <color name="sync_status_running_on_container">#004556</color>
+    <color name="sync_status_running_dot">#006780</color>
+    <color name="sync_status_neutral_container">#E4E9EC</color>
+    <color name="sync_status_neutral_on_container">#3D484D</color>
+    <color name="sync_status_neutral_dot">#BDC8CE</color>
+</resources>

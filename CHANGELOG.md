@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **System Monitor shows whether each folder sync works** (#50): The System Monitor starts with one line on the state of all syncs ("Documents does not sync", "All syncs are up to date") and a card per sync with its state, the result of its last run (uploaded, downloaded, skipped, errors, always all four), a row of dots for the last 20 runs and, while it runs, the files checked so far and the current file. Each run of a sync is now stored with its result, also when it failed, was stopped or was skipped for "WiFi only", so an error early in a run of thousands of files no longer disappears behind "100 skipped, 0 errors". A sync that has not run for clearly longer than its interval is shown as overdue, with the reason (waiting for WiFi, battery optimization). Tapping a card shows the errors grouped by cause (access denied, invalid file name, server not reachable, …) with what to do and the files concerned, marks files that failed several runs in a row, and offers a fix where there is one ("Edit Sync" for a missing local folder, "Sync once over mobile data" for a sync waiting for WiFi). "Why was a file not synced?" searches the log of the last run of every sync by name or path, including the reason a file was skipped. "Share diagnostics" writes a text report for bug reports without usernames or passwords. The former technical details are kept, collapsed at the bottom; their "Total" line, which looked like a run total but counted the last 100 log entries of all syncs, was removed.
+- **Notifications when a folder sync stops or starts working again** (#50): A sync notifies when it starts to fail or to have errors, when it works again, and once when it is overdue while waiting for WiFi. A sync that fails the same way run after run does not notify again. Notifications can be turned off per sync in its details or with "Mute for this sync".
+
+### Fixed
+- **A full device during a folder sync counted as a successful sync**: When the device ran out of space while a sync downloaded files, the abort was taken for an error in one folder and the sync went on with the next folders, then reported success and moved its "Last sync" time forward. It now stops at once and is recorded as aborted for low disk space.
+- **Folders that could not be listed went unnoticed**: If the server refused to list a folder during a "Remote → Local" or bidirectional sync, nothing in it was synced and the run still counted as complete. Such a folder is now counted as an error of the run and shown as "Folder skipped".
+
 ## [3.1.0] - 2026-11-06
 
 ### Added

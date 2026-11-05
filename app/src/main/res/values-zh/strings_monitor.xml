@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="monitor_banner_all_ok">所有同步均为最新</string>
+    <string name="monitor_banner_last_run">上次运行：%1$s。</string>
+    <string name="monitor_banner_running">正在同步：%1$s。</string>
+    <string name="monitor_banner_no_syncs">尚未设置文件夹同步</string>
+    <string name="monitor_banner_all_paused">所有文件夹同步均已暂停</string>
+    <string name="monitor_banner_no_syncs_detail">可在主屏幕上设置和恢复文件夹同步。</string>
+    <string name="monitor_banner_also">另外：%1$s。</string>
+    <string name="monitor_banner_tap_for_details">点按下方的同步查看详情。</string>
+    <string name="monitor_phrase_failed">%1$s 无法同步</string>
+    <string name="monitor_phrase_low_space">%1$s 已停止：存储空间几乎已满</string>
+    <string name="monitor_phrase_overdue">%1$s 已逾期</string>
+    <string name="monitor_phrase_waiting_wifi">%1$s 正在等待 WiFi</string>
+    <plurals name="monitor_phrase_errors">
+        <item quantity="other">%1$s 有 %2$d 个文件出错</item>
+    </plurals>
+
+    <string name="monitor_battery_title">电池优化已开启</string>
+    <string name="monitor_battery_text">Android 可能会将后台同步推迟数小时。</string>
+    <string name="monitor_battery_action">排除</string>
+
+    <string name="monitor_search_title">为什么某个文件没有同步？</string>
+    <string name="monitor_search_subtitle">按名称或路径搜索</string>
+    <string name="monitor_tech_title">技术详情</string>
+    <string name="monitor_tech_subtitle">内存、缓存、错误、传输</string>
+    <string name="monitor_just_now">刚刚</string>
+    <string name="monitor_expanded">已展开</string>
+    <string name="monitor_collapsed">已收起</string>
+
+    <string name="monitor_share_diagnostics">分享诊断信息</string>
+    <string name="monitor_share_diagnostics_message">报告包含服务器名称、共享名称以及同步的文件路径，但不包含用户名或密码。</string>
+    <string name="monitor_share_action">分享</string>
+    <string name="monitor_share_diagnostics_failed">无法创建诊断信息</string>
+
+    <string name="sync_status_paused">已暂停</string>
+    <string name="sync_status_running">运行中</string>
+    <string name="sync_status_never">尚未运行</string>
+    <string name="sync_status_completed">最新</string>
+    <string name="sync_status_stopped">已停止</string>
+    <string name="sync_status_with_errors">有错误</string>
+    <string name="sync_status_overdue">已逾期</string>
+    <string name="sync_status_waiting_wifi">等待 WiFi</string>
+    <string name="sync_status_low_space">存储已满</string>
+    <string name="sync_status_failed">失败</string>
+
+    <string name="sync_when_run">%1$s · %2$s – %3$s</string>
+    <string name="sync_when_overdue">已有 %1$s 没有成功同步 · %2$s</string>
+    <string name="sync_when_failed_since">上次尝试 %1$s · 上次成功同步 %2$s</string>
+    <string name="sync_interval_every">每 %1$s</string>
+    <plurals name="sync_duration_minutes">
+        <item quantity="other">%d 分钟</item>
+    </plurals>
+    <plurals name="sync_duration_hours">
+        <item quantity="other">%d 小时</item>
+    </plurals>
+    <plurals name="sync_duration_days">
+        <item quantity="other">%d 天</item>
+    </plurals>
+
+    <string name="sync_count_uploaded">已上传</string>
+    <string name="sync_count_downloaded">已下载</string>
+    <string name="sync_count_skipped">已跳过</string>
+    <string name="sync_count_errors">错误</string>
+
+    <string name="sync_live_progress">%1$s / 约 %2$s 个文件</string>
+    <string name="sync_live_progress_unknown">已检查 %1$s 个文件</string>
+    <plurals name="sync_history_label">
+        <item quantity="other">最近 %d 次运行</item>
+    </plurals>
+    <string name="sync_history_description">最近 %1$d 次运行：%2$d 次完成，%3$d 次有错误，%4$d 次失败，%5$d 次停止或跳过</string>
+
+    <string name="sync_result_counts">上传 %1$s，下载 %2$s，跳过 %3$s，错误 %4$s</string>
+    <string name="sync_result_stopped">已停止 · %1$s</string>
+    <string name="sync_result_failed">失败 – %1$s</string>
+    <string name="sync_result_failed_after">失败 – %1$s · %2$s</string>
+    <string name="sync_result_low_space">已中止 – 存储空间几乎已满</string>
+    <string name="sync_result_low_space_after">已中止，存储空间几乎已满 · %1$s</string>
+    <string name="sync_result_skipped_wifi">已跳过 – 无 WiFi</string>
+    <string name="sync_result_skipped_wifi_times">跳过 %1$d 次 – 无 WiFi</string>
+    <string name="sync_extras">另外：%1$s</string>
+    <string name="sync_extra_mirror_skipped">为安全起见跳过了镜像</string>
+    <plurals name="sync_extra_dirs">
+        <item quantity="other">创建了 %d 个文件夹</item>
+    </plurals>
+    <plurals name="sync_extra_deleted">
+        <item quantity="other">删除了 %d 个</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_deleted">
+        <item quantity="other">镜像移除了 %d 个</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_trashed">
+        <item quantity="other">镜像将 %d 个移至回收站</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_set">
+        <item quantity="other">设置了 %d 个时间戳</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_failed">
+        <item quantity="other">%d 个时间戳未设置</item>
+    </plurals>
+    <plurals name="sync_extra_discarded">
+        <item quantity="other">丢弃了 %d 个不完整的下载</item>
+    </plurals>
+
+    <string name="sync_detail_last_run">上次运行</string>
+    <string name="sync_detail_errors_by_cause">按原因分类的错误</string>
+    <string name="sync_detail_errors_shown">列出了 %2$s 个错误中的前 %1$s 个。</string>
+    <string name="sync_detail_history">历史记录</string>
+    <string name="sync_detail_notifications">出现问题时通知我</string>
+    <string name="sync_detail_show_log">查看日志</string>
+    <string name="sync_error_count_times">%1$d× %2$s</string>
+    <plurals name="sync_error_streak">
+        <item quantity="other">连续 %d 次</item>
+    </plurals>
+    <plurals name="sync_error_more">
+        <item quantity="other">+ 另外 %d 个</item>
+    </plurals>
+
+    <string name="sync_fix_wifi_title">等待 WiFi</string>
+    <string name="sync_fix_wifi_text">此同步仅通过 WiFi 运行，由于到期时设备未连接 WiFi，已有 %1$s 未运行。一旦有 WiFi，它会自动开始。</string>
+    <string name="sync_fix_wifi_action">通过移动数据同步一次</string>
+    <string name="sync_fix_overdue_title">已逾期</string>
+    <string name="sync_fix_overdue_text">Android 已有 %1$s 未运行此同步（间隔：%2$s）。省流模式或厂商的省电功能可能会阻止后台任务。</string>
+    <string name="sync_fix_overdue_text_battery">Android 已有 %1$s 未运行此同步（间隔：%2$s）。SambaLite 的电池优化已开启，可能会阻止后台任务。</string>
+
+    <string name="sync_error_access_denied">拒绝访问</string>
+    <string name="sync_error_access_denied_hint">此连接的服务器用户无权在此读取或写入。请检查服务器上共享和文件夹的权限。</string>
+    <string name="sync_error_invalid_name">服务器上的文件名无效</string>
+    <string name="sync_error_invalid_name_hint">SMB 不允许名称中包含字符 \\ / : * ? \" &lt; &gt; |，也不允许以点或空格结尾。请重命名该文件。</string>
+    <string name="sync_error_name_too_long">路径过长</string>
+    <string name="sync_error_name_too_long_hint">服务器不接受这么长的路径。请缩短文件夹或文件名。</string>
+    <string name="sync_error_server_full">服务器存储已满</string>
+    <string name="sync_error_server_full_hint">共享所在的卷已满。请在服务器上释放空间。</string>
+    <string name="sync_error_file_in_use">文件正在使用</string>
+    <string name="sync_error_file_in_use_hint">服务器上的另一个程序打开了该文件。下次运行会重试。</string>
+    <string name="sync_error_not_found">文件已消失</string>
+    <string name="sync_error_not_found_hint">同步期间文件被移动或删除。下次运行会补上。</string>
+    <string name="sync_error_network">无法访问服务器</string>
+    <string name="sync_error_network_hint">与服务器的连接失败或中断。请检查服务器是否已开启并位于同一网络。</string>
+    <string name="sync_error_auth">登录被拒绝</string>
+    <string name="sync_error_auth_hint">服务器不接受用户名或密码。请在主屏幕上编辑该连接。</string>
+    <string name="sync_error_share_not_found">找不到共享</string>
+    <string name="sync_error_share_not_found_hint">服务器上已不存在该共享或已被重命名。请在主屏幕上编辑该连接。</string>
+    <string name="sync_error_local_access">设备上无访问权限</string>
+    <string name="sync_error_local_access_hint">无法读取或写入设备上的文件。请检查该文件夹是否仍允许访问。</string>
+    <string name="sync_error_local_folder_missing">无法访问本地文件夹</string>
+    <string name="sync_error_local_folder_missing_hint">设备上的文件夹已被删除或访问权限已被撤销。重试会得到同样的错误，请重新选择文件夹。</string>
+    <string name="sync_error_local_space">存储空间几乎已满</string>
+    <string name="sync_error_local_space_hint">同步已停止，以在设备上保留可用空间。请释放存储空间后再次同步。</string>
+    <string name="sync_error_folder_skipped">已跳过文件夹</string>
+    <string name="sync_error_folder_skipped_hint">无法在服务器上列出该文件夹，因此本次运行未同步其中的任何内容。</string>
+    <string name="sync_error_other">其他错误</string>
+    <string name="sync_error_other_hint">长按文件可查看错误信息。</string>
+
+    <string name="sync_log_title_search">查找文件</string>
+    <string name="sync_log_title_config">日志：%1$s</string>
+    <string name="sync_log_search_hint">名称或路径，例如 IMG_0412</string>
+    <string name="sync_log_show_skipped">显示已跳过的文件</string>
+    <string name="sync_log_empty">没有条目。从下次运行开始写入日志。</string>
+    <string name="sync_log_no_match">最近的运行中没有与“%1$s”匹配的文件。</string>
+    <plurals name="sync_log_results">
+        <item quantity="other">%d 个条目</item>
+    </plurals>
+    <string name="sync_log_tracked">不在上次运行中</string>
+    <string name="sync_log_tracked_detail">%1$s · 上次同步 %2$s</string>
+    <string name="sync_action_uploaded">已上传</string>
+    <string name="sync_action_downloaded">已下载</string>
+    <string name="sync_action_skipped">已跳过</string>
+    <string name="sync_action_created_dir">已创建文件夹</string>
+    <string name="sync_action_error">错误</string>
+    <string name="sync_action_deleted">已删除</string>
+    <string name="sync_action_mirror_deleted">已被镜像移除</string>
+    <string name="sync_action_mirror_trashed">已被镜像移至回收站</string>
+    <string name="sync_action_mirror_aborted">已跳过镜像</string>
+    <string name="sync_action_timestamp_set">已设置时间戳</string>
+    <string name="sync_action_timestamp_failed">未设置时间戳</string>
+    <string name="sync_action_low_space">已中止，存储空间几乎已满</string>
+    <string name="sync_action_discarded">已丢弃不完整的下载</string>
+    <string name="sync_skip_unchanged">自上次同步以来未更改</string>
+    <string name="sync_skip_same">两端大小和时间相同</string>
+    <string name="sync_skip_remote_newer">服务器上的副本更新或同样新</string>
+    <string name="sync_skip_local_newer">本地副本更新或同样新</string>
+
+    <string name="sync_notify_channel_name">同步问题</string>
+    <string name="sync_notify_channel_description">在文件夹同步停止工作以及恢复工作时通知你</string>
+    <string name="sync_notify_failed_title">%1$s 无法同步</string>
+    <string name="sync_notify_low_space_title">%1$s 已停止：存储空间几乎已满</string>
+    <plurals name="sync_notify_errors_title">
+        <item quantity="other">%1$s：%2$d 个文件未同步</item>
+    </plurals>
+    <string name="sync_notify_recovered_title">%1$s 已恢复同步</string>
+    <string name="sync_notify_overdue_title">%1$s 已逾期</string>
+    <string name="sync_notify_overdue_text">此同步仅通过 WiFi 运行，已有一段时间未运行。点按可通过移动数据同步一次。</string>
+    <string name="sync_notify_mute">对此同步静音</string>
+</resources>

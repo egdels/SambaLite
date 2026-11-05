@@ -293,7 +293,20 @@ public class SyncManager {
    * @param configId the ID of the sync configuration to sync
    */
   public void triggerImmediateSync(@NonNull String configId) {
-    LogUtils.i(TAG, "Triggering immediate sync for config: " + configId);
+    triggerImmediateSync(configId, false);
+  }
+
+  /**
+   * Triggers an immediate one-time sync for a specific configuration.
+   *
+   * @param configId the ID of the sync configuration to sync
+   * @param ignoreWifiOnly true to sync this once over any network, even if the config is restricted
+   *     to WiFi (#50: "sync once over mobile data" in the System Monitor)
+   */
+  public void triggerImmediateSync(@NonNull String configId, boolean ignoreWifiOnly) {
+    LogUtils.i(
+        TAG,
+        "Triggering immediate sync for config: " + configId + ", ignoreWifiOnly=" + ignoreWifiOnly);
 
     Constraints constraints =
         new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
@@ -301,6 +314,7 @@ public class SyncManager {
     androidx.work.Data inputData =
         new androidx.work.Data.Builder()
             .putString(FolderSyncWorker.KEY_SYNC_CONFIG_ID, configId)
+            .putBoolean(FolderSyncWorker.KEY_IGNORE_WIFI_ONLY, ignoreWifiOnly)
             .build();
 
     OneTimeWorkRequest request =

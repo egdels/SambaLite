@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System Monitor: sync status, run results, errors and notifications (#50) -->
+<resources>
+    <!-- Overall state -->
+    <string name="monitor_banner_all_ok">All syncs are up to date</string>
+    <string name="monitor_banner_last_run">Last run %1$s.</string>
+    <string name="monitor_banner_running">Syncing now: %1$s.</string>
+    <string name="monitor_banner_no_syncs">No folder syncs set up</string>
+    <string name="monitor_banner_all_paused">All folder syncs are paused</string>
+    <string name="monitor_banner_no_syncs_detail">Folder syncs are set up and resumed on the main screen.</string>
+    <string name="monitor_banner_also">Also: %1$s.</string>
+    <string name="monitor_banner_tap_for_details">Tap the sync below for details.</string>
+    <string name="monitor_phrase_failed">%1$s does not sync</string>
+    <string name="monitor_phrase_low_space">%1$s stopped: storage almost full</string>
+    <string name="monitor_phrase_overdue">%1$s is overdue</string>
+    <string name="monitor_phrase_waiting_wifi">%1$s is waiting for WiFi</string>
+    <plurals name="monitor_phrase_errors">
+        <item quantity="one">%1$s has %2$d file with errors</item>
+        <item quantity="other">%1$s has %2$d files with errors</item>
+    </plurals>
+
+    <string name="monitor_battery_title">Battery optimization is on</string>
+    <string name="monitor_battery_text">Android can delay background syncs by hours.</string>
+    <string name="monitor_battery_action">Exempt</string>
+
+    <string name="monitor_search_title">Why was a file not synced?</string>
+    <string name="monitor_search_subtitle">Search by name or path</string>
+    <string name="monitor_tech_title">Technical details</string>
+    <string name="monitor_tech_subtitle">Memory, cache, errors, transfers</string>
+    <string name="monitor_just_now">just now</string>
+    <string name="monitor_expanded">expanded</string>
+    <string name="monitor_collapsed">collapsed</string>
+
+    <string name="monitor_share_diagnostics">Share diagnostics</string>
+    <string name="monitor_share_diagnostics_message">The report contains the server and share names and the file paths of your syncs, but no usernames or passwords.</string>
+    <string name="monitor_share_action">Share</string>
+    <string name="monitor_share_diagnostics_failed">The diagnostics could not be created</string>
+
+    <!-- State of one sync -->
+    <string name="sync_status_paused">Paused</string>
+    <string name="sync_status_running">Running</string>
+    <string name="sync_status_never">Not run yet</string>
+    <string name="sync_status_completed">Up to date</string>
+    <string name="sync_status_stopped">Stopped</string>
+    <string name="sync_status_with_errors">With errors</string>
+    <string name="sync_status_overdue">Overdue</string>
+    <string name="sync_status_waiting_wifi">Waiting for WiFi</string>
+    <string name="sync_status_low_space">Storage full</string>
+    <string name="sync_status_failed">Failed</string>
+
+    <string name="sync_when_run">%1$s · %2$s – %3$s</string>
+    <string name="sync_when_overdue">No successful sync for %1$s · %2$s</string>
+    <string name="sync_when_failed_since">Last attempt %1$s · last successful sync %2$s</string>
+    <string name="sync_interval_every">Every %1$s</string>
+    <plurals name="sync_duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="sync_duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="sync_duration_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <string name="sync_count_uploaded">uploaded</string>
+    <string name="sync_count_downloaded">downloaded</string>
+    <string name="sync_count_skipped">skipped</string>
+    <string name="sync_count_errors">errors</string>
+
+    <string name="sync_live_progress">%1$s of ~%2$s files</string>
+    <string name="sync_live_progress_unknown">%1$s files checked</string>
+    <plurals name="sync_history_label">
+        <item quantity="one">last run</item>
+        <item quantity="other">last %d runs</item>
+    </plurals>
+    <string name="sync_history_description">Last %1$d runs: %2$d completed, %3$d with errors, %4$d failed, %5$d stopped or skipped</string>
+
+    <!-- Results -->
+    <string name="sync_result_counts">%1$s uploaded, %2$s downloaded, %3$s skipped, %4$s errors</string>
+    <string name="sync_result_stopped">Stopped · %1$s</string>
+    <string name="sync_result_failed">Failed – %1$s</string>
+    <string name="sync_result_failed_after">Failed – %1$s · %2$s</string>
+    <string name="sync_result_low_space">Aborted – storage almost full</string>
+    <string name="sync_result_low_space_after">Aborted, storage almost full · %1$s</string>
+    <string name="sync_result_skipped_wifi">Skipped – no WiFi</string>
+    <string name="sync_result_skipped_wifi_times">Skipped %1$d× – no WiFi</string>
+    <string name="sync_extras">Also: %1$s</string>
+    <string name="sync_extra_mirror_skipped">mirror skipped for safety</string>
+    <plurals name="sync_extra_dirs">
+        <item quantity="one">%d folder created</item>
+        <item quantity="other">%d folders created</item>
+    </plurals>
+    <plurals name="sync_extra_deleted">
+        <item quantity="one">%d deleted</item>
+        <item quantity="other">%d deleted</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_deleted">
+        <item quantity="one">%d removed by mirror</item>
+        <item quantity="other">%d removed by mirror</item>
+    </plurals>
+    <plurals name="sync_extra_mirror_trashed">
+        <item quantity="one">%d moved to the trash by mirror</item>
+        <item quantity="other">%d moved to the trash by mirror</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_set">
+        <item quantity="one">%d timestamp set</item>
+        <item quantity="other">%d timestamps set</item>
+    </plurals>
+    <plurals name="sync_extra_timestamps_failed">
+        <item quantity="one">%d timestamp not set</item>
+        <item quantity="other">%d timestamps not set</item>
+    </plurals>
+    <plurals name="sync_extra_discarded">
+        <item quantity="one">%d incomplete download discarded</item>
+        <item quantity="other">%d incomplete downloads discarded</item>
+    </plurals>
+
+    <!-- Detail screen -->
+    <string name="sync_detail_last_run">Last run</string>
+    <string name="sync_detail_errors_by_cause">Errors by cause</string>
+    <string name="sync_detail_errors_shown">The first %1$s of %2$s errors are listed.</string>
+    <string name="sync_detail_history">History</string>
+    <string name="sync_detail_notifications">Notify me about problems</string>
+    <string name="sync_detail_show_log">Show log</string>
+    <string name="sync_error_count_times">%1$d× %2$s</string>
+    <plurals name="sync_error_streak">
+        <item quantity="one">for %d run</item>
+        <item quantity="other">for %d runs</item>
+    </plurals>
+    <plurals name="sync_error_more">
+        <item quantity="one">+ %d more</item>
+        <item quantity="other">+ %d more</item>
+    </plurals>
+
+    <string name="sync_fix_wifi_title">Waiting for WiFi</string>
+    <string name="sync_fix_wifi_text">This sync only runs on WiFi and has not run for %1$s, because the device was not on WiFi when it was due. It starts by itself as soon as WiFi is available.</string>
+    <string name="sync_fix_wifi_action">Sync once over mobile data</string>
+    <string name="sync_fix_overdue_title">Overdue</string>
+    <string name="sync_fix_overdue_text">Android has not run this sync for %1$s (interval: %2$s). Data saver or a manufacturer\'s power saving can hold back background work.</string>
+    <string name="sync_fix_overdue_text_battery">Android has not run this sync for %1$s (interval: %2$s). Battery optimization is on for SambaLite, which can hold back background work.</string>
+
+    <!-- Error causes -->
+    <string name="sync_error_access_denied">Access denied</string>
+    <string name="sync_error_access_denied_hint">The server user of this connection may not read or write here. Check the permissions of the share and folder on the server.</string>
+    <string name="sync_error_invalid_name">Invalid file name on the server</string>
+    <string name="sync_error_invalid_name_hint">SMB does not allow the characters \\ / : * ? \" &lt; &gt; | in names, nor a dot or space at the end. Rename the file.</string>
+    <string name="sync_error_name_too_long">Path too long</string>
+    <string name="sync_error_name_too_long_hint">The server does not accept paths this long. Shorten folder or file names.</string>
+    <string name="sync_error_server_full">Server storage full</string>
+    <string name="sync_error_server_full_hint">The volume of the share is full. Free up space on the server.</string>
+    <string name="sync_error_file_in_use">File in use</string>
+    <string name="sync_error_file_in_use_hint">Another program has the file open on the server. The next run tries again.</string>
+    <string name="sync_error_not_found">File disappeared</string>
+    <string name="sync_error_not_found_hint">The file was moved or deleted while the sync ran. The next run catches up.</string>
+    <string name="sync_error_network">Server not reachable</string>
+    <string name="sync_error_network_hint">The connection to the server failed or dropped. Check that the server is on and in the same network.</string>
+    <string name="sync_error_auth">Login rejected</string>
+    <string name="sync_error_auth_hint">The server did not accept the username or password. Edit the connection on the main screen.</string>
+    <string name="sync_error_share_not_found">Share not found</string>
+    <string name="sync_error_share_not_found_hint">The share no longer exists on the server or was renamed. Edit the connection on the main screen.</string>
+    <string name="sync_error_local_access">No access on the device</string>
+    <string name="sync_error_local_access_hint">The file on the device could not be read or written. Check that the folder still allows access.</string>
+    <string name="sync_error_local_folder_missing">Local folder no longer accessible</string>
+    <string name="sync_error_local_folder_missing_hint">The folder on the device was deleted or the access permission was revoked. Retrying gives the same error; choose the folder again.</string>
+    <string name="sync_error_local_space">Storage almost full</string>
+    <string name="sync_error_local_space_hint">The sync stopped to keep space free on the device. Free up storage, then sync again.</string>
+    <string name="sync_error_folder_skipped">Folder skipped</string>
+    <string name="sync_error_folder_skipped_hint">The folder could not be listed on the server, so nothing in it was synced in this run.</string>
+    <string name="sync_error_other">Other error</string>
+    <string name="sync_error_other_hint">Long-press a file to see the message of the error.</string>
+
+    <!-- Log and search -->
+    <string name="sync_log_title_search">Find a file</string>
+    <string name="sync_log_title_config">Log: %1$s</string>
+    <string name="sync_log_search_hint">Name or path, e.g. IMG_0412</string>
+    <string name="sync_log_show_skipped">Show skipped files</string>
+    <string name="sync_log_empty">No entries. The log is written from the next run on.</string>
+    <string name="sync_log_no_match">No file matching “%1$s” in the last runs.</string>
+    <plurals name="sync_log_results">
+        <item quantity="one">%d entry</item>
+        <item quantity="other">%d entries</item>
+    </plurals>
+    <string name="sync_log_tracked">Not in the last run</string>
+    <string name="sync_log_tracked_detail">%1$s · last synced %2$s</string>
+    <string name="sync_action_uploaded">Uploaded</string>
+    <string name="sync_action_downloaded">Downloaded</string>
+    <string name="sync_action_skipped">Skipped</string>
+    <string name="sync_action_created_dir">Folder created</string>
+    <string name="sync_action_error">Error</string>
+    <string name="sync_action_deleted">Deleted</string>
+    <string name="sync_action_mirror_deleted">Removed by mirror</string>
+    <string name="sync_action_mirror_trashed">Moved to the trash by mirror</string>
+    <string name="sync_action_mirror_aborted">Mirror skipped</string>
+    <string name="sync_action_timestamp_set">Timestamp set</string>
+    <string name="sync_action_timestamp_failed">Timestamp not set</string>
+    <string name="sync_action_low_space">Aborted, storage almost full</string>
+    <string name="sync_action_discarded">Incomplete download discarded</string>
+    <string name="sync_skip_unchanged">unchanged since the last sync</string>
+    <string name="sync_skip_same">same size and time on both sides</string>
+    <string name="sync_skip_remote_newer">the server copy is newer or equally new</string>
+    <string name="sync_skip_local_newer">the local copy is newer or equally new</string>
+
+    <!-- Notifications -->
+    <string name="sync_notify_channel_name">Sync problems</string>
+    <string name="sync_notify_channel_description">Tells you when a folder sync stops working and when it works again</string>
+    <string name="sync_notify_failed_title">%1$s could not sync</string>
+    <string name="sync_notify_low_space_title">%1$s stopped: storage almost full</string>
+    <plurals name="sync_notify_errors_title">
+        <item quantity="one">%1$s: %2$d file not synced</item>
+        <item quantity="other">%1$s: %2$d files not synced</item>
+    </plurals>
+    <string name="sync_notify_recovered_title">%1$s syncs again</string>
+    <string name="sync_notify_overdue_title">%1$s is overdue</string>
+    <string name="sync_notify_overdue_text">This sync only runs on WiFi and has not run for a while. Tap to sync once over mobile data.</string>
+    <string name="sync_notify_mute">Mute for this sync</string>
+</resources>

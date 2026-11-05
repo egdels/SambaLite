@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sync_status_ok_container">#1C4A31</color>
+    <color name="sync_status_ok_on_container">#B5EFC9</color>
+    <color name="sync_status_ok_dot">#5BC48A</color>
+    <color name="sync_status_warning_container">#5A3E00</color>
+    <color name="sync_status_warning_on_container">#FFDDA6</color>
+    <color name="sync_status_warning_dot">#F0B429</color>
+    <color name="sync_status_error_container">#93000A</color>
+    <color name="sync_status_error_on_container">#FFDAD6</color>
+    <color name="sync_status_error_dot">#FF8A80</color>
+    <color name="sync_status_running_container">#004D61</color>
+    <color name="sync_status_running_on_container">#B9EAFF</color>
+    <color name="sync_status_running_dot">#62D4FA</color>
+    <color name="sync_status_neutral_container">#2C3134</color>
+    <color name="sync_status_neutral_on_container">#BDC8CE</color>
+    <color name="sync_status_neutral_dot">#5A6469</color>
+</resources>
