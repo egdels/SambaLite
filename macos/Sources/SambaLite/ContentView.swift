@@ -19,8 +19,10 @@ struct ContentView: View {
                 switch model.selection {
                 case .connection(let id):
                     if let connection = model.connection(id) {
-                        BrowserView(browser: model.browser(for: connection))
-                            .id(connection)
+                        let browser = model.browser(for: connection)
+                        // a new model (settings changed) is a new view, so it loads
+                        BrowserView(browser: browser)
+                            .id(ObjectIdentifier(browser))
                     } else {
                         Placeholder()
                     }

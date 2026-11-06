@@ -148,7 +148,9 @@ struct SambaLiteApp: App {
             ContentView()
                 .environmentObject(model)
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
-                .frame(minWidth: 820, minHeight: 500)
+                // the ideal size is the first window's size (SwiftUI keeps
+                // the user's frame after that)
+                .frame(minWidth: 820, idealWidth: 1120, minHeight: 500, idealHeight: 700)
                 .onOpenURL { _ in }  // sambalite://main: showing the window is all it means
                 .task {
                     delegate.model = model

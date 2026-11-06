@@ -414,7 +414,8 @@ struct SyncDetail: View {
             }
         }
         .padding(20)
-        .frame(width: 640, height: 600)
+        .frame(width: 640)
+        .frame(minHeight: 420, idealHeight: 600, maxHeight: 700)
         .task { log = await model.coordinator.log(of: config.id) }
     }
 

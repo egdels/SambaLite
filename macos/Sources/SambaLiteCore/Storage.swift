@@ -115,3 +115,35 @@ public final class MemoryCredentialStore: CredentialStore, @unchecked Sendable {
     public func setPassword(_ password: String, for id: UUID) throws { values.update { $0[id] = password } }
     public func removePassword(for id: UUID) { values.update { $0[id] = nil } }
 }
+
+/// Passwords in a plain JSON file: only for automated UI checks
+/// (SAMBALITE_PASSWORDS=file), where a rebuilt, ad-hoc signed binary
+/// would get a keychain prompt every time. Never the default.
+public final class FileCredentialStore: CredentialStore, @unchecked Sendable {
+    private let file: JSONFile<[String: String]>
+    private let lock = NSLock()
+
+    public init(url: URL) {
+        file = JSONFile(url)
+    }
+
+    public func password(for id: UUID) -> String? {
+        lock.sync { (try? file.load())??[id.uuidString] }
+    }
+
+    public func setPassword(_ password: String, for id: UUID) throws {
+        try lock.sync {
+            var all = (try? file.load()) ?? nil ?? [:]
+            all[id.uuidString] = password
+            try file.save(all)
+        }
+    }
+
+    public func removePassword(for id: UUID) {
+        lock.sync {
+            var all = (try? file.load()) ?? nil ?? [:]
+            all[id.uuidString] = nil
+            try? file.save(all)
+        }
+    }
+}

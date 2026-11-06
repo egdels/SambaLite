@@ -32,7 +32,7 @@ cp Packaging/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # Only the bundle's own Frameworks folder (and the system's Swift) on the
 # search path, not the build machine's folders.
 EXE="$APP/Contents/MacOS/SambaLite"
-for rpath in $(otool -l "$EXE" | awk '/LC_RPATH/ {getline; getline; print $2}'); do
+for rpath in $(otool -l "$EXE" | awk '/LC_RPATH/ {getline; getline; print $2}' | sort -u); do
     case "$rpath" in
         /usr/lib/swift) ;;
         *) install_name_tool -delete_rpath "$rpath" "$EXE" ;;

@@ -147,11 +147,11 @@ struct SyncEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(draft.isNew ? "Sync a Folder" : "Edit Sync").font(.title2.weight(.semibold))
-            Form {
-                LabeledRow("On the share") {
+            VStack(alignment: .leading, spacing: 12) {
+                FormRow("On the share") {
                     Text(remoteText).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
-                LabeledRow("On this Mac") {
+                FormRow("On this Mac") {
                     HStack {
                         Text(draft.config.localPath.isEmpty ? "No folder chosen" : (draft.config.localPath as NSString).abbreviatingWithTildeInPath)
                             .foregroundStyle(draft.config.localPath.isEmpty ? Color.problem : .primary)
@@ -161,29 +161,44 @@ struct SyncEditor: View {
                         Button("Choose…") { chooseFolder() }
                     }
                 }
-                Picker("Direction", selection: $draft.config.direction) {
-                    ForEach(SyncDirection.allCases, id: \.self) { direction in
-                        Text(direction.title).tag(direction)
+                FormRow("Direction") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Picker("", selection: $draft.config.direction) {
+                            ForEach(SyncDirection.allCases, id: \.self) { direction in
+                                Text(direction.title).tag(direction)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        Text(directionHelp).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .pickerStyle(.segmented)
-                Text(directionHelp).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Picker("Runs", selection: $draft.config.intervalMinutes) {
-                    ForEach(SyncConfig.intervals, id: \.self) { minutes in
-                        Text(Format.interval(minutes)).tag(minutes)
+                FormRow("Runs") {
+                    Picker("", selection: $draft.config.intervalMinutes) {
+                        ForEach(SyncConfig.intervals, id: \.self) { minutes in
+                            Text(Format.interval(minutes)).tag(minutes)
+                        }
                     }
+                    .labelsHidden()
+                    .fixedSize()
                 }
                 if draft.config.direction != .bidirectional {
-                    Toggle("Mirror deletions", isOn: $draft.config.mirror)
-                    if draft.config.mirror {
-                        Text("What disappears from the \(draft.config.direction == .upload ? "Mac" : "share") is removed from the \(draft.config.direction == .upload ? "share" : "Mac") too. Only files this sync copied itself; never more than half of them at once.")
-                            .font(.caption)
-                            .foregroundStyle(Color.problem)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Toggle(draft.config.direction == .upload ? "Move into .sambalite-trash instead of deleting" : "Move to the Trash instead of deleting", isOn: $draft.config.mirrorUseTrash)
+                    FormRow("Deletions") {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Toggle("Mirror deletions", isOn: $draft.config.mirror)
+                            if draft.config.mirror {
+                                Text("What disappears from the \(draft.config.direction == .upload ? "Mac" : "share") is removed from the \(draft.config.direction == .upload ? "share" : "Mac") too. Only files this sync copied itself, and a run that would remove more than half of them (and over 100) removes nothing.")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.problem)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Toggle(draft.config.direction == .upload ? "Move into .sambalite-trash instead of deleting" : "Move to the Trash instead of deleting", isOn: $draft.config.mirrorUseTrash)
+                            }
+                        }
                     }
                 }
-                Toggle("Notify when it stops or starts working", isOn: $draft.config.notify)
+                FormRow("") {
+                    Toggle("Notify when it stops or starts working", isOn: $draft.config.notify)
+                }
             }
             Text("Deleted files are not deleted on the other side unless mirroring is on: they come back on the next run. When a file changed on both sides, the newer version wins and the other is kept as a conflict copy.")
                 .font(.caption)
@@ -199,7 +214,6 @@ struct SyncEditor: View {
         }
         .padding(20)
         .frame(width: 520)
-        .onAppear { if draft.isNew && draft.config.localPath.isEmpty { chooseFolder() } }
     }
 
     private var remoteText: String {
@@ -229,8 +243,9 @@ struct SyncEditor: View {
     }
 }
 
-/// A form row with a label, as Form lays out pickers and text fields.
-struct LabeledRow<Content: View>: View {
+/// A row with its label in a right-aligned column, as System Settings
+/// lays out forms (Form on macOS 12 cannot put a label beside a custom row).
+struct FormRow<Content: View>: View {
     let label: String
     let content: Content
 
@@ -240,9 +255,11 @@ struct LabeledRow<Content: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label + ":")
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(label.isEmpty ? "" : label + ":")
+                .frame(width: 96, alignment: .trailing)
             content
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

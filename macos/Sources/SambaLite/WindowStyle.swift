@@ -33,12 +33,21 @@ struct TitlebarStyle: NSViewRepresentable {
             guard let window else { return }
             window.titlebarAppearsTransparent = true
             window.backgroundColor = .textBackgroundColor
-            // first launch: a window that fits four columns of files
-            if !window.setFrameUsingName("SambaLiteMain") {
-                window.setContentSize(NSSize(width: 1120, height: 700))
-                window.center()
+            // SwiftUI on macOS 12 opens the first window at its minimum
+            // size, which cuts off the file list's columns; once, make it
+            // roomy (SwiftUI remembers the frame from then on)
+            if !UserDefaults.standard.bool(forKey: "windowSized") {
+                UserDefaults.standard.set(true, forKey: "windowSized")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak window] in
+                    guard let window, let screen = window.screen?.visibleFrame else { return }
+                    let size = NSSize(width: min(1120, screen.width - 80), height: min(700, screen.height - 80))
+                    let frame = NSRect(
+                        x: screen.midX - size.width / 2, y: screen.midY - size.height / 2,
+                        width: size.width, height: size.height)
+                    window.setFrame(frame, display: true, animate: false)
+                }
             }
-            window.setFrameAutosaveName("SambaLiteMain")
+
         }
     }
 }

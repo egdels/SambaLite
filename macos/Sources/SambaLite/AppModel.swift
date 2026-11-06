@@ -94,14 +94,18 @@ final class AppModel: ObservableObject {
 
     /// The real app: Application Support and the keychain. For automated
     /// UI checks, SAMBALITE_DATA moves the data folder and
-    /// SAMBALITE_PASSWORDS=memory keeps passwords out of the keychain (a
-    /// rebuilt ad-hoc signed binary would get a keychain prompt each time).
+    /// SAMBALITE_PASSWORDS=memory|file keeps passwords out of the keychain
+    /// (a rebuilt ad-hoc signed binary would get a keychain prompt each time).
     static func live() -> AppModel {
         let env = ProcessInfo.processInfo.environment
         let folder = env["SAMBALITE_DATA"].map { URL(fileURLWithPath: $0, isDirectory: true) } ?? AppFolder.url
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let credentials: any CredentialStore =
-            env["SAMBALITE_PASSWORDS"] == "memory" ? MemoryCredentialStore() : KeychainCredentialStore()
+        let credentials: any CredentialStore
+        switch env["SAMBALITE_PASSWORDS"] {
+        case "memory": credentials = MemoryCredentialStore()
+        case "file": credentials = FileCredentialStore(url: folder.appendingPathComponent("test-passwords.json"))
+        default: credentials = KeychainCredentialStore()
+        }
         return AppModel(folder: folder, credentials: credentials)
     }
 
