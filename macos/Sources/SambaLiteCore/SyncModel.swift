@@ -43,11 +43,15 @@ public struct SyncConfig: Codable, Sendable, Identifiable, Equatable {
     public var enabled: Bool
     /// Notify when the sync starts or stops failing.
     public var notify: Bool
+    /// Do not run while the Mac is on a connection macOS calls expensive
+    /// (an iPhone's personal hotspot): the Android app's "WiFi only".
+    public var avoidExpensiveNetworks: Bool
 
     public init(
         id: UUID = UUID(), connectionID: UUID, localPath: String, remotePath: String,
         direction: SyncDirection = .bidirectional, intervalMinutes: Int = 60, mirror: Bool = false,
-        mirrorUseTrash: Bool = true, enabled: Bool = true, notify: Bool = true
+        mirrorUseTrash: Bool = true, enabled: Bool = true, notify: Bool = true,
+        avoidExpensiveNetworks: Bool = false
     ) {
         self.id = id
         self.connectionID = connectionID
@@ -59,6 +63,22 @@ public struct SyncConfig: Codable, Sendable, Identifiable, Equatable {
         self.mirrorUseTrash = mirrorUseTrash
         self.enabled = enabled
         self.notify = notify
+        self.avoidExpensiveNetworks = avoidExpensiveNetworks
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        connectionID = try c.decode(UUID.self, forKey: .connectionID)
+        localPath = try c.decode(String.self, forKey: .localPath)
+        remotePath = try c.decode(String.self, forKey: .remotePath)
+        direction = try c.decode(SyncDirection.self, forKey: .direction)
+        intervalMinutes = try c.decode(Int.self, forKey: .intervalMinutes)
+        mirror = try c.decode(Bool.self, forKey: .mirror)
+        mirrorUseTrash = try c.decode(Bool.self, forKey: .mirrorUseTrash)
+        enabled = try c.decode(Bool.self, forKey: .enabled)
+        notify = try c.decodeIfPresent(Bool.self, forKey: .notify) ?? true
+        avoidExpensiveNetworks = try c.decodeIfPresent(Bool.self, forKey: .avoidExpensiveNetworks) ?? false
     }
 
     public static let intervals = [0, 15, 30, 60, 360, 720, 1440]

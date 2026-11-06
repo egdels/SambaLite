@@ -197,7 +197,11 @@ struct SyncEditor: View {
                     }
                 }
                 FormRow("") {
-                    Toggle("Notify when it stops or starts working", isOn: $draft.config.notify)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("Not over a personal hotspot", isOn: $draft.config.avoidExpensiveNetworks)
+                            .help("Scheduled runs wait while the Mac is online through an iPhone or another connection macOS marks as expensive. Sync Now still runs.")
+                        Toggle("Notify when it stops or starts working", isOn: $draft.config.notify)
+                    }
                 }
             }
             Text("Deleted files are not deleted on the other side unless mirroring is on: they come back on the next run. When a file changed on both sides, the newer version wins and the other is kept as a conflict copy.")

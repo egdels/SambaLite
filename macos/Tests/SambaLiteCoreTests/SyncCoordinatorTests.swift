@@ -102,3 +102,24 @@ struct SyncCoordinatorTests {
         #expect(SyncNotice.message(for: muted, before: .upToDate, after: .failed(.other)) == nil)
     }
 }
+
+extension SyncCoordinatorTests {
+    @Test func scheduledRunsWaitOnAnExpensiveNetwork() async {
+        let coordinator = make()
+        await coordinator.setNetworkAvailable(true, expensive: true)
+        await coordinator.start(tick: 3600)
+        let careful = SyncConfig(connectionID: connection.id, localPath: local.url.path, remotePath: "", intervalMinutes: 15, avoidExpensiveNetworks: true)
+        await coordinator.add(careful)  // a new sync runs at once, by hand
+        await coordinator.waitUntilIdle()
+        #expect(await coordinator.snapshot().history[careful.id]?.count == 1)
+        await coordinator.runDue()
+        await coordinator.waitUntilIdle()
+        #expect(await coordinator.snapshot().history[careful.id]?.count == 1)
+    }
+
+    @Test func oldConfigFilesStillLoad() throws {
+        let json = #"[{"id":"\#(UUID().uuidString)","connectionID":"\#(UUID().uuidString)","localPath":"/x","remotePath":"","direction":"upload","intervalMinutes":60,"mirror":false,"mirrorUseTrash":true,"enabled":true}]"#
+        let configs = try JSONDecoder().decode([SyncConfig].self, from: Data(json.utf8))
+        #expect(configs[0].notify && !configs[0].avoidExpensiveNetworks)
+    }
+}

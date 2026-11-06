@@ -151,11 +151,12 @@ final class AppModel: ObservableObject {
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             let up = path.status == .satisfied
+            let expensive = path.isExpensive
             Task { @MainActor in
-                guard let self, self.networkAvailable != up || !up else { return }
+                guard let self else { return }
                 self.networkAvailable = up
                 await self.queue.setNetworkAvailable(up)
-                await self.coordinator.setNetworkAvailable(up)
+                await self.coordinator.setNetworkAvailable(up, expensive: expensive)
             }
         }
         monitor.start(queue: DispatchQueue(label: "network"))

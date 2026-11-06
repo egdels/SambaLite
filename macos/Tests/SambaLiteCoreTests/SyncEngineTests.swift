@@ -343,3 +343,47 @@ struct SyncEngineTests {
         #expect(SyncHealth.of(paused, runs: [], running: false) == .paused)
     }
 }
+
+/// The engine against the Samba container (SAMBALITE_SMB_TEST=1).
+@Suite(.enabled(if: smbTestsEnabled), .serialized)
+struct SMBSyncTests {
+    let local = TempFolder("smb-sync")
+
+    @Test func bidirectionalWithUmlautsThenMirror() async throws {
+        let (connection, password) = testServer()!
+        let fs = SMBFileSystem(connection: connection, password: password)
+        let base = "sync-\(UUID().uuidString)"
+        try await fs.createDirectories("\(base)/Grüße")
+        try await fs.write("\(base)/Grüße/vom Server.txt", at: 0, data: Data("server".utf8))
+        local.write("Gru\u{0308}ße/vom Mac.txt", "mac")  // decomposed on purpose
+        local.write("Ordner/Ünter/tief.txt", "deep")
+
+        var config = SyncConfig(connectionID: connection.id, localPath: local.url.path, remotePath: base, direction: .bidirectional)
+        var state: SyncState = [:]
+        let first = await SyncEngine(config: config, remote: fs).run(state: state, previous: nil, log: SyncLog())
+        state = first.1
+        #expect(first.0.status == .completed)
+        #expect(first.0.counts.uploaded == 2 && first.0.counts.downloaded == 1)
+        // one folder on the share, not a decomposed twin of it
+        #expect(try await fs.list(base).map(\.name).sorted() == ["Grüße", "Ordner"])
+        #expect(try await fs.list("\(base)/Grüße").count == 2)
+
+        let second = await SyncEngine(config: config, remote: fs).run(state: state, previous: first.0, log: SyncLog())
+        state = second.1
+        #expect(second.0.counts.transferred == 0)
+        #expect(second.0.checked == 3)
+
+        // one way with mirror: a file gone from the Mac goes to .sambalite-trash
+        config.direction = .upload
+        config.mirror = true
+        try FileManager.default.removeItem(at: local.file("Ordner/Ünter/tief.txt"))
+        let third = await SyncEngine(config: config, remote: fs).run(state: state, previous: second.0, log: SyncLog())
+        #expect(third.0.counts.deleted >= 1)
+        #expect(try await fs.item(at: "\(base)/Ordner/Ünter/tief.txt") == nil)
+        let trash = try await fs.walk("\(base)/\(Names.trashFolder)", skip: { _ in false }).items
+        #expect(trash.contains { $0.name == "tief.txt" })
+
+        try await fs.remove(base)
+        await fs.disconnect()
+    }
+}

@@ -49,6 +49,7 @@ public actor SyncCoordinator {
     private var observer: (@Sendable (Snapshot) -> Void)?
     private var runEnded: RunEnded?
     private var networkAvailable = true
+    private var networkExpensive = false
     private var ticker: Task<Void, Never>?
     private var activity: NSObjectProtocol?
     private var lastPublish = Date.distantPast
@@ -157,10 +158,11 @@ public actor SyncCoordinator {
         publish(force: true)
     }
 
-    public func setNetworkAvailable(_ available: Bool) {
-        let cameBack = available && !networkAvailable
+    public func setNetworkAvailable(_ available: Bool, expensive: Bool = false) {
+        let better = (available && !networkAvailable) || (networkExpensive && !expensive)
         networkAvailable = available
-        if cameBack { runDue() }
+        networkExpensive = expensive
+        if better { runDue() }
         startQueued()
     }
 
@@ -197,7 +199,9 @@ public actor SyncCoordinator {
 
     func runDue() {
         let time = now()
-        for config in configs where running[config.id] == nil && !queued.contains(config.id) {
+        for config in configs where running[config.id] == nil && !queued.contains(config.id)
+            && !(networkExpensive && config.avoidExpensiveNetworks)
+        {
             if let next = Self.nextRun(of: config, runs: history[config.id] ?? []), next <= time {
                 queued.append(config.id)
             }
