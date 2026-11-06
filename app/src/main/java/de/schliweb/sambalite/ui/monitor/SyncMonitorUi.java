@@ -167,6 +167,8 @@ public final class SyncMonitorUi {
       strip.setRuns(entry.history);
       if (running) strip.addRunning();
       int n = Math.min(SyncRunHistoryStoreLimits.STRIP, entry.history.size());
+      // During the very first run there is only the running dot, and "last 0 runs" says nothing
+      historyLabel.setVisibility(n > 0 ? View.VISIBLE : View.GONE);
       historyLabel.setText(
           context.getResources().getQuantityString(R.plurals.sync_history_label, n, n));
       strip.setContentDescription(historyDescription(context, entry));
@@ -231,6 +233,7 @@ public final class SyncMonitorUi {
     java.util.List<String> running = new java.util.ArrayList<>();
     int active = 0;
     long lastRun = 0;
+    boolean anyFinished = false;
     for (SyncMonitorState.Entry e : state.entries) {
       switch (e.health.getLevel()) {
         case ERROR:
@@ -248,6 +251,7 @@ public final class SyncMonitorUi {
       if (e.health.getLevel() != SyncHealth.Level.PAUSED) active++;
       if (e.latestRun != null) lastRun = Math.max(lastRun, e.latestRun.getEndedAt());
       lastRun = Math.max(lastRun, e.config.getLastSyncTimestamp());
+      if (e.latestRun != null || e.config.getLastSyncTimestamp() > 0) anyFinished = true;
     }
     if (state.entries.isEmpty() || active == 0) {
       return new Banner(
@@ -273,6 +277,16 @@ public final class SyncMonitorUi {
                 SyncStatusTexts.relative(context, lastRun, state.now));
       } else {
         detail = "";
+      }
+      // Before any sync has finished, "up to date" would claim what nothing has shown yet,
+      // e.g. while the very first run goes
+      if (!anyFinished) {
+        return new Banner(
+            context.getString(R.string.monitor_banner_not_run_yet),
+            detail,
+            R.color.sync_status_neutral_container,
+            R.color.sync_status_neutral_on_container,
+            R.drawable.ic_sync);
       }
       return new Banner(
           context.getString(R.string.monitor_banner_all_ok),

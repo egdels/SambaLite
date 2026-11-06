@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="monitor_banner_all_ok">所有同步均为最新</string>
+    <string name="monitor_banner_not_run_yet">尚无同步完成</string>
     <string name="monitor_banner_last_run">上次运行：%1$s。</string>
     <string name="monitor_banner_running">正在同步：%1$s。</string>
     <string name="monitor_banner_no_syncs">尚未设置文件夹同步</string>

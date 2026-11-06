@@ -3,6 +3,7 @@
 <resources>
     <!-- Overall state -->
     <string name="monitor_banner_all_ok">All syncs are up to date</string>
+    <string name="monitor_banner_not_run_yet">No sync has finished yet</string>
     <string name="monitor_banner_last_run">Last run %1$s.</string>
     <string name="monitor_banner_running">Syncing now: %1$s.</string>
     <string name="monitor_banner_no_syncs">No folder syncs set up</string>

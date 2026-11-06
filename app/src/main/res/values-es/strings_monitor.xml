@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="monitor_banner_all_ok">Todas las sincronizaciones están al día</string>
+    <string name="monitor_banner_not_run_yet">Aún no ha terminado ninguna sincronización</string>
     <string name="monitor_banner_last_run">Última ejecución %1$s.</string>
     <string name="monitor_banner_running">Sincronizando ahora: %1$s.</string>
     <string name="monitor_banner_no_syncs">No hay sincronizaciones de carpetas configuradas</string>

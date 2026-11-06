@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="monitor_banner_all_ok">Alle syncs zijn bijgewerkt</string>
+    <string name="monitor_banner_not_run_yet">Nog geen sync voltooid</string>
     <string name="monitor_banner_last_run">Laatste run %1$s.</string>
     <string name="monitor_banner_running">Nu bezig: %1$s.</string>
     <string name="monitor_banner_no_syncs">Geen mapsyncs ingesteld</string>

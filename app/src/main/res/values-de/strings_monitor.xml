@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="monitor_banner_all_ok">Alle Syncs sind aktuell</string>
+    <string name="monitor_banner_not_run_yet">Noch kein Sync abgeschlossen</string>
     <string name="monitor_banner_last_run">Letzter Lauf %1$s.</string>
     <string name="monitor_banner_running">Läuft gerade: %1$s.</string>
     <string name="monitor_banner_no_syncs">Keine Ordner-Syncs eingerichtet</string>
