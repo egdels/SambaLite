@@ -115,6 +115,7 @@
     </plurals>
 
     <string name="sync_detail_last_run">Laatste run</string>
+    <string name="sync_detail_current_run">Huidige run</string>
     <string name="sync_detail_errors_by_cause">Fouten per oorzaak</string>
     <string name="sync_detail_errors_shown">De eerste %1$s van %2$s fouten worden getoond.</string>
     <string name="sync_detail_history">Geschiedenis</string>
@@ -140,7 +141,9 @@
     <string name="sync_error_access_denied">Toegang geweigerd</string>
     <string name="sync_error_access_denied_hint">De servergebruiker van deze verbinding mag hier niet lezen of schrijven. Controleer de rechten van share en map op de server.</string>
     <string name="sync_error_invalid_name">Ongeldige bestandsnaam op de server</string>
-    <string name="sync_error_invalid_name_hint">SMB staat de tekens \\ / : * ? \" &lt; &gt; | in namen niet toe, en ook geen punt of spatie aan het eind. Hernoem het bestand.</string>
+    <string name="sync_error_invalid_name_hint">SMB staat de tekens \\ / : * ? \" &lt; &gt; | in namen niet toe, en veel servers weigeren ook een punt of spatie aan het eind. Hernoem het bestand.</string>
+    <string name="sync_error_invalid_name_likely">Naam waarschijnlijk geweigerd door de server</string>
+    <string name="sync_error_invalid_name_likely_hint">De server gaf geen duidelijke reden. Namen die eindigen op een punt of spatie zijn geldig in SMB, maar Windows-servers weigeren ze vaak. Hernoem het bestand als de fout blijft.</string>
     <string name="sync_error_name_too_long">Pad te lang</string>
     <string name="sync_error_name_too_long_hint">De server accepteert zo\'n lang pad niet. Maak map- of bestandsnamen korter.</string>
     <string name="sync_error_server_full">Serveropslag vol</string>

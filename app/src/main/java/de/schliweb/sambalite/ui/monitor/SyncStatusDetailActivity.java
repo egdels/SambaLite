@@ -152,21 +152,31 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
             SyncStatusTexts.route(entry.config)
                 + " · "
                 + SyncStatusTexts.schedule(this, entry.config));
-    SyncMonitorUi.bindLive(
-        findViewById(R.id.detail_live),
-        running
-            ? (entry.progress != null ? entry.progress : new SyncMonitorState.Progress(0, 0, ""))
-            : null);
+    SyncMonitorState.Progress progress =
+        running ? (entry.progress != null ? entry.progress : SyncMonitorState.Progress.NONE) : null;
+    SyncMonitorUi.bindLive(findViewById(R.id.detail_live), progress);
 
     renderFix(entry, state.now);
-    SyncMonitorUi.bindCounters(findViewById(R.id.detail_counters), entry.latestRun);
+    // While it runs, the counters are the running run's; the extras belong to the last run and
+    // would mix with them, so they wait until it is done.
+    if (progress != null) {
+      SyncMonitorUi.bindCounters(findViewById(R.id.detail_counters), progress);
+    } else {
+      SyncMonitorUi.bindCounters(findViewById(R.id.detail_counters), entry.latestRun);
+    }
     TextView extras = findViewById(R.id.detail_extras);
     String extrasText =
-        entry.latestRun != null ? SyncStatusTexts.extras(this, entry.latestRun) : null;
+        entry.latestRun != null && progress == null
+            ? SyncStatusTexts.extras(this, entry.latestRun)
+            : null;
     extras.setText(extrasText);
     extras.setVisibility(extrasText != null ? View.VISIBLE : View.GONE);
 
-    renderErrors(entry.latestRun);
+    ((TextView) findViewById(R.id.last_run_title))
+        .setText(
+            progress != null ? R.string.sync_detail_current_run : R.string.sync_detail_last_run);
+    // The errors listed are the last run's; while a run goes, its own count is in the counters.
+    renderErrors(progress == null ? entry.latestRun : null);
     renderHistory(entry, state.now);
     renderSyncButton(entry);
   }

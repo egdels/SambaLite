@@ -2146,6 +2146,31 @@ public class FileBrowserActivity extends AppCompatActivity
   /** Handles the folder selection result for sync. */
   void handleSyncFolderSelected(Uri uri) {
     LogUtils.d("FileBrowserActivity", "Sync folder selected: " + uri);
+    // Check the folder right away, while the dialog is open: the check in saveSyncSetup comes
+    // after the dialog is gone, and all other settings would be lost with it (#50). The
+    // previous folder stays selected.
+    LocalFolderCollisionType collision =
+        checkLocalFolderCollision(
+            uri.toString(), syncManager.getAllSyncConfigs(), uiState.getEditingSyncConfigId());
+    if (collision != null) {
+      int message;
+      switch (collision) {
+        case PARENT_SYNCED:
+          message = R.string.sync_local_parent_folder_synced;
+          break;
+        case CHILD_SYNCED:
+          message = R.string.sync_local_child_folder_synced;
+          break;
+        default:
+          message = R.string.sync_local_folder_already_synced;
+          break;
+      }
+      new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+          .setMessage(message)
+          .setPositiveButton(android.R.string.ok, null)
+          .show();
+      return;
+    }
     uiState.setSyncFolderUri(uri);
 
     // Get display name from DocumentFile

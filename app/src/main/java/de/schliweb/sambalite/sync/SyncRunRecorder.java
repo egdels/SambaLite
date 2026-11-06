@@ -25,9 +25,12 @@ import java.util.List;
  */
 public final class SyncRunRecorder {
 
-  /** Told about the progress of the run, at most every {@link #PROGRESS_INTERVAL_MS}. */
+  /**
+   * Told about the progress of the run, at most every {@link #PROGRESS_INTERVAL_MS}. The recorder
+   * passes itself, so the listener can publish the live counters with the progress.
+   */
   public interface ProgressListener {
-    void onProgress(int processedFiles, @NonNull String currentPath);
+    void onProgress(@NonNull SyncRunRecorder run, @NonNull String currentPath);
   }
 
   static final long PROGRESS_INTERVAL_MS = 750;
@@ -119,6 +122,32 @@ public final class SyncRunRecorder {
   }
 
   /**
+   * Logs a local file or folder that is not uploaded because its name contains {@code forbidden}, a
+   * character SMB does not allow. This is certain, not guessed from an error, so it is always
+   * {@link SyncErrorCategory#INVALID_NAME}. A folder is skipped with its content and counts as one
+   * error, not as a file.
+   */
+  public void invalidName(@NonNull String path, boolean isFolder, char forbidden) {
+    String message =
+        forbidden < 0x20
+            ? "name contains a control character, which SMB does not allow"
+            : "name contains '" + forbidden + "', which SMB does not allow";
+    if (!isFolder) {
+      addError(path, message, SyncErrorCategory.INVALID_NAME);
+      log(SyncActionLog.Action.ERROR, path, message);
+      return;
+    }
+    String folderPath = path.endsWith("/") ? path : path + "/";
+    addError(folderPath, message, SyncErrorCategory.INVALID_NAME);
+    if (runLog != null) {
+      runLog.append(System.currentTimeMillis(), SyncActionLog.Action.ERROR, folderPath, message);
+    }
+    if (sharedLog != null) {
+      sharedLog.log(SyncActionLog.Action.ERROR, configName + " › " + folderPath, message);
+    }
+  }
+
+  /**
    * Logs a folder that could not be listed. Its content was not synced in this run, which counts as
    * one error, so that such a run is not reported as completed without errors.
    */
@@ -141,6 +170,12 @@ public final class SyncRunRecorder {
   /** The number of errors so far. */
   public int getErrorCount() {
     return errorCount;
+  }
+
+  /** How often {@code action} was logged so far. */
+  public int getCount(@NonNull SyncActionLog.Action action) {
+    Integer n = counts.get(action);
+    return n != null ? n : 0;
   }
 
   /** The number of files looked at so far. */
@@ -207,7 +242,7 @@ public final class SyncRunRecorder {
     if (progressListener == null) return;
     if (now - lastProgressAt < PROGRESS_INTERVAL_MS) return;
     lastProgressAt = now;
-    progressListener.onProgress(processedFiles, path);
+    progressListener.onProgress(this, path);
   }
 
   private static boolean isFileAction(@NonNull SyncActionLog.Action action) {

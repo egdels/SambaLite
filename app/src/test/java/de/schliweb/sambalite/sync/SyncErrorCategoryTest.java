@@ -67,10 +67,22 @@ public class SyncErrorCategoryTest {
   }
 
   @Test
-  public void unknownError_withInvalidName_isPutDownToTheName() {
+  public void unknownError_onATrailingDotOrSpace_isProbablyTheName() {
     Exception e = new IOException("something odd");
     assertEquals(SyncErrorCategory.OTHER, SyncErrorCategory.classify(e, "fine.txt"));
-    assertEquals(SyncErrorCategory.INVALID_NAME, SyncErrorCategory.classify(e, "Einkauf: Samstag.txt"));
+    assertEquals(SyncErrorCategory.INVALID_NAME_LIKELY, SyncErrorCategory.classify(e, "draft."));
+    assertEquals(SyncErrorCategory.INVALID_NAME_LIKELY, SyncErrorCategory.classify(e, "notes "));
+  }
+
+  @Test
+  public void unknownError_onAForbiddenCharacter_isNotGuessed() {
+    // Such names are skipped before the upload, so an error on one comes from somewhere else,
+    // e.g. reading the local file
+    Exception e = new IOException("read failed");
+    assertEquals(SyncErrorCategory.OTHER, SyncErrorCategory.classify(e, "Einkauf: Samstag.txt"));
+    assertEquals(
+        SyncErrorCategory.LOCAL_ACCESS,
+        SyncErrorCategory.classify(new FileNotFoundException("EACCES"), "a:b.txt"));
   }
 
   @Test
@@ -81,15 +93,26 @@ public class SyncErrorCategoryTest {
   }
 
   @Test
-  public void isInvalidSmbName() {
-    assertTrue(SyncErrorCategory.isInvalidSmbName("a:b"));
-    assertTrue(SyncErrorCategory.isInvalidSmbName("what?.png"));
-    assertTrue(SyncErrorCategory.isInvalidSmbName("draft."));
-    assertTrue(SyncErrorCategory.isInvalidSmbName("trailing "));
-    assertTrue(SyncErrorCategory.isInvalidSmbName("quote\".txt"));
-    assertFalse(SyncErrorCategory.isInvalidSmbName("IMG_0412.jpg"));
-    assertFalse(SyncErrorCategory.isInvalidSmbName("Café (1).pdf"));
-    assertFalse(SyncErrorCategory.isInvalidSmbName(""));
+  public void forbiddenSmbCharacters() {
+    assertEquals(Character.valueOf(':'), SyncErrorCategory.forbiddenSmbCharacter("a:b"));
+    assertEquals(Character.valueOf('?'), SyncErrorCategory.forbiddenSmbCharacter("what?.png"));
+    assertEquals(Character.valueOf('"'), SyncErrorCategory.forbiddenSmbCharacter("quote\".txt"));
+    assertEquals(Character.valueOf('\t'), SyncErrorCategory.forbiddenSmbCharacter("tab\there"));
+    assertTrue(SyncErrorCategory.hasForbiddenSmbCharacter("a|b"));
+    // Allowed by the protocol; only Windows servers tend to object
+    assertFalse(SyncErrorCategory.hasForbiddenSmbCharacter("draft."));
+    assertFalse(SyncErrorCategory.hasForbiddenSmbCharacter("trailing "));
+    assertFalse(SyncErrorCategory.hasForbiddenSmbCharacter("IMG_0412.jpg"));
+    assertFalse(SyncErrorCategory.hasForbiddenSmbCharacter("Café (1).pdf"));
+    assertFalse(SyncErrorCategory.hasForbiddenSmbCharacter(""));
+  }
+
+  @Test
+  public void trailingDotOrSpace() {
+    assertTrue(SyncErrorCategory.endsWithDotOrSpace("draft."));
+    assertTrue(SyncErrorCategory.endsWithDotOrSpace("trailing "));
+    assertFalse(SyncErrorCategory.endsWithDotOrSpace("a.txt"));
+    assertFalse(SyncErrorCategory.endsWithDotOrSpace(""));
   }
 
   @Test

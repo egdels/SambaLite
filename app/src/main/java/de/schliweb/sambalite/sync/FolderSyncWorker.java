@@ -138,6 +138,13 @@ public class FolderSyncWorker extends Worker {
   public static final String KEY_PROGRESS_EXPECTED = "progress_expected";
   public static final String KEY_PROGRESS_PATH = "progress_path";
 
+  /** Progress keys: the live counters of the running config, as on the monitor's card. */
+  public static final String KEY_PROGRESS_UPLOADED = "progress_uploaded";
+
+  public static final String KEY_PROGRESS_DOWNLOADED = "progress_downloaded";
+  public static final String KEY_PROGRESS_SKIPPED = "progress_skipped";
+  public static final String KEY_PROGRESS_ERRORS = "progress_errors";
+
   /**
    * Output flag: at least one config was not synced because it is restricted to WiFi and the device
    * is not on WiFi. The worker still succeeds (nothing to retry), so the UI uses this flag to tell
@@ -354,7 +361,7 @@ public class FolderSyncWorker extends Worker {
               runLog,
               config.getId(),
               configName(config),
-              (processed, path) -> publishProgress(config.getId(), processed, expectedFiles, path),
+              (run, path) -> publishProgress(config.getId(), run, expectedFiles, path),
               System.currentTimeMillis());
 
       // Check the disk space of this config's volume. A full SD card must not hold back syncs
@@ -391,7 +398,7 @@ public class FolderSyncWorker extends Worker {
       SyncErrorCategory failureCategory = null;
       try {
         runLog.begin();
-        publishProgress(config.getId(), 0, expectedFiles, "");
+        publishProgress(config.getId(), recorder, expectedFiles, "");
         diskCheckTarget = parseLocalFolderUri(config);
         syncFolder(config, connection);
         status = recorder.completedStatus(isStopped());
@@ -552,6 +559,16 @@ public class FolderSyncWorker extends Worker {
       String name = localFile.getName();
       if (name == null) continue;
       if (isTrashAtRoot(name, relPath)) continue;
+
+      // A name with a character SMB forbids cannot exist on the server. Do not send it (some
+      // servers would take a ':' for a stream name); report it as an invalid name, every run.
+      Character forbidden = SyncErrorCategory.forbiddenSmbCharacter(name);
+      if (forbidden != null) {
+        LogUtils.w(TAG, "Not uploading " + name + ": name not allowed on SMB");
+        recorder.invalidName(
+            relPath.isEmpty() ? name : relPath + "/" + name, localFile.isDirectory(), forbidden);
+        continue;
+      }
 
       String remoteFilePath = smbJoin(remotePath, name);
 
@@ -1491,14 +1508,18 @@ public class FolderSyncWorker extends Worker {
   }
 
   /** Publishes the progress of the running config, for the live view in the System Monitor. */
-  private void publishProgress(String configId, int processed, int expected, String path) {
+  private void publishProgress(String configId, SyncRunRecorder run, int expected, String path) {
     try {
       setProgressAsync(
           new androidx.work.Data.Builder()
               .putString(KEY_PROGRESS_CONFIG_ID, configId)
-              .putInt(KEY_PROGRESS_PROCESSED, processed)
+              .putInt(KEY_PROGRESS_PROCESSED, run.getProcessedFiles())
               .putInt(KEY_PROGRESS_EXPECTED, expected)
               .putString(KEY_PROGRESS_PATH, path)
+              .putInt(KEY_PROGRESS_UPLOADED, run.getCount(SyncActionLog.Action.UPLOADED))
+              .putInt(KEY_PROGRESS_DOWNLOADED, run.getCount(SyncActionLog.Action.DOWNLOADED))
+              .putInt(KEY_PROGRESS_SKIPPED, run.getCount(SyncActionLog.Action.SKIPPED))
+              .putInt(KEY_PROGRESS_ERRORS, run.getErrorCount())
               .build());
     } catch (RuntimeException e) {
       LogUtils.d(TAG, "Could not publish progress: " + e.getMessage());

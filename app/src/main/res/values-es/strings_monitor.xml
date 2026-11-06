@@ -127,6 +127,7 @@
     </plurals>
 
     <string name="sync_detail_last_run">Última ejecución</string>
+    <string name="sync_detail_current_run">Ejecución actual</string>
     <string name="sync_detail_errors_by_cause">Errores por causa</string>
     <string name="sync_detail_errors_shown">Se muestran los primeros %1$s de %2$s errores.</string>
     <string name="sync_detail_history">Historial</string>
@@ -154,7 +155,9 @@
     <string name="sync_error_access_denied">Acceso denegado</string>
     <string name="sync_error_access_denied_hint">El usuario del servidor de esta conexión no puede leer ni escribir aquí. Revisa los permisos del recurso compartido y de la carpeta en el servidor.</string>
     <string name="sync_error_invalid_name">Nombre de archivo no válido en el servidor</string>
-    <string name="sync_error_invalid_name_hint">SMB no permite los caracteres \\ / : * ? \" &lt; &gt; | en los nombres, ni un punto o espacio al final. Cambia el nombre del archivo.</string>
+    <string name="sync_error_invalid_name_hint">SMB no permite los caracteres \\ / : * ? \" &lt; &gt; | en los nombres, y muchos servidores también rechazan un punto o espacio al final. Cambia el nombre del archivo.</string>
+    <string name="sync_error_invalid_name_likely">Nombre probablemente rechazado por el servidor</string>
+    <string name="sync_error_invalid_name_likely_hint">El servidor no dio un motivo claro. Los nombres que terminan en punto o espacio son válidos en SMB, pero los servidores Windows suelen rechazarlos. Cambia el nombre del archivo si el error persiste.</string>
     <string name="sync_error_name_too_long">Ruta demasiado larga</string>
     <string name="sync_error_name_too_long_hint">El servidor no acepta rutas tan largas. Acorta los nombres de carpetas o archivos.</string>
     <string name="sync_error_server_full">Almacenamiento del servidor lleno</string>

@@ -139,6 +139,7 @@
     </plurals>
 
     <string name="sync_detail_last_run">Ostatnie uruchomienie</string>
+    <string name="sync_detail_current_run">Bieżące uruchomienie</string>
     <string name="sync_detail_errors_by_cause">Błędy według przyczyny</string>
     <string name="sync_detail_errors_shown">Wyświetlono pierwsze %1$s z %2$s błędów.</string>
     <string name="sync_detail_history">Historia</string>
@@ -168,7 +169,9 @@
     <string name="sync_error_access_denied">Odmowa dostępu</string>
     <string name="sync_error_access_denied_hint">Użytkownik serwera tego połączenia nie może tu czytać ani zapisywać. Sprawdź uprawnienia udziału i folderu na serwerze.</string>
     <string name="sync_error_invalid_name">Nieprawidłowa nazwa pliku na serwerze</string>
-    <string name="sync_error_invalid_name_hint">SMB nie dopuszcza w nazwach znaków \\ / : * ? \" &lt; &gt; | ani kropki lub spacji na końcu. Zmień nazwę pliku.</string>
+    <string name="sync_error_invalid_name_hint">SMB nie dopuszcza w nazwach znaków \\ / : * ? \" &lt; &gt; |, a wiele serwerów odrzuca też kropkę lub spację na końcu. Zmień nazwę pliku.</string>
+    <string name="sync_error_invalid_name_likely">Nazwa prawdopodobnie odrzucona przez serwer</string>
+    <string name="sync_error_invalid_name_likely_hint">Serwer nie podał jasnej przyczyny. Nazwy kończące się kropką lub spacją są poprawne w SMB, ale serwery Windows często je odrzucają. Zmień nazwę pliku, jeśli błąd się powtarza.</string>
     <string name="sync_error_name_too_long">Za długa ścieżka</string>
     <string name="sync_error_name_too_long_hint">Serwer nie akceptuje tak długich ścieżek. Skróć nazwy folderów lub plików.</string>
     <string name="sync_error_server_full">Pamięć serwera pełna</string>

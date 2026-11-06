@@ -120,6 +120,7 @@
 
     <!-- Detail screen -->
     <string name="sync_detail_last_run">Last run</string>
+    <string name="sync_detail_current_run">Current run</string>
     <string name="sync_detail_errors_by_cause">Errors by cause</string>
     <string name="sync_detail_errors_shown">The first %1$s of %2$s errors are listed.</string>
     <string name="sync_detail_history">History</string>
@@ -146,7 +147,9 @@
     <string name="sync_error_access_denied">Access denied</string>
     <string name="sync_error_access_denied_hint">The server user of this connection may not read or write here. Check the permissions of the share and folder on the server.</string>
     <string name="sync_error_invalid_name">Invalid file name on the server</string>
-    <string name="sync_error_invalid_name_hint">SMB does not allow the characters \\ / : * ? \" &lt; &gt; | in names, nor a dot or space at the end. Rename the file.</string>
+    <string name="sync_error_invalid_name_hint">SMB does not allow the characters \\ / : * ? \" &lt; &gt; | in names, and many servers also reject a dot or space at the end. Rename the file.</string>
+    <string name="sync_error_invalid_name_likely">Name probably rejected by the server</string>
+    <string name="sync_error_invalid_name_likely_hint">The server gave no clear reason. Names that end with a dot or a space are valid in SMB, but Windows servers often reject them. Rename the file if the error stays.</string>
     <string name="sync_error_name_too_long">Path too long</string>
     <string name="sync_error_name_too_long_hint">The server does not accept paths this long. Shorten folder or file names.</string>
     <string name="sync_error_server_full">Server storage full</string>

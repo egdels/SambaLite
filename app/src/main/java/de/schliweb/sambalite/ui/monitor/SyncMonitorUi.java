@@ -42,36 +42,53 @@ public final class SyncMonitorUi {
    * Without a result, dashes are shown.
    */
   static void bindCounters(@NonNull View counters, @Nullable SyncRunResult result) {
-    TextView uploaded = counters.findViewById(R.id.counter_uploaded);
-    TextView downloaded = counters.findViewById(R.id.counter_downloaded);
-    TextView skipped = counters.findViewById(R.id.counter_skipped);
-    TextView errors = counters.findViewById(R.id.counter_errors);
-    Context context = counters.getContext();
     if (result == null) {
-      uploaded.setText("–");
-      downloaded.setText("–");
-      skipped.setText("–");
+      TextView errors = counters.findViewById(R.id.counter_errors);
+      ((TextView) counters.findViewById(R.id.counter_uploaded)).setText("–");
+      ((TextView) counters.findViewById(R.id.counter_downloaded)).setText("–");
+      ((TextView) counters.findViewById(R.id.counter_skipped)).setText("–");
       errors.setText("–");
       errors.setTextColor(
           MaterialColors.getColor(counters, com.google.android.material.R.attr.colorOnSurface));
+      counters.setContentDescription(null);
       return;
     }
-    uploaded.setText(SyncStatusTexts.number(result.getCount(SyncActionLog.Action.UPLOADED)));
-    downloaded.setText(SyncStatusTexts.number(result.getCount(SyncActionLog.Action.DOWNLOADED)));
-    skipped.setText(SyncStatusTexts.number(result.getCount(SyncActionLog.Action.SKIPPED)));
-    errors.setText(SyncStatusTexts.number(result.getErrorCount()));
-    errors.setTextColor(
-        result.getErrorCount() > 0
+    bindCounters(
+        counters,
+        result.getCount(SyncActionLog.Action.UPLOADED),
+        result.getCount(SyncActionLog.Action.DOWNLOADED),
+        result.getCount(SyncActionLog.Action.SKIPPED),
+        result.getErrorCount());
+  }
+
+  /** Shows the counters of the running run, so they are never the previous run's while it runs. */
+  static void bindCounters(@NonNull View counters, @NonNull SyncMonitorState.Progress progress) {
+    bindCounters(
+        counters, progress.uploaded, progress.downloaded, progress.skipped, progress.errors);
+  }
+
+  private static void bindCounters(
+      @NonNull View counters, int uploaded, int downloaded, int skipped, int errors) {
+    Context context = counters.getContext();
+    ((TextView) counters.findViewById(R.id.counter_uploaded))
+        .setText(SyncStatusTexts.number(uploaded));
+    ((TextView) counters.findViewById(R.id.counter_downloaded))
+        .setText(SyncStatusTexts.number(downloaded));
+    ((TextView) counters.findViewById(R.id.counter_skipped))
+        .setText(SyncStatusTexts.number(skipped));
+    TextView errorsView = counters.findViewById(R.id.counter_errors);
+    errorsView.setText(SyncStatusTexts.number(errors));
+    errorsView.setTextColor(
+        errors > 0
             ? ContextCompat.getColor(context, R.color.sync_status_error_dot)
             : MaterialColors.getColor(counters, com.google.android.material.R.attr.colorOnSurface));
-    String description =
+    counters.setContentDescription(
         context.getString(
             R.string.sync_result_counts,
-            SyncStatusTexts.number(result.getCount(SyncActionLog.Action.UPLOADED)),
-            SyncStatusTexts.number(result.getCount(SyncActionLog.Action.DOWNLOADED)),
-            SyncStatusTexts.number(result.getCount(SyncActionLog.Action.SKIPPED)),
-            SyncStatusTexts.number(result.getErrorCount()));
-    counters.setContentDescription(description);
+            SyncStatusTexts.number(uploaded),
+            SyncStatusTexts.number(downloaded),
+            SyncStatusTexts.number(skipped),
+            SyncStatusTexts.number(errors)));
   }
 
   /** Shows the progress of a running sync, or hides the view. */
@@ -131,15 +148,17 @@ public final class SyncMonitorUi {
     boolean running = entry.health.getKind() == SyncHealth.Kind.RUNNING;
     if (running) {
       when.setVisibility(View.GONE);
-      bindLive(
-          live, entry.progress != null ? entry.progress : new SyncMonitorState.Progress(0, 0, ""));
+      SyncMonitorState.Progress progress =
+          entry.progress != null ? entry.progress : SyncMonitorState.Progress.NONE;
+      bindLive(live, progress);
+      bindCounters(counters, progress);
     } else {
       when.setVisibility(View.VISIBLE);
       when.setText(
           SyncStatusTexts.whenLine(context, entry.config, entry.health, entry.latestRun, now));
       live.setVisibility(View.GONE);
+      bindCounters(counters, entry.latestRun);
     }
-    bindCounters(counters, entry.latestRun);
 
     if (entry.history.isEmpty() && !running) {
       historyRow.setVisibility(View.GONE);

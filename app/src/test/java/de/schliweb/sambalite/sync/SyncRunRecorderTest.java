@@ -1,5 +1,6 @@
 package de.schliweb.sambalite.sync;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -57,7 +58,7 @@ public class SyncRunRecorderTest {
   public void errors_areCountedWithPathAndCategory() {
     SyncRunRecorder recorder = new SyncRunRecorder(sharedLog, null, "c1", "Photos", null, 0);
     recorder.error("2024/03/IMG_0412.jpg", "IMG_0412.jpg", new IOException("STATUS_ACCESS_DENIED"));
-    recorder.error("Notes/a:b.txt", "a:b.txt", new IOException("odd"));
+    recorder.error("Notes/draft.", "draft.", new IOException("odd"));
 
     SyncRunResult result =
         recorder.finish(recorder.completedStatus(false), null, null, System.currentTimeMillis());
@@ -67,7 +68,7 @@ public class SyncRunRecorderTest {
     assertEquals(2, result.getErrors().size());
     assertEquals("2024/03/IMG_0412.jpg", result.getErrors().get(0).getPath());
     assertEquals(SyncErrorCategory.ACCESS_DENIED, result.getErrors().get(0).getCategory());
-    assertEquals(SyncErrorCategory.INVALID_NAME, result.getErrors().get(1).getCategory());
+    assertEquals(SyncErrorCategory.INVALID_NAME_LIKELY, result.getErrors().get(1).getCategory());
     assertEquals(
         Integer.valueOf(1), result.getErrorCategories().get(SyncErrorCategory.ACCESS_DENIED));
   }
@@ -111,7 +112,8 @@ public class SyncRunRecorderTest {
   public void progress_isReportedThrottled() {
     List<Integer> reported = new ArrayList<>();
     SyncRunRecorder recorder =
-        new SyncRunRecorder(null, null, "c1", "Photos", (n, path) -> reported.add(n), 0);
+        new SyncRunRecorder(
+            null, null, "c1", "Photos", (run, path) -> reported.add(run.getProcessedFiles()), 0);
     for (int i = 0; i < 100; i++) {
       recorder.log(SyncActionLog.Action.SKIPPED, "f" + i);
     }
@@ -119,6 +121,57 @@ public class SyncRunRecorderTest {
     assertEquals(1, reported.size());
     assertEquals(Integer.valueOf(1), reported.get(0));
     assertEquals(100, recorder.getProcessedFiles());
+  }
+
+  @Test
+  public void invalidNames_areCertainAndFoldersAreNotFiles() {
+    SyncRunRecorder recorder = new SyncRunRecorder(sharedLog, null, "c1", "Photos", null, 0);
+    recorder.invalidName("Notes/a:b.txt", false, ':');
+    recorder.invalidName("Notes/What?", true, '?');
+
+    SyncRunResult result =
+        recorder.finish(recorder.completedStatus(false), null, null, System.currentTimeMillis());
+
+    assertEquals(SyncRunResult.Status.COMPLETED_WITH_ERRORS, result.getStatus());
+    assertEquals(2, result.getErrorCount());
+    assertEquals("Notes/a:b.txt", result.getErrors().get(0).getPath());
+    assertEquals(SyncErrorCategory.INVALID_NAME, result.getErrors().get(0).getCategory());
+    assertTrue(result.getErrors().get(0).getMessage().contains("':'"));
+    assertEquals("Notes/What?/", result.getErrors().get(1).getPath());
+    assertEquals(Integer.valueOf(2), result.getErrorCategories().get(SyncErrorCategory.INVALID_NAME));
+    // The file counts as a looked-at file, the folder does not
+    assertEquals(1, recorder.getProcessedFiles());
+  }
+
+  @Test
+  public void progress_carriesTheLiveCountersOfTheRun() {
+    List<int[]> reported = new ArrayList<>();
+    SyncRunRecorder recorder =
+        new SyncRunRecorder(
+            null,
+            null,
+            "c1",
+            "Photos",
+            (run, path) ->
+                reported.add(
+                    new int[] {
+                      run.getCount(SyncActionLog.Action.UPLOADED),
+                      run.getCount(SyncActionLog.Action.DOWNLOADED),
+                      run.getCount(SyncActionLog.Action.SKIPPED),
+                      run.getErrorCount()
+                    }),
+            0);
+    recorder.log(SyncActionLog.Action.UPLOADED, "a.jpg");
+    assertEquals(1, reported.size());
+    assertArrayEquals(new int[] {1, 0, 0, 0}, reported.get(0));
+
+    recorder.log(SyncActionLog.Action.DOWNLOADED, "b.jpg");
+    recorder.log(SyncActionLog.Action.SKIPPED, "c.jpg");
+    recorder.error("d.jpg", "d.jpg", new java.io.IOException("x"));
+    assertEquals(1, recorder.getCount(SyncActionLog.Action.DOWNLOADED));
+    assertEquals(1, recorder.getCount(SyncActionLog.Action.SKIPPED));
+    assertEquals(0, recorder.getCount(SyncActionLog.Action.CREATED_DIR));
+    assertEquals(1, recorder.getErrorCount());
   }
 
   @Test

@@ -393,6 +393,8 @@ public final class SyncStatusTexts {
         return R.string.sync_error_access_denied;
       case INVALID_NAME:
         return R.string.sync_error_invalid_name;
+      case INVALID_NAME_LIKELY:
+        return R.string.sync_error_invalid_name_likely;
       case NAME_TOO_LONG:
         return R.string.sync_error_name_too_long;
       case SERVER_FULL:
@@ -429,6 +431,8 @@ public final class SyncStatusTexts {
         return context.getString(R.string.sync_error_access_denied_hint);
       case INVALID_NAME:
         return context.getString(R.string.sync_error_invalid_name_hint);
+      case INVALID_NAME_LIKELY:
+        return context.getString(R.string.sync_error_invalid_name_likely_hint);
       case NAME_TOO_LONG:
         return context.getString(R.string.sync_error_name_too_long_hint);
       case SERVER_FULL:

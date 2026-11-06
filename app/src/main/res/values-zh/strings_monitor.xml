@@ -103,6 +103,7 @@
     </plurals>
 
     <string name="sync_detail_last_run">上次运行</string>
+    <string name="sync_detail_current_run">当前运行</string>
     <string name="sync_detail_errors_by_cause">按原因分类的错误</string>
     <string name="sync_detail_errors_shown">列出了 %2$s 个错误中的前 %1$s 个。</string>
     <string name="sync_detail_history">历史记录</string>
@@ -126,7 +127,9 @@
     <string name="sync_error_access_denied">拒绝访问</string>
     <string name="sync_error_access_denied_hint">此连接的服务器用户无权在此读取或写入。请检查服务器上共享和文件夹的权限。</string>
     <string name="sync_error_invalid_name">服务器上的文件名无效</string>
-    <string name="sync_error_invalid_name_hint">SMB 不允许名称中包含字符 \\ / : * ? \" &lt; &gt; |，也不允许以点或空格结尾。请重命名该文件。</string>
+    <string name="sync_error_invalid_name_hint">SMB 不允许名称中包含字符 \\ / : * ? \" &lt; &gt; |，许多服务器也拒绝以点或空格结尾的名称。请重命名该文件。</string>
+    <string name="sync_error_invalid_name_likely">名称可能被服务器拒绝</string>
+    <string name="sync_error_invalid_name_likely_hint">服务器未给出明确原因。以点或空格结尾的名称在 SMB 中是有效的，但 Windows 服务器经常拒绝它们。如果错误持续出现，请重命名该文件。</string>
     <string name="sync_error_name_too_long">路径过长</string>
     <string name="sync_error_name_too_long_hint">服务器不接受这么长的路径。请缩短文件夹或文件名。</string>
     <string name="sync_error_server_full">服务器存储已满</string>

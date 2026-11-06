@@ -29,8 +29,17 @@ import java.util.Locale;
 public enum SyncErrorCategory {
   /** The server refused access (share or folder permissions). */
   ACCESS_DENIED,
-  /** The name is not allowed on the server, e.g. contains {@code :} or ends with a dot. */
+  /**
+   * The name is not allowed on the server: it contains a character SMB forbids (found before the
+   * upload), or the server said so.
+   */
   INVALID_NAME,
+  /**
+   * The server failed without a telling status on a name that ends with a dot or a space. SMB
+   * allows such names, but Windows servers often reject or strip them, so this is a likely cause,
+   * not a certain one.
+   */
+  INVALID_NAME_LIKELY,
   /** The path is longer than the server accepts. */
   NAME_TOO_LONG,
   /** The server volume is full. */
@@ -67,8 +76,9 @@ public enum SyncErrorCategory {
   /**
    * Returns the category of {@code error}. SMB status codes win over everything else; the cause
    * chain and the messages are searched as well, because SMBJ often wraps the {@link
-   * SMBApiException}. When the server gives no telling status and {@code fileName} contains
-   * characters SMB does not allow, the error is put down to the name.
+   * SMBApiException}. When the server gives no telling status and {@code fileName} ends with a dot
+   * or a space, the name is the likely cause. Names with characters SMB forbids never reach the
+   * server: the sync skips them before the upload ({@link #hasForbiddenSmbCharacter}).
    */
   @NonNull
   public static SyncErrorCategory classify(@Nullable Throwable error, @Nullable String fileName) {
@@ -85,8 +95,8 @@ public enum SyncErrorCategory {
         t = t.getCause();
       }
     }
-    if ((found == null || found == OTHER) && fileName != null && isInvalidSmbName(fileName)) {
-      return INVALID_NAME;
+    if ((found == null || found == OTHER) && fileName != null && endsWithDotOrSpace(fileName)) {
+      return INVALID_NAME_LIKELY;
     }
     return found != null ? found : OTHER;
   }
@@ -182,17 +192,32 @@ public enum SyncErrorCategory {
   }
 
   /**
-   * Returns whether {@code name} cannot exist on an SMB server: it contains one of {@code \ / : * ?
-   * " < > |} or a control character, or it ends with a dot or a space.
+   * Returns the first character of {@code name} that SMB does not allow in names: one of {@code \ /
+   * : * ? " < > |} or a control character; else {@code null}. Such a name cannot exist on any SMB
+   * server, and some servers would take a {@code :} for a stream name, so it is never sent.
    */
-  public static boolean isInvalidSmbName(@NonNull String name) {
-    if (name.isEmpty()) return false;
+  @Nullable
+  public static Character forbiddenSmbCharacter(@NonNull String name) {
     for (int i = 0; i < name.length(); i++) {
       char c = name.charAt(i);
       if (c < 0x20 || "\\/:*?\"<>|".indexOf(c) >= 0) {
-        return true;
+        return c;
       }
     }
+    return null;
+  }
+
+  /** Returns whether {@code name} contains a character SMB does not allow in names. */
+  public static boolean hasForbiddenSmbCharacter(@NonNull String name) {
+    return forbiddenSmbCharacter(name) != null;
+  }
+
+  /**
+   * Returns whether {@code name} ends with a dot or a space. SMB allows that, but Windows servers
+   * often reject or strip it.
+   */
+  public static boolean endsWithDotOrSpace(@NonNull String name) {
+    if (name.isEmpty()) return false;
     char last = name.charAt(name.length() - 1);
     return last == '.' || last == ' ';
   }

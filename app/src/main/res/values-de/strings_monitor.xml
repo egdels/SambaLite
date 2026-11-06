@@ -62,8 +62,8 @@
         <item quantity="other">%d Tagen</item>
     </plurals>
 
-    <string name="sync_count_uploaded">hochgeladen</string>
-    <string name="sync_count_downloaded">geladen</string>
+    <string name="sync_count_uploaded">Uploads</string>
+    <string name="sync_count_downloaded">Downloads</string>
     <string name="sync_count_skipped">übersprungen</string>
     <string name="sync_count_errors">Fehler</string>
 
@@ -75,7 +75,7 @@
     </plurals>
     <string name="sync_history_description">Letzte %1$d Läufe: %2$d abgeschlossen, %3$d mit Fehlern, %4$d fehlgeschlagen, %5$d gestoppt oder übersprungen</string>
 
-    <string name="sync_result_counts">%1$s hochgeladen, %2$s geladen, %3$s übersprungen, %4$s Fehler</string>
+    <string name="sync_result_counts">%1$s Uploads, %2$s Downloads, %3$s übersprungen, %4$s Fehler</string>
     <string name="sync_result_stopped">Gestoppt · %1$s</string>
     <string name="sync_result_failed">Fehlgeschlagen – %1$s</string>
     <string name="sync_result_failed_after">Fehlgeschlagen – %1$s · %2$s</string>
@@ -115,6 +115,7 @@
     </plurals>
 
     <string name="sync_detail_last_run">Letzter Lauf</string>
+    <string name="sync_detail_current_run">Aktueller Lauf</string>
     <string name="sync_detail_errors_by_cause">Fehler nach Ursache</string>
     <string name="sync_detail_errors_shown">Die ersten %1$s von %2$s Fehlern werden aufgelistet.</string>
     <string name="sync_detail_history">Verlauf</string>
@@ -140,7 +141,9 @@
     <string name="sync_error_access_denied">Zugriff verweigert</string>
     <string name="sync_error_access_denied_hint">Der Server-Benutzer dieser Verbindung darf hier nicht lesen oder schreiben. Prüfe die Rechte von Freigabe und Ordner auf dem Server.</string>
     <string name="sync_error_invalid_name">Ungültiger Dateiname auf dem Server</string>
-    <string name="sync_error_invalid_name_hint">SMB erlaubt die Zeichen \\ / : * ? \" &lt; &gt; | in Namen nicht, ebenso keinen Punkt oder kein Leerzeichen am Ende. Benenne die Datei um.</string>
+    <string name="sync_error_invalid_name_hint">SMB erlaubt die Zeichen \\ / : * ? \" &lt; &gt; | in Namen nicht, und viele Server lehnen auch einen Punkt oder ein Leerzeichen am Ende ab. Benenne die Datei um.</string>
+    <string name="sync_error_invalid_name_likely">Name vom Server vermutlich abgelehnt</string>
+    <string name="sync_error_invalid_name_likely_hint">Der Server nannte keinen klaren Grund. Namen, die mit einem Punkt oder Leerzeichen enden, sind in SMB erlaubt, werden von Windows-Servern aber oft abgelehnt. Benenne die Datei um, wenn der Fehler bleibt.</string>
     <string name="sync_error_name_too_long">Pfad zu lang</string>
     <string name="sync_error_name_too_long_hint">Der Server akzeptiert so lange Pfade nicht. Kürze Ordner- oder Dateinamen.</string>
     <string name="sync_error_server_full">Server-Speicher voll</string>

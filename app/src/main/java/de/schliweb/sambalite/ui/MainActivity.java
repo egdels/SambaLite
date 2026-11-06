@@ -115,11 +115,25 @@ public class MainActivity extends AppCompatActivity
   @Nullable private String editSyncFolderName;
   @Nullable private TextView editSyncFolderDisplay;
 
+  /** The config edited in the open "Edit Sync" dialog, for the folder collision check. */
+  @Nullable private SyncConfig editSyncConfig;
+
   private final ActivityResultLauncher<android.net.Uri> pickEditSyncFolder =
       registerForActivityResult(
           new ActivityResultContracts.OpenDocumentTree(),
           uri -> {
             if (uri == null || editSyncFolderDisplay == null) return;
+            // Check the folder right away, while the dialog is open: a check in the Save button
+            // would come after the dialog is gone, and all other changes would be lost with it.
+            // The previous folder stays selected.
+            Integer collision = folderCollisionMessage(uri, editSyncConfig);
+            if (collision != null) {
+              new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                  .setMessage(collision)
+                  .setPositiveButton(android.R.string.ok, null)
+                  .show();
+              return;
+            }
             // Keep the access beyond this process at once: picking the same folder again (after
             // its permission was lost) leaves the URI unchanged, so the edit would not take it.
             try {
@@ -1103,6 +1117,7 @@ public class MainActivity extends AppCompatActivity
     editSyncFolderUri = null;
     editSyncFolderName = null;
     editSyncFolderDisplay = folderDisplay;
+    editSyncConfig = config;
     selectFolderButton.setVisibility(View.VISIBLE);
     selectFolderButton.setOnClickListener(
         v -> {
@@ -1144,26 +1159,13 @@ public class MainActivity extends AppCompatActivity
               android.net.Uri newFolder = editSyncFolderUri;
               String newFolderName = editSyncFolderName;
               editSyncFolderDisplay = null;
+              editSyncConfig = null;
               if (newFolder != null && !newFolder.toString().equals(config.getLocalFolderUri())) {
-                FileBrowserActivity.LocalFolderCollisionType collision =
-                    FileBrowserActivity.checkLocalFolderCollision(
-                        newFolder.toString(),
-                        new de.schliweb.sambalite.sync.SyncRepository(this).getAllSyncConfigs(),
-                        config.getId());
+                // Checked when the folder was picked; again here in case another sync took the
+                // folder meanwhile.
+                Integer collision = folderCollisionMessage(newFolder, config);
                 if (collision != null) {
-                  int message;
-                  switch (collision) {
-                    case PARENT_SYNCED:
-                      message = R.string.sync_local_parent_folder_synced;
-                      break;
-                    case CHILD_SYNCED:
-                      message = R.string.sync_local_child_folder_synced;
-                      break;
-                    default:
-                      message = R.string.sync_local_folder_already_synced;
-                      break;
-                  }
-                  EnhancedUIUtils.showError(this, getString(message));
+                  EnhancedUIUtils.showError(this, getString(collision));
                   return;
                 }
                 viewModel.editSyncConfig(
@@ -1190,8 +1192,36 @@ public class MainActivity extends AppCompatActivity
               EnhancedUIUtils.showInfo(this, getString(R.string.sync_config_updated));
             })
         .setNegativeButton(R.string.cancel, null)
-        .setOnDismissListener(d -> editSyncFolderDisplay = null)
+        .setOnDismissListener(
+            d -> {
+              editSyncFolderDisplay = null;
+              editSyncConfig = null;
+            })
         .show();
+  }
+
+  /**
+   * Returns the message why {@code folder} cannot be the local folder of {@code config}, because
+   * another sync covers it, a folder above it or one inside it; {@code null} if it can.
+   */
+  @Nullable
+  private Integer folderCollisionMessage(
+      @NonNull android.net.Uri folder, @Nullable SyncConfig config) {
+    if (config != null && folder.toString().equals(config.getLocalFolderUri())) return null;
+    FileBrowserActivity.LocalFolderCollisionType collision =
+        FileBrowserActivity.checkLocalFolderCollision(
+            folder.toString(),
+            new de.schliweb.sambalite.sync.SyncRepository(this).getAllSyncConfigs(),
+            config != null ? config.getId() : null);
+    if (collision == null) return null;
+    switch (collision) {
+      case PARENT_SYNCED:
+        return R.string.sync_local_parent_folder_synced;
+      case CHILD_SYNCED:
+        return R.string.sync_local_child_folder_synced;
+      default:
+        return R.string.sync_local_folder_already_synced;
+    }
   }
 
   @Override

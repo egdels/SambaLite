@@ -34,14 +34,35 @@ public final class SyncMonitorState {
 
   /** Progress of a running config, as published by {@link FolderSyncWorker}. */
   public static final class Progress {
+    /** A run that has not published anything yet. */
+    static final Progress NONE = new Progress(0, 0, "", 0, 0, 0, 0);
+
     public final int processed;
     public final int expected;
     @NonNull public final String path;
 
-    Progress(int processed, int expected, @NonNull String path) {
+    /** The counters of the running run so far, shown instead of the last run's while it runs. */
+    public final int uploaded;
+
+    public final int downloaded;
+    public final int skipped;
+    public final int errors;
+
+    Progress(
+        int processed,
+        int expected,
+        @NonNull String path,
+        int uploaded,
+        int downloaded,
+        int skipped,
+        int errors) {
       this.processed = processed;
       this.expected = expected;
       this.path = path;
+      this.uploaded = uploaded;
+      this.downloaded = downloaded;
+      this.skipped = skipped;
+      this.errors = errors;
     }
   }
 
@@ -132,7 +153,11 @@ public final class SyncMonitorState {
           new Progress(
               data.getInt(FolderSyncWorker.KEY_PROGRESS_PROCESSED, 0),
               data.getInt(FolderSyncWorker.KEY_PROGRESS_EXPECTED, 0),
-              path != null ? path : ""));
+              path != null ? path : "",
+              data.getInt(FolderSyncWorker.KEY_PROGRESS_UPLOADED, 0),
+              data.getInt(FolderSyncWorker.KEY_PROGRESS_DOWNLOADED, 0),
+              data.getInt(FolderSyncWorker.KEY_PROGRESS_SKIPPED, 0),
+              data.getInt(FolderSyncWorker.KEY_PROGRESS_ERRORS, 0)));
     }
     return map;
   }
