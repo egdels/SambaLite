@@ -1,0 +1,4 @@
+- New: The System Monitor shows for each sync whether it works: last run, errors grouped by cause with a fix, and the last 20 runs (issue #50).
+- New: Search why a file was not synced, and share a diagnostics report.
+- New: Notifications when a sync starts failing or works again, mutable per sync.
+- Fixed: A full device or a folder the server refuses to list no longer counts as a successful sync.
