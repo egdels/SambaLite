@@ -10,6 +10,12 @@ ort:
       # ORT >= 97 analyzes the CI workflows with the external "abom" tool, which the
       # runner lacks (one error per workflow). The app's licenses do not depend on it.
       - GitHubAction
+      # The macOS app (macos/) has no SwiftPM dependencies from the network:
+      # AMSMB2/libsmb2 are vendored source in macos/Vendor/AMSMB2 (LGPL-2.1,
+      # see README.md). There is nothing to pin, so no Package.resolved, and
+      # ORT refuses a Package.swift without one. Re-enable this and commit
+      # Package.resolved if macos/ ever gets a remote dependency.
+      - SwiftPM
     # ORT >= 89 is built with Java 25 and defaults the Gradle daemon to that
     # version, which Gradle 8.13/Groovy of this project cannot parse
     # ("Unsupported class file major version 69"). The "javaVersion" option
