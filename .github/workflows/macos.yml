@@ -1,0 +1,79 @@
+name: macOS App
+
+# Builds and tests the Mac app in macos/ and packages the universal DMG.
+# The SMB integration tests need a Samba container, and GitHub's macOS
+# runners have no Docker; they stay a local step before a release
+# (macos/README.md).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'macos/**'
+      - '.github/workflows/macos.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'macos/**'
+      - '.github/workflows/macos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-package:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: macos
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # The runner image carries several Xcodes and defaults to an older
+      # one. Take the newest stable one; the package needs Swift 6.
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Unit tests
+        run: swift test
+
+      - name: Package universal DMG
+        run: scripts/dmg.sh --universal
+
+      - name: Check the bundle
+        run: |
+          APP=build/SambaLite.app
+          codesign --verify --deep --strict "$APP"
+          lipo -archs "$APP/Contents/MacOS/SambaLite" | grep -q arm64
+          lipo -archs "$APP/Contents/MacOS/SambaLite" | grep -q x86_64
+          lipo -archs "$APP/Contents/Frameworks/libAMSMB2.dylib" | grep -q x86_64
+          test -f "$APP/Contents/Resources/Credits.html"
+          for f in SambaLite-Apache-2.0.txt AMSMB2-LGPL-2.1.txt libsmb2-COPYING.txt libsmb2-LGPL-2.1.txt; do
+            test -s "$APP/Contents/Resources/Licenses/$f"
+          done
+          # No build-machine paths left on the library search path.
+          ! otool -l "$APP/Contents/MacOS/SambaLite" | grep -A2 LC_RPATH | grep -q "$GITHUB_WORKSPACE"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: SambaLite-macOS-dmg
+          path: macos/build/SambaLite-*.dmg
+          retention-days: 14
