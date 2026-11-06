@@ -330,7 +330,8 @@ public class FileOperationsController {
    * @param then runs after the user closed the notice, or null
    */
   private void showDuplicateQueueDialog(String names, int count, @Nullable Runnable then) {
-    if (progressCallback == null) {
+    if (progressCallback == null || !canShowDialog()) {
+      LogUtils.i("FileOperationsController", "Skipped already queued upload(s): " + names);
       if (then != null) then.run();
       return;
     }
@@ -467,6 +468,13 @@ public class FileOperationsController {
    * @param uploadAnyway Continues the upload
    */
   private void showCheckFailedDialog(int count, @Nullable String reason, Runnable uploadAnyway) {
+    if (!canShowDialog()) {
+      // Nobody can confirm the upload without conflict check, so nothing is uploaded
+      LogUtils.w(
+          "FileOperationsController",
+          "Upload of " + count + " unchecked file(s) dropped: activity no longer active");
+      return;
+    }
     String why =
         reason != null
             ? de.schliweb.sambalite.ui.utils.TransferErrorText.shortReason(context, reason)
@@ -563,6 +571,18 @@ public class FileOperationsController {
 
   private static void runOnMain(Runnable r) {
     new android.os.Handler(android.os.Looper.getMainLooper()).post(r);
+  }
+
+  /**
+   * Whether a dialog can still be attached to the activity. Conflict checks run on a background
+   * thread, so the activity may be finishing or destroyed (back, rotation) when they return;
+   * showing a dialog then throws {@link android.view.WindowManager.BadTokenException}.
+   */
+  boolean canShowDialog() {
+    if (context instanceof android.app.Activity activity) {
+      return !activity.isFinishing() && !activity.isDestroyed();
+    }
+    return false;
   }
 
   /**
@@ -710,6 +730,11 @@ public class FileOperationsController {
    * files on their temporary grants, which last only while the app process lives.
    */
   private void showFolderGrantDialog(int fileCount, int budget, Uri parentDocumentUri) {
+    if (!canShowDialog()) {
+      takePendingFolderGrantFiles();
+      LogUtils.w("FileOperationsController", "Large upload selection dropped: activity not active");
+      return;
+    }
     String folderName = SelectionFolderGrant.folderDisplayName(parentDocumentUri);
     new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
         .setTitle(de.schliweb.sambalite.R.string.upload_folder_grant_title)
