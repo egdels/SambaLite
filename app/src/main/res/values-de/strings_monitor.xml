@@ -120,6 +120,8 @@
     <string name="sync_detail_errors_by_cause">Fehler nach Ursache</string>
     <string name="sync_detail_errors_shown">Die ersten %1$s von %2$s Fehlern werden aufgelistet.</string>
     <string name="sync_detail_history">Verlauf</string>
+    <string name="sync_detail_history_show_all">Alle %1$d anzeigen</string>
+    <string name="sync_detail_history_show_less">Weniger anzeigen</string>
     <string name="sync_detail_notifications">Bei Problemen benachrichtigen</string>
     <string name="sync_detail_show_log">Log anzeigen</string>
     <string name="sync_error_count_times">%1$d× %2$s</string>

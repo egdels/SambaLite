@@ -108,6 +108,8 @@
     <string name="sync_detail_errors_by_cause">按原因分类的错误</string>
     <string name="sync_detail_errors_shown">列出了 %2$s 个错误中的前 %1$s 个。</string>
     <string name="sync_detail_history">历史记录</string>
+    <string name="sync_detail_history_show_all">显示全部 %1$d 条</string>
+    <string name="sync_detail_history_show_less">收起</string>
     <string name="sync_detail_notifications">出现问题时通知我</string>
     <string name="sync_detail_show_log">查看日志</string>
     <string name="sync_error_count_times">%1$d× %2$s</string>

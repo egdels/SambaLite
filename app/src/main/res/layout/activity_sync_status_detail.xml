@@ -194,12 +194,27 @@
                 app:cardBackgroundColor="?attr/colorSurface">
 
                 <LinearLayout
-                    android:id="@+id/history_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:divider="?attr/dividerHorizontal"
                     android:orientation="vertical"
-                    android:showDividers="middle" />
+                    android:showDividers="middle">
+
+                    <LinearLayout
+                        android:id="@+id/history_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:divider="?attr/dividerHorizontal"
+                        android:orientation="vertical"
+                        android:showDividers="middle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/history_toggle"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.materialswitch.MaterialSwitch
@@ -215,24 +230,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:orientation="horizontal">
+                android:layout_marginBottom="16dp"
+                android:orientation="vertical">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/sync_now_button"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:maxLines="2"
                     android:text="@string/sync_now" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/show_log_button"
                     style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:maxLines="2"
+                    android:layout_marginTop="4dp"
                     android:text="@string/sync_detail_show_log" />
             </LinearLayout>
         </LinearLayout>

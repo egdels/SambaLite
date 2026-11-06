@@ -132,6 +132,8 @@
     <string name="sync_detail_errors_by_cause">Erreurs par cause</string>
     <string name="sync_detail_errors_shown">Les %1$s premières des %2$s erreurs sont listées.</string>
     <string name="sync_detail_history">Historique</string>
+    <string name="sync_detail_history_show_all">Afficher les %1$d</string>
+    <string name="sync_detail_history_show_less">Afficher moins</string>
     <string name="sync_detail_notifications">M\'avertir en cas de problème</string>
     <string name="sync_detail_show_log">Afficher le journal</string>
     <string name="sync_error_count_times">%1$d× %2$s</string>

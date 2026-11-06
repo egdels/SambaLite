@@ -120,6 +120,8 @@
     <string name="sync_detail_errors_by_cause">Fouten per oorzaak</string>
     <string name="sync_detail_errors_shown">De eerste %1$s van %2$s fouten worden getoond.</string>
     <string name="sync_detail_history">Geschiedenis</string>
+    <string name="sync_detail_history_show_all">Alle %1$d tonen</string>
+    <string name="sync_detail_history_show_less">Minder tonen</string>
     <string name="sync_detail_notifications">Meld problemen</string>
     <string name="sync_detail_show_log">Log tonen</string>
     <string name="sync_error_count_times">%1$d× %2$s</string>

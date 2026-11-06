@@ -53,6 +53,10 @@ import java.util.Map;
 public class SyncStatusDetailActivity extends AppCompatActivity {
 
   private static final String EXTRA_CONFIG_ID = "config_id";
+  private static final String STATE_HISTORY_EXPANDED = "history_expanded";
+
+  /** The number of runs the history shows until the user expands it. */
+  static final int HISTORY_COLLAPSED = 5;
 
   /** Files shown per error group; the rest are counted. */
   static final int FILES_PER_GROUP = 5;
@@ -61,6 +65,7 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
   @Nullable private List<WorkInfo> workInfos;
   @Nullable private SyncErrorCategory openGroup;
   private boolean openGroupChosen;
+  private boolean historyExpanded;
   private SyncRunHistoryStore store;
 
   @NonNull
@@ -71,6 +76,9 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    if (savedInstanceState != null) {
+      historyExpanded = savedInstanceState.getBoolean(STATE_HISTORY_EXPANDED);
+    }
     configId = getIntent().getStringExtra(EXTRA_CONFIG_ID);
     if (configId == null) {
       finish();
@@ -397,6 +405,12 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
     }
   }
 
+  @Override
+  protected void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putBoolean(STATE_HISTORY_EXPANDED, historyExpanded);
+  }
+
   // ---------------------------------------------------------------------------
   // History
   // ---------------------------------------------------------------------------
@@ -413,8 +427,25 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
     }
     title.setVisibility(View.VISIBLE);
     card.setVisibility(View.VISIBLE);
+    int total = entry.history.size();
+    int shown = historyExpanded ? total : Math.min(HISTORY_COLLAPSED, total);
+    MaterialButton toggle = findViewById(R.id.history_toggle);
+    if (total > HISTORY_COLLAPSED) {
+      toggle.setVisibility(View.VISIBLE);
+      toggle.setText(
+          historyExpanded
+              ? getString(R.string.sync_detail_history_show_less)
+              : getString(R.string.sync_detail_history_show_all, total));
+      toggle.setOnClickListener(
+          v -> {
+            historyExpanded = !historyExpanded;
+            renderHistory(entry, now);
+          });
+    } else {
+      toggle.setVisibility(View.GONE);
+    }
     LayoutInflater inflater = LayoutInflater.from(this);
-    for (SyncRunResult r : entry.history) {
+    for (SyncRunResult r : entry.history.subList(0, shown)) {
       View row = inflater.inflate(R.layout.item_sync_run, list, false);
       row.findViewById(R.id.run_dot)
           .setBackgroundTintList(
