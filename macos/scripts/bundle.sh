@@ -28,6 +28,15 @@ cp "$BIN/SambaLite" "$APP/Contents/MacOS/SambaLite"
 cp "$BIN/libAMSMB2.dylib" "$APP/Contents/Frameworks/libAMSMB2.dylib"
 cp Packaging/Info.plist "$APP/Contents/Info.plist"
 cp Packaging/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# Shown in the About panel. The LGPL asks for the notices and licence
+# texts to travel with the binary.
+cp Packaging/Credits.html "$APP/Contents/Resources/Credits.html"
+LICENSES="$APP/Contents/Resources/Licenses"
+mkdir -p "$LICENSES"
+cp ../LICENSE "$LICENSES/SambaLite-Apache-2.0.txt"
+cp Vendor/AMSMB2/LICENSE "$LICENSES/AMSMB2-LGPL-2.1.txt"
+cp Vendor/AMSMB2/Dependencies/libsmb2/COPYING "$LICENSES/libsmb2-COPYING.txt"
+cp Vendor/AMSMB2/Dependencies/libsmb2/LICENCE-LGPL-2.1.txt "$LICENSES/libsmb2-LGPL-2.1.txt"
 
 # Only the bundle's own Frameworks folder (and the system's Swift) on the
 # search path, not the build machine's folders.

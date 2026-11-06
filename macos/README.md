@@ -219,4 +219,6 @@ marked "(beyond Android)".
 `Vendor/AMSMB2` is AMSMB2 by Amir Abbas Mousavian and libsmb2 by Ronnie
 Sahlberg, both LGPL-2.1-or-later. It is linked dynamically, ships as
 `Contents/Frameworks/libAMSMB2.dylib` and can be replaced. Its source,
-including the patch, is in this repository.
+including the patch, is in this repository. `scripts/bundle.sh` copies the
+notices (`Packaging/Credits.html`, shown in the About panel) and the
+licence texts (`Contents/Resources/Licenses`) into the app.

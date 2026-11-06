@@ -143,7 +143,7 @@ This project is licensed under the Apache License 2.0 - see the LICENSE file for
 
 ## Third-Party Libraries
 
-This project uses the SMBJ library (com.hierynomus:smbj), version 0.14.0, for SMB/CIFS client functionality.
+The Android app uses the SMBJ library (com.hierynomus:smbj), version 0.15.0, for SMB/CIFS client functionality, repackaged with a patch for AES-256 encryption (`smbj-patch/`).
 
 SMBJ is licensed under the Apache License, Version 2.0.
 For more information, see: https://github.com/hierynomus/smbj
@@ -161,6 +161,14 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+The macOS app (`macos/`) uses [AMSMB2](https://github.com/amosavian/AMSMB2)
+by Amir Abbas Mousavian and [libsmb2](https://github.com/sahlberg/libsmb2)
+by Ronnie Sahlberg, both under the GNU Lesser General Public License 2.1 or
+later. They are linked dynamically, and their source, including SambaLite's
+patch, is in `macos/Vendor/AMSMB2` (see `README-SambaLite.md` there). The
+app carries the notices and licence texts in its About panel and in
+`Contents/Resources/Licenses`.
 
 ## Disclaimer / Limitation of Liability
 
