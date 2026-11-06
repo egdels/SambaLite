@@ -96,6 +96,7 @@ public struct SyncPlanner: Sendable {
         for item in input.local { localByKey[Names.key(item.path)] = item }
         var remoteByKey: [String: RemoteItem] = [:]
         var collisions: [RemoteItem] = []
+        var collidedFolded: Set<String> = []
         var remoteFolded: [String: String] = [:]  // folded -> key, for this Mac's case-insensitive disk
         for item in input.remote.sorted(by: { $0.path < $1.path }) {
             let key = Names.key(item.path)
@@ -103,6 +104,7 @@ public struct SyncPlanner: Sendable {
                 let folded = Names.foldedKey(item.path)
                 if let other = remoteFolded[folded], other != key {
                     collisions.append(item)
+                    collidedFolded.insert(folded)
                     continue
                 }
                 remoteFolded[folded] = key
@@ -122,6 +124,9 @@ public struct SyncPlanner: Sendable {
         }
         for (key, item) in remoteByKey where localByKey[key] == nil {
             let folded = key.folding(options: [.caseInsensitive], locale: nil)
+            // a name the share holds twice is not matched by case at all:
+            // which of the two this Mac's file belongs to is unknown
+            if collidedFolded.contains(folded) { continue }
             if let localKey = localOnlyFolded[folded], let local = localByKey[localKey], local.isDirectory == item.isDirectory {
                 localByKey[localKey] = nil
                 localByKey[key] = local
@@ -176,6 +181,12 @@ public struct SyncPlanner: Sendable {
                     path: l.path,
                     failure: Failure(.nameCollision, "\(l.path) is a folder on one side and a file on the other")))
 
+            case (let l?, nil) where !input.localCaseSensitive
+                && collidedFolded.contains(key.folding(options: [.caseInsensitive], locale: nil)):
+                plan.actions.append(.error(
+                    path: l.path,
+                    failure: Failure(.nameCollision, "\(l.path): the share holds this name twice, differing only in case")))
+
             case (let l?, nil):
                 if under(key, remoteSkipped) {
                     plan.actions.append(.skip(path: l.path, reason: "its folder on the share could not be read"))
@@ -198,6 +209,12 @@ public struct SyncPlanner: Sendable {
                 } else {
                     plan.actions.append(.skip(path: l.path, reason: "only on this Mac"))
                 }
+
+            case (nil, let r?) where !input.localCaseSensitive
+                && collidedFolded.contains(key.folding(options: [.caseInsensitive], locale: nil)):
+                plan.actions.append(.error(
+                    path: r.path,
+                    failure: Failure(.nameCollision, "\(r.path) differs from another name only in case")))
 
             case (nil, let r?):
                 if under(key, localSkipped) {
@@ -262,9 +279,10 @@ public struct SyncPlanner: Sendable {
                     } else if base != nil && remoteChanged && !localChanged {
                         plan.actions.append(download)
                     } else {
-                        // both changed (or never synced): the newer wins; a
-                        // real conflict keeps the other version
-                        let conflict = base != nil
+                        // both changed, or never synced and different: the
+                        // newer wins and the other version is kept as a copy
+                        // (a first run must not lose a file either)
+                        let conflict = true
                         if localNewer {
                             plan.actions.append(.upload(local: l, remote: r.path, conflictCopy: conflict))
                         } else if remoteNewer {

@@ -120,6 +120,10 @@ marked "(beyond Android)".
   attempts. Permanent errors (login, access, missing file) fail at once.
 - Without network, attempts are not counted, and the queue goes on when
   the network comes back (NWPathMonitor).
+- Downloads never replace a local file: a name taken since the transfer
+  was queued gets a number (renamex_np with RENAME_EXCL). Uploads into a
+  folder whose contents cannot be checked are refused instead of
+  replacing unasked.
 - Duplicates are refused. Cancel removes part files on both sides.
   Finished entries expire after 7 days.
 - Idle sleep is held off while something runs. A stalled transfer shows
@@ -147,9 +151,14 @@ marked "(beyond Android)".
   "Changed here", "changed there" and "deleted" are therefore told apart.
 - **One way.** A changed source wins over an unchanged target even when it
   is older (a restored backup). Otherwise the newer side wins.
-- **Both ways.** The changed side wins. When both changed, the newer wins
-  and the other version is kept as `name (conflict <date>).ext` on its own
-  side. *(beyond Android: it lost the older version)*
+- **Both ways.** The changed side wins. When both changed, or on a first
+  run when the two differ, the newer wins and the other version is kept as
+  `name (conflict <date>).ext` on its own side. *(beyond Android: it lost
+  the older version)*
+- **Targets edited during a run.** A file edited on the target side while
+  a run is going (the plan is made at its start) is never replaced. The
+  target is checked again just before the rename; the file waits for the
+  next run, which sees the conflict. *(beyond Android)*
 - **Deletions.** Never carried over, except by mirror mode, which works one
   way only. Mirror touches only baseline entries that are unchanged on the
   target. It is skipped when the source listing is incomplete or empty
@@ -170,6 +179,12 @@ marked "(beyond Android)".
 - **Ignored files.** `.DS_Store`, `._*` AppleDouble files, the volume
   folders, part files and the trash are never synced. *(Mac-specific)*
   Symbolic links are not followed.
+- **Changed folders.** Changing a sync's folder empties its baseline. A
+  run still finishing under the old folder cannot write it back (a
+  generation counter), so mirror never deletes by a stale baseline.
+- **Case twins.** When the share holds `Report.pdf` and `report.pdf` and
+  this Mac's disk cannot, neither is matched to a local file; all are
+  reported.
 - **Interrupted runs.** The baseline is saved every 50 steps. A lost
   connection ends the run as failed, and everything it finished stays done.
 - **Schedule.** One run per sync at a time, two syncs at most. A run that

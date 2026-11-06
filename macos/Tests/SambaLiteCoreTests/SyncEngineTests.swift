@@ -230,8 +230,9 @@ struct SyncEngineTests {
             ], state: [:]))
         let downloads = plan.actions.filter { if case .download = $0 { true } else { false } }
         let errors = plan.actions.compactMap { if case .error(_, let f) = $0 { f.category } else { nil } }
-        #expect(downloads.count == 1)
-        #expect(errors == [.nameCollision])
+        // neither twin is taken: which one belongs here is unknown
+        #expect(downloads.isEmpty)
+        #expect(errors == [.nameCollision, .nameCollision])
         // a case-sensitive disk takes both
         let both = SyncPlanner.plan(.init(
             direction: .download, mirror: false, local: [],
@@ -385,5 +386,93 @@ struct SMBSyncTests {
 
         try await fs.remove(base)
         await fs.disconnect()
+    }
+}
+
+/// The cases of the independent review (2026-11-06).
+struct ReviewFindingTests {
+    let t1 = day0
+    let t2 = day0.addingTimeInterval(3600)
+
+    @Test func aFileEditedOnThisMacDuringTheRunIsNotOverwritten() async {
+        let f = SyncFixture(.bidirectional)
+        f.local.write("doc.txt", "v1", modified: t1)
+        await f.run()
+        f.share.write("doc.txt", "share v2 changed", modified: t2)
+        let local = f.local
+        f.fs.failing.set { op, _ in
+            if op == "readChunk" { local.write("doc.txt", "edited here meanwhile", modified: Date()) }
+        }
+        let run = await f.run()
+        #expect(run.errors.map(\.category) == [.fileChanged])
+        #expect(f.local.read("doc.txt") == "edited here meanwhile")
+        #expect(f.local.tree() == ["doc.txt"])
+        // next run sees both changed: newer (here) wins, the share's kept as a copy
+        f.fs.failing.set(nil)
+        let next = await f.run()
+        #expect(next.counts.conflicts == 1)
+        #expect(f.share.read("doc.txt") == "edited here meanwhile")
+    }
+
+    @Test func aFileEditedOnTheShareDuringTheRunIsNotOverwritten() async {
+        let f = SyncFixture(.upload)
+        f.local.write("doc.txt", "v1", modified: t1)
+        await f.run()
+        f.local.write("doc.txt", "mac v2", modified: t2)
+        let share = f.share
+        f.fs.failing.set { op, path in
+            if op == "write", path.hasSuffix(Names.partSuffix) { share.write("doc.txt", "someone else", modified: Date()) }
+        }
+        let run = await f.run()
+        #expect(run.errors.map(\.category) == [.fileChanged])
+        #expect(f.share.read("doc.txt") == "someone else")
+        #expect(f.share.tree() == ["doc.txt"])
+    }
+
+    @Test func caseTwinsOnTheShareDoNotGrabThisMacsFile() {
+        let plan = SyncPlanner.plan(.init(
+            direction: .bidirectional, mirror: false,
+            local: [LocalItem(path: "report.pdf", isDirectory: false, size: 9, modified: t2)],
+            remote: [
+                RemoteItem(path: "Report.pdf", isDirectory: false, size: 5, modified: t1),
+                RemoteItem(path: "report.pdf", isDirectory: false, size: 3, modified: t1),
+            ], state: [:]))
+        let transfers = plan.actions.filter {
+            switch $0 { case .upload, .download: true; default: false }
+        }
+        #expect(transfers.isEmpty)
+    }
+
+    @Test func aFirstRunKeepsTheOlderVersionToo() async {
+        let f = SyncFixture(.bidirectional)
+        f.local.write("both.txt", "old mac text", modified: t1)
+        f.share.write("both.txt", "newer share text", modified: t2)
+        let run = await f.run()
+        #expect(run.counts.conflicts == 1)
+        #expect(f.local.read("both.txt") == "newer share text")
+        #expect(f.local.tree().filter { $0.contains("(conflict") }.count == 1)
+    }
+
+    @Test func fileCopierTargetChecks() async throws {
+        let share = TempFolder("tc-share"), local = TempFolder("tc-local")
+        let fs = DirectoryFileSystem(root: share.url)
+        share.write("a.txt", "new", modified: t2)
+        local.write("a.txt", "mine")
+        let copier = FileCopier(remote: fs)
+        await #expect(throws: Failure.self) {
+            try await copier.download("a.txt", to: local.file("a.txt"), target: .absent)
+        }
+        await #expect(throws: Failure.self) {
+            try await copier.download("a.txt", to: local.file("a.txt"), target: .unchanged(size: 99, modified: t1))
+        }
+        #expect(local.read("a.txt") == "mine")
+        let kept = try await copier.download("a.txt", to: local.file("a.txt"), target: .keepBoth)
+        #expect(kept.path == "a 2.txt")
+        #expect(local.read("a.txt") == "mine" && local.read("a 2.txt") == "new")
+        let up = local.write("up.txt", "up")
+        share.write("up.txt", "theirs")
+        await #expect(throws: Failure.self) { try await copier.upload(up, to: "up.txt", target: .absent) }
+        #expect(share.read("up.txt") == "theirs")
+        #expect(share.tree().sorted() == ["a.txt", "up.txt"])
     }
 }

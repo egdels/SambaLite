@@ -478,7 +478,16 @@ final class AppModel: ObservableObject {
             var taken: [String: Set<String>] = [:]
             var existing: Set<String> = []
             for parent in Set(plan.map { RemotePath.parent($0.remote) }) {
-                guard let items = try? await fs.list(parent) else { continue }
+                let items: [RemoteItem]
+                do {
+                    items = try await fs.list(parent)
+                } catch let failure as Failure where failure.category == .notFound {
+                    items = []  // a folder the upload creates
+                } catch {
+                    // without knowing what is there, nothing is replaced unasked
+                    show(error: "Could not check what is in \(parent.isEmpty ? "the share" : parent): \(Failure.from(error).message). Nothing was uploaded.")
+                    return
+                }
                 taken[parent] = Set(items.map { Names.foldedKey($0.name) })
                 for entry in plan where RemotePath.parent(entry.remote) == parent {
                     if taken[parent]!.contains(Names.foldedKey(RemotePath.name(entry.remote))) { existing.insert(entry.remote) }
@@ -508,6 +517,10 @@ final class AppModel: ObservableObject {
             plan.removeAll { conflict.existing.contains($0.remote) }
         case .keepBoth:
             var taken = conflict.taken
+            // the upload's own names count as taken too ("a.txt" and "a 2.txt" together)
+            for entry in plan {
+                taken[RemotePath.parent(entry.remote), default: []].insert(Names.foldedKey(RemotePath.name(entry.remote)))
+            }
             plan = plan.map { entry in
                 guard conflict.existing.contains(entry.remote) else { return entry }
                 let parent = RemotePath.parent(entry.remote)

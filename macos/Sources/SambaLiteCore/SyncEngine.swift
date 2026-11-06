@@ -25,6 +25,7 @@ public final class SyncLog: @unchecked Sendable {
     private let formatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
+        f.timeZone = .current  // the monitor shows the time of day as read here
         return f
     }()
 
@@ -149,6 +150,10 @@ public struct SyncEngine: Sendable {
         // MARK: carry out
 
         let copier = FileCopier(remote: remote)
+        // what each side held when the plan was made: a target that differs
+        // by the time a copy replaces it was edited meanwhile and is left alone
+        let localByPath = Dictionary(localListing.items.map { ($0.path, $0) }, uniquingKeysWith: { a, _ in a })
+        let remoteByPath = Dictionary(remoteItems.map { ($0.path, $0) }, uniquingKeysWith: { a, _ in a })
         var unsaved = 0
         let trashStamp = String(Int64(now().timeIntervalSince1970 * 1000))
 
@@ -200,7 +205,10 @@ public struct SyncEngine: Sendable {
                         counts.conflicts += 1
                         log.add("conflict", remotePath, "the share's version kept as \(RemotePath.name(copy))")
                     }
-                    let uploaded = try await copier.upload(absLocal(l.path), to: absRemote(remotePath))
+                    let planned = remoteByPath[remotePath]
+                    let target: FileCopier.Target =
+                        conflictCopy || planned == nil ? .absent : .unchanged(size: planned!.size, modified: planned!.modified)
+                    let uploaded = try await copier.upload(absLocal(l.path), to: absRemote(remotePath), target: target)
                     counts.uploaded += 1
                     counts.bytes += l.size
                     log.add("uploaded", l.path)
@@ -217,7 +225,10 @@ public struct SyncEngine: Sendable {
                         log.add("conflict", localPath, "this Mac's version kept as \(copyName)")
                     }
                     let absolute = RemoteItem(path: absRemote(r.path), isDirectory: false, size: r.size, modified: r.modified)
-                    let downloaded = try await copier.download(absolute.path, to: target, expected: absolute)
+                    let planned = localByPath[localPath]
+                    let check: FileCopier.Target =
+                        conflictCopy || planned == nil ? .absent : .unchanged(size: planned!.size, modified: planned!.modified)
+                    let downloaded = try await copier.download(absolute.path, to: target, expected: absolute, target: check)
                     counts.downloaded += 1
                     counts.bytes += r.size
                     log.add("downloaded", r.path)

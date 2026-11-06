@@ -190,7 +190,9 @@ public actor TransferQueue {
         guard started else { return }
         let time = now()
         let waiting = transfers.filter { isEligible($0, at: time) }.count
-        while workers < maxParallel && workers < waiting {
+        // workers busy with a transfer cannot take a waiting one
+        let busy = transfers.filter { $0.status == .active }.count
+        while workers < maxParallel && workers - busy < waiting {
             workers += 1
             Task { await self.work() }
         }
@@ -220,6 +222,9 @@ public actor TransferQueue {
     private func work() async {
         var session: (id: UUID, fs: any RemoteFileSystem)?
         while let index = next() {
+            // Claimed before the first suspension point: indices go stale
+            // across an await, and another worker must not pick it too.
+            let id = transfers[index].id
             let transfer = transfers[index]
             guard let (connection, password) = resolve(transfer.connectionID) else {
                 transfers[index].status = .failed
@@ -228,25 +233,29 @@ public actor TransferQueue {
                 changed(save: true)
                 continue
             }
+            transfers[index].status = .active
+            transfers[index].updated = now()
+            rates[id] = RateTracker()
+            changed(save: true)
+
             if session?.id != connection.id {
                 if let old = session { await old.fs.disconnect() }
                 session = (connection.id, makeFileSystem(connection, password))
             }
             let fs = session!.fs
-            transfers[index].status = .active
-            transfers[index].updated = now()
-            rates[transfer.id] = RateTracker()
-            changed(save: true)
-
             let task = Task { await Self.execute(transfer, fs: fs, queue: self) }
-            running[transfer.id] = task
+            running[id] = task
+            if userCancelled.contains(id) { task.cancel() }  // cancelled while we connected
             let result = await task.value
-            running[transfer.id] = nil
-            rates[transfer.id] = nil
-            await finish(transfer.id, result, fs: fs)
+            running[id] = nil
+            rates[id] = nil
+            await finish(id, result, fs: fs)
         }
-        if let old = session { await old.fs.disconnect() }
+        // counted out before the (possibly slow) disconnect, so a transfer
+        // queued meanwhile gets a worker
         workers -= 1
+        pump()
+        if let old = session { await old.fs.disconnect() }
         updateActivity()
         scheduleWake()
         changed(save: true, force: true)
@@ -271,7 +280,8 @@ public actor TransferQueue {
             let local = URL(fileURLWithPath: transfer.localPath)
             switch transfer.kind {
             case .download:
-                try await copier.download(transfer.remotePath, to: local, progress: progress)
+                // never over a file: a name taken since it was queued gets a number
+                try await copier.download(transfer.remotePath, to: local, target: .keepBoth, progress: progress)
             case .upload:
                 try await copier.upload(local, to: transfer.remotePath, progress: progress)
             }

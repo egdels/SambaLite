@@ -156,6 +156,35 @@ struct TransferQueueTests {
         #expect(await queue.snapshot().transfers.map(\.remotePath) == ["b"])
     }
 
+    @Test func manyTransfersEachRunOnce() async throws {
+        for i in 0..<40 { share.write("f\(i).bin", randomData(20_000)) }
+        let fs = DirectoryFileSystem(root: share.url)
+        let opened = Locked<[String: Int]>([:])
+        fs.failing.set { op, path in if op == "read" { opened.update { $0[path, default: 0] += 1 } } }
+        let queue = makeQueue(fs, parallel: 3)
+        await queue.start()
+        await queue.enqueue((0..<40).map { download("f\($0).bin", "f\($0).bin") })
+        await queue.waitUntilIdle()
+        #expect(await queue.snapshot().transfers.allSatisfy { $0.status == .completed })
+        #expect(opened.get().count == 40 && opened.get().values.allSatisfy { $0 == 1 })
+        // queued after the workers went idle: picked up all the same
+        share.write("late.bin", "late")
+        await queue.enqueue([download("late.bin", "late.bin")])
+        await queue.waitUntilIdle()
+        #expect(local.read("late.bin") == "late")
+    }
+
+    @Test func downloadsNeverReplaceALocalFile() async throws {
+        share.write("x.txt", "from share")
+        local.write("x.txt", "mine")
+        let queue = makeQueue(DirectoryFileSystem(root: share.url))
+        await queue.start()
+        await queue.enqueue([download("x.txt", "x.txt")])
+        await queue.waitUntilIdle()
+        #expect(local.read("x.txt") == "mine")
+        #expect(local.read("x 2.txt") == "from share")
+    }
+
     @Test func rateTrackerMeasuresOverThreeSeconds() {
         var rate = RateTracker()
         let t0 = Date()

@@ -123,3 +123,25 @@ extension SyncCoordinatorTests {
         #expect(configs[0].notify && !configs[0].avoidExpensiveNetworks)
     }
 }
+
+extension SyncCoordinatorTests {
+    /// A run still finishing after its folder was changed must not write
+    /// the old baseline back (the review's first finding).
+    @Test func aChangedFolderIsNotRefilledByTheOldRun() async throws {
+        for i in 0..<120 { share.write("f\(i).txt", "\(i)", modified: day0) }
+        let connection = connection
+        let fs = DirectoryFileSystem(root: share.url)
+        fs.failing.set { op, _ in if op == "read" { Thread.sleep(forTimeInterval: 0.005) } }
+        let coordinator = SyncCoordinator(
+            folder: data.url, resolve: { $0 == connection.id ? (connection, "") : nil },
+            makeFileSystem: { _, _ in fs })
+        await coordinator.start(tick: 3600)
+        var config = SyncConfig(connectionID: connection.id, localPath: local.url.path, remotePath: "", intervalMinutes: 0)
+        await coordinator.add(config)
+        try await Task.sleep(nanoseconds: 300_000_000)  // mid-run, after the first saves
+        config.localPath = local.file("other").path
+        await coordinator.update(config)
+        await coordinator.waitUntilIdle()
+        #expect(await coordinator.state(of: config.id).isEmpty)
+    }
+}

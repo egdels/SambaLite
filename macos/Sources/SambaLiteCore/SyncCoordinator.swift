@@ -53,6 +53,11 @@ public actor SyncCoordinator {
     private var ticker: Task<Void, Never>?
     private var activity: NSObjectProtocol?
     private var lastPublish = Date.distantPast
+    /// Bumped when a sync's baseline is thrown away (other folder, removed).
+    /// A run started under an older generation may still be finishing; its
+    /// saves are dropped, or it would write the old baseline back and a
+    /// mirror would later delete by it.
+    private let generations = Locked<[UUID: Int]>([:])
 
     public init(
         folder: URL?, resolve: @escaping TransferQueue.Resolver,
@@ -124,19 +129,25 @@ public actor SyncCoordinator {
         if old.localPath != config.localPath || old.remotePath != config.remotePath
             || old.connectionID != config.connectionID
         {
+            generations.update { current in
+                current[config.id, default: 0] += 1
+                if let file = stateFile(config.id) { try? FileManager.default.removeItem(at: file.url) }
+            }
             running[config.id]?.cancel()
-            if let file = stateFile(config.id) { try? FileManager.default.removeItem(at: file.url) }
         }
         saveConfigs()
         publish(force: true)
     }
 
     public func remove(_ id: UUID) {
+        generations.update { current in
+            current[id, default: 0] += 1
+            if let file = stateFile(id) { try? FileManager.default.removeItem(at: file.url) }
+        }
         running[id]?.cancel()
         queued.removeAll { $0 == id }
         configs.removeAll { $0.id == id }
         history[id] = nil
-        if let file = stateFile(id) { try? FileManager.default.removeItem(at: file.url) }
         if let url = logURL(id) { try? FileManager.default.removeItem(at: url) }
         saveConfigs()
         saveHistory()
@@ -232,6 +243,8 @@ public actor SyncCoordinator {
         progress[config.id] = SyncProgress(phase: .listing, checked: 0, expected: previousRuns.last?.checked, current: nil)
         let state = stateFile(config.id)?.loadOrSetAside() ?? [:]
         let stateFile = stateFile(config.id)
+        let generations = generations
+        let generation = generations.get()[config.id] ?? 0
         let resolved = resolve(config.connectionID)
         let makeFileSystem = makeFileSystem
         let now = now
@@ -243,7 +256,12 @@ public actor SyncCoordinator {
                 let fs = makeFileSystem(connection, password)
                 var engine = SyncEngine(config: config, remote: fs)
                 engine.now = now
-                engine.saveState = { state in try? stateFile?.save(state) }
+                engine.saveState = { state in
+                    // under the lock, so a bump cannot slip in between check and write
+                    generations.update { current in
+                        if (current[id] ?? 0) == generation { try? stateFile?.save(state) }
+                    }
+                }
                 engine.progress = { value in Task { await self.report(id, value) } }
                 (result, _) = await engine.run(state: state, previous: previousRuns.last, log: log)
                 await fs.disconnect()

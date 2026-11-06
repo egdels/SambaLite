@@ -31,13 +31,28 @@ public struct FileCopier: Sendable {
     /// moved (a resumed copy starts with done > 0).
     public typealias Progress = @Sendable (_ done: Int64, _ total: Int64) -> Void
 
+    /// What the target may be when the copy replaces it. A sync plans from
+    /// listings made at the start of a run; a file edited on the target
+    /// side since must not be overwritten unseen.
+    public enum Target: Sendable {
+        /// Replace whatever is there (the user chose Replace).
+        case replace
+        /// There must be nothing there.
+        case absent
+        /// What is there must still be this version.
+        case unchanged(size: Int64, modified: Date)
+        /// If the name is taken, use the next free "name 2.ext" (downloads).
+        case keepBoth
+    }
+
     // MARK: Download
 
-    /// Copies `remotePath` to `local`, replacing a file there. Returns the
-    /// size and time of the new local file.
+    /// Copies `remotePath` to `local` (see `Target` for what may be there).
+    /// Returns the new local file; its `path` is the name it got.
     @discardableResult
     public func download(
-        _ remotePath: String, to local: URL, expected: RemoteItem? = nil, progress: Progress? = nil
+        _ remotePath: String, to local: URL, expected: RemoteItem? = nil, target: Target = .replace,
+        progress: Progress? = nil
     ) async throws -> LocalItem {
         guard let source = try await remote.item(at: remotePath) else {
             throw Failure(.notFound, "\(remotePath) is no longer on the share")
@@ -127,12 +142,54 @@ public struct FileCopier: Sendable {
         if LocalFiles.isFolder(local) {
             throw Failure(.other, "\(local.path) is a folder")
         }
-        // rename(2) replaces the old file atomically
-        if rename(part.path, local.path) != 0 {
-            let code = errno
-            throw Failure.from(POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO))
+        let final: URL
+        do {
+            final = try place(part, at: local, target: target)
+        } catch let failure as Failure where failure.category == .fileChanged {
+            // the plan changes next run; no stray part file in the user's folder
+            try? FileManager.default.removeItem(at: part)
+            throw failure
         }
-        return LocalFiles.stat(local) ?? LocalItem(path: local.lastPathComponent, isDirectory: false, size: total, modified: source.modified)
+        return LocalFiles.stat(final) ?? LocalItem(path: final.lastPathComponent, isDirectory: false, size: total, modified: source.modified)
+    }
+
+    /// Gives the finished part file its name. rename(2) replaces atomically;
+    /// renamex_np with RENAME_EXCL refuses an existing name atomically.
+    private func place(_ part: URL, at local: URL, target: Target) throws -> URL {
+        func fail(_ code: Int32) -> Failure {
+            Failure.from(POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO))
+        }
+        switch target {
+        case .replace:
+            if rename(part.path, local.path) != 0 { throw fail(errno) }
+            return local
+        case .unchanged(let size, let modified):
+            guard let now = LocalFiles.stat(local), !now.isDirectory, now.size == size,
+                  abs(now.modified.timeIntervalSince(modified)) < 1
+            else {
+                throw Failure(.fileChanged, "\(local.lastPathComponent) changed on this Mac during the sync; it is looked at again next run")
+            }
+            if rename(part.path, local.path) != 0 { throw fail(errno) }
+            return local
+        case .absent:
+            if renamex_np(part.path, local.path, UInt32(RENAME_EXCL)) != 0 {
+                if errno == EEXIST {
+                    throw Failure(.fileChanged, "\(local.lastPathComponent) appeared on this Mac during the sync; it is looked at again next run")
+                }
+                throw fail(errno)
+            }
+            return local
+        case .keepBoth:
+            let folder = local.deletingLastPathComponent()
+            var candidate = local
+            var number = 2
+            while renamex_np(part.path, candidate.path, UInt32(RENAME_EXCL)) != 0 {
+                guard errno == EEXIST, number < 10_000 else { throw fail(errno) }
+                candidate = folder.appendingPathComponent(Names.numbered(local.lastPathComponent, number))
+                number += 1
+            }
+            return candidate
+        }
     }
 
     /// Deletes what an unfinished download of `remote` to `local` left.
@@ -150,7 +207,9 @@ public struct FileCopier: Sendable {
     /// Copies `local` to `remotePath`, replacing a file there. Returns the
     /// new remote entry.
     @discardableResult
-    public func upload(_ local: URL, to remotePath: String, progress: Progress? = nil) async throws -> RemoteItem {
+    public func upload(
+        _ local: URL, to remotePath: String, target: Target = .replace, progress: Progress? = nil
+    ) async throws -> RemoteItem {
         guard let source = LocalFiles.stat(local), !source.isDirectory else {
             throw Failure(.notFound, "\(local.path) is no longer there")
         }
@@ -214,7 +273,7 @@ public struct FileCopier: Sendable {
         } catch {
             // best effort: some servers refuse it, the copy itself is good
         }
-        try await swapIn(part, as: remotePath)
+        try await swapIn(part, as: remotePath, target: target)
         guard let result = try await remote.item(at: remotePath) else {
             throw Failure(.notFound, "\(remotePath) vanished right after the upload")
         }
@@ -224,12 +283,28 @@ public struct FileCopier: Sendable {
     /// SMB's rename does not replace, so an existing target steps aside
     /// first and is deleted only once the new file has its name. If the
     /// second rename fails, the old file gets its name back.
-    private func swapIn(_ part: String, as target: String) async throws {
+    private func swapIn(_ part: String, as target: String, target check: Target) async throws {
         guard let existing = try await remote.item(at: target) else {
+            if case .unchanged = check {
+                try? await remote.remove(part)
+                throw Failure(.fileChanged, "\(target) was removed from the share during the sync; it is looked at again next run")
+            }
             try await remote.move(part, to: target)
             return
         }
         if existing.isDirectory { throw Failure(.other, "\(target) is a folder on the share") }
+        switch check {
+        case .replace, .keepBoth:
+            break
+        case .absent:
+            try? await remote.remove(part)
+            throw Failure(.fileChanged, "\(target) appeared on the share during the sync; it is looked at again next run")
+        case .unchanged(let size, let modified):
+            if existing.size != size || abs(existing.modified.timeIntervalSince(modified)) >= 1 {
+                try? await remote.remove(part)
+                throw Failure(.fileChanged, "\(target) changed on the share during the sync; it is looked at again next run")
+            }
+        }
         let old = target + Names.oldSuffix
         if try await remote.item(at: old) != nil { try await remote.remove(old) }
         try await remote.move(target, to: old)
