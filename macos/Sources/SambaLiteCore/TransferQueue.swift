@@ -25,6 +25,11 @@ public actor TransferQueue {
         public var transfers: [Transfer]
         /// Bytes per second of the transfers running now.
         public var speeds: [UUID: Double]
+
+        public init(transfers: [Transfer], speeds: [UUID: Double]) {
+            self.transfers = transfers
+            self.speeds = speeds
+        }
     }
 
     /// Finds the connection and its password; nil when it was deleted.
@@ -346,12 +351,31 @@ public actor TransferQueue {
         }
     }
 
+    private func tick() {
+        observer?(snapshot())
+    }
+
     private func save() {
         lastSave = now()
         try? file?.save(transfers)
     }
 
+    /// While something runs, the observer hears from the queue every second
+    /// even without progress, so a stalled transfer shows as stalled.
+    private var ticker: Task<Void, Never>?
+
     private func updateActivity() {
+        if workers > 0, ticker == nil {
+            ticker = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    self.tick()
+                }
+            }
+        } else if workers == 0 {
+            ticker?.cancel()
+            ticker = nil
+        }
         if workers > 0, activity == nil {
             activity = ProcessInfo.processInfo.beginActivity(
                 options: [.userInitiated, .idleSystemSleepDisabled], reason: "Transferring files")

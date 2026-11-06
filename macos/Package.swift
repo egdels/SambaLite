@@ -13,10 +13,11 @@ let package = Package(
         .executable(name: "smb-probe", targets: ["smb-probe"]),
     ],
     dependencies: [
-        // SMB2/3 client (libsmb2 underneath), LGPL-2.1-or-later. Its
+        // SMB2/3 client (libsmb2 underneath), LGPL-2.1-or-later, vendored
+        // with a crash fix (Vendor/AMSMB2/README-SambaLite.md). Its
         // product is a dynamic library, which scripts/bundle.sh puts into
         // Contents/Frameworks, so it stays replaceable as the LGPL asks.
-        .package(url: "https://github.com/amosavian/AMSMB2", exact: "4.0.3"),
+        .package(path: "Vendor/AMSMB2"),
     ],
     targets: [
         .target(

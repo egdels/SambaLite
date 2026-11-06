@@ -25,6 +25,13 @@ public actor SyncCoordinator {
         public var history: [UUID: [SyncRunResult]]
         public var running: [UUID: SyncProgress]
         public var queued: Set<UUID>
+
+        public init(configs: [SyncConfig], history: [UUID: [SyncRunResult]], running: [UUID: SyncProgress], queued: Set<UUID>) {
+            self.configs = configs
+            self.history = history
+            self.running = running
+            self.queued = queued
+        }
     }
 
     /// A run ended: the config, its health before and after, the result.

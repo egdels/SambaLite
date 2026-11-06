@@ -1,0 +1,71 @@
+// swift-tools-version:5.9
+import PackageDescription
+
+let package = Package(
+    name: "AMSMB2",
+    platforms: [
+        .iOS(.v13),
+        .macOS(.v10_15),
+        .macCatalyst(.v13),
+        .tvOS(.v14),
+        .watchOS(.v6),
+    ],
+    products: [
+        .library(
+            name: "AMSMB2",
+            type: .dynamic,
+            targets: ["AMSMB2"]
+        ),
+    ],
+    // Vendored for SambaLite (README-SambaLite.md): no test target, so
+    // no swift-atomics.
+    dependencies: [],
+    targets: [
+        .target(
+            name: "libsmb2",
+            path: "Dependencies/libsmb2",
+            exclude: [
+                "lib/CMakeLists.txt",
+                "lib/libsmb2.syms",
+                "lib/Makefile.am",
+                "lib/Makefile.AMIGA",
+                "lib/Makefile.AMIGA_AROS",
+                "lib/Makefile.AMIGA_OS3",
+                "lib/Makefile.PS3_PPU",
+                "lib/ps2",
+            ],
+            sources: [
+                "lib",
+            ],
+            publicHeadersPath: "include",
+            cSettings: [
+                .headerSearchPath("include"),
+                .headerSearchPath("include/apple", .when(platforms: [.iOS, .macOS, .macCatalyst, .tvOS, .watchOS])),
+                .headerSearchPath("include/smb2"),
+                .headerSearchPath("lib"),
+                .define("_U_", to: "__attribute__((unused))"),
+                .define("HAVE_CONFIG_H", to: "1"),
+            ],
+            linkerSettings: [
+            ]
+        ),
+        .target(
+            name: "AMSMB2",
+            dependencies: [
+                "libsmb2",
+            ],
+            path: "AMSMB2"
+        ),
+    ],
+    swiftLanguageVersions: [.v5]
+)
+
+for target in package.targets {
+    var swiftSettings: [SwiftSetting] = [
+        .enableExperimentalFeature("StrictConcurrency=complete"),
+    ]
+#if swift(>=5.9)
+    swiftSettings.append(.enableUpcomingFeature("ExistentialAny"))
+#endif
+    target.swiftSettings = swiftSettings
+}

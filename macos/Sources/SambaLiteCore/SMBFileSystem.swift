@@ -67,7 +67,7 @@ public final class SMBFileSystem: RemoteFileSystem, @unchecked Sendable {
     /// libsmb2 reports a wrong password and a closed port alike (EPERM,
     /// no text), so a failed connect is followed by a plain TCP probe:
     /// a server that answers on the port has turned the login down.
-    private func connectFailure(_ error: any Error) async -> Failure {
+    func connectFailure(_ error: any Error) async -> Failure {
         let failure = Failure.from(error)
         switch failure.category {
         case .notFound:
@@ -119,8 +119,11 @@ public final class SMBFileSystem: RemoteFileSystem, @unchecked Sendable {
             return try await body(manager)
         } catch {
             let failure = Failure.from(error)
-            guard retry, failure.category == .serverUnreachable else { throw failure }
+            guard failure.category == .serverUnreachable else { throw failure }
+            // a session that timed out is never used again (see the patch in
+            // Vendor/AMSMB2): the next call opens a fresh one
             await reset()
+            guard retry else { throw failure }
             let again = try await session()
             do {
                 return try await body(again)
@@ -255,7 +258,7 @@ public final class SMBFileSystem: RemoteFileSystem, @unchecked Sendable {
                 $0.localizedStandardCompare($1) == .orderedAscending
             }
         } catch {
-            throw Failure.from(error)
+            throw await fs.connectFailure(error)
         }
     }
 

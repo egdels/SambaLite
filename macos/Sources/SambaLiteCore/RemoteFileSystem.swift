@@ -74,7 +74,7 @@ extension RemoteFileSystem {
     /// contents are missing from the result; the caller must not take
     /// them for deleted.
     public func walk(
-        _ path: String, skip: (String) -> Bool = { Names.isIgnored($0) },
+        _ path: String, skip: @Sendable (String) -> Bool = { Names.isIgnored($0) },
         progress: (@Sendable (Int) -> Void)? = nil
     ) async throws -> (items: [RemoteItem], skipped: [(path: String, failure: Failure)]) {
         var items: [RemoteItem] = []

@@ -89,10 +89,10 @@ public struct RateTracker: Sendable {
     }
 
     public func bytesPerSecond(at time: Date = Date()) -> Double? {
+        if time.timeIntervalSince(lastProgress) > 10 { return 0 }  // stalled
         guard let first = samples.first, let last = samples.last else { return nil }
         let span = last.time.timeIntervalSince(first.time)
         guard span >= 1 else { return nil }
-        if time.timeIntervalSince(lastProgress) > 10 { return 0 }  // stalled
         return Double(last.bytes - first.bytes) / span
     }
 }

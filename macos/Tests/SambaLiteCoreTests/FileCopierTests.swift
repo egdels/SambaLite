@@ -231,3 +231,57 @@ struct SMBFileCopierTests {
         #expect(try await SMBFileSystem.shares(of: connection, password: password) == ["Data"])
     }
 }
+
+/// A server that stops answering in the middle of a download, then comes
+/// back: the copy fails with a timeout, the next one resumes, the process
+/// survives the late replies. Needs SAMBALITE_SMB_STALL_TEST=1 and pauses
+/// the `sambalite-mac-test` container with the docker CLI.
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["SAMBALITE_SMB_STALL_TEST"] == "1"), .serialized)
+struct SMBStallTests {
+    let local = TempFolder("stall")
+
+    func docker(_ args: String...) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["docker"] + args
+        try? process.run()
+        process.waitUntilExit()
+    }
+
+    @Test func downloadSurvivesAStalledServer() async throws {
+        let (connection, password) = testServer()!
+        let fs = SMBFileSystem(connection: connection, password: password, timeout: 5)
+        let data = randomData(120_000_000)
+        let source = local.write("source.bin", data)
+        try await FileCopier(remote: fs).upload(source, to: "stall-test.bin")
+
+        let paused = Locked(false)
+        let copier = FileCopier(remote: fs)
+        let target = local.file("back.bin")
+        let started = Date()
+        do {
+            try await copier.download("stall-test.bin", to: target) { done, _ in
+                if done > 20_000_000 && !paused.get() {
+                    paused.set(true)
+                    self.docker("pause", "sambalite-mac-test")
+                }
+            }
+            Issue.record("the download finished although the server was paused")
+        } catch let failure as Failure {
+            #expect(failure.category == .serverUnreachable)
+        }
+        #expect(Date().timeIntervalSince(started) < 30)
+        docker("unpause", "sambalite-mac-test")
+        try await Task.sleep(nanoseconds: 2_000_000_000)
+
+        // the same file system object goes on, on a fresh session
+        let resumedAt = Locked<Int64>(-1)
+        try await copier.download("stall-test.bin", to: target) { done, _ in
+            resumedAt.update { if $0 < 0 { $0 = done } }
+        }
+        #expect(resumedAt.get() > 20_000_000)
+        #expect(try Data(contentsOf: target) == data)
+        try await fs.remove("stall-test.bin")
+        await fs.disconnect()
+    }
+}
