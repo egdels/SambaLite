@@ -117,6 +117,8 @@
     <string name="transfer_download_success">Download abgeschlossen: %1$s</string>
     <string name="transfer_status_pending">Ausstehend</string>
     <string name="transfer_status_active">Wird übertragen</string>
+    <!-- Shown instead of the speed when a running transfer moved no bytes for 10 s (#7) -->
+    <string name="transfer_stalled">stockt</string>
     <string name="transfer_status_completed">Abgeschlossen</string>
     <string name="transfer_status_failed">Fehlgeschlagen</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>

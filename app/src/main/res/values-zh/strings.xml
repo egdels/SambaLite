@@ -116,6 +116,8 @@
     <string name="transfer_download_success">下载完成：%1$s</string>
     <string name="transfer_status_pending">等待中</string>
     <string name="transfer_status_active">传输中</string>
+    <!-- Shown instead of the speed when a running transfer moved no bytes for 10 s (#7) -->
+    <string name="transfer_stalled">停滞</string>
     <string name="transfer_status_completed">已完成</string>
     <string name="transfer_status_failed">失败</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>

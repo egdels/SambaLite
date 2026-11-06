@@ -47,6 +47,12 @@ public class TransferItemAdapter
   private boolean selectionMode = false;
   private java.util.Set<Long> selectedIds = new java.util.HashSet<>();
 
+  /** Speeds of the running transfers, measured from their saved progress (#7). */
+  private final TransferRateTracker rates = new TransferRateTracker();
+
+  /** Payload for {@link #refreshRates()}: rebinds without the change animation. */
+  private static final Object PAYLOAD_RATE = new Object();
+
   public TransferItemAdapter(@NonNull TransferActionCallback callback) {
     super(DIFF_CALLBACK);
     this.callback = callback;
@@ -83,6 +89,33 @@ public class TransferItemAdapter
         }
       };
 
+  @Override
+  public void onCurrentListChanged(
+      @NonNull java.util.List<PendingTransfer> previousList,
+      @NonNull java.util.List<PendingTransfer> currentList) {
+    java.util.Set<Long> active = new java.util.HashSet<>();
+    for (PendingTransfer t : currentList) {
+      if ("ACTIVE".equals(t.status)) {
+        rates.record(t.id, t.bytesTransferred, t.updatedAt);
+        active.add(t.id);
+      }
+    }
+    rates.retainOnly(active);
+  }
+
+  /**
+   * Rebinds the running transfers so that their speed, or "stalled", stays current while no new
+   * progress arrives. Called about once per second by the transfer queue.
+   */
+  public void refreshRates() {
+    java.util.List<PendingTransfer> list = getCurrentList();
+    for (int i = 0; i < list.size(); i++) {
+      if ("ACTIVE".equals(list.get(i).status)) {
+        notifyItemChanged(i, PAYLOAD_RATE);
+      }
+    }
+  }
+
   @NonNull
   @Override
   public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -105,7 +138,12 @@ public class TransferItemAdapter
             + isSelected
             + ", mode="
             + selectionMode);
-    holder.bind(item, callback, selectionMode, selectedIds);
+    holder.bind(
+        item,
+        callback,
+        selectionMode,
+        selectedIds,
+        rates.bytesPerSecond(item.id, System.currentTimeMillis()));
   }
 
   static class ViewHolder extends RecyclerView.ViewHolder {
@@ -136,7 +174,8 @@ public class TransferItemAdapter
         PendingTransfer item,
         TransferActionCallback callback,
         boolean selectionMode,
-        java.util.Set<Long> selectedIds) {
+        java.util.Set<Long> selectedIds,
+        long bytesPerSecond) {
       name.setText(item.displayName);
 
       // Icon based on transfer type
@@ -218,19 +257,21 @@ public class TransferItemAdapter
           statusBadge.setVisibility(View.GONE);
           break;
       }
-      status.setText(detailLine(context, item, statusText));
+      status.setText(detailLine(context, item, statusText, bytesPerSecond));
       bindProgress(item);
     }
 
     /**
-     * Builds the detail line: status, size (progress while running) and the remote folder, so that
-     * files of the same name from different folders can be told apart.
+     * Builds the detail line: status, size (progress and speed while running) and the remote
+     * folder, so that files of the same name from different folders can be told apart.
      */
-    private static String detailLine(Context context, PendingTransfer item, String statusText) {
+    static String detailLine(
+        Context context, PendingTransfer item, String statusText, long bytesPerSecond) {
       StringBuilder line = new StringBuilder(statusText);
+      boolean active = "ACTIVE".equals(item.status);
       if (item.fileSize > 0) {
         line.append(" · ");
-        if ("ACTIVE".equals(item.status)) {
+        if (active) {
           line.append(
               context.getString(
                   R.string.transfer_progress_format,
@@ -240,11 +281,32 @@ public class TransferItemAdapter
           line.append(Formatter.formatFileSize(context, item.fileSize));
         }
       }
+      if (active) {
+        String speed = speedText(context, bytesPerSecond);
+        if (speed != null) {
+          line.append(" · ").append(speed);
+        }
+      }
       String folder = remoteFolder(item.remotePath);
       if (!folder.isEmpty()) {
         line.append(" · ").append(folder);
       }
       return line.toString();
+    }
+
+    /** "11.2 MB/s", "stalled", or null while no speed is known yet. */
+    @Nullable
+    static String speedText(Context context, long bytesPerSecond) {
+      if (bytesPerSecond == TransferRateTracker.STALLED) {
+        return context.getString(R.string.transfer_stalled);
+      }
+      if (bytesPerSecond < 0) {
+        return null;
+      }
+      // A no-break space keeps number and unit together when the line wraps ("12 MB/s")
+      return context.getString(
+          R.string.transfer_rate_format,
+          Formatter.formatFileSize(context, bytesPerSecond).replace(' ', '\u00A0'));
     }
 
     /** The name of the remote folder a transfer goes to or comes from, empty for the share root. */

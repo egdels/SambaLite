@@ -184,17 +184,32 @@ public class TransferQueueActivity extends AppCompatActivity
 
   private static final long CUTOFF_REFRESH_MILLIS = 60_000;
 
+  /** Keeps the speed of running transfers, or "stalled", current between progress saves (#7). */
+  private final Runnable rateRefresher =
+      new Runnable() {
+        @Override
+        public void run() {
+          adapter.refreshRates();
+          transferList.postDelayed(this, RATE_REFRESH_MILLIS);
+        }
+      };
+
+  private static final long RATE_REFRESH_MILLIS = 1_000;
+
   @Override
   protected void onResume() {
     super.onResume();
     // Also moves the window after a rotation, which keeps the ViewModel and its cutoff
     transferList.removeCallbacks(cutoffRefresher);
     cutoffRefresher.run();
+    transferList.removeCallbacks(rateRefresher);
+    transferList.postDelayed(rateRefresher, RATE_REFRESH_MILLIS);
   }
 
   @Override
   protected void onPause() {
     transferList.removeCallbacks(cutoffRefresher);
+    transferList.removeCallbacks(rateRefresher);
     super.onPause();
   }
 

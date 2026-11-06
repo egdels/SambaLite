@@ -120,6 +120,8 @@
     <string name="transfer_download_success">Téléchargement terminé : %1$s</string>
     <string name="transfer_status_pending">En attente</string>
     <string name="transfer_status_active">Transfert en cours</string>
+    <!-- Shown instead of the speed when a running transfer moved no bytes for 10 s (#7) -->
+    <string name="transfer_stalled">sans progression</string>
     <string name="transfer_status_completed">Terminé</string>
     <string name="transfer_status_failed">Échoué</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>

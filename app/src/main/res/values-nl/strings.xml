@@ -117,6 +117,8 @@
     <string name="transfer_download_success">Download voltooid: %1$s</string>
     <string name="transfer_status_pending">Wachtend</string>
     <string name="transfer_status_active">Bezig met overdracht</string>
+    <!-- Shown instead of the speed when a running transfer moved no bytes for 10 s (#7) -->
+    <string name="transfer_stalled">geen voortgang</string>
     <string name="transfer_status_completed">Voltooid</string>
     <string name="transfer_status_failed">Mislukt</string>
     <string name="transfer_status_cancelled">@string/cancelled_suffix</string>

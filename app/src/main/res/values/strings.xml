@@ -483,6 +483,9 @@
     <string name="transfer_download_success">Download complete: %1$s</string>
     <string name="transfer_status_pending">Pending</string>
     <string name="transfer_status_active">Transferring</string>
+    <string name="transfer_rate_format" translatable="false">%1$s/s</string>
+    <!-- Shown instead of the speed when a running transfer moved no bytes for 10 s (#7) -->
+    <string name="transfer_stalled">stalled</string>
     <string name="transfer_progress_format" translatable="false">%1$s / %2$s</string>
     <string name="transfer_status_completed">Completed</string>
     <string name="transfer_status_failed">Failed</string>
