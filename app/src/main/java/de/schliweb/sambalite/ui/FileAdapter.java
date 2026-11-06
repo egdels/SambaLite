@@ -102,6 +102,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
    */
   @SuppressWarnings("ThreadPriorityCheck")
   public void setFiles(@NonNull List<SmbFileItem> files, @Nullable Runnable onApplied) {
+    if (diffExecutor.isShutdown()) {
+      // Late update after the screen was closed (delayed callback, LiveData): nothing to show
+      LogUtils.d("FileAdapter", "Ignoring setFiles after shutdown");
+      return;
+    }
     final long updateId = ++latestUpdateId;
     int size = files != null ? files.size() : 0;
     LogUtils.d(

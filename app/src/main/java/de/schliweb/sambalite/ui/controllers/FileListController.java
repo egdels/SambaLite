@@ -511,6 +511,8 @@ public class FileListController
   }
 
   public void shutdown() {
+    // The delayed clear would otherwise reach the adapter after its diff executor is gone
+    loadingHandler.removeCallbacks(clearWhileLoading);
     adapter.shutdown();
   }
 
