@@ -11,6 +11,10 @@ struct TransfersView: View {
     @AppStorage("hideCompletedTransfers") private var hideCompleted = false
 
     var body: some View {
+        // computed once per update: the list, the toolbar and the menu all
+        // need it, and sorting thousands of transfers per access froze the
+        // window (hang reports on an Intel Mac with a large upload queue)
+        let shown = self.shown
         VStack(spacing: 0) {
             TransferSummary()
             Divider()
@@ -39,15 +43,16 @@ struct TransfersView: View {
             }
         }
         .navigationTitle("Transfers")
-        .toolbar { toolbarItems }
+        .toolbar { toolbarItems(shown) }
     }
 
-    private var canRetry: Bool { targetTransfers.contains { $0.status == .failed || $0.status == .cancelled } }
-    private var canCancel: Bool { targetTransfers.contains { $0.status.isOpen || $0.status == .failed } }
-    private var canClear: Bool { model.transfers.transfers.contains { $0.status.isFinished } }
-
     @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
+    private func toolbarItems(_ shown: [Transfer]) -> some ToolbarContent {
+        let targets = selection.isEmpty ? Set(shown.map(\.id)) : selection
+        let targetTransfers = model.transfers.transfers.filter { targets.contains($0.id) }
+        let canRetry = targetTransfers.contains { $0.status == .failed || $0.status == .cancelled }
+        let canCancel = targetTransfers.contains { $0.status.isOpen || $0.status == .failed }
+        let canClear = model.transfers.transfers.contains { $0.status.isFinished }
         ToolbarItemGroup(placement: .primaryAction) {
             Button(action: { model.retryTransfers(targets) }) {
                 Label("Retry", systemImage: "arrow.clockwise")
@@ -72,22 +77,34 @@ struct TransfersView: View {
     }
 
     /// Running first, then waiting in their order, then failed, then done.
+    /// Sorts small keys, not the transfers themselves, so a comparison
+    /// doesn't copy a whole `Transfer`.
     private var shown: [Transfer] {
-        let rank: [TransferStatus: Int] = [.active: 0, .pending: 1, .failed: 2, .completed: 3, .cancelled: 4]
-        return model.transfers.transfers
-            .filter { !(hideCompleted && $0.status == .completed) && $0.status != .cancelled }
-            .enumerated()
-            .sorted { a, b in
-                let ra = rank[a.element.status]!, rb = rank[b.element.status]!
-                if ra != rb { return ra < rb }
-                if a.element.status.isFinished || a.element.status == .failed { return a.element.updated > b.element.updated }
-                return a.offset < b.offset
-            }
-            .map(\.element)
+        let all = model.transfers.transfers
+        var keys: [(rank: Int, updated: Date, offset: Int)] = []
+        keys.reserveCapacity(all.count)
+        for (offset, transfer) in all.enumerated() {
+            if transfer.status == .cancelled || (hideCompleted && transfer.status == .completed) { continue }
+            keys.append((Self.rank(transfer.status), transfer.updated, offset))
+        }
+        keys.sort { a, b in
+            if a.rank != b.rank { return a.rank < b.rank }
+            // failed and finished: newest first; running and waiting: queue order
+            if a.rank >= 2, a.updated != b.updated { return a.updated > b.updated }
+            return a.offset < b.offset
+        }
+        return keys.map { all[$0.offset] }
     }
 
-    private var targets: Set<UUID> { selection.isEmpty ? Set(shown.map(\.id)) : selection }
-    private var targetTransfers: [Transfer] { model.transfers.transfers.filter { targets.contains($0.id) } }
+    private static func rank(_ status: TransferStatus) -> Int {
+        switch status {
+        case .active: 0
+        case .pending: 1
+        case .failed: 2
+        case .completed: 3
+        case .cancelled: 4
+        }
+    }
 
     @ViewBuilder
     private func menu(for transfer: Transfer) -> some View {
