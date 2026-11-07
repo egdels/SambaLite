@@ -107,7 +107,11 @@ struct PathBar: View {
                 }
             }
             if browser.loading {
-                ProgressView().controlSize(.small).scaleEffect(0.7)
+                // .mini, not a scaled .small spinner: SwiftUI on macOS 12
+                // traps (SIGILL in validateDimension) when it sizes a
+                // ProgressView with scaleEffect in a stack, which crashed
+                // the app as soon as a share started loading
+                ProgressView().controlSize(.mini)
             }
         }
         .font(.callout)
@@ -125,7 +129,7 @@ struct StatusBar: View {
             Text(summary)
             Spacer()
             if let busy = browser.busy {
-                ProgressView().controlSize(.small).scaleEffect(0.6)
+                ProgressView().controlSize(.mini)
                 Text(busy)
             } else if let config = model.syncs(of: browser.connection).first(where: { $0.remotePath == browser.path }) {
                 Image(systemName: "arrow.triangle.2.circlepath")

@@ -163,7 +163,7 @@ struct Sidebar: View {
                     Label("Syncs", systemImage: "arrow.triangle.2.circlepath")
                     Spacer()
                     if !model.syncs.running.isEmpty {
-                        ProgressView().controlSize(.small).scaleEffect(0.7)
+                        ProgressView().controlSize(.mini)
                     } else if !model.syncs.configs.isEmpty {
                         Circle()
                             .fill([Color.healthy, .warning, .problem][model.overallSeverity])
