@@ -64,6 +64,23 @@ open -n --env SAMBALITE_DATA=/tmp/sl-data --env SAMBALITE_PASSWORDS=file build/S
 `test-passwords.json` in that folder; `memory` forgets them on quit. The
 real app uses `~/Library/Application Support/SambaLite` and the keychain.
 
+## Release
+
+1. Set `CFBundleShortVersionString` (and raise `CFBundleVersion`) in
+   `Packaging/Info.plist` and move the `[Unreleased]` entries of
+   `CHANGELOG.md` into a dated `[<version>]` section.
+2. Run the integration tests locally (`SAMBALITE_SMB_TEST=1 swift test`,
+   plus the stall test); CI has no Docker for them.
+3. Tag and push `mac-v<version>`, e.g. `mac-v0.1.0`. Never `v<version>`:
+   that starts the Android release.
+
+`.github/workflows/macos-release.yml` then tests and builds the universal
+DMG and publishes it as a GitHub pre-release that is not marked "Latest",
+so the newest Android release stays the latest one. The release notes are
+the `CHANGELOG.md` section plus how to open the unsigned app and the
+DMG's SHA-256. For a tag that already exists, run the workflow with
+"Run workflow" and the tag name.
+
 ## Layout
 
 ```

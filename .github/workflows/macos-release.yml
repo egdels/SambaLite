@@ -1,0 +1,162 @@
+name: macOS Release
+
+# Publishes a release of the Mac app in macos/: builds and tests it,
+# packages the universal DMG and attaches it to a GitHub pre-release.
+#
+# Mac tags are mac-v<version> (mac-v0.1.0). They must not match v*.*.*,
+# which starts the Android release.yml. A Mac release is never marked
+# "Latest", so the newest Android release stays the latest release for
+# Obtainium and other update checkers.
+#
+# For a tag pushed before this workflow existed, start it with
+# "Run workflow" and the tag name. The release notes are then taken from
+# macos/CHANGELOG.md of the branch the workflow runs on; the app is built
+# from the tag.
+
+on:
+  push:
+    tags:
+      - 'mac-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release, e.g. mac-v0.1.0'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag and the app version
+        id: version
+        run: |
+          if [[ ! "$TAG" =~ ^mac-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::Tag '$TAG' must look like mac-v0.1.0"
+            exit 1
+          fi
+          VERSION=${BASH_REMATCH[1]}
+          git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || {
+            echo "::error::Tag '$TAG' does not exist"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Read before switching to the tag: an older tag may predate the
+      # changelog entry, or the changelog itself.
+      - name: Release notes from macos/CHANGELOG.md
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          SECTION=$(awk -v head="## [$VERSION]" \
+            'index($0, head) == 1 {flag=1; next} /^## \[/ {flag=0} flag' \
+            macos/CHANGELOG.md)
+          if [ -z "$(echo "$SECTION" | tr -d '[:space:]')" ]; then
+            echo "::error::macos/CHANGELOG.md has no section [$VERSION]"
+            exit 1
+          fi
+          printf '%s\n' "$SECTION" > "$RUNNER_TEMP/changes.md"
+
+      - name: Checkout the tag
+        run: git checkout --detach "refs/tags/$TAG"
+
+      - name: Check the version in Info.plist
+        working-directory: macos
+        run: |
+          PLIST=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Packaging/Info.plist)
+          if [ "$PLIST" != "${{ steps.version.outputs.VERSION }}" ]; then
+            echo "::error::Info.plist has version $PLIST, tag $TAG"
+            exit 1
+          fi
+
+      # The runner image carries several Xcodes and defaults to an older
+      # one. Take the newest stable one; the package needs Swift 6.
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          swift --version
+
+      # The SMB integration tests need a Samba container and GitHub's macOS
+      # runners have no Docker; they are a local step before tagging
+      # (macos/README.md).
+      - name: Unit tests
+        working-directory: macos
+        run: swift test
+
+      - name: Package universal DMG
+        working-directory: macos
+        run: scripts/dmg.sh --universal
+
+      - name: Check the bundle
+        working-directory: macos
+        run: |
+          APP=build/SambaLite.app
+          codesign --verify --deep --strict "$APP"
+          lipo -archs "$APP/Contents/MacOS/SambaLite" | grep -q arm64
+          lipo -archs "$APP/Contents/MacOS/SambaLite" | grep -q x86_64
+          lipo -archs "$APP/Contents/Frameworks/libAMSMB2.dylib" | grep -q x86_64
+          test -f "$APP/Contents/Resources/Credits.html"
+          for f in SambaLite-Apache-2.0.txt AMSMB2-LGPL-2.1.txt libsmb2-COPYING.txt libsmb2-LGPL-2.1.txt; do
+            test -s "$APP/Contents/Resources/Licenses/$f"
+          done
+          ! otool -l "$APP/Contents/MacOS/SambaLite" | grep -A2 LC_RPATH | grep -q "$GITHUB_WORKSPACE"
+          test -f "build/SambaLite-${{ steps.version.outputs.VERSION }}.dmg"
+
+      - name: Write the release notes
+        working-directory: macos
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          DMG=SambaLite-$VERSION.dmg
+          SHA=$(shasum -a 256 "build/$DMG" | cut -d' ' -f1)
+          {
+            echo "SambaLite for Mac $VERSION: a native Mac app for SMB shares. macOS 12 or later, Apple silicon and Intel."
+            echo
+            echo "### Installation"
+            echo "1. Download \`$DMG\`, open it and drag SambaLite to Applications."
+            echo "2. The app is not signed with an Apple Developer ID, so macOS blocks the first start."
+            echo "   - **macOS 15 and later:** Open SambaLite, close the warning, then go to System Settings → Privacy & Security and choose \"Open Anyway\"."
+            echo "   - **macOS 12 to 14:** Right-click SambaLite in Applications, choose \"Open\", then \"Open\" again."
+            echo
+            echo "This is needed once per version."
+            echo
+            echo "### Changes"
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            echo "### Checksum"
+            echo "SHA-256 of \`$DMG\`: \`$SHA\`"
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+
+      - name: Publish the pre-release
+        working-directory: macos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          DMG=build/SambaLite-$VERSION.dmg
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A rerun replaces the DMG and the notes of the same release.
+            gh release upload "$TAG" "$DMG" --clobber
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" "$DMG" \
+              --verify-tag \
+              --prerelease \
+              --latest=false \
+              --title "SambaLite for Mac $VERSION" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+          fi
