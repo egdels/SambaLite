@@ -73,12 +73,24 @@ public class DialogController {
   @Setter private UserFeedbackProvider userFeedbackProvider;
 
   /**
-   * Returns the context if still available, or {@code null} if the Activity has been destroyed and
-   * garbage-collected.
+   * Returns the context if a dialog can still be attached to it, or {@code null} if the Activity is
+   * finishing, destroyed or garbage-collected. Operation callbacks (delete, rename, create folder)
+   * arrive asynchronously, so the Activity may be gone by then; showing a dialog on it throws
+   * {@link android.view.WindowManager.BadTokenException}.
    */
   @Nullable
   private Context getContext() {
-    return contextRef.get();
+    return usableContext(contextRef.get());
+  }
+
+  /** Returns {@code context} unless it is an Activity that is finishing or destroyed. */
+  @Nullable
+  static Context usableContext(@Nullable Context context) {
+    if (context instanceof Activity activity
+        && (activity.isFinishing() || activity.isDestroyed())) {
+      return null;
+    }
+    return context;
   }
 
   /**
