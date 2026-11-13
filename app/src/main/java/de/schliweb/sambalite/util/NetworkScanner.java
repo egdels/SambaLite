@@ -40,6 +40,11 @@ public class NetworkScanner {
   private static final int NETBIOS_PORT = 139;
   private final Context context;
   private volatile boolean isScanning = false;
+
+  /**
+   * Executor of the running scan. Written by the scan thread (when it finishes) and by the main
+   * thread (cancel, shutdown), so it is only accessed through the synchronized helpers below.
+   */
   private ExecutorService currentExecutorService;
 
   public NetworkScanner(@NonNull Context context) {
@@ -62,7 +67,8 @@ public class NetworkScanner {
     isScanning = true;
 
     // Create a new executor service for each scan
-    currentExecutorService = Executors.newFixedThreadPool(20);
+    final ExecutorService executor = Executors.newFixedThreadPool(20);
+    setExecutor(executor);
     CompletableFuture.runAsync(
         () -> {
           try {
@@ -76,7 +82,8 @@ public class NetworkScanner {
 
             for (String networkRange : networkRanges) {
               LogUtils.d(TAG, "Scanning network range: " + networkRange);
-              List<DiscoveredServer> servers = scanNetworkRange(networkRange, listener, timeoutMs);
+              List<DiscoveredServer> servers =
+                  scanNetworkRange(networkRange, listener, timeoutMs, executor);
               allServers.addAll(servers);
             }
 
@@ -100,11 +107,9 @@ public class NetworkScanner {
             listener.onScanError(userMessage);
           } finally {
             isScanning = false;
-            // Clean up the executor service
-            if (currentExecutorService != null) {
-              currentExecutorService.shutdown();
-              currentExecutorService = null;
-            }
+            // Clean up the executor service of this scan
+            executor.shutdown();
+            clearExecutor(executor);
           }
         });
   }
@@ -114,11 +119,30 @@ public class NetworkScanner {
     if (isScanning) {
       LogUtils.d(TAG, "Cancelling network scan");
       isScanning = false;
-      if (currentExecutorService != null) {
-        currentExecutorService.shutdownNow();
-        currentExecutorService = null;
+      ExecutorService executor = takeExecutor();
+      if (executor != null) {
+        executor.shutdownNow();
       }
     }
+  }
+
+  private synchronized void setExecutor(ExecutorService executor) {
+    currentExecutorService = executor;
+  }
+
+  /** Forgets {@code executor} unless a newer scan has replaced it meanwhile. */
+  private synchronized void clearExecutor(ExecutorService executor) {
+    if (currentExecutorService == executor) {
+      currentExecutorService = null;
+    }
+  }
+
+  /** Returns the executor of the running scan, if any, and forgets it. */
+  @Nullable
+  private synchronized ExecutorService takeExecutor() {
+    ExecutorService executor = currentExecutorService;
+    currentExecutorService = null;
+    return executor;
   }
 
   /** Gets the local network ranges to scan. */
@@ -207,7 +231,7 @@ public class NetworkScanner {
 
   /** Scans a specific network range. */
   private List<DiscoveredServer> scanNetworkRange(
-      String subnet, ScanProgressListener listener, int timeoutMs) {
+      String subnet, ScanProgressListener listener, int timeoutMs, ExecutorService executor) {
     List<DiscoveredServer> servers = new ArrayList<>();
     List<CompletableFuture<DiscoveredServer>> futures = new ArrayList<>();
 
@@ -226,7 +250,7 @@ public class NetworkScanner {
                 listener.onProgressUpdate(hostNumber, 254, host);
                 return scanHost(host, timeoutMs);
               },
-              currentExecutorService);
+              executor);
 
       futures.add(future);
     }
@@ -320,21 +344,17 @@ public class NetworkScanner {
             || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR));
   }
 
-  /** Cleanup resources. */
+  /**
+   * Cleanup resources. Called from {@code onDestroy} on the main thread, so it neither waits for
+   * the host probes nor touches the field again: the finishing scan thread clears it concurrently,
+   * which crashed with a NullPointerException here (Play Console, 3.2.0).
+   */
   public void shutdown() {
     LogUtils.d(TAG, "Shutting down NetworkScanner");
     isScanning = false;
-    if (currentExecutorService != null && !currentExecutorService.isShutdown()) {
-      currentExecutorService.shutdown();
-      try {
-        if (!currentExecutorService.awaitTermination(2, TimeUnit.SECONDS)) {
-          currentExecutorService.shutdownNow();
-        }
-      } catch (InterruptedException e) {
-        currentExecutorService.shutdownNow();
-        Thread.currentThread().interrupt();
-      }
-      currentExecutorService = null;
+    ExecutorService executor = takeExecutor();
+    if (executor != null) {
+      executor.shutdownNow();
     }
   }
 
