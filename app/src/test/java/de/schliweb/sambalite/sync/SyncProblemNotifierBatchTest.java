@@ -43,6 +43,13 @@ public class SyncProblemNotifierBatchTest {
     context = app;
     store = new SyncRunHistoryStore(context);
     notifications = shadowOf((NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE));
+    // Start from a clean state even if an earlier test of the same JVM left something behind:
+    // in a run of the whole suite a notification of the previous test was still there
+    ((NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE)).cancelAll();
+    for (String prefs : new String[] {"sync_run_history", "sambalite_sync_configs"}) {
+      app.getSharedPreferences(prefs, Context.MODE_PRIVATE).edit().clear().commit();
+    }
+    store = new SyncRunHistoryStore(context);
   }
 
   private static SyncConfig config(String name) {
