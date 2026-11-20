@@ -753,7 +753,10 @@ public class FolderSyncWorker extends Worker {
           }
           try {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
-            long remoteSize = getRemoteFileSize(share, remoteFilePath);
+            // The size comes with the listing, as in syncLocalToRemote; asking the server for it
+            // cost one open and close per file in every run (#40). The check after a download
+            // still reads the size from the file itself.
+            long remoteSize = remoteFile.getEndOfFile();
             String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
             LocalFolderListing.Entry localEntry =
                 lookupLocal(localFilesMap, localFilesMapLower, name);
