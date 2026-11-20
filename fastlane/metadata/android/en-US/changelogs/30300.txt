@@ -1,0 +1,6 @@
+- New: Up to 25 folder syncs instead of 5 (issue #40).
+- Faster: Folder syncs with many files or deeply nested folders run several times faster when little has changed.
+- New: The start screen shows when a sync does not work; "Show status" opens its details.
+- New: One notification when several syncs have the same problem, instead of one per sync.
+- Improved: The System Monitor stays readable with many syncs.
+- Fixed: Two crashes when the app or the file browser was closed during an operation.
