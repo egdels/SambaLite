@@ -8,6 +8,10 @@
     <string name="monitor_banner_all_paused">Alle Ordner-Syncs sind pausiert</string>
     <string name="monitor_banner_no_syncs_detail">Ordner-Syncs richtest du auf dem Startbildschirm ein und setzt sie dort fort.</string>
     <string name="monitor_banner_also">Außerdem: %1$s.</string>
+    <plurals name="monitor_banner_more">
+        <item quantity="one">%1$d weiterer</item>
+        <item quantity="other">%1$d weitere</item>
+    </plurals>
     <string name="monitor_banner_tap_for_details">Tippe unten auf den Sync, um Details zu sehen.</string>
     <string name="monitor_phrase_failed">%1$s synchronisiert nicht</string>
     <string name="monitor_phrase_low_space">%1$s gestoppt: Speicher fast voll</string>

@@ -8,6 +8,10 @@
     <string name="monitor_banner_all_paused">Toutes les synchronisations sont en pause</string>
     <string name="monitor_banner_no_syncs_detail">Les synchronisations se configurent et se reprennent sur l\'écran principal.</string>
     <string name="monitor_banner_also">Aussi : %1$s.</string>
+    <plurals name="monitor_banner_more">
+        <item quantity="one">%1$d autre</item>
+        <item quantity="other">%1$d autres</item>
+    </plurals>
     <string name="monitor_banner_tap_for_details">Touchez la synchronisation ci-dessous pour les détails.</string>
     <string name="monitor_phrase_failed">%1$s ne se synchronise pas</string>
     <string name="monitor_phrase_low_space">%1$s arrêtée : stockage presque plein</string>

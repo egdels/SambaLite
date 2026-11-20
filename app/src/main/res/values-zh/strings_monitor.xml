@@ -8,6 +8,9 @@
     <string name="monitor_banner_all_paused">所有文件夹同步均已暂停</string>
     <string name="monitor_banner_no_syncs_detail">可在主屏幕上设置和恢复文件夹同步。</string>
     <string name="monitor_banner_also">另外：%1$s。</string>
+    <plurals name="monitor_banner_more">
+        <item quantity="other">另有 %1$d 个</item>
+    </plurals>
     <string name="monitor_banner_tap_for_details">点按下方的同步查看详情。</string>
     <string name="monitor_phrase_failed">%1$s 无法同步</string>
     <string name="monitor_phrase_low_space">%1$s 已停止：存储空间几乎已满</string>

@@ -298,9 +298,17 @@ public final class SyncMonitorUi {
     SyncMonitorState.Entry first = problems.get(0);
     StringBuilder detail = new StringBuilder();
     if (problems.size() > 1) {
+      // With up to 25 syncs (#40), one unreachable server made this a list of 24 phrases
+      int otherCount = problems.size() - 1;
+      int named = otherCount <= BANNER_MAX_OTHERS ? otherCount : BANNER_NAMED_OTHERS;
       java.util.List<String> others = new java.util.ArrayList<>();
-      for (int i = 1; i < problems.size(); i++) {
+      for (int i = 1; i <= named; i++) {
         others.add(phrase(context, problems.get(i)));
+      }
+      if (otherCount > named) {
+        int more = otherCount - named;
+        others.add(
+            context.getResources().getQuantityString(R.plurals.monitor_banner_more, more, more));
       }
       detail.append(context.getString(R.string.monitor_banner_also, String.join("; ", others)));
     } else {
@@ -318,6 +326,36 @@ public final class SyncMonitorUi {
         error ? R.color.sync_status_error_container : R.color.sync_status_warning_container,
         error ? R.color.sync_status_error_on_container : R.color.sync_status_warning_on_container,
         error ? R.drawable.ic_error_outline : R.drawable.ic_warning);
+  }
+
+  /**
+   * Returns the entries in the order of the cards: syncs that do not work first, then those that
+   * need a look, then the others, paused ones last. Within a group the order of the configs is
+   * kept. With many syncs a single failing one was otherwise several screens down (#40).
+   */
+  @NonNull
+  public static java.util.List<SyncMonitorState.Entry> inCardOrder(
+      @NonNull java.util.List<SyncMonitorState.Entry> entries) {
+    java.util.List<SyncMonitorState.Entry> sorted = new java.util.ArrayList<>(entries);
+    // List.sort is stable
+    sorted.sort(java.util.Comparator.comparingInt(e -> cardRank(e.health.getLevel())));
+    return sorted;
+  }
+
+  private static int cardRank(@NonNull SyncHealth.Level level) {
+    switch (level) {
+      case ERROR:
+        return 0;
+      case WARNING:
+        return 1;
+      case PAUSED:
+        return 3;
+      case RUNNING:
+      case OK:
+      default:
+        // A running sync keeps its place, so the cards do not jump while a run goes through them
+        return 2;
+    }
   }
 
   /** "Photos has 23 files with errors", "Documents does not sync". */
@@ -341,6 +379,12 @@ public final class SyncMonitorUi {
         return context.getString(R.string.monitor_phrase_failed, name);
     }
   }
+
+  /** Up to this many further problems are all named in the banner. */
+  static final int BANNER_MAX_OTHERS = 3;
+
+  /** With more further problems, this many are named and the rest is counted. */
+  static final int BANNER_NAMED_OTHERS = 2;
 
   /** Limits of the views. */
   static final class SyncRunHistoryStoreLimits {

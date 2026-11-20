@@ -225,11 +225,12 @@ public class SystemMonitorActivity extends AppCompatActivity {
   private void renderCards(@NonNull SyncMonitorState state) {
     LayoutInflater inflater = LayoutInflater.from(this);
     // Reuse the cards so that a refresh every few seconds does not rebuild the views.
-    while (syncCards.getChildCount() > state.entries.size()) {
+    List<SyncMonitorState.Entry> entries = SyncMonitorUi.inCardOrder(state.entries);
+    while (syncCards.getChildCount() > entries.size()) {
       syncCards.removeViewAt(syncCards.getChildCount() - 1);
     }
-    for (int i = 0; i < state.entries.size(); i++) {
-      SyncMonitorState.Entry entry = state.entries.get(i);
+    for (int i = 0; i < entries.size(); i++) {
+      SyncMonitorState.Entry entry = entries.get(i);
       View card;
       if (i < syncCards.getChildCount()) {
         card = syncCards.getChildAt(i);

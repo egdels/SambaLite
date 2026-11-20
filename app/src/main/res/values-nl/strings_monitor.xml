@@ -8,6 +8,10 @@
     <string name="monitor_banner_all_paused">Alle mapsyncs zijn gepauzeerd</string>
     <string name="monitor_banner_no_syncs_detail">Mapsyncs stel je in en hervat je op het startscherm.</string>
     <string name="monitor_banner_also">Verder: %1$s.</string>
+    <plurals name="monitor_banner_more">
+        <item quantity="one">nog %1$d</item>
+        <item quantity="other">nog %1$d</item>
+    </plurals>
     <string name="monitor_banner_tap_for_details">Tik hieronder op de sync voor details.</string>
     <string name="monitor_phrase_failed">%1$s synchroniseert niet</string>
     <string name="monitor_phrase_low_space">%1$s gestopt: opslag bijna vol</string>

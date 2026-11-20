@@ -8,6 +8,12 @@
     <string name="monitor_banner_all_paused">Wszystkie synchronizacje folderów są wstrzymane</string>
     <string name="monitor_banner_no_syncs_detail">Synchronizacje folderów konfiguruje się i wznawia na ekranie głównym.</string>
     <string name="monitor_banner_also">Ponadto: %1$s.</string>
+    <plurals name="monitor_banner_more">
+        <item quantity="one">%1$d kolejny</item>
+        <item quantity="few">%1$d kolejne</item>
+        <item quantity="many">%1$d kolejnych</item>
+        <item quantity="other">%1$d kolejnego</item>
+    </plurals>
     <string name="monitor_banner_tap_for_details">Dotknij synchronizacji poniżej, aby zobaczyć szczegóły.</string>
     <string name="monitor_phrase_failed">%1$s nie synchronizuje się</string>
     <string name="monitor_phrase_low_space">%1$s zatrzymana: pamięć prawie pełna</string>

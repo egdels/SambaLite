@@ -93,7 +93,7 @@ public final class SyncMonitorState {
   @NonNull public final List<Entry> entries;
   public final long now;
 
-  private SyncMonitorState(@NonNull List<Entry> entries, long now) {
+  SyncMonitorState(@NonNull List<Entry> entries, long now) {
     this.entries = entries;
     this.now = now;
   }
