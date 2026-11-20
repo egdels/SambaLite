@@ -10,6 +10,7 @@
     <string name="monitor_banner_also">Además: %1$s.</string>
     <plurals name="monitor_banner_more">
         <item quantity="one">%1$d más</item>
+        <item quantity="many">%1$d más</item>
         <item quantity="other">%1$d más</item>
     </plurals>
     <string name="monitor_banner_tap_for_details">Toca la sincronización de abajo para ver los detalles.</string>
@@ -234,4 +235,20 @@
     <string name="sync_notify_overdue_title">%1$s está atrasada</string>
     <string name="sync_notify_overdue_text">Esta sincronización solo funciona con WiFi y lleva un tiempo sin ejecutarse. Toca para sincronizar una vez con datos móviles.</string>
     <string name="sync_notify_mute">Silenciar para esta sincronización</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d sincronización de carpetas tiene un problema</item>
+        <item quantity="many">%1$d sincronizaciones de carpetas tienen problemas</item>
+        <item quantity="other">%1$d sincronizaciones de carpetas tienen problemas</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d sincronización de carpetas vuelve a funcionar</item>
+        <item quantity="many">%1$d sincronizaciones de carpetas vuelven a funcionar</item>
+        <item quantity="other">%1$d sincronizaciones de carpetas vuelven a funcionar</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d sincronización de carpetas está atrasada</item>
+        <item quantity="many">%1$d sincronizaciones de carpetas están atrasadas</item>
+        <item quantity="other">%1$d sincronizaciones de carpetas están atrasadas</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s: %2$s</string>
 </resources>

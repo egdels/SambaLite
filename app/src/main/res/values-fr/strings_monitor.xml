@@ -10,6 +10,7 @@
     <string name="monitor_banner_also">Aussi : %1$s.</string>
     <plurals name="monitor_banner_more">
         <item quantity="one">%1$d autre</item>
+        <item quantity="many">%1$d autres</item>
         <item quantity="other">%1$d autres</item>
     </plurals>
     <string name="monitor_banner_tap_for_details">Touchez la synchronisation ci-dessous pour les détails.</string>
@@ -234,4 +235,20 @@
     <string name="sync_notify_overdue_title">%1$s est en retard</string>
     <string name="sync_notify_overdue_text">Cette synchronisation ne fonctionne qu\'en WiFi et n\'a pas eu lieu depuis un moment. Touchez pour synchroniser une fois via les données mobiles.</string>
     <string name="sync_notify_mute">Désactiver pour cette synchronisation</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d synchronisation de dossier a un problème</item>
+        <item quantity="many">%1$d synchronisations de dossier ont des problèmes</item>
+        <item quantity="other">%1$d synchronisations de dossier ont des problèmes</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d synchronisation de dossier fonctionne à nouveau</item>
+        <item quantity="many">%1$d synchronisations de dossier fonctionnent à nouveau</item>
+        <item quantity="other">%1$d synchronisations de dossier fonctionnent à nouveau</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d synchronisation de dossier est en retard</item>
+        <item quantity="many">%1$d synchronisations de dossier sont en retard</item>
+        <item quantity="other">%1$d synchronisations de dossier sont en retard</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s : %2$s</string>
 </resources>

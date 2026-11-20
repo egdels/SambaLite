@@ -218,4 +218,17 @@
     <string name="sync_notify_overdue_title">%1$s ist überfällig</string>
     <string name="sync_notify_overdue_text">Dieser Sync läuft nur über WLAN und ist seit einer Weile nicht gelaufen. Tippe, um einmal über Mobilfunk zu synchronisieren.</string>
     <string name="sync_notify_mute">Für diesen Sync stummschalten</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d Ordner-Sync hat ein Problem</item>
+        <item quantity="other">%1$d Ordner-Syncs haben Probleme</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d Ordner-Sync läuft wieder</item>
+        <item quantity="other">%1$d Ordner-Syncs laufen wieder</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d Ordner-Sync ist überfällig</item>
+        <item quantity="other">%1$d Ordner-Syncs sind überfällig</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s: %2$s</string>
 </resources>

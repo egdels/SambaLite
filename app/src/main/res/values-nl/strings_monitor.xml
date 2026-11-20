@@ -218,4 +218,17 @@
     <string name="sync_notify_overdue_title">%1$s is te laat</string>
     <string name="sync_notify_overdue_text">Deze sync werkt alleen via wifi en is al een tijd niet uitgevoerd. Tik om één keer via mobiele data te synchroniseren.</string>
     <string name="sync_notify_mute">Dempen voor deze sync</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d mapsync heeft een probleem</item>
+        <item quantity="other">%1$d mapsyncs hebben problemen</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d mapsync werkt weer</item>
+        <item quantity="other">%1$d mapsyncs werken weer</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d mapsync is te laat</item>
+        <item quantity="other">%1$d mapsyncs zijn te laat</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s: %2$s</string>
 </resources>

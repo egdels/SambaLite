@@ -201,4 +201,14 @@
     <string name="sync_notify_overdue_title">%1$s 已逾期</string>
     <string name="sync_notify_overdue_text">此同步仅通过 WiFi 运行，已有一段时间未运行。点按可通过移动数据同步一次。</string>
     <string name="sync_notify_mute">对此同步静音</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="other">%1$d 个文件夹同步出现问题</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="other">%1$d 个文件夹同步已恢复</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="other">%1$d 个文件夹同步已逾期</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s：%2$s</string>
 </resources>

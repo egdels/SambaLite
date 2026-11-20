@@ -238,6 +238,15 @@ public class FolderSyncWorker extends Worker {
   @NonNull
   @Override
   public Result doWork() {
+    try {
+      return syncConfigs();
+    } finally {
+      // A notification that sums up several syncs gets its final state
+      problemNotifications.finish(getApplicationContext());
+    }
+  }
+
+  private Result syncConfigs() {
     LogUtils.i(TAG, "Starting folder sync work");
 
     // Check if a specific config ID was requested
@@ -1536,9 +1545,12 @@ public class FolderSyncWorker extends Worker {
   }
 
   /** Stores the result of a run (or skip) and tells the user if the state of the sync changed. */
+  /** The problem notifications of this run; several syncs with the same problem share one. */
+  private final SyncProblemNotifier.Batch problemNotifications = new SyncProblemNotifier.Batch();
+
   private void recordRun(SyncConfig config, SyncRunResult result) {
     SyncRunHistoryStore.Recorded recorded = historyStore.record(result);
-    SyncProblemNotifier.onResult(
+    problemNotifications.onResult(
         getApplicationContext(), historyStore, config, result, recorded.getPreviousRun());
   }
 

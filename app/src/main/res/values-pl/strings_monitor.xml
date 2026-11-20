@@ -252,4 +252,23 @@
     <string name="sync_notify_overdue_title">%1$s jest zaległa</string>
     <string name="sync_notify_overdue_text">Ta synchronizacja działa tylko przez Wi-Fi i od pewnego czasu się nie uruchomiła. Dotknij, aby zsynchronizować raz przez dane komórkowe.</string>
     <string name="sync_notify_mute">Wycisz dla tej synchronizacji</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d synchronizacja folderu ma problem</item>
+        <item quantity="few">%1$d synchronizacje folderów mają problemy</item>
+        <item quantity="many">%1$d synchronizacji folderów ma problemy</item>
+        <item quantity="other">%1$d synchronizacji folderów ma problemy</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d synchronizacja folderu znów działa</item>
+        <item quantity="few">%1$d synchronizacje folderów znów działają</item>
+        <item quantity="many">%1$d synchronizacji folderów znów działa</item>
+        <item quantity="other">%1$d synchronizacji folderów znów działa</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d synchronizacja folderu jest zaległa</item>
+        <item quantity="few">%1$d synchronizacje folderów są zaległe</item>
+        <item quantity="many">%1$d synchronizacji folderów jest zaległych</item>
+        <item quantity="other">%1$d synchronizacji folderów jest zaległych</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s: %2$s</string>
 </resources>

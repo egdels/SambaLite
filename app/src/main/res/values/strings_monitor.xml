@@ -226,4 +226,17 @@
     <string name="sync_notify_overdue_title">%1$s is overdue</string>
     <string name="sync_notify_overdue_text">This sync only runs on WiFi and has not run for a while. Tap to sync once over mobile data.</string>
     <string name="sync_notify_mute">Mute for this sync</string>
+    <plurals name="sync_notify_many_problems_title">
+        <item quantity="one">%1$d folder sync has a problem</item>
+        <item quantity="other">%1$d folder syncs have problems</item>
+    </plurals>
+    <plurals name="sync_notify_many_recovered_title">
+        <item quantity="one">%1$d folder sync works again</item>
+        <item quantity="other">%1$d folder syncs work again</item>
+    </plurals>
+    <plurals name="sync_notify_many_overdue_title">
+        <item quantity="one">%1$d folder sync is overdue</item>
+        <item quantity="other">%1$d folder syncs are overdue</item>
+    </plurals>
+    <string name="sync_notify_many_cause">%1$s: %2$s</string>
 </resources>
