@@ -20,6 +20,7 @@ import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.work.ForegroundInfo;
@@ -543,7 +544,9 @@ public class FolderSyncWorker extends Worker {
       String relPath) {
     if (isStopped()) return;
 
-    DocumentFile[] localFilesArray = localFolder.listFiles();
+    // One query for name, type, size and timestamp of all children instead of four per file (#40)
+    List<LocalFolderListing.Entry> localEntries =
+        LocalFolderListing.list(getApplicationContext(), localFolder);
 
     // Performance (issue #21): fetch all remote metadata for this directory in a single
     // share.list() round-trip instead of opening every remote file multiple times
@@ -553,10 +556,11 @@ public class FolderSyncWorker extends Worker {
     Map<String, FileIdBothDirectoryInformation> remoteMetadata =
         listRemoteMetadata(share, remotePath);
 
-    for (DocumentFile localFile : localFilesArray) {
+    for (LocalFolderListing.Entry localEntry : localEntries) {
       if (isStopped()) return;
 
-      String name = localFile.getName();
+      DocumentFile localFile = localEntry.file;
+      String name = localEntry.getName();
       if (name == null) continue;
       if (isTrashAtRoot(name, relPath)) continue;
 
@@ -566,20 +570,24 @@ public class FolderSyncWorker extends Worker {
       if (forbidden != null) {
         LogUtils.w(TAG, "Not uploading " + name + ": name not allowed on SMB");
         recorder.invalidName(
-            relPath.isEmpty() ? name : relPath + "/" + name, localFile.isDirectory(), forbidden);
+            relPath.isEmpty() ? name : relPath + "/" + name, localEntry.isDirectory(), forbidden);
         continue;
       }
 
       String remoteFilePath = smbJoin(remotePath, name);
 
-      if (localFile.isDirectory()) {
-        ensureRemoteDirectoryExists(share, remoteFilePath);
+      if (localEntry.isDirectory()) {
+        // The listing of this folder already tells whether the subfolder exists on the server.
+        // Asking the server again cost one request per path level for every subfolder (#40).
+        if (!isRemoteDirectory(remoteMetadata.get(name))) {
+          createRemoteSubdirectory(share, remoteFilePath);
+        }
         String childRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
         syncLocalToRemote(share, localFile, remoteFilePath, rootUri, childRelPath);
       } else {
         try {
-          long localModified = localFile.lastModified();
-          long localSize = localFile.length();
+          long localModified = localEntry.lastModified();
+          long localSize = localEntry.length();
           FileIdBothDirectoryInformation remoteInfo = remoteMetadata.get(name);
           boolean remoteExists = remoteInfo != null;
 
@@ -699,10 +707,11 @@ public class FolderSyncWorker extends Worker {
       // matches, since SMB is case-insensitive but HashMap lookups are not. Without this,
       // a missed lookup would trigger createDirectory/createFile and the SAF provider would
       // silently create a duplicate like "B (1)".
-      DocumentFile[] localFilesArray = localFolder.listFiles();
-      Map<String, DocumentFile> localFilesMap = new HashMap<>();
-      Map<String, DocumentFile> localFilesMapLower = new HashMap<>();
-      for (DocumentFile f : localFilesArray) {
+      // Name, type, size and timestamp of all children come from one query (#40).
+      Map<String, LocalFolderListing.Entry> localFilesMap = new HashMap<>();
+      Map<String, LocalFolderListing.Entry> localFilesMapLower = new HashMap<>();
+      for (LocalFolderListing.Entry f :
+          LocalFolderListing.list(getApplicationContext(), localFolder)) {
         String n = f.getName();
         if (n != null) {
           String key = normalizeName(n);
@@ -724,7 +733,9 @@ public class FolderSyncWorker extends Worker {
                 != 0;
 
         if (isDirectory) {
-          DocumentFile localSubDir = lookupLocal(localFilesMap, localFilesMapLower, name);
+          LocalFolderListing.Entry localSubDirEntry =
+              lookupLocal(localFilesMap, localFilesMapLower, name);
+          DocumentFile localSubDir = localSubDirEntry != null ? localSubDirEntry.file : null;
           if (localSubDir == null) {
             localSubDir = createDirectorySafe(localFolder, name);
             recorder.log(
@@ -744,7 +755,9 @@ public class FolderSyncWorker extends Worker {
             long remoteModified = remoteFile.getLastWriteTime().toEpochMillis();
             long remoteSize = getRemoteFileSize(share, remoteFilePath);
             String fileRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
-            DocumentFile localFile = lookupLocal(localFilesMap, localFilesMapLower, name);
+            LocalFolderListing.Entry localEntry =
+                lookupLocal(localFilesMap, localFilesMapLower, name);
+            DocumentFile localFile = localEntry != null ? localEntry.file : null;
 
             if (localFile == null) {
               String mimeType = getMimeType(name);
@@ -764,8 +777,8 @@ public class FolderSyncWorker extends Worker {
               }
             } else {
               // Use stored metadata as fallback for SAF timestamp comparison
-              long localModified = localFile.lastModified();
-              long localSize = localFile.length();
+              long localModified = localEntry.lastModified();
+              long localSize = localEntry.length();
 
               FileSyncState storedState = syncStateStore.getRemoteState(rootUri, fileRelPath);
               if (SyncStateComparator.bothMatch(
@@ -867,13 +880,12 @@ public class FolderSyncWorker extends Worker {
   }
 
   /**
-   * Looks up a local DocumentFile by name using NFC normalization, falling back to a
-   * case-insensitive match (SMB is case-insensitive, HashMap lookups are not).
+   * Looks up a local entry by name using NFC normalization, falling back to a case-insensitive
+   * match (SMB is case-insensitive, HashMap lookups are not).
    */
-  static DocumentFile lookupLocal(
-      Map<String, DocumentFile> byName, Map<String, DocumentFile> byLowerName, String name) {
+  static <T> T lookupLocal(Map<String, T> byName, Map<String, T> byLowerName, String name) {
     String key = normalizeName(name);
-    DocumentFile f = byName.get(key);
+    T f = byName.get(key);
     if (f == null) {
       f = byLowerName.get(key.toLowerCase(Locale.ROOT));
     }
@@ -1341,6 +1353,26 @@ public class FolderSyncWorker extends Worker {
     } catch (Exception e) {
       LogUtils.w(TAG, "Could not get file size for: " + remotePath);
       return -1;
+    }
+  }
+
+  /** Returns whether an entry of a remote directory listing is a directory. */
+  private static boolean isRemoteDirectory(@Nullable FileIdBothDirectoryInformation info) {
+    return info != null
+        && (info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0;
+  }
+
+  /**
+   * Creates a subfolder of a remote folder that is known to exist. If that fails, for example
+   * because the listing of the parent was incomplete and the subfolder is already there, every
+   * level of the path is checked as before.
+   */
+  private void createRemoteSubdirectory(DiskShare share, String path) {
+    try {
+      share.mkdir(path.replace('/', '\\'));
+      LogUtils.d(TAG, "Created remote directory: " + path);
+    } catch (Exception e) {
+      ensureRemoteDirectoryExists(share, path);
     }
   }
 
@@ -2084,9 +2116,8 @@ public class FolderSyncWorker extends Worker {
    * mirrored away on the target side.
    */
   private void collectLocalPaths(DocumentFile folder, String prefix, Set<String> out) {
-    DocumentFile[] children = folder.listFiles();
-    if (children == null) return;
-    for (DocumentFile child : children) {
+    for (LocalFolderListing.Entry child :
+        LocalFolderListing.list(getApplicationContext(), folder)) {
       if (isStopped()) return;
       String name = child.getName();
       if (name == null || name.isEmpty()) continue;
@@ -2094,7 +2125,7 @@ public class FolderSyncWorker extends Worker {
       String rel = prefix.isEmpty() ? name : prefix + "/" + name;
       out.add(rel);
       if (child.isDirectory()) {
-        collectLocalPaths(child, rel, out);
+        collectLocalPaths(child.file, rel, out);
       }
     }
   }
