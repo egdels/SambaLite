@@ -62,7 +62,7 @@ You can choose from the following intervals:
 
 The sync runs automatically in the background using Android's WorkManager, even when the app is closed. Each sync configuration respects its own interval individually — a folder configured for every 6 hours will not be synced more frequently just because another folder is set to every 15 minutes.
 
-> **Note:** You can configure a maximum of **5 sync folders**. This limit ensures reliable performance within the WorkManager execution window and keeps resource usage (SMB connections, battery, network) manageable.
+> **Note:** You can configure a maximum of **25 sync folders**. The folders of one run are synced one after the other, so many folders with short intervals make each run longer and use more battery and network.
 
 ## Managing Sync Configurations
 

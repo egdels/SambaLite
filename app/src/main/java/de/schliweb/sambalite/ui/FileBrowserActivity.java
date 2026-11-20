@@ -2024,9 +2024,14 @@ public class FileBrowserActivity extends AppCompatActivity
             .startsWith(prefixWithEncoded.toLowerCase(Locale.ROOT));
   }
 
-  /** Handles the sync setup confirmation from the dialog. */
-  private static final int MAX_SYNC_CONFIGS = 5;
+  /**
+   * Upper limit of folder syncs (#40). The syncs of one run are processed one after the other in a
+   * foreground worker, and a run that is stopped continues with the remaining syncs on the next
+   * run, so the limit only keeps the list manageable.
+   */
+  private static final int MAX_SYNC_CONFIGS = 25;
 
+  /** Handles the sync setup confirmation from the dialog. */
   void handleSyncSetupConfirmed(
       SyncDirection direction,
       int intervalMinutes,

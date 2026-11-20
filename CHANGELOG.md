@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Crash when creating a folder, renaming or deleting failed after the file browser was closed**: The result of these operations arrives in the background. If one of them failed, for example because the connection was lost, and the file browser had been closed in the meantime, the app crashed while showing the error (`BadTokenException`). The error is now shown only while the file browser is still open.
 - **Crash when closing the app while the network scan finished**: If the start screen was closed at the moment the "Scan" for SMB servers in the connection dialog ended, the app crashed (`NullPointerException`). Closing the start screen now stops a running scan at once instead of waiting up to two seconds for it.
 
+### Changed
+- **Up to 25 folder syncs instead of 5** (#40): The limit of 5 sync configurations was too low for users who back up many separate folders. Up to 25 folders can now be set up for sync. They are still synced one after the other, each at its own interval.
+
 ## [3.2.0] - 2026-11-08
 
 ### Added
