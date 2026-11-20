@@ -11,6 +11,7 @@ package de.schliweb.sambalite.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
@@ -19,14 +20,19 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import de.schliweb.sambalite.R;
 import de.schliweb.sambalite.data.model.SmbConnection;
 import de.schliweb.sambalite.sync.SyncConfig;
 import de.schliweb.sambalite.sync.SyncDirection;
+import de.schliweb.sambalite.sync.SyncHealth;
+import de.schliweb.sambalite.ui.monitor.SyncStatusTexts;
 import de.schliweb.sambalite.util.LogUtils;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /** Adapter for displaying Sync configurations in a RecyclerView. */
 public class SyncConfigAdapter
@@ -34,6 +40,7 @@ public class SyncConfigAdapter
 
   private List<SyncConfig> syncConfigs = new ArrayList<>();
   private List<SmbConnection> connections = new ArrayList<>();
+  private Map<String, SyncHealth> health = Collections.emptyMap();
   private OnSyncClickListener listener;
   private Context context;
 
@@ -58,6 +65,34 @@ public class SyncConfigAdapter
   public void setConnections(@NonNull List<SmbConnection> connections) {
     this.connections = connections;
     notifyDataSetChanged();
+  }
+
+  /**
+   * Sets the state of the syncs by config ID, as the System Monitor shows it. A sync that does not
+   * work or needs a look says so on its card; before, a failing sync only showed its last
+   * successful sync or "Never synced" (#40).
+   */
+  @SuppressLint("NotifyDataSetChanged")
+  public void setHealth(@NonNull Map<String, SyncHealth> health) {
+    this.health = health;
+    notifyDataSetChanged();
+  }
+
+  /**
+   * Returns the color resource of the status line for a sync with a problem, or 0 for the normal
+   * color.
+   */
+  @androidx.annotation.ColorRes
+  static int problemColor(@Nullable SyncHealth health) {
+    if (health == null) return 0;
+    switch (health.getLevel()) {
+      case ERROR:
+        return R.color.sync_status_error_on_container;
+      case WARNING:
+        return R.color.sync_status_warning_on_container;
+      default:
+        return 0;
+    }
   }
 
   public void setOnSyncClickListener(@Nullable OnSyncClickListener listener) {
@@ -156,6 +191,7 @@ public class SyncConfigAdapter
     private final View moreOptionsButton;
     private final View syncIcon;
     private final View syncProgressBar;
+    private final ColorStateList statusDefaultColors;
 
     SyncConfigViewHolder(@NonNull View itemView) {
       super(itemView);
@@ -163,6 +199,7 @@ public class SyncConfigAdapter
       localPathTextView = itemView.findViewById(R.id.sync_local_path);
       remotePathTextView = itemView.findViewById(R.id.sync_remote_path);
       statusTextView = itemView.findViewById(R.id.sync_status);
+      statusDefaultColors = statusTextView.getTextColors();
       directionTextView = itemView.findViewById(R.id.sync_direction);
       wifiOnlyIndicator = itemView.findViewById(R.id.sync_wifi_only_indicator);
       mirrorIndicator = itemView.findViewById(R.id.sync_mirror_indicator);
@@ -204,6 +241,19 @@ public class SyncConfigAdapter
         statusTextView.setText(context.getString(R.string.sync_last_sync, timeAgo));
       } else {
         statusTextView.setText(context.getString(R.string.sync_never_synced));
+      }
+
+      // A sync with a problem names it before its last sync time, in the color of the problem
+      SyncHealth configHealth = health.get(config.getId());
+      int problemColor = problemColor(configHealth);
+      if (problemColor != 0 && config.isEnabled() && !config.isRunning()) {
+        statusTextView.setText(
+            context.getString(SyncStatusTexts.statusLabel(configHealth.getKind()))
+                + " · "
+                + statusTextView.getText());
+        statusTextView.setTextColor(ContextCompat.getColor(context, problemColor));
+      } else {
+        statusTextView.setTextColor(statusDefaultColors);
       }
 
       // Set sync direction

@@ -431,6 +431,7 @@
     <string name="sync_parent_folder_synced">Ein übergeordneter Ordner wird bereits synchronisiert. Unterordner von synchronisierten Ordnern können nicht separat synchronisiert werden.</string>
     <string name="sync_child_folder_synced">Ein Unterordner dieses Ordners wird bereits synchronisiert. Übergeordnete Ordner von synchronisierten Ordnern können nicht separat synchronisiert werden.</string>
     <string name="sync_edit_option">Sync bearbeiten</string>
+    <string name="sync_show_status">Status anzeigen</string>
     <string name="sync_remove_option">Sync entfernen</string>
     <string name="sync_delete_confirm_title">Sync-Konfiguration löschen</string>
     <string name="sync_delete_confirm_message">Sind Sie sicher, dass Sie die Sync-Konfiguration für den Ordner „%1$s“ entfernen möchten?</string>

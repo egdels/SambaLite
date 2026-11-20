@@ -431,6 +431,7 @@
     <string name="sync_parent_folder_synced">Een bovenliggende map wordt al gesynchroniseerd. Submappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
     <string name="sync_child_folder_synced">Een submap van deze map wordt al gesynchroniseerd. Bovenliggende mappen van gesynchroniseerde mappen kunnen niet apart worden gesynchroniseerd.</string>
     <string name="sync_edit_option">Synchronisatie bewerken</string>
+    <string name="sync_show_status">Status tonen</string>
     <string name="sync_remove_option">Synchronisatie verwijderen</string>
     <string name="sync_delete_confirm_title">Synchronisatieconfiguratie verwijderen</string>
     <string name="sync_delete_confirm_message">Weet je zeker dat je de synchronisatieconfiguratie voor de map ‘%1$s’ wilt verwijderen?</string>

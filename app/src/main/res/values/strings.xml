@@ -389,6 +389,7 @@
     <string name="sync_parent_folder_synced">A parent folder is already being synced. Sub-folders of synced folders cannot be synced separately.</string>
     <string name="sync_child_folder_synced">A sub-folder of this folder is already being synced. Parent folders of synced folders cannot be synced separately.</string>
     <string name="sync_edit_option">Edit Sync</string>
+    <string name="sync_show_status">Show status</string>
     <string name="sync_remove_option">Remove Sync</string>
     <string name="sync_delete_confirm_title">Delete Sync Configuration</string>
     <string name="sync_delete_confirm_message">Are you sure you want to remove the sync configuration for folder “%1$s”?</string>

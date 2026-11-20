@@ -79,6 +79,9 @@ public class MainActivity extends AppCompatActivity
   private MainViewModel viewModel;
   private ConnectionAdapter adapter;
   private SyncConfigAdapter syncAdapter;
+
+  private final java.util.concurrent.ExecutorService syncHealthExecutor =
+      java.util.concurrent.Executors.newSingleThreadExecutor();
   private LoadingIndicator loadingIndicator;
   private com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton fab;
   private NetworkScanner networkScanner;
@@ -375,6 +378,7 @@ public class MainActivity extends AppCompatActivity
               // Re-apply running state from WorkManager after config reload
               applyRunningState(configs);
               syncAdapter.setSyncConfigs(configs);
+              loadSyncHealth();
 
               if (size > 0) {
                 if (syncHeader != null) syncHeader.setVisibility(View.VISIBLE);
@@ -527,6 +531,9 @@ public class MainActivity extends AppCompatActivity
                 if (applyRunningState(currentConfigs)) {
                   LogUtils.d("MainActivity", "Notifying adapter of data change");
                   syncAdapter.notifyDataSetChanged();
+                  // A periodic run never "finishes" as work; when a sync of it stops running, its
+                  // result is there
+                  loadSyncHealth();
                 }
               }
             });
@@ -945,14 +952,43 @@ public class MainActivity extends AppCompatActivity
    * @param view The view to anchor the popup menu to
    * @param config The sync configuration
    */
+  /**
+   * Loads the state of the syncs for their cards. The run history is read in the background; with
+   * many syncs it is too much for the main thread.
+   */
+  private void loadSyncHealth() {
+    android.content.Context appContext = getApplicationContext();
+    syncHealthExecutor.execute(
+        () -> {
+          java.util.Map<String, de.schliweb.sambalite.sync.SyncHealth> health =
+              new java.util.HashMap<>();
+          try {
+            for (de.schliweb.sambalite.ui.monitor.SyncMonitorState.Entry entry :
+                de.schliweb.sambalite.ui.monitor.SyncMonitorState.load(appContext, null).entries) {
+              health.put(entry.config.getId(), entry.health);
+            }
+          } catch (RuntimeException e) {
+            LogUtils.w("MainActivity", "Could not load the sync state: " + e.getMessage());
+            return;
+          }
+          runOnUiThread(
+              () -> {
+                if (!isFinishing() && !isDestroyed() && syncAdapter != null) {
+                  syncAdapter.setHealth(health);
+                }
+              });
+        });
+  }
+
   private void showSyncOptions(View view, SyncConfig config) {
     androidx.appcompat.widget.PopupMenu popup = new androidx.appcompat.widget.PopupMenu(this, view);
     boolean running = config.isRunning();
     // While the config syncs, "Sync Now" makes no sense; offer to stop the sync instead (#41).
     popup.getMenu().add(0, 1, 0, running ? R.string.sync_stop : R.string.sync_now);
-    popup.getMenu().add(0, 2, 1, R.string.sync_edit_option);
-    popup.getMenu().add(0, 4, 2, config.isEnabled() ? R.string.sync_pause : R.string.sync_resume);
-    popup.getMenu().add(0, 3, 3, R.string.sync_remove_option);
+    popup.getMenu().add(0, 5, 1, R.string.sync_show_status);
+    popup.getMenu().add(0, 2, 2, R.string.sync_edit_option);
+    popup.getMenu().add(0, 4, 3, config.isEnabled() ? R.string.sync_pause : R.string.sync_resume);
+    popup.getMenu().add(0, 3, 4, R.string.sync_remove_option);
     if (!config.isEnabled()) {
       // A paused sync does not run; "Resume" starts it again
       popup.getMenu().findItem(1).setVisible(false);
@@ -970,6 +1006,11 @@ public class MainActivity extends AppCompatActivity
           } else if (itemId == 1) {
             viewModel.triggerSync(config.getId());
             EnhancedUIUtils.showInfo(this, getString(R.string.sync_running));
+            return true;
+          } else if (itemId == 5) {
+            startActivity(
+                de.schliweb.sambalite.ui.monitor.SyncStatusDetailActivity.createIntent(
+                    this, config.getId()));
             return true;
           } else if (itemId == 2) {
             showEditSyncDialog(config);
@@ -2372,6 +2413,8 @@ public class MainActivity extends AppCompatActivity
   @Override
   protected void onStart() {
     super.onStart();
+    // The state of a sync may have changed while the screen was not visible
+    loadSyncHealth();
     if (backgroundSmbManager != null) {
       backgroundSmbManager.onActivityStarted();
     }
@@ -2389,6 +2432,7 @@ public class MainActivity extends AppCompatActivity
   @Override
   protected void onDestroy() {
     super.onDestroy();
+    syncHealthExecutor.shutdownNow();
     if (connectionFileController != null) {
       connectionFileController.onDestroy();
     }
