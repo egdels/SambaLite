@@ -412,6 +412,10 @@
     <string name="sync_paused_info">同步已暂停</string>
     <string name="sync_resumed">同步已恢复</string>
     <string name="sync_local_folder_missing">同步“%1$s”的本地文件夹已不存在或无法访问。请编辑该同步以选择其他文件夹。</string>
+    <string name="sync_connection_missing">同步“%1$s”的连接已不存在。请编辑该同步以选择连接。</string>
+    <string name="sync_connection">连接</string>
+    <string name="sync_connection_missing_choose">此同步的连接已不存在。请选择其共享包含该服务器文件夹的已保存连接。之后同步将重新开始。</string>
+    <string name="sync_connection_choose">选择连接</string>
     <string name="sync_completed">同步成功完成</string>
     <string name="sync_failed">同步失败</string>
     <string name="sync_cancelled">同步已中断，将重新尝试</string>

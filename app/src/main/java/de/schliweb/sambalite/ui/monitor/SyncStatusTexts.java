@@ -417,6 +417,8 @@ public final class SyncStatusTexts {
         return R.string.sync_error_local_space;
       case FOLDER_SKIPPED:
         return R.string.sync_error_folder_skipped;
+      case CONNECTION_MISSING:
+        return R.string.sync_error_connection_missing;
       case OTHER:
       default:
         return R.string.sync_error_other;
@@ -455,6 +457,8 @@ public final class SyncStatusTexts {
         return context.getString(R.string.sync_error_local_space_hint);
       case FOLDER_SKIPPED:
         return context.getString(R.string.sync_error_folder_skipped_hint);
+      case CONNECTION_MISSING:
+        return context.getString(R.string.sync_error_connection_missing_hint);
       case OTHER:
       default:
         return context.getString(R.string.sync_error_other_hint);

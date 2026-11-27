@@ -228,6 +228,50 @@
             android:layout_marginBottom="16dp"
             android:visibility="gone" />
 
+        <!-- Connection: only when editing a sync whose saved connection is gone -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/sync_connection_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="?attr/colorErrorContainer">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@+id/sync_connection_spinner"
+                    android:text="@string/sync_connection"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="?attr/colorOnErrorContainer"
+                    android:layout_marginBottom="4dp" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sync_connection_missing_choose"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnErrorContainer"
+                    android:layout_marginBottom="8dp" />
+
+                <Spinner
+                    android:id="@+id/sync_connection_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Remote Path -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"

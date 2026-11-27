@@ -169,6 +169,8 @@
     <string name="sync_error_local_access_hint">Die Datei auf dem Gerät konnte nicht gelesen oder geschrieben werden. Prüfe, ob der Ordner noch Zugriff erlaubt.</string>
     <string name="sync_error_local_folder_missing">Lokaler Ordner nicht mehr erreichbar</string>
     <string name="sync_error_local_folder_missing_hint">Der Ordner auf dem Gerät wurde gelöscht oder die Zugriffsberechtigung wurde entzogen. Ein neuer Versuch liefert denselben Fehler; wähle den Ordner neu aus.</string>
+    <string name="sync_error_connection_missing">Verbindung existiert nicht mehr</string>
+    <string name="sync_error_connection_missing_hint">Die gespeicherte Verbindung dieser Synchronisierung wurde gelöscht, oder die Synchronisierungen wurden ohne ihre Verbindungen aus einer Sicherung wiederhergestellt. Ein erneuter Versuch führt zum selben Fehler; bearbeite die Synchronisierung und wähle die Verbindung.</string>
     <string name="sync_error_local_space">Speicher fast voll</string>
     <string name="sync_error_local_space_hint">Der Sync wurde gestoppt, damit auf dem Gerät Platz frei bleibt. Gib Speicher frei und synchronisiere dann erneut.</string>
     <string name="sync_error_folder_skipped">Ordner übersprungen</string>

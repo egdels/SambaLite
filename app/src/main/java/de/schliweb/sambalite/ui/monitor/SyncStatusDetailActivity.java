@@ -230,7 +230,8 @@ public class SyncStatusDetailActivity extends AppCompatActivity {
                 : SyncErrorCategory.OTHER;
         title.setText(SyncStatusTexts.categoryTitle(this, category));
         text.setText(SyncStatusTexts.categoryHint(this, category));
-        if (category == SyncErrorCategory.LOCAL_FOLDER_MISSING) {
+        if (category == SyncErrorCategory.LOCAL_FOLDER_MISSING
+            || category == SyncErrorCategory.CONNECTION_MISSING) {
           action.setText(R.string.sync_edit_option);
           action.setOnClickListener(
               v -> startActivity(MainActivity.createEditSyncIntent(this, configId)));

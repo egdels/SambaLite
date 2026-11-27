@@ -276,6 +276,39 @@ public class SyncManagerTest {
   }
 
   @Test
+  public void changeConnection_keepsTheSyncButStartsItAfresh() {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ADocs");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-gone", uri, "QA/Docs", "Docs", SyncDirection.BIDIRECTIONAL, 60);
+    syncRepository.updateLastSyncTimestamp(added.getId(), 123_456L);
+    SyncConfig stored = syncManager.getAllSyncConfigs().get(0);
+
+    syncManager.changeConnection(stored, "conn-new");
+
+    List<SyncConfig> all = syncManager.getAllSyncConfigs();
+    assertEquals(1, all.size());
+    SyncConfig changed = all.get(0);
+    assertEquals(added.getId(), changed.getId());
+    assertEquals("conn-new", changed.getConnectionId());
+    assertEquals(uri.toString(), changed.getLocalFolderUri());
+    assertEquals("QA/Docs", changed.getRemotePath());
+    assertEquals(0L, changed.getLastSyncTimestamp());
+  }
+
+  @Test
+  public void changeConnection_sameConnection_keepsLastSync() {
+    Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ASame");
+    SyncConfig added =
+        syncManager.addSyncConfig("conn-1", uri, "QA/Same", "Same", SyncDirection.BIDIRECTIONAL, 60);
+    syncRepository.updateLastSyncTimestamp(added.getId(), 123_456L);
+    SyncConfig stored = syncManager.getAllSyncConfigs().get(0);
+
+    syncManager.changeConnection(stored, "conn-1");
+
+    assertEquals(123_456L, syncManager.getAllSyncConfigs().get(0).getLastSyncTimestamp());
+  }
+
+  @Test
   public void removeSyncConfig_cancelsAPendingSyncNow() throws Exception {
     Uri uri = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3AGone");
     SyncConfig added =

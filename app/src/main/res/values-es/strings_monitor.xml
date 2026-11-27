@@ -184,6 +184,8 @@
     <string name="sync_error_local_access_hint">No se pudo leer ni escribir el archivo en el dispositivo. Comprueba que la carpeta siga permitiendo el acceso.</string>
     <string name="sync_error_local_folder_missing">Carpeta local no accesible</string>
     <string name="sync_error_local_folder_missing_hint">La carpeta del dispositivo se eliminó o se retiró el permiso de acceso. Reintentar da el mismo error; vuelve a elegir la carpeta.</string>
+    <string name="sync_error_connection_missing">La conexión ya no existe</string>
+    <string name="sync_error_connection_missing_hint">La conexión guardada de esta sincronización se eliminó, o las sincronizaciones se restauraron de una copia de seguridad sin sus conexiones. Reintentar da el mismo error; edita la sincronización y elige la conexión.</string>
     <string name="sync_error_local_space">Almacenamiento casi lleno</string>
     <string name="sync_error_local_space_hint">La sincronización se detuvo para dejar espacio libre en el dispositivo. Libera almacenamiento y vuelve a sincronizar.</string>
     <string name="sync_error_folder_skipped">Carpeta omitida</string>

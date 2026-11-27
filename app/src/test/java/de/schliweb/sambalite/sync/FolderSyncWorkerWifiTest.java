@@ -135,6 +135,23 @@ public class FolderSyncWorkerWifiTest {
     assertEquals(SyncErrorCategory.LOCAL_FOLDER_MISSING, latest.getFailureCategory());
   }
 
+  @Test
+  public void doWork_connectionGone_failsForGoodAndNamesTheCause() {
+    saveConnectionAndConfig(false);
+    // As after a restored backup: the sync is there, its connection is not.
+    Context context = ApplicationProvider.getApplicationContext();
+    new ConnectionRepositoryImpl(context).deleteConnection("conn1");
+
+    ListenableWorker.Result result = runManualSync();
+    assertTrue(result instanceof ListenableWorker.Result.Failure);
+    assertNotNull(result.getOutputData().getString(FolderSyncWorker.KEY_CONNECTION_MISSING));
+
+    SyncRunResult latest = new SyncRunHistoryStore(context).getLatest("config1");
+    assertNotNull(latest);
+    assertEquals(SyncRunResult.Status.FAILED, latest.getStatus());
+    assertEquals(SyncErrorCategory.CONNECTION_MISSING, latest.getFailureCategory());
+  }
+
   private void saveConnectionAndConfig(boolean wifiOnly) {
     Context context = ApplicationProvider.getApplicationContext();
     // Enough free space, so an attempted sync gets past the disk check

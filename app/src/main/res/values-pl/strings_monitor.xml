@@ -199,6 +199,8 @@
     <string name="sync_error_local_access_hint">Nie udało się odczytać ani zapisać pliku na urządzeniu. Sprawdź, czy folder nadal zezwala na dostęp.</string>
     <string name="sync_error_local_folder_missing">Folder lokalny niedostępny</string>
     <string name="sync_error_local_folder_missing_hint">Folder na urządzeniu został usunięty lub cofnięto uprawnienie dostępu. Ponowna próba da ten sam błąd; wybierz folder ponownie.</string>
+    <string name="sync_error_connection_missing">Połączenie już nie istnieje</string>
+    <string name="sync_error_connection_missing_hint">Zapisane połączenie tej synchronizacji zostało usunięte albo synchronizacje przywrócono z kopii zapasowej bez ich połączeń. Ponowna próba da ten sam błąd; edytuj synchronizację i wybierz połączenie.</string>
     <string name="sync_error_local_space">Pamięć prawie pełna</string>
     <string name="sync_error_local_space_hint">Synchronizacja została zatrzymana, aby zachować wolne miejsce na urządzeniu. Zwolnij pamięć i zsynchronizuj ponownie.</string>
     <string name="sync_error_folder_skipped">Pominięty folder</string>

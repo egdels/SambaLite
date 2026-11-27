@@ -56,6 +56,7 @@ import de.schliweb.sambalite.ui.dialogs.NetworkSearchDialog;
 import de.schliweb.sambalite.ui.utils.LoadingIndicator;
 import de.schliweb.sambalite.ui.utils.TransferErrorText;
 import de.schliweb.sambalite.util.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -544,13 +545,14 @@ public class MainActivity extends AppCompatActivity
 
   /**
    * Refreshes the sync cards and tells the user how the given, just finished sync runs ended. A
-   * missing local folder wins over other failures, a failure over a run that skipped a WiFi-only
-   * config, which wins over success.
+   * missing local folder or connection wins over other failures, a failure over a run that skipped
+   * a WiFi-only config, which wins over success.
    */
   private void announceFinishedSyncs(@NonNull List<WorkInfo> finished) {
     boolean failed = false;
     boolean skippedWifiOnly = false;
     String missingLocalFolder = null;
+    String missingConnection = null;
     for (WorkInfo workInfo : finished) {
       LogUtils.i(
           "MainActivity",
@@ -559,8 +561,15 @@ public class MainActivity extends AppCompatActivity
           workInfo
               .getOutputData()
               .getString(de.schliweb.sambalite.sync.FolderSyncWorker.KEY_LOCAL_FOLDER_MISSING);
+      String noConnection =
+          workInfo
+              .getOutputData()
+              .getString(de.schliweb.sambalite.sync.FolderSyncWorker.KEY_CONNECTION_MISSING);
+      if (noConnection != null) missingConnection = noConnection;
       if (missing != null) {
         missingLocalFolder = missing;
+      } else if (noConnection != null) {
+        // told below
       } else if (workInfo.getState() == WorkInfo.State.FAILED) {
         failed = true;
       } else if (workInfo
@@ -573,6 +582,9 @@ public class MainActivity extends AppCompatActivity
     if (missingLocalFolder != null) {
       EnhancedUIUtils.showError(
           this, getString(R.string.sync_local_folder_missing, missingLocalFolder));
+    } else if (missingConnection != null) {
+      EnhancedUIUtils.showError(
+          this, getString(R.string.sync_connection_missing, missingConnection));
     } else if (failed) {
       EnhancedUIUtils.showError(this, getString(R.string.sync_failed));
     } else if (skippedWifiOnly) {
@@ -1169,6 +1181,35 @@ public class MainActivity extends AppCompatActivity
           }
         });
 
+    // A sync whose saved connection is gone (deleted, or the syncs came back from a backup without
+    // their connections) cannot run. Only then the dialog offers the saved connections.
+    View connectionCard = dialogView.findViewById(R.id.sync_connection_card);
+    Spinner connectionSpinner = dialogView.findViewById(R.id.sync_connection_spinner);
+    List<SmbConnection> connectionChoices = new ArrayList<>();
+    androidx.lifecycle.Observer<List<SmbConnection>> connectionObserver =
+        saved -> {
+          if (saved == null) return;
+          connectionChoices.clear();
+          for (SmbConnection c : saved) {
+            if (c.getId() != null && c.getId().equals(config.getConnectionId())) {
+              connectionCard.setVisibility(View.GONE);
+              return;
+            }
+          }
+          connectionChoices.addAll(saved);
+          List<String> labels = new ArrayList<>();
+          labels.add(getString(R.string.sync_connection_choose));
+          for (SmbConnection c : saved) {
+            labels.add(c.getName() + " (//" + c.getServer() + "/" + c.getShare() + ")");
+          }
+          ArrayAdapter<String> connectionAdapter =
+              new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, labels);
+          connectionAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+          connectionSpinner.setAdapter(connectionAdapter);
+          connectionCard.setVisibility(View.VISIBLE);
+        };
+    viewModel.getConnections().observe(this, connectionObserver);
+
     // The layout's header is the dialog title; it reads "Edit Sync" here.
     TextView dialogTitle = dialogView.findViewById(R.id.sync_dialog_title);
     dialogTitle.setText(R.string.sync_edit_option);
@@ -1196,6 +1237,14 @@ public class MainActivity extends AppCompatActivity
               // Get mirror flag (ignored for BIDIRECTIONAL)
               boolean mirror = mirrorSwitch.isChecked() && direction != SyncDirection.BIDIRECTIONAL;
               boolean mirrorUseTrash = mirrorTrashSwitch.isChecked();
+
+              int connectionChoice = connectionSpinner.getSelectedItemPosition();
+              if (connectionCard.getVisibility() == View.VISIBLE
+                  && connectionChoice >= 1
+                  && connectionChoice <= connectionChoices.size()) {
+                viewModel.changeSyncConnection(
+                    config, connectionChoices.get(connectionChoice - 1).getId());
+              }
 
               android.net.Uri newFolder = editSyncFolderUri;
               String newFolderName = editSyncFolderName;
@@ -1237,6 +1286,7 @@ public class MainActivity extends AppCompatActivity
             d -> {
               editSyncFolderDisplay = null;
               editSyncConfig = null;
+              viewModel.getConnections().removeObserver(connectionObserver);
             })
         .show();
   }

@@ -201,6 +201,12 @@ public class MainViewModel extends ViewModel {
     loadSyncConfigs();
   }
 
+  /** Gives a sync configuration another connection; see {@link SyncManager#changeConnection}. */
+  public void changeSyncConnection(@NonNull SyncConfig config, @NonNull String connectionId) {
+    syncManager.changeConnection(config, connectionId);
+    loadSyncConfigs();
+  }
+
   /**
    * Edits a sync configuration including its local folder; see {@link SyncManager#editSyncConfig}.
    * A new folder starts the sync afresh.

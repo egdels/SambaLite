@@ -432,6 +432,10 @@
     <string name="sync_paused_info">Synchronisation suspendue</string>
     <string name="sync_resumed">Synchronisation reprise</string>
     <string name="sync_local_folder_missing">Le dossier local de la synchronisation « %1$s » n’existe plus ou n’est plus accessible. Modifiez la synchronisation pour choisir un autre dossier.</string>
+    <string name="sync_connection_missing">La connexion de la synchronisation « %1$s » n’existe plus. Modifiez la synchronisation pour choisir une connexion.</string>
+    <string name="sync_connection">Connexion</string>
+    <string name="sync_connection_missing_choose">La connexion de cette synchronisation n’existe plus. Choisissez la connexion enregistrée dont le partage contient le dossier du serveur. La synchronisation repart ensuite de zéro.</string>
+    <string name="sync_connection_choose">Choisir une connexion</string>
     <string name="sync_completed">Synchronisation terminée avec succès</string>
     <string name="sync_failed">Échec de la synchronisation</string>
     <string name="sync_cancelled">La synchronisation a été interrompue et sera réessayée</string>

@@ -443,6 +443,10 @@
     <string name="sync_paused_info">Synchronizacja wstrzymana</string>
     <string name="sync_resumed">Synchronizacja wznowiona</string>
     <string name="sync_local_folder_missing">Folder lokalny synchronizacji „%1$s” już nie istnieje lub jest niedostępny. Edytuj synchronizację, aby wybrać inny folder.</string>
+    <string name="sync_connection_missing">Połączenie synchronizacji „%1$s” już nie istnieje. Edytuj synchronizację, aby wybrać połączenie.</string>
+    <string name="sync_connection">Połączenie</string>
+    <string name="sync_connection_missing_choose">Połączenie tej synchronizacji już nie istnieje. Wybierz zapisane połączenie, którego udział zawiera folder na serwerze. Synchronizacja zacznie się potem od nowa.</string>
+    <string name="sync_connection_choose">Wybierz połączenie</string>
     <string name="sync_completed">Synchronizacja zakończona pomyślnie</string>
     <string name="sync_failed">Synchronizacja nie powiodła się</string>
     <string name="sync_cancelled">Synchronizacja została przerwana i zostanie ponowiona</string>

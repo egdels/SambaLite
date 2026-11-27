@@ -62,6 +62,11 @@ public enum SyncErrorCategory {
   LOCAL_SPACE,
   /** A whole folder could not be listed, so its content was not synced in this run. */
   FOLDER_SKIPPED,
+  /**
+   * The saved connection of the sync does not exist (any more): it was deleted, or the syncs were
+   * restored from a backup without their connections.
+   */
+  CONNECTION_MISSING,
   /** Anything else. */
   OTHER;
 

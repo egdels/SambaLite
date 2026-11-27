@@ -160,6 +160,12 @@ public class FolderSyncWorker extends Worker {
    */
   public static final String KEY_LOCAL_FOLDER_MISSING = "local_folder_missing";
 
+  /**
+   * Output data: display name of a sync whose saved connection does not exist; set when at least
+   * one config could not be synced for that reason. Retrying cannot fix it.
+   */
+  public static final String KEY_CONNECTION_MISSING = "connection_missing";
+
   /** The local folder of a config does not exist or cannot be accessed any more. */
   static final class LocalFolderMissingException extends Exception {
     LocalFolderMissingException(@NonNull String message) {
@@ -292,6 +298,7 @@ public class FolderSyncWorker extends Worker {
 
     boolean anyFailure = false;
     String missingLocalFolder = null;
+    String missingConnection = null;
     boolean skippedWifiOnly = false;
 
     for (SyncConfig config : configs) {
@@ -338,8 +345,9 @@ public class FolderSyncWorker extends Worker {
                 config.getId(),
                 SyncRunResult.Status.FAILED,
                 "connection not found",
-                SyncErrorCategory.OTHER,
+                SyncErrorCategory.CONNECTION_MISSING,
                 System.currentTimeMillis()));
+        if (missingConnection == null) missingConnection = configName(config);
         continue;
       }
 
@@ -466,12 +474,16 @@ public class FolderSyncWorker extends Worker {
       return Result.retry();
     }
 
-    if (missingLocalFolder != null) {
-      androidx.work.Data out =
-          new androidx.work.Data.Builder()
-              .putString(KEY_LOCAL_FOLDER_MISSING, missingLocalFolder)
-              .putBoolean(KEY_SKIPPED_WIFI_ONLY, skippedWifiOnly)
-              .build();
+    if (missingLocalFolder != null || missingConnection != null) {
+      androidx.work.Data.Builder builder =
+          new androidx.work.Data.Builder().putBoolean(KEY_SKIPPED_WIFI_ONLY, skippedWifiOnly);
+      if (missingLocalFolder != null) {
+        builder.putString(KEY_LOCAL_FOLDER_MISSING, missingLocalFolder);
+      }
+      if (missingConnection != null) {
+        builder.putString(KEY_CONNECTION_MISSING, missingConnection);
+      }
+      androidx.work.Data out = builder.build();
       // A "Sync Now" fails for good; the periodic run succeeds so that its schedule continues.
       return specificConfigId != null ? Result.failure(out) : Result.success(out);
     }

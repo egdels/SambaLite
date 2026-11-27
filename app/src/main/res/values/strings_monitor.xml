@@ -175,6 +175,8 @@
     <string name="sync_error_local_access_hint">The file on the device could not be read or written. Check that the folder still allows access.</string>
     <string name="sync_error_local_folder_missing">Local folder no longer accessible</string>
     <string name="sync_error_local_folder_missing_hint">The folder on the device was deleted or the access permission was revoked. Retrying gives the same error; choose the folder again.</string>
+    <string name="sync_error_connection_missing">Connection no longer exists</string>
+    <string name="sync_error_connection_missing_hint">The saved connection of this sync was deleted, or the syncs were restored from a backup without their connections. Retrying gives the same error; edit the sync and choose the connection.</string>
     <string name="sync_error_local_space">Storage almost full</string>
     <string name="sync_error_local_space_hint">The sync stopped to keep space free on the device. Free up storage, then sync again.</string>
     <string name="sync_error_folder_skipped">Folder skipped</string>

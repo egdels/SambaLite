@@ -421,6 +421,10 @@
     <string name="sync_paused_info">Synchronisierung pausiert</string>
     <string name="sync_resumed">Synchronisierung fortgesetzt</string>
     <string name="sync_local_folder_missing">Der lokale Ordner der Synchronisierung „%1$s“ existiert nicht mehr oder ist nicht zugänglich. Bearbeite die Synchronisierung, um einen anderen Ordner zu wählen.</string>
+    <string name="sync_connection_missing">Die Verbindung der Synchronisierung „%1$s“ existiert nicht mehr. Bearbeite die Synchronisierung, um eine Verbindung zu wählen.</string>
+    <string name="sync_connection">Verbindung</string>
+    <string name="sync_connection_missing_choose">Die Verbindung dieser Synchronisierung existiert nicht mehr. Wähle die gespeicherte Verbindung, deren Freigabe den Serverordner enthält. Die Synchronisierung beginnt danach neu.</string>
+    <string name="sync_connection_choose">Verbindung wählen</string>
     <string name="sync_completed">Sync erfolgreich abgeschlossen</string>
     <string name="sync_failed">Sync fehlgeschlagen</string>
     <string name="sync_cancelled">Sync wurde unterbrochen und wird erneut versucht</string>

@@ -154,6 +154,8 @@
     <string name="sync_error_local_access_hint">无法读取或写入设备上的文件。请检查该文件夹是否仍允许访问。</string>
     <string name="sync_error_local_folder_missing">无法访问本地文件夹</string>
     <string name="sync_error_local_folder_missing_hint">设备上的文件夹已被删除或访问权限已被撤销。重试会得到同样的错误，请重新选择文件夹。</string>
+    <string name="sync_error_connection_missing">连接已不存在</string>
+    <string name="sync_error_connection_missing_hint">此同步保存的连接已被删除，或同步是从备份恢复的，但连接没有一起恢复。重试会得到同样的错误，请编辑该同步并选择连接。</string>
     <string name="sync_error_local_space">存储空间几乎已满</string>
     <string name="sync_error_local_space_hint">同步已停止，以在设备上保留可用空间。请释放存储空间后再次同步。</string>
     <string name="sync_error_folder_skipped">已跳过文件夹</string>

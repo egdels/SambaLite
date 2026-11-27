@@ -431,6 +431,10 @@
     <string name="sync_paused_info">Sincronización en pausa</string>
     <string name="sync_resumed">Sincronización reanudada</string>
     <string name="sync_local_folder_missing">La carpeta local de la sincronización «%1$s» ya no existe o no es accesible. Edita la sincronización para elegir otra carpeta.</string>
+    <string name="sync_connection_missing">La conexión de la sincronización «%1$s» ya no existe. Edita la sincronización para elegir una conexión.</string>
+    <string name="sync_connection">Conexión</string>
+    <string name="sync_connection_missing_choose">La conexión de esta sincronización ya no existe. Elige la conexión guardada cuyo recurso compartido contiene la carpeta del servidor. Después la sincronización empieza de nuevo.</string>
+    <string name="sync_connection_choose">Elegir conexión</string>
     <string name="sync_completed">Sincronización completada con éxito</string>
     <string name="sync_failed">Error en la sincronización</string>
     <string name="sync_cancelled">La sincronización fue interrumpida y se reintentará</string>

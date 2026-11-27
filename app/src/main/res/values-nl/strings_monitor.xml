@@ -169,6 +169,8 @@
     <string name="sync_error_local_access_hint">Het bestand op het apparaat kon niet worden gelezen of geschreven. Controleer of de map nog toegang toestaat.</string>
     <string name="sync_error_local_folder_missing">Lokale map niet meer bereikbaar</string>
     <string name="sync_error_local_folder_missing_hint">De map op het apparaat is verwijderd of de toegangsrechten zijn ingetrokken. Opnieuw proberen geeft dezelfde fout; kies de map opnieuw.</string>
+    <string name="sync_error_connection_missing">Verbinding bestaat niet meer</string>
+    <string name="sync_error_connection_missing_hint">De opgeslagen verbinding van deze synchronisatie is verwijderd, of de synchronisaties zijn zonder hun verbindingen uit een back-up teruggezet. Opnieuw proberen geeft dezelfde fout; bewerk de synchronisatie en kies de verbinding.</string>
     <string name="sync_error_local_space">Opslag bijna vol</string>
     <string name="sync_error_local_space_hint">De sync is gestopt om ruimte vrij te houden op het apparaat. Maak opslag vrij en synchroniseer opnieuw.</string>
     <string name="sync_error_folder_skipped">Map overgeslagen</string>

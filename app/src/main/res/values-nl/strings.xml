@@ -421,6 +421,10 @@
     <string name="sync_paused_info">Synchronisatie gepauzeerd</string>
     <string name="sync_resumed">Synchronisatie hervat</string>
     <string name="sync_local_folder_missing">De lokale map van de synchronisatie ‘%1$s’ bestaat niet meer of is niet toegankelijk. Bewerk de synchronisatie om een andere map te kiezen.</string>
+    <string name="sync_connection_missing">De verbinding van de synchronisatie ‘%1$s’ bestaat niet meer. Bewerk de synchronisatie om een verbinding te kiezen.</string>
+    <string name="sync_connection">Verbinding</string>
+    <string name="sync_connection_missing_choose">De verbinding van deze synchronisatie bestaat niet meer. Kies de opgeslagen verbinding waarvan de share de servermap bevat. De synchronisatie begint daarna opnieuw.</string>
+    <string name="sync_connection_choose">Verbinding kiezen</string>
     <string name="sync_completed">Synchronisatie succesvol voltooid</string>
     <string name="sync_failed">Synchronisatie mislukt</string>
     <string name="sync_cancelled">Synchronisatie werd onderbroken en wordt opnieuw geprobeerd</string>

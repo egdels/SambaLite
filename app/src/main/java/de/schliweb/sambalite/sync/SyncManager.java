@@ -191,6 +191,25 @@ public class SyncManager {
   }
 
   /**
+   * Gives an existing sync configuration another saved connection, e.g. when its own was deleted or
+   * did not come back with a restored backup. The pair counts as new, as after a change of the
+   * local folder: the last sync time is reset and the tracked sync state deleted, so that the first
+   * run on the other connection compares both sides afresh instead of taking files that are missing
+   * there for deleted ones.
+   *
+   * @param config the existing configuration (as stored)
+   * @param connectionId the ID of the connection to use from now on
+   */
+  public void changeConnection(@NonNull SyncConfig config, @NonNull String connectionId) {
+    if (connectionId.equals(config.getConnectionId())) return;
+    LogUtils.d(TAG, "Changing connection of sync config: " + config.getId());
+    config.setConnectionId(connectionId);
+    config.setLastSyncTimestamp(0);
+    updateSyncConfig(config);
+    syncRepository.deleteSyncStateForRoot(config.getLocalFolderUri());
+  }
+
+  /**
    * Removes a sync configuration and cancels periodic sync if no configs remain.
    *
    * @param configId the ID of the configuration to remove

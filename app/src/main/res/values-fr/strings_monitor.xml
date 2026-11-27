@@ -184,6 +184,8 @@
     <string name="sync_error_local_access_hint">Le fichier sur l\'appareil n\'a pas pu être lu ou écrit. Vérifiez que le dossier autorise encore l\'accès.</string>
     <string name="sync_error_local_folder_missing">Dossier local inaccessible</string>
     <string name="sync_error_local_folder_missing_hint">Le dossier sur l\'appareil a été supprimé ou l\'autorisation d\'accès a été retirée. Réessayer donne la même erreur ; choisissez à nouveau le dossier.</string>
+    <string name="sync_error_connection_missing">La connexion n’existe plus</string>
+    <string name="sync_error_connection_missing_hint">La connexion enregistrée de cette synchronisation a été supprimée, ou les synchronisations ont été restaurées depuis une sauvegarde sans leurs connexions. Réessayer donne la même erreur ; modifiez la synchronisation et choisissez la connexion.</string>
     <string name="sync_error_local_space">Stockage presque plein</string>
     <string name="sync_error_local_space_hint">La synchronisation s\'est arrêtée pour garder de l\'espace libre sur l\'appareil. Libérez du stockage, puis synchronisez à nouveau.</string>
     <string name="sync_error_folder_skipped">Dossier ignoré</string>
