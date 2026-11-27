@@ -52,6 +52,7 @@ public class QuitFeatureTest {
   @After
   public void tearDown() throws Exception {
     if (mocks != null) mocks.close();
+    TestServices.destroyAll();
   }
 
   // ===== Helper: create BackgroundSmbManager with captured ServiceConnection =====
@@ -83,7 +84,7 @@ public class QuitFeatureTest {
     assertNotNull("ServiceConnection should have been captured", captured[0]);
 
     if (connectService) {
-      SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+      SmbBackgroundService service = TestServices.setup();
       IBinder binder = new SmbBackgroundService.LocalBinder(service);
       captured[0].onServiceConnected(
           new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -131,7 +132,7 @@ public class QuitFeatureTest {
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -154,7 +155,7 @@ public class QuitFeatureTest {
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -180,7 +181,7 @@ public class QuitFeatureTest {
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -233,7 +234,7 @@ public class QuitFeatureTest {
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
 
     // Connect the service
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -283,7 +284,7 @@ public class QuitFeatureTest {
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
 
     // Connect the service
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -323,7 +324,7 @@ public class QuitFeatureTest {
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
 
     // Connect, then stop
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -368,7 +369,7 @@ public class QuitFeatureTest {
     new BackgroundSmbManager(mockAppContext);
 
     // Create a service that has stopRequested=true
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     Intent stopIntent = new Intent(SmbBackgroundService.ACTION_STOP);
     service.onStartCommand(stopIntent, 0, 1);
     assertTrue(
@@ -395,7 +396,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionStop_returnsStartNotSticky() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent stopIntent = new Intent(SmbBackgroundService.ACTION_STOP);
     int result = service.onStartCommand(stopIntent, 0, 1);
@@ -405,7 +406,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionStop_setsStopRequestedTrue() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     assertFalse("stopRequested should be false initially", service.isStopRequested());
 
@@ -417,7 +418,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionStop_hasNoActiveOperations() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent stopIntent = new Intent(SmbBackgroundService.ACTION_STOP);
     service.onStartCommand(stopIntent, 0, 1);
@@ -428,7 +429,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionStop_cancelsActiveOperations() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     service.startOperation("upload1");
     service.startOperation("download1");
@@ -443,7 +444,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionCancel_returnsStartNotSticky() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent cancelIntent = new Intent(SmbBackgroundService.ACTION_CANCEL);
     int result = service.onStartCommand(cancelIntent, 0, 1);
@@ -453,7 +454,7 @@ public class QuitFeatureTest {
 
   @Test
   public void onStartCommand_actionCancel_doesNotSetStopRequested() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent cancelIntent = new Intent(SmbBackgroundService.ACTION_CANCEL);
     service.onStartCommand(cancelIntent, 0, 1);
@@ -467,7 +468,7 @@ public class QuitFeatureTest {
 
   @Test
   public void normalStartup_resetsStopRequested() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     // First stop the service
     Intent stopIntent = new Intent(SmbBackgroundService.ACTION_STOP);
@@ -483,7 +484,7 @@ public class QuitFeatureTest {
 
   @Test
   public void normalStartup_returnsStartSticky() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent normalIntent = new Intent();
     int result = service.onStartCommand(normalIntent, 0, 1);
@@ -497,7 +498,7 @@ public class QuitFeatureTest {
 
   @Test
   public void notification_serviceIdleAfterStart_noActiveOperations() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent intent = new Intent();
     service.onStartCommand(intent, 0, 1);
@@ -507,7 +508,7 @@ public class QuitFeatureTest {
 
   @Test
   public void notification_serviceWithOperations_hasActiveOperations() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     Intent intent = new Intent();
     service.onStartCommand(intent, 0, 1);
@@ -536,7 +537,7 @@ public class QuitFeatureTest {
 
   @Test
   public void startOperation_incrementsCount() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     assertEquals(0, service.getActiveOperationCount());
 
@@ -549,7 +550,7 @@ public class QuitFeatureTest {
 
   @Test
   public void finishOperation_decrementsCount() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     service.startOperation("op1");
     service.startOperation("op2");
@@ -564,7 +565,7 @@ public class QuitFeatureTest {
 
   @Test
   public void finishOperation_withUnknownName_decrementsCount() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
 
     service.startOperation("op1");
     service.finishOperation("op1", true);
@@ -618,7 +619,7 @@ public class QuitFeatureTest {
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);
@@ -641,7 +642,7 @@ public class QuitFeatureTest {
         .bindService(any(Intent.class), any(ServiceConnection.class), eq(Context.BIND_AUTO_CREATE));
 
     BackgroundSmbManager mgr = new BackgroundSmbManager(mockAppContext);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     IBinder binder = new SmbBackgroundService.LocalBinder(service);
     captured[0].onServiceConnected(
         new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"), binder);

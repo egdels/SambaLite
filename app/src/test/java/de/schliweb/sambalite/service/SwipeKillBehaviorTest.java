@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import java.util.List;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,10 +42,15 @@ public class SwipeKillBehaviorTest {
 
   @Before
   public void setUp() {
-    service = Robolectric.setupService(SmbBackgroundService.class);
+    service = TestServices.setup();
     NotificationManager nm =
         (NotificationManager) service.getSystemService(Context.NOTIFICATION_SERVICE);
     shadowNotificationManager = Shadows.shadowOf(nm);
+  }
+
+  @After
+  public void tearDown() {
+    TestServices.destroyAll();
   }
 
   private void startServiceNormally() {
@@ -229,7 +235,7 @@ public class SwipeKillBehaviorTest {
     service.onTaskRemoved(null);
 
     // Simulate second service lifecycle
-    SmbBackgroundService service2 = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service2 = TestServices.setup();
     service2.onStartCommand(new Intent(), 0, 1);
     service2.startOperation("download");
     service2.startOperation("search");

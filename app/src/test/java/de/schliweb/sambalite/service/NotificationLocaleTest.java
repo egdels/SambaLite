@@ -17,6 +17,7 @@ import android.content.Context;
 import android.content.Intent;
 import de.schliweb.sambalite.ui.utils.ProgressFormat;
 import java.util.List;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -29,6 +30,11 @@ import org.robolectric.annotation.Config;
 @Config(sdk = 34, qualifiers = "de")
 public class NotificationLocaleTest {
 
+  @After
+  public void tearDown() {
+    TestServices.destroyAll();
+  }
+
   private static Notification last(SmbBackgroundService service) {
     NotificationManager nm =
         (NotificationManager) service.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -39,7 +45,7 @@ public class NotificationLocaleTest {
 
   @Test
   public void idleNotificationAndChannel_areGerman() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     service.onStartCommand(new Intent(), 0, 1);
 
     Notification n = last(service);
@@ -54,7 +60,7 @@ public class NotificationLocaleTest {
 
   @Test
   public void runningOperation_showsGermanTitle() {
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     service.onStartCommand(new Intent(), 0, 1);
 
     service.startOperation("Deleting: a.txt");

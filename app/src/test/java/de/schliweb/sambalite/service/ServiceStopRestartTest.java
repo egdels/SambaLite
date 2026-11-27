@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import de.schliweb.sambalite.data.background.BackgroundSmbManager;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -33,9 +34,14 @@ import org.robolectric.annotation.Config;
 @Config(sdk = 34)
 public class ServiceStopRestartTest {
 
+  @After
+  public void tearDown() {
+    TestServices.destroyAll();
+  }
+
   @Test
   public void actionStop_stopsOnlyUpToItsOwnStartId() {
-    SmbBackgroundService service = spy(Robolectric.setupService(SmbBackgroundService.class));
+    SmbBackgroundService service = spy(TestServices.setup());
 
     service.onStartCommand(new Intent(SmbBackgroundService.ACTION_STOP), 0, 7);
 
@@ -48,7 +54,7 @@ public class ServiceStopRestartTest {
     ArgumentCaptor<ServiceConnection> conn = ArgumentCaptor.forClass(ServiceConnection.class);
     doReturn(true).when(ctx).bindService(any(Intent.class), conn.capture(), anyInt());
     BackgroundSmbManager mgr = new BackgroundSmbManager(ctx);
-    SmbBackgroundService service = Robolectric.setupService(SmbBackgroundService.class);
+    SmbBackgroundService service = TestServices.setup();
     conn.getValue()
         .onServiceConnected(
             new ComponentName("de.schliweb.sambalite", "SmbBackgroundService"),

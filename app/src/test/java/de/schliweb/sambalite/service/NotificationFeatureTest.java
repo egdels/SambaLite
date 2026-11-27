@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import java.util.List;
 import java.util.Locale;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,10 +37,15 @@ public class NotificationFeatureTest {
 
   @Before
   public void setUp() {
-    service = Robolectric.setupService(SmbBackgroundService.class);
+    service = TestServices.setup();
     NotificationManager nm =
         (NotificationManager) service.getSystemService(Context.NOTIFICATION_SERVICE);
     shadowNotificationManager = Shadows.shadowOf(nm);
+  }
+
+  @After
+  public void tearDown() {
+    TestServices.destroyAll();
   }
 
   // =========================================================================

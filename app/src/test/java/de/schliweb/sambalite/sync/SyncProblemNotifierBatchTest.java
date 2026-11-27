@@ -82,6 +82,29 @@ public class SyncProblemNotifierBatchTest {
     return String.valueOf(n.extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
   }
 
+  /**
+   * The number of notifications about folder syncs. Robolectric keeps the notifications of all
+   * tests of the JVM in one place, so the count of all of them is not reliable: a background
+   * service left running by another test class posted "Operation timed out" into this test, which
+   * then found three notifications instead of two.
+   */
+  private int syncNotifications() {
+    int count = 0;
+    for (Notification n : notifications.getAllNotifications()) {
+      if (SyncProblemNotifier.CHANNEL_ID.equals(n.getChannelId())) count++;
+    }
+    return count;
+  }
+
+  /** The titles of all notifications, for the message of a failed assertion. */
+  private String shown() {
+    StringBuilder sb = new StringBuilder();
+    for (Notification n : notifications.getAllNotifications()) {
+      sb.append('[').append(title(n)).append(" | ").append(text(n)).append("] ");
+    }
+    return sb.toString();
+  }
+
   private Notification summary(SyncProblemNotifier.Decision decision) {
     return notifications.getNotification(SyncProblemNotifier.summaryNotificationId(decision));
   }
@@ -92,7 +115,7 @@ public class SyncProblemNotifierBatchTest {
 
     fail(batch, "Photos", SyncErrorCategory.NETWORK);
 
-    assertEquals(1, notifications.size());
+    assertEquals(1, syncNotifications());
     assertNotNull(notifications.getNotification(SyncProblemNotifier.notificationId("Photos")));
     assertNull(summary(SyncProblemNotifier.Decision.PROBLEM));
   }
@@ -112,7 +135,7 @@ public class SyncProblemNotifierBatchTest {
     now[0] += SyncProblemNotifier.SUMMARY_UPDATE_INTERVAL_MS;
     batch.finish(context);
 
-    assertEquals(1, notifications.size());
+    assertEquals(1, syncNotifications());
     assertEquals(
         "25 folder syncs have problems", title(summary(SyncProblemNotifier.Decision.PROBLEM)));
   }
@@ -126,7 +149,7 @@ public class SyncProblemNotifierBatchTest {
       fail(batch, "S" + i, SyncErrorCategory.NETWORK);
     }
 
-    assertEquals(1, notifications.size());
+    assertEquals(1, syncNotifications());
     Notification n = summary(SyncProblemNotifier.Decision.PROBLEM);
     assertNotNull(n);
     assertEquals("25 folder syncs have problems", title(n));
@@ -155,7 +178,7 @@ public class SyncProblemNotifierBatchTest {
     }
     batch.finish(context);
 
-    assertEquals(2, notifications.size());
+    assertEquals(shown(), 2, syncNotifications());
     assertNotNull(notifications.getNotification(SyncProblemNotifier.notificationId("Broken")));
     Notification n = summary(SyncProblemNotifier.Decision.RECOVERED);
     assertEquals("3 folder syncs work again", title(n));
@@ -203,7 +226,7 @@ public class SyncProblemNotifierBatchTest {
     fail(batch, "A", SyncErrorCategory.NETWORK);
     fail(batch, "B", SyncErrorCategory.NETWORK);
 
-    assertEquals(1, notifications.size());
+    assertEquals(1, syncNotifications());
     assertNotNull(notifications.getNotification(SyncProblemNotifier.notificationId("A")));
   }
 
@@ -212,7 +235,7 @@ public class SyncProblemNotifierBatchTest {
     fail(new SyncProblemNotifier.Batch(), "A", SyncErrorCategory.NETWORK);
     fail(new SyncProblemNotifier.Batch(), "B", SyncErrorCategory.NETWORK);
 
-    assertEquals(2, notifications.size());
+    assertEquals(2, syncNotifications());
     assertNull(summary(SyncProblemNotifier.Decision.PROBLEM));
   }
 }
