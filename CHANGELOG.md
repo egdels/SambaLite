@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-11-27
+
 ### Added
 - **Start screen shows when a folder sync does not work** (#40): The card of a sync only showed its last successful sync, so a sync that failed looked like one that had never run ("Never synced"). The card now names the problem in front of it, for example "Failed · Last sync: 2 hours ago", in the color of the problem, for failed syncs, syncs with file errors and overdue ones. The menu of a card has "Show status", which opens the details of that sync in the System Monitor. Translations in all 7 languages.
 - **One notification when several folder syncs have the same problem** (#40): Every sync notified on its own, so a server that could not be reached produced one notification per sync, up to 25 within seconds. Several syncs of one run now share one notification, for example "25 folder syncs have problems" with the common cause and the first names; tapping it opens the System Monitor. The same holds when they work again or become overdue. A single sync still notifies as before, with "Mute for this sync". The notification about problems is removed once all syncs work again.
