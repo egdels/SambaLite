@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.documentfile.provider.DocumentFile;
 import de.schliweb.sambalite.util.LogUtils;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,17 +100,37 @@ final class LocalFolderListing {
   }
 
   /**
-   * Lists the children of {@code folder}. A child the metadata query does not return, or every
-   * child if the folder is not a document tree or the query fails, asks the provider itself as
-   * before.
+   * Lists the children of {@code folder}. A child the metadata query does not return asks the
+   * provider itself as before; a folder that is not a document tree is listed with {@link
+   * DocumentFile#listFiles()} only.
+   *
+   * <p>{@link DocumentFile#listFiles()} returns an empty array when the provider query fails, which
+   * looks exactly like an empty folder. A sync that took that at face value downloaded every server
+   * file again, and the provider stored the copies as "name (1)" next to the existing files. For a
+   * document tree the children are therefore counted by a query of their own, and a listing that
+   * cannot be read, or that has fewer children than that query, is reported as an error instead.
+   *
+   * @throws IOException if the children of a document tree folder could not be listed completely
    */
   @NonNull
-  static List<Entry> list(@NonNull Context context, @NonNull DocumentFile folder) {
-    DocumentFile[] children = folder.listFiles();
-    List<Entry> entries = new ArrayList<>(children != null ? children.length : 0);
-    if (children == null || children.length == 0) return entries;
+  static List<Entry> list(@NonNull Context context, @NonNull DocumentFile folder)
+      throws IOException {
+    Uri uri = folder.getUri();
+    Map<String, Metadata> metadata =
+        uri != null && DocumentsContract.isTreeUri(uri) ? queryMetadata(context, uri) : null;
 
-    Map<String, Metadata> metadata = queryMetadata(context, folder.getUri());
+    DocumentFile[] children = folder.listFiles();
+    if (children == null) children = new DocumentFile[0];
+    if (metadata != null && children.length < metadata.size()) {
+      throw new IOException(
+          "local folder listing incomplete: "
+              + children.length
+              + " of "
+              + metadata.size()
+              + " entries");
+    }
+
+    List<Entry> entries = new ArrayList<>(children.length);
     for (DocumentFile child : children) {
       Metadata m = null;
       if (metadata != null) {
@@ -124,33 +145,42 @@ final class LocalFolderListing {
     return entries;
   }
 
-  /** Returns the metadata of the children by document id, or {@code null} if not available. */
-  @Nullable
-  private static Map<String, Metadata> queryMetadata(@NonNull Context context, @Nullable Uri uri) {
+  /**
+   * Returns the metadata of the children of a document tree folder by document id.
+   *
+   * @throws IOException if the provider does not answer the query
+   */
+  @NonNull
+  private static Map<String, Metadata> queryMetadata(@NonNull Context context, @NonNull Uri uri)
+      throws IOException {
     try {
-      if (uri == null || !DocumentsContract.isTreeUri(uri)) return null;
       Uri childrenUri =
           DocumentsContract.buildChildDocumentsUriUsingTree(
               uri, DocumentsContract.getDocumentId(uri));
       Map<String, Metadata> result = new HashMap<>();
       try (Cursor c =
           context.getContentResolver().query(childrenUri, PROJECTION, null, null, null)) {
-        if (c == null) return null;
+        if (c == null) throw new IOException("local folder could not be listed: no result");
+        int idCol = c.getColumnIndexOrThrow(Document.COLUMN_DOCUMENT_ID);
+        int nameCol = c.getColumnIndex(Document.COLUMN_DISPLAY_NAME);
+        int mimeCol = c.getColumnIndex(Document.COLUMN_MIME_TYPE);
+        int sizeCol = c.getColumnIndex(Document.COLUMN_SIZE);
+        int modCol = c.getColumnIndex(Document.COLUMN_LAST_MODIFIED);
         while (c.moveToNext()) {
-          String id = c.isNull(0) ? null : c.getString(0);
+          String id = c.isNull(idCol) ? null : c.getString(idCol);
           if (id == null) continue;
-          String name = c.isNull(1) ? null : c.getString(1);
-          String mime = c.isNull(2) ? null : c.getString(2);
-          long size = c.isNull(3) ? 0 : c.getLong(3);
-          long lastModified = c.isNull(4) ? 0 : c.getLong(4);
+          String name = nameCol < 0 || c.isNull(nameCol) ? null : c.getString(nameCol);
+          String mime = mimeCol < 0 || c.isNull(mimeCol) ? null : c.getString(mimeCol);
+          long size = sizeCol < 0 || c.isNull(sizeCol) ? 0 : c.getLong(sizeCol);
+          long lastModified = modCol < 0 || c.isNull(modCol) ? 0 : c.getLong(modCol);
           result.put(
               id, new Metadata(name, Document.MIME_TYPE_DIR.equals(mime), size, lastModified));
         }
       }
       return result;
     } catch (RuntimeException e) {
-      LogUtils.d(TAG, "Could not query folder metadata, asking per file: " + e.getMessage());
-      return null;
+      LogUtils.w(TAG, "Could not list local folder " + uri + ": " + e.getMessage());
+      throw new IOException("local folder could not be listed: " + e.getMessage(), e);
     }
   }
 }

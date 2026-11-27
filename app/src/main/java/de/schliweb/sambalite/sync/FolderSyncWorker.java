@@ -554,8 +554,14 @@ public class FolderSyncWorker extends Worker {
     if (isStopped()) return;
 
     // One query for name, type, size and timestamp of all children instead of four per file (#40)
-    List<LocalFolderListing.Entry> localEntries =
-        LocalFolderListing.list(getApplicationContext(), localFolder);
+    List<LocalFolderListing.Entry> localEntries;
+    try {
+      localEntries = LocalFolderListing.list(getApplicationContext(), localFolder);
+    } catch (IOException e) {
+      LogUtils.e(TAG, "Error listing local folder " + relPath + ": " + e.getMessage());
+      recorder.folderSkipped(relPath, e);
+      return;
+    }
 
     // Performance (issue #21): fetch all remote metadata for this directory in a single
     // share.list() round-trip instead of opening every remote file multiple times
@@ -719,8 +725,17 @@ public class FolderSyncWorker extends Worker {
       // Name, type, size and timestamp of all children come from one query (#40).
       Map<String, LocalFolderListing.Entry> localFilesMap = new HashMap<>();
       Map<String, LocalFolderListing.Entry> localFilesMapLower = new HashMap<>();
-      for (LocalFolderListing.Entry f :
-          LocalFolderListing.list(getApplicationContext(), localFolder)) {
+      // A local folder that cannot be listed must not look empty: every server file would be
+      // downloaded again and stored as "name (1)" next to the existing one. Skip the folder.
+      List<LocalFolderListing.Entry> localEntries;
+      try {
+        localEntries = LocalFolderListing.list(getApplicationContext(), localFolder);
+      } catch (IOException e) {
+        LogUtils.e(TAG, "Error listing local folder " + relPath + ": " + e.getMessage());
+        recorder.folderSkipped(relPath, e);
+        return;
+      }
+      for (LocalFolderListing.Entry f : localEntries) {
         String n = f.getName();
         if (n != null) {
           String key = normalizeName(n);
@@ -746,9 +761,14 @@ public class FolderSyncWorker extends Worker {
               lookupLocal(localFilesMap, localFilesMapLower, name);
           DocumentFile localSubDir = localSubDirEntry != null ? localSubDirEntry.file : null;
           if (localSubDir == null) {
-            localSubDir = createDirectorySafe(localFolder, name);
-            recorder.log(
-                SyncActionLog.Action.CREATED_DIR, relPath.isEmpty() ? name : relPath + "/" + name);
+            localSubDir =
+                createDirectorySafe(
+                    localFolder, name, relPath.isEmpty() ? name : relPath + "/" + name);
+            if (localSubDir != null) {
+              recorder.log(
+                  SyncActionLog.Action.CREATED_DIR,
+                  relPath.isEmpty() ? name : relPath + "/" + name);
+            }
           }
           if (localSubDir != null) {
             String childRelPath = relPath.isEmpty() ? name : relPath + "/" + name;
@@ -773,7 +793,7 @@ public class FolderSyncWorker extends Worker {
 
             if (localFile == null) {
               String mimeType = getMimeType(name);
-              DocumentFile newFile = localFolder.createFile(mimeType, name);
+              DocumentFile newFile = createFileSafe(localFolder, mimeType, name, fileRelPath);
               if (newFile != null) {
                 downloadFileOrDiscard(share, remoteFilePath, newFile, rootUri, fileRelPath);
                 recorder.log(SyncActionLog.Action.DOWNLOADED, fileRelPath);
@@ -909,7 +929,7 @@ public class FolderSyncWorker extends Worker {
    * (e.g. creating "B (1)" because an entry named "B" already exists). In that case the duplicate
    * is removed and the existing directory is reused.
    */
-  private DocumentFile createDirectorySafe(DocumentFile parent, String name) {
+  private DocumentFile createDirectorySafe(DocumentFile parent, String name, String relPath) {
     DocumentFile created = parent.createDirectory(name);
     if (created != null && !name.equals(created.getName())) {
       LogUtils.w(
@@ -920,10 +940,43 @@ public class FolderSyncWorker extends Worker {
               + created.getName()
               + "'; looking for existing entry to reuse");
       DocumentFile existing = findDirectoryByNameInsensitive(parent, name, created);
-      if (existing != null) {
-        created.delete();
-        return existing;
+      created.delete();
+      if (existing == null) {
+        // The provider says the name is taken, but the folder could not be found: rather skip it
+        // in this run than sync into a copy like "B (1)".
+        recorder.error(
+            relPath,
+            name,
+            new IOException("local entry with this name exists but could not be read"));
       }
+      return existing;
+    }
+    return created;
+  }
+
+  /**
+   * Creates a local file for a download. If the provider stores it under another name (e.g. "a
+   * (1).txt") because an entry named {@code name} already exists, which the folder listing did not
+   * show, the new file is removed again and {@code null} is returned: the file is skipped in this
+   * run instead of being downloaded as a copy.
+   */
+  private DocumentFile createFileSafe(
+      DocumentFile parent, String mimeType, String name, String relPath) {
+    DocumentFile created = parent.createFile(mimeType, name);
+    if (created == null) return null;
+    String createdName = created.getName();
+    if (createdName != null && !normalizeName(createdName).equals(normalizeName(name))) {
+      LogUtils.w(
+          TAG,
+          "Provider renamed new file '"
+              + name
+              + "' to '"
+              + createdName
+              + "'; an entry with this name exists, skipping it");
+      created.delete();
+      recorder.error(
+          relPath, name, new IOException("local entry with this name exists but was not listed"));
+      return null;
     }
     return created;
   }
@@ -2130,7 +2183,8 @@ public class FolderSyncWorker extends Worker {
    * under {@code folder}. Directory paths are included so that empty directories can also be
    * mirrored away on the target side.
    */
-  private void collectLocalPaths(DocumentFile folder, String prefix, Set<String> out) {
+  private void collectLocalPaths(DocumentFile folder, String prefix, Set<String> out)
+      throws IOException {
     for (LocalFolderListing.Entry child :
         LocalFolderListing.list(getApplicationContext(), folder)) {
       if (isStopped()) return;
